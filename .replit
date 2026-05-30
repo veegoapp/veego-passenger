@@ -19,12 +19,12 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm exec expo start --tunnel --non-interactive"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm exec expo start --tunnel --clear --non-interactive"
 
 [[ports]]
 localPort = 8081
