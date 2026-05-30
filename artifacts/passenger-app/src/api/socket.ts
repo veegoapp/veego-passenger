@@ -1,0 +1,87 @@
+import { io, Socket } from 'socket.io-client';
+import { Platform } from 'react-native';
+import { tokenStore } from './client';
+import { SOCKET_EVENTS } from '../constants/socketEvents';
+
+const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
+if (!_rawApiUrl) {
+  throw new Error(
+    '[VeeGo] EXPO_PUBLIC_API_URL is not set. ' +
+    'Create a .env file in artifacts/passenger-app/ with:\n' +
+    '  EXPO_PUBLIC_API_URL=https://<your-replit-domain>/api'
+  );
+}
+const _apiBase: string = _rawApiUrl.startsWith('http') ? _rawApiUrl : `https://${_rawApiUrl}`;
+const SOCKET_URL = _apiBase.replace(/\/api\/?$/, '');
+
+let socket: Socket | null = null;
+
+export async function getSocket(): Promise<Socket> {
+  if (socket && socket.connected) return socket;
+
+  const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
+
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+
+  socket = io(SOCKET_URL, {
+    path: '/api/socket.io',
+    transports: Platform.OS === 'web' ? ['websocket', 'polling'] : ['websocket'],
+    auth: token ? { token } : {},
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1500,
+    timeout: 10000,
+  });
+
+  socket.on('connect', () => {
+    console.log('[Socket] connected:', socket?.id);
+  });
+
+  socket.on('connect_error', (err) => {
+    console.warn('[Socket] connection error:', err.message);
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('[Socket] disconnected:', reason);
+  });
+
+  return socket;
+}
+
+export function disconnectSocket() {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+}
+
+export type RideStatus =
+  | 'searching'
+  | 'driver_assigned'
+  | 'driver_en_route'
+  | 'arrived'
+  | 'started'
+  | 'completed'
+  | 'cancelled'
+  | 'timeout';
+
+export interface DriverLocation {
+  latitude: number;
+  longitude: number;
+  heading?: number;
+}
+
+export interface RideSocketEvents {
+  'ride:driver_assigned': (data: { rideId: string; driver: { name: string; phone: string; vehicle: string; rating: number }; eta: number }) => void;
+  'ride:driver_location': (data: { rideId: string; location: DriverLocation }) => void;
+  'ride:arrived': (data: { rideId: string }) => void;
+  'ride:started': (data: { rideId: string }) => void;
+  'ride:completed': (data: { rideId: string; fare: number }) => void;
+  'ride:cancelled': (data: { rideId: string; reason: string }) => void;
+  'ride:timeout': (data: { rideId: string }) => void;
+  'notification:new': (data: { id: string; category: string; title: string; body: string; time: string }) => void;
+  'booking:boarded': (data: { bookingId: string; passengerId?: string; timestamp: string }) => void;
+}

@@ -1,0 +1,68 @@
+import { useState, useEffect, useCallback } from 'react';
+import api from '../api/client';
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  dob: string;
+  phone: string;
+}
+
+const EMPTY_PROFILE: UserProfile = {
+  name: '',
+  email: '',
+  dob: '',
+  phone: '',
+};
+
+interface UseProfileResult {
+  profile: UserProfile;
+  loading: boolean;
+  error: string | null;
+  saveProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
+  refresh: () => void;
+}
+
+function mapApiProfile(d: any): UserProfile {
+  return {
+    name: d.name ?? d.fullName ?? d.displayName ?? '',
+    email: d.email ?? d.emailAddress ?? '',
+    dob: d.dob ?? d.dateOfBirth ?? d.birthdate ?? '',
+    phone: d.phone ?? d.phoneNumber ?? d.mobile ?? '',
+  };
+}
+
+export function useProfile(): UseProfileResult {
+  const [profile, setProfile] = useState<UserProfile>(EMPTY_PROFILE);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await api.get('/users/me');
+      const d = data.user ?? data.profile ?? data;
+      setProfile(mapApiProfile(d));
+    } catch (e: any) {
+      setError(e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+  const saveProfile = useCallback(async (updates: Partial<UserProfile>) => {
+    try {
+      const { data } = await api.patch('/users/me', updates);
+      const d = data.user ?? data.profile ?? data;
+      setProfile((prev) => ({ ...prev, ...mapApiProfile(d) }));
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e?.response?.data?.error ?? e?.response?.data?.message ?? 'Save failed' };
+    }
+  }, []);
+
+  return { profile, loading, error, saveProfile, refresh: fetchProfile };
+}

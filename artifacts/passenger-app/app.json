@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "VeeGo",
+    "slug": "veego",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "glide",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "updates": {
+      "enabled": false
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.glide.shuttle"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f8f8fb"
+      },
+      "package": "com.glide.shuttle"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#f8f8fb"
+        }
+      ],
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow VeeGo to access your camera to scan boarding QR codes."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
