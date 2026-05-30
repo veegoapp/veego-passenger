@@ -12,6 +12,8 @@ if (!_rawApiUrl) {
 }
 const BASE_URL: string = _rawApiUrl.startsWith('http') ? _rawApiUrl : `https://${_rawApiUrl}`;
 
+console.log('[VeeGo] API base URL:', BASE_URL);
+
 const TOKEN_KEY = 'veego_access_token';
 const REFRESH_KEY = 'veego_refresh_token';
 
@@ -60,6 +62,13 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     config.headers = config.headers ?? {};
     config.headers['Authorization'] = `Bearer ${token}`;
   }
+  const fullUrl = `${config.baseURL ?? BASE_URL}${config.url ?? ''}`;
+  console.log(`[API] --> ${config.method?.toUpperCase()} ${fullUrl}`);
+  if (config.data) {
+    const safeData = { ...config.data };
+    if (safeData.password) safeData.password = '***';
+    console.log('[API] --> payload:', JSON.stringify(safeData));
+  }
   return config;
 });
 
@@ -67,10 +76,18 @@ let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
 
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    console.log(`[API] <-- ${response.status} ${response.config.url}`);
+    return response;
+  },
   async (error) => {
+    const status = error.response?.status;
+    const url = error.config?.url ?? '?';
+    const body = error.response?.data;
+    console.warn(`[API] <-- ERROR ${status} ${url}:`, JSON.stringify(body ?? error.message));
+
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       if (isRefreshing) {
         return new Promise((resolve) => {
