@@ -10,7 +10,11 @@ if (!_rawApiUrl) {
     '  EXPO_PUBLIC_API_URL=https://<your-replit-domain>/api'
   );
 }
-const BASE_URL: string = _rawApiUrl.startsWith('http') ? _rawApiUrl : `https://${_rawApiUrl}`;
+// Normalize: handle cases where the value was entered as "KEY = https://..." or "KEY=https://..."
+const _normalizedUrl = _rawApiUrl.includes('=')
+  ? _rawApiUrl.split('=').slice(1).join('=').trim()
+  : _rawApiUrl.trim();
+const BASE_URL: string = _normalizedUrl.startsWith('http') ? _normalizedUrl : `https://${_normalizedUrl}`;
 
 console.log('[VeeGo] API base URL:', BASE_URL);
 
