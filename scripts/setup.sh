@@ -13,7 +13,7 @@ if [ -z "$BACKEND_URL" ]; then
 fi
 
 # ── Write EXPO_PUBLIC_API_URL to .env (always refresh) ────────────────────
-printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > artifacts/passenger-app/.env
+printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
 echo "=== API URL set: $BACKEND_URL ==="
 
 # ── First-time dependency install ─────────────────────────────────────────
@@ -29,7 +29,6 @@ fi
 # ── Start Expo ────────────────────────────────────────────────────────────
 echo "=== Starting Passenger App on :8081 ==="
 exec sh -c '
-  cd artifacts/passenger-app
   EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN \
   EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN \
   EXPO_PUBLIC_REPL_ID=$REPL_ID \
