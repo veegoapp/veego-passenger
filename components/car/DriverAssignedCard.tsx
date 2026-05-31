@@ -23,9 +23,10 @@ interface DriverAssignedCardProps {
   rideType: 'economy' | 'premium' | null;
   destination: string | null;
   onCancel: () => void;
+  onStart: () => void;
 }
 
-export function DriverAssignedCard({ visible, rideType, destination, onCancel }: DriverAssignedCardProps) {
+export function DriverAssignedCard({ visible, rideType, destination, onCancel, onStart }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -45,18 +46,11 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const url = `tel:${MOCK_DRIVER.phone}`;
     Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) Linking.openURL(url);
-        else Alert.alert(t('error') || 'Error', t('call_not_supported') || 'Calling not supported');
-      })
+      .then((ok) => { if (ok) Linking.openURL(url); })
       .catch(() => {});
   };
 
-  const translateY = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [500, 0],
-  });
-
+  const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
   const sheetBg = c.isDark ? 'rgba(16,16,32,0.98)' : 'rgba(250,250,252,0.98)';
   const borderCol = c.isDark ? 'rgba(90,95,160,0.25)' : 'rgba(255,255,255,0.8)';
 
@@ -67,7 +61,7 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: Platform.OS === 'web' ? 24 : insets.bottom + 35,
+          paddingBottom: Platform.OS === 'web' ? 20 : insets.bottom + 16,
           transform: [{ translateY }],
         },
       ]}
@@ -76,7 +70,7 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
       <View style={styles.handle} />
 
       <View style={styles.container}>
-        {/* Top summary row */}
+        {/* ETA row */}
         <View style={styles.etaRow}>
           <View style={[styles.pulseDot, { backgroundColor: '#55c49a' }]} />
           <Text style={[styles.etaText, { color: c.ink }]}>
@@ -88,12 +82,11 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
           </Text>
         </View>
 
-        {/* Main Driver Badge */}
+        {/* Driver badge */}
         <View style={[styles.driverCard, { backgroundColor: c.white, borderColor: c.border }]}>
           <View style={[styles.avatarWrap, { backgroundColor: MOCK_DRIVER.color }]}>
             <Text style={styles.avatarText}>{MOCK_DRIVER.initials}</Text>
           </View>
-
           <View style={styles.driverMeta}>
             <Text style={[styles.driverName, { color: c.ink }]}>{MOCK_DRIVER.name}</Text>
             <View style={styles.driverStats}>
@@ -105,7 +98,6 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
               </Text>
             </View>
           </View>
-
           <View style={styles.vehicleBlock}>
             <Text style={[styles.vehicleText, { color: c.inkSoft }]} numberOfLines={2}>
               {MOCK_DRIVER.vehicle}
@@ -116,28 +108,28 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
           </View>
         </View>
 
-        {/* Action Row */}
-        <View style={[styles.rideInfoRow, { borderTopColor: c.border }]}>
+        {/* Action row */}
+        <View style={[styles.actionRow, { borderTopColor: c.border }]}>
+          {/* Chat */}
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: c.ink }]}
-            activeOpacity={0.85}
+            style={[styles.iconBtn, { backgroundColor: c.mist }]}
+            activeOpacity={0.8}
             onPress={() => {
               if (Platform.OS !== 'web') Haptics.selectionAsync();
               setChatOpen(true);
             }}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color={c.isDark ? c.background : c.white} />
-            <Text style={[styles.btnText, { color: c.isDark ? c.background : c.white }]}>
-              {t('chat')}
-            </Text>
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={c.ink} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.circleBtn, { backgroundColor: c.mist }]} activeOpacity={0.8} onPress={handleCall}>
+          {/* Call */}
+          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: c.mist }]} activeOpacity={0.8} onPress={handleCall}>
             <Ionicons name="call-outline" size={18} color={c.ink} />
           </TouchableOpacity>
 
+          {/* Cancel */}
           <TouchableOpacity
-            style={[styles.circleBtn, { backgroundColor: c.isDark ? 'rgba(235,90,90,0.15)' : 'rgba(235,90,90,0.08)' }]}
+            style={[styles.iconBtn, { backgroundColor: c.isDark ? 'rgba(235,90,90,0.15)' : 'rgba(235,90,90,0.08)' }]}
             activeOpacity={0.8}
             onPress={() => {
               if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -154,6 +146,19 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
             <Ionicons name="close-outline" size={20} color="#eb5a5a" />
           </TouchableOpacity>
         </View>
+
+        {/* I'm Boarded button */}
+        <TouchableOpacity
+          style={[styles.boardedBtn, { backgroundColor: c.ink }]}
+          activeOpacity={0.9}
+          onPress={() => {
+            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onStart();
+          }}
+        >
+          <Ionicons name="checkmark-circle" size={18} color={c.isDark ? c.background : c.white} />
+          <Text style={[styles.boardedTxt, { color: c.isDark ? c.background : c.white }]}>I'm Boarded — Start Trip</Text>
+        </TouchableOpacity>
       </View>
 
       <ChatModal visible={chatOpen} onClose={() => setChatOpen(false)} driverName={MOCK_DRIVER.name} />
@@ -164,7 +169,7 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel }:
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute',
-    bottom: 85,
+    bottom: 0,
     left: 0,
     right: 0,
     borderTopLeftRadius: 32,
@@ -181,19 +186,15 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: 12 },
-  container: { paddingHorizontal: 20, gap: 14 },
+  container: { paddingHorizontal: 20, gap: 12 },
   etaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
   pulseDot: { width: 7, height: 7, borderRadius: 3.5 },
   etaText: { fontSize: 13, fontWeight: '600' },
   etaSep: { width: 1, height: 14, marginHorizontal: 2 },
   etaDest: { fontSize: 12, flex: 1 },
   driverCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 20, padding: 14, borderWidth: 1,
   },
   avatarWrap: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avatarText: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
@@ -206,23 +207,17 @@ const styles = StyleSheet.create({
   vehicleText: { fontSize: 10.5, maxWidth: 100 },
   plateBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   plateText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
-  rideInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderTopWidth: 1,
-    paddingTop: 14,
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderTopWidth: 1, paddingTop: 12,
+  },
+  iconBtn: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  boardedBtn: {
+    height: 52, borderRadius: 18,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     marginBottom: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12, shadowRadius: 12, elevation: 4,
   },
-  btn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  btnText: { fontSize: 14, fontWeight: '600' },
-  circleBtn: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  boardedTxt: { fontSize: 14, fontWeight: '700' },
 });

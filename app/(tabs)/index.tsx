@@ -58,9 +58,10 @@ function makeStyles(c: ThemeColors) {
     searchPlaceholder: { flex: 1, fontSize: 13.5, color: c.inkSoft },
     searchDivider: { width: 1, height: 16, backgroundColor: c.border },
 
-    mapSearchBoxSlim: {
+    mapSearchBox: {
       marginHorizontal: 20,
       marginTop: 6,
+      marginBottom: 10,
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: 16,
@@ -73,26 +74,13 @@ function makeStyles(c: ThemeColors) {
       borderWidth: 1,
       borderColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
     },
-    mapInputRowSlim: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 40, borderRadius: 10, paddingHorizontal: 8 },
-    mapInputRowInteractive: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f4f4f7' },
-    mapInputTextSlim: { fontSize: 13.5, fontWeight: '500', color: c.ink, flex: 1 },
-    mapInputPlaceholderSlim: { fontSize: 13.5, fontWeight: '600', color: c.inkSoft, flex: 1 },
-    mapInputDividerSlim: { height: 1, backgroundColor: c.border, marginVertical: 4, marginLeft: 28, opacity: 0.5 },
-    dotCurrentSlim: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
-    dotDestinationSlim: { width: 6, height: 6, borderRadius: 1.5, backgroundColor: c.badge },
-
-    suggestionsBox: {
-      marginHorizontal: 20,
-      marginTop: 4,
-      backgroundColor: c.white,
-      borderRadius: 16,
-      maxHeight: 220,
-      borderWidth: 1,
-      borderColor: c.border,
-      zIndex: 999,
-      ...S.float,
-    },
-    suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border },
+    mapInputRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 40, borderRadius: 10, paddingHorizontal: 8 },
+    mapInputRowActive: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f4f4f7' },
+    mapInputText: { fontSize: 13.5, fontWeight: '500', color: c.ink, flex: 1 },
+    mapInputPlaceholder: { fontSize: 13.5, fontWeight: '600', color: c.inkSoft, flex: 1 },
+    mapInputDivider: { height: 1, backgroundColor: c.border, marginVertical: 4, marginLeft: 28, opacity: 0.5 },
+    dotGreen: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
+    dotRed: { width: 6, height: 6, borderRadius: 1.5, backgroundColor: c.badge },
 
     scrollContent: { paddingHorizontal: 20, paddingTop: 0, gap: 0 },
     heroCard: { borderRadius: 28, padding: 20, marginBottom: 8, overflow: 'hidden', ...S.float },
@@ -123,14 +111,14 @@ export default function HomeScreen() {
   const { openRoute, activeBooking } = useBooking();
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const { routes } = useRoutes(); 
+  const { routes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
 
   const [pickupLocation, setPickupLocation] = useState('Current Location');
   const [destinationLocation, setDestinationLocation] = useState('');
-  const [selectedDestinationCoords, setSelectedDestinationCoords] = useState<{lat: number, lng: number} | null>(null);
   const [activeSearchField, setActiveSearchField] = useState<'from' | 'to' | null>(null);
   const [typedText, setTypedText] = useState('');
+  const [headerHeight, setHeaderHeight] = useState(220);
 
   const mostBookedRoutes = useMemo(() => {
     if (!routes || routes.length === 0) return [];
@@ -141,6 +129,7 @@ export default function HomeScreen() {
     setTabBarVisible(true);
   }, [setTabBarVisible]);
 
+  // وضوح الوجهة بيحرك CarMap لـ flow البحث
   const handleServicePress = (id: string, soon?: boolean) => {
     if (soon) {
       if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -152,6 +141,7 @@ export default function HomeScreen() {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
     setMode(id as ServiceMode);
     setActiveSearchField(null);
+    setDestinationLocation('');
   };
 
   const filteredSuggestions = useMemo(() => {
@@ -164,10 +154,7 @@ export default function HomeScreen() {
       setPickupLocation(location.name);
     } else {
       setDestinationLocation(location.name);
-      setSelectedDestinationCoords({ lat: location.lat, lng: location.lng });
-
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      console.log(`Car/Bike target set to: ${location.name} (${location.lat}, ${location.lng})`);
     }
     setActiveSearchField(null);
     setTypedText('');
@@ -176,13 +163,14 @@ export default function HomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
 
-      <View style={[StyleSheet.absoluteFillObject, { zIndex: mode !== 'shuttle' ? 1 : -1, opacity: mode !== 'shuttle' ? 1 : 0 }]}>
-        {mode === 'car' && <CarMap phase={selectedDestinationCoords ? "booking" : "idle"} destination={selectedDestinationCoords} driverLocation={null} />}
-        {mode === 'bike' && <BikeMap phase={selectedDestinationCoords ? "booking" : "idle"} destination={selectedDestinationCoords} />}
-      </View>
-
-      <View style={{ zIndex: 10, flex: 1 }}>
+      {/* ═══ الهيدر — دايمًا في الأعلى ═══ */}
+      <View
+        style={{ zIndex: 20 }}
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+      >
         <LinearGradient colors={c.luxeSoftGrad} style={{ paddingTop: top + 12 }}>
+
+          {/* Greeting + icons */}
           <View style={styles.header}>
             <View>
               <Text style={styles.greeting}>{t('good_morning')}</Text>
@@ -199,6 +187,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {/* Service tabs */}
           <View style={styles.serviceGrid}>
             {SERVICES.map((svc) => {
               const active = !svc.soon && mode === svc.id;
@@ -226,7 +215,7 @@ export default function HomeScreen() {
             })}
           </View>
 
-          {/* 🔍 تم تعديل المسار هنا ليكون للملف مباشرة منعا للـ Unmatched Route */}
+          {/* Shuttle search */}
           {mode === 'shuttle' && (
             <View style={styles.stickySearch}>
               <TouchableOpacity style={[gs, styles.searchBar]} onPress={() => router.push('/routes')} activeOpacity={0.85}>
@@ -238,120 +227,184 @@ export default function HomeScreen() {
             </View>
           )}
 
+          {/* Car / Bike destination search */}
           {mode !== 'shuttle' && (
-            <View>
-              <View style={styles.mapSearchBoxSlim}>
-                <TouchableOpacity 
-                  style={[styles.mapInputRowSlim, activeSearchField === 'from' && styles.mapInputRowInteractive]}
-                  onPress={() => { setActiveSearchField('from'); setTypedText(''); }}
-                >
-                  <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotCurrentSlim} /></View>
-                  {activeSearchField === 'from' ? (
-                    <TextInput style={styles.mapInputTextSlim} value={typedText} onChangeText={setTypedText} placeholder="Enter pickup location..." placeholderTextColor={c.inkSoft} autoFocus />
-                  ) : (
-                    <Text style={styles.mapInputTextSlim} numberOfLines={1}>{pickupLocation}</Text>
-                  )}
-                </TouchableOpacity>
+            <View style={styles.mapSearchBox}>
+              {/* Pickup */}
+              <TouchableOpacity
+                style={[styles.mapInputRow, activeSearchField === 'from' && styles.mapInputRowActive]}
+                onPress={() => { setActiveSearchField('from'); setTypedText(''); }}
+              >
+                <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotGreen} /></View>
+                {activeSearchField === 'from' ? (
+                  <TextInput
+                    style={styles.mapInputText}
+                    value={typedText}
+                    onChangeText={setTypedText}
+                    placeholder="Enter pickup location..."
+                    placeholderTextColor={c.inkSoft}
+                    autoFocus
+                  />
+                ) : (
+                  <Text style={styles.mapInputText} numberOfLines={1}>{pickupLocation}</Text>
+                )}
+              </TouchableOpacity>
 
-                <View style={styles.mapInputDividerSlim} />
+              <View style={styles.mapInputDivider} />
 
-                <TouchableOpacity 
-                  style={[styles.mapInputRowSlim, activeSearchField === 'to' && styles.mapInputRowInteractive]}
-                  onPress={() => { setActiveSearchField('to'); setTypedText(''); }}
-                >
-                  <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotDestinationSlim} /></View>
-                  {activeSearchField === 'to' ? (
-                    <TextInput style={styles.mapInputTextSlim} value={typedText} onChangeText={setTypedText} placeholder="Where are you going?" placeholderTextColor={c.inkSoft} autoFocus />
-                  ) : (
-                    <Text style={[styles.mapInputTextSlim, !destinationLocation && styles.mapInputPlaceholderSlim]} numberOfLines={1}>
-                      {destinationLocation || "Where are you going?"}
-                    </Text>
-                  )}
-                  <Search size={14} color={c.inkSoft} style={{ marginLeft: 'auto' }} />
-                </TouchableOpacity>
-              </View>
-
-              {activeSearchField && (
-                <View style={styles.suggestionsBox}>
-                  <ScrollView keyboardShouldPersistTaps="handled">
-                    {filteredSuggestions.map((item) => (
-                      <TouchableOpacity key={item.id} style={styles.suggestionItem} onPress={() => handleSelectLocation(item)}>
-                        <Navigation size={15} color={c.inkSoft} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 13.5, fontWeight: '500', color: c.ink }}>{item.name}</Text>
-                          <Text style={{ fontSize: 11.5, color: c.inkSoft }}>{item.description}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
+              {/* Destination */}
+              <TouchableOpacity
+                style={[styles.mapInputRow, activeSearchField === 'to' && styles.mapInputRowActive]}
+                onPress={() => { setActiveSearchField('to'); setTypedText(''); }}
+              >
+                <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotRed} /></View>
+                {activeSearchField === 'to' ? (
+                  <TextInput
+                    style={styles.mapInputText}
+                    value={typedText}
+                    onChangeText={setTypedText}
+                    placeholder="Where are you going?"
+                    placeholderTextColor={c.inkSoft}
+                    autoFocus
+                  />
+                ) : (
+                  <Text
+                    style={[styles.mapInputText, !destinationLocation && styles.mapInputPlaceholder]}
+                    numberOfLines={1}
+                  >
+                    {destinationLocation || 'Where are you going?'}
+                  </Text>
+                )}
+                <Search size={14} color={c.inkSoft} />
+              </TouchableOpacity>
             </View>
           )}
+
         </LinearGradient>
-
-        {mode === 'shuttle' && (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]} showsVerticalScrollIndicator={false}>
-            {activeBooking && (
-              <TouchableOpacity activeOpacity={0.92} onPress={() => router.push('/ticket')}>
-                <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2e2e3e']} style={styles.heroCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <View style={styles.heroGlow} />
-                  <View style={styles.heroTop}>
-                    <View>
-                      <Text style={styles.heroLabel}>{t('next_departure')}</Text>
-                      <Text style={styles.heroRouteName}>{activeBooking.route.name}</Text>
-                    </View>
-                    <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{activeBooking.time}</Text></View>
-                  </View>
-                  <View style={styles.heroBottom}>
-                    <View style={styles.heroStation}>
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff' }} />
-                      <Text style={styles.heroStationName}>{activeBooking.route.path[activeBooking.fromIdx].name}</Text>
-                    </View>
-                    <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
-                    <View style={styles.heroStation}>
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#55c49a' }} />
-                      <Text style={styles.heroStationName}>{activeBooking.route.path[activeBooking.toIdx].name}</Text>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            <SectionHeader title={t('featured_offers')} />
-            <FeaturedOffers />
-
-            {mostBookedRoutes.length > 0 && (
-              <View>
-                <View style={styles.mostBookedHeader}>
-                  <Text style={styles.mostBookedTitle}>
-                    <Flame size={16} color="#ef4444" fill="#ef4444" /> Most Booked
-                  </Text>
-                </View>
-                <View style={styles.routesList}>
-                  {mostBookedRoutes.map((route) => (
-                    <RouteCard key={`mb-${route.id}`} route={route} onPress={() => openRoute(route)} />
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* 🔍 تم تعديل المسار هنا ليكون للملف مباشرة منعاً للـ Unmatched Route */}
-            <View style={styles.routesSectionHeader}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: c.ink }}>Shuttle Routes</Text>
-              <TouchableOpacity onPress={() => router.push('/routes')}>
-                <Text style={styles.viewAllBtn}>View all routes</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.routesList}>
-              {routes.map((route) => (
-                <RouteCard key={route.id} route={route} onPress={() => openRoute(route)} />
-              ))}
-            </View>
-          </ScrollView>
-        )}
       </View>
+
+      {/* ═══ Suggestions dropdown — فوق الخريطة ═══ */}
+      {mode !== 'shuttle' && activeSearchField && (
+        <View style={{
+          position: 'absolute',
+          top: headerHeight,
+          left: 20,
+          right: 20,
+          zIndex: 999,
+          backgroundColor: c.white,
+          borderRadius: 16,
+          maxHeight: 220,
+          borderWidth: 1,
+          borderColor: c.border,
+          overflow: 'hidden',
+          ...S.float,
+        }}>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            {filteredSuggestions.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border }}
+                onPress={() => handleSelectLocation(item)}
+              >
+                <Navigation size={15} color={c.inkSoft} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13.5, fontWeight: '500', color: c.ink }}>{item.name}</Text>
+                  <Text style={{ fontSize: 11.5, color: c.inkSoft }}>{item.description}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* ═══ المحتوى ═══ */}
+
+      {/* Shuttle */}
+      {mode === 'shuttle' && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {activeBooking && (
+            <TouchableOpacity activeOpacity={0.92} onPress={() => router.push('/ticket')}>
+              <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2e2e3e']} style={styles.heroCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <View style={styles.heroGlow} />
+                <View style={styles.heroTop}>
+                  <View>
+                    <Text style={styles.heroLabel}>{t('next_departure')}</Text>
+                    <Text style={styles.heroRouteName}>{activeBooking.route.name}</Text>
+                  </View>
+                  <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{activeBooking.time}</Text></View>
+                </View>
+                <View style={styles.heroBottom}>
+                  <View style={styles.heroStation}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff' }} />
+                    <Text style={styles.heroStationName}>{activeBooking.route.path[activeBooking.fromIdx].name}</Text>
+                  </View>
+                  <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
+                  <View style={styles.heroStation}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#55c49a' }} />
+                    <Text style={styles.heroStationName}>{activeBooking.route.path[activeBooking.toIdx].name}</Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          <SectionHeader title={t('featured_offers')} />
+          <FeaturedOffers />
+
+          {mostBookedRoutes.length > 0 && (
+            <View>
+              <View style={styles.mostBookedHeader}>
+                <Text style={styles.mostBookedTitle}>
+                  <Flame size={16} color="#ef4444" fill="#ef4444" /> Most Booked
+                </Text>
+              </View>
+              <View style={styles.routesList}>
+                {mostBookedRoutes.map((route) => (
+                  <RouteCard key={`mb-${route.id}`} route={route} onPress={() => openRoute(route)} />
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.routesSectionHeader}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: c.ink }}>Shuttle Routes</Text>
+            <TouchableOpacity onPress={() => router.push('/routes')}>
+              <Text style={styles.viewAllBtn}>View all routes</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.routesList}>
+            {routes.map((route) => (
+              <RouteCard key={route.id} route={route} onPress={() => openRoute(route)} />
+            ))}
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Car — تملأ المساحة من تحت الهيدر فوق التاب بار */}
+      {mode === 'car' && (
+        <View style={{ flex: 1 }}>
+          <CarMap
+            destination={destinationLocation || null}
+            onClose={() => setDestinationLocation('')}
+          />
+        </View>
+      )}
+
+      {/* Bike */}
+      {mode === 'bike' && (
+        <View style={{ flex: 1 }}>
+          <BikeMap
+            phase={destinationLocation ? 'driver_assigned' : 'idle'}
+            destination={destinationLocation || null}
+          />
+        </View>
+      )}
+
     </View>
   );
 }

@@ -157,7 +157,7 @@ export function RideOptionsSheet({
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute',
-    bottom: 85,
+    bottom: 0,
     left: 0,
     right: 0,
     borderTopLeftRadius: 32,
