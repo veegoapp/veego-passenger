@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "_P6tyAW4urtpCVM_R_9hN"
+uri = "file://PASSENGER_APP_AUDIT.md"
+type = "text"
+title = "VeeGo Passenger App — Integration Audit"
