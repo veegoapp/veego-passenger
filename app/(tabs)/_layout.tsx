@@ -8,6 +8,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { S } from '@/constants/colors';
 import { useTabBar } from '@/context/TabBarContext';
 
+// استيراد ضروري لمنع الـ Gesture Crash
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 const TAB_ITEMS = [
   { name: 'index',     labelKey: 'home'      as const, icon: Home },
   { name: 'trips',     labelKey: 'trips'     as const, icon: Ticket },
@@ -83,9 +86,9 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
           styles.navInner,
           S.float,
           {
-            backgroundColor: c.isDark ? 'rgba(26,28,50,0.97)' : 'rgba(255,255,255,0.94)',
+            backgroundColor: c.isDark ? 'rgba(26,28,50,0.97)' : 'rgba(255,255,255,0.96)',
             borderWidth: 1,
-            borderColor: c.isDark ? 'rgba(90,95,160,0.2)' : 'rgba(255,255,255,0.7)',
+            borderColor: c.isDark ? 'rgba(90,95,160,0.15)' : 'rgba(0,0,0,0.04)',
           },
         ]}
       >
@@ -145,37 +148,38 @@ function TabBarWrapper(props: BottomTabBarProps) {
 
 export default function TabLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <TabBarWrapper {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="trips" />
-      <Tabs.Screen name="favorites" />
-      <Tabs.Screen name="wallet" />
-      <Tabs.Screen name="profile" />
-      <Tabs.Screen name="car" options={{ href: null }} />
-      <Tabs.Screen name="routes" options={{ href: null }} />
-    </Tabs>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Tabs
+        tabBar={(props) => <TabBarWrapper {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="trips" />
+        <Tabs.Screen name="favorites" />
+        <Tabs.Screen name="wallet" />
+        <Tabs.Screen name="profile" />
+        {/* تم حذف المسارات الفرعية من هنا لأنها لو مش موجودة كملفات بتسبب Crash */}
+      </Tabs>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
   navOuter: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 10, paddingTop: 4,
+    paddingHorizontal: 16, paddingTop: 4, zIndex: 99,
   },
   navInner: {
     flexDirection: 'row', borderRadius: 30,
-    paddingVertical: 6, paddingHorizontal: 4, gap: 0,
+    paddingVertical: 6, paddingHorizontal: 6,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 5,
   },
   navItem: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 8, borderRadius: 20, gap: 3,
-    zIndex: 2,
+    paddingVertical: 8, borderRadius: 24, gap: 2, zIndex: 2,
   },
   activePill: {
-    position: 'absolute', top: 6, bottom: 6, borderRadius: 20, zIndex: 1,
+    position: 'absolute', top: 6, bottom: 6, borderRadius: 24, zIndex: 1,
   },
-  navLabel: { fontSize: 9, fontWeight: '500', lineHeight: 12 },
+  navLabel: { fontSize: 10, fontWeight: '650', lineHeight: 13 },
 });

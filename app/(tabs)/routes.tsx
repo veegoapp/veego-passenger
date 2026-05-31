@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RefreshCw, Bus } from 'lucide-react-native';
+import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { RouteCard } from '@/components/RouteCard';
@@ -13,12 +13,22 @@ import { useRoutes } from '@/src/hooks/useRoutes';
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: {
-      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
       paddingHorizontal: 20, paddingBottom: 12,
     },
-    headerTitle: { fontSize: 26, fontWeight: '700', color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
+    headerTopRow: {
+      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12
+    },
+    headerTitle: { fontSize: 26, fontWeight: '700', color: c.ink, letterSpacing: -0.8 },
     headerSub: { fontSize: 12, color: c.inkSoft, marginTop: 2 },
     iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+
+    // ستايل بار البحث الجديد المتناسق مع الهوم
+    searchContainer: {
+      flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 23,
+      paddingHorizontal: 16, marginBottom: 16, borderWidth: 1
+    },
+    searchInput: { flex: 1, fontSize: 14, fontWeight: '500', paddingVertical: 0, marginLeft: 8 },
+
     filterScroll: { flexGrow: 0, marginBottom: 16 },
     filterChip: { height: 38, paddingHorizontal: 16, borderRadius: 99, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     filterChipActive: { backgroundColor: c.ink, borderColor: c.ink },
@@ -39,6 +49,7 @@ export default function RoutesScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
   const [activeFilter, setActiveFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState(''); // ستيت البحث الجديد
   const { openRoute } = useBooking();
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -46,18 +57,62 @@ export default function RoutesScreen() {
   const { routes, loading, error, refresh } = useRoutes();
 
   const routeCodes = ['all', ...Array.from(new Set(routes.map((r) => r.code)))];
-  const filtered = activeFilter === 'all' ? routes : routes.filter((r) => r.code === activeFilter);
+
+  // فلترة حقيقية مركبة: بتفلتر بناءً على الكود المختار + نص البحث الحقيقي (لايف من السيرفر)
+  const filtered = useMemo(() => {
+    let result = routes;
+
+    // 1. الفلترة بالـ Chip
+    if (activeFilter !== 'all') {
+      result = result.filter((r) => r.code === activeFilter);
+    }
+
+    // 2. الفلترة بمربع البحث (اسم الخط أو المحطات داخله)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((route) => {
+        const matchName = route.name?.toLowerCase().includes(query);
+        const matchCode = route.code?.toLowerCase().includes(query);
+        const matchStation = route.path?.some((station: any) => 
+          station.name?.toLowerCase().includes(query)
+        );
+        return matchName || matchCode || matchStation;
+      });
+    }
+
+    return result;
+  }, [routes, activeFilter, searchQuery]);
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
-        <View>
-          <Text style={styles.headerTitle}>{t('routes_title')}</Text>
-          <Text style={styles.headerSub}>{routes.length} {t('lines_available')}</Text>
+        <View style={styles.headerTopRow}>
+          <View>
+            <Text style={styles.headerTitle}>{t('routes_title')}</Text>
+            <Text style={styles.headerSub}>{routes.length} {t('lines_available')}</Text>
+          </View>
+          <TouchableOpacity style={[gs, styles.iconBtn]} onPress={refresh} activeOpacity={0.8}>
+            <RefreshCw size={16} color={c.ink} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={[gs, styles.iconBtn]} onPress={refresh} activeOpacity={0.8}>
-          <RefreshCw size={16} color={c.ink} />
-        </TouchableOpacity>
+
+        {/* 🔍 بار البحث الذكي والجديد كلياً */}
+        <View style={[styles.searchContainer, { backgroundColor: c.white, borderColor: c.border }]}>
+          <Search size={18} color={c.inkSoft} />
+          <TextInput
+            style={[styles.searchInput, { color: c.ink }]}
+            placeholder="Search for route or station"
+            placeholderTextColor={c.inkSoft}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <X size={16} color={c.inkSoft} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {routes.length > 0 && (
@@ -90,13 +145,13 @@ export default function RoutesScreen() {
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={c.ink} size="large" />
         </View>
-      ) : error || routes.length === 0 ? (
+      ) : error || filtered.length === 0 ? (
         <View style={styles.emptyWrap}>
           <View style={styles.emptyIcon}>
             <Bus size={30} color={c.silver} />
           </View>
           <Text style={styles.emptyTitle}>{error ? t('error') : t('no_routes')}</Text>
-          <Text style={styles.emptySub}>{error ?? t('routes_empty_msg')}</Text>
+          <Text style={styles.emptySub}>{error ?? (searchQuery ? "No lines or stations match your search query." : t('routes_empty_msg'))}</Text>
           <TouchableOpacity onPress={refresh} activeOpacity={0.85}>
             <Text style={{ color: c.ink, fontWeight: '600', fontSize: 14 }}>{t('retry')}</Text>
           </TouchableOpacity>

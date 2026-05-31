@@ -14,6 +14,7 @@ import * as Font from 'expo-font';
 import { Asset } from 'expo-asset';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
+import Constants from 'expo-constants'; // استدعاء الكونستانتس للتأكد من بيئة التشغيل
 import { BookingProvider } from '@/context/BookingContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
@@ -54,26 +55,42 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
   }
 }
 
+// فاكشن مساعدة للتأكد هل التطبيق يعمل داخل Expo Go أم لا
+const isExpoGo = Constants.appOwnership === 'expo';
+
 function AppShell() {
   const { darkMode } = useTheme();
-  usePushToken();
 
-  const notifSubRef = useRef<Notifications.Subscription | null>(null);
+  // تفعيل الـ Push Token فقط إذا كنا بره Expo Go أو على الـ Build الحقيقي لمنع الكراش
+  if (!isExpoGo) {
+    usePushToken();
+  }
+
+  const notifSubRef = useRef<any>(null);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    // لو ويب أو شغالين جوة Expo Go بنوقف اللوجيك فوراً عشان نمنع رسائل الخطأ
+    if (Platform.OS === 'web' || isExpoGo) return;
 
-    // Tapped while app is in background
-    notifSubRef.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => handleNotificationDeepLink(response.notification),
-    );
+    try {
+      // Tapped while app is in background
+      notifSubRef.current = Notifications.addNotificationResponseReceivedListener(
+        (response) => handleNotificationDeepLink(response.notification),
+      );
 
-    // Tapped when app was fully killed (cold start)
-    Notifications.getLastNotificationResponseAsync()
-      .then((response) => { if (response) handleNotificationDeepLink(response.notification); })
-      .catch(() => {});
+      // Tapped when app was fully killed (cold start)
+      Notifications.getLastNotificationResponseAsync()
+        .then((response) => { if (response) handleNotificationDeepLink(response.notification); })
+        .catch(() => {});
+    } catch (e) {
+      console.warn('[Notifications] Setup bypassed or failed:', e);
+    }
 
-    return () => { notifSubRef.current?.remove(); };
+    return () => { 
+      if (notifSubRef.current && typeof notifSubRef.current.remove === 'function') {
+        notifSubRef.current.remove(); 
+      }
+    };
   }, []);
 
   return (
@@ -87,9 +104,9 @@ function AppShell() {
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="stations"     options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="ticket"       options={{ animation: 'fade_from_bottom' }} />
-        <Stack.Screen name="promo"        options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="support"      options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="ticket"        options={{ animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="promo"         options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="support"       options={{ animation: 'slide_from_right' }} />
       </Stack>
       <TripSheet />
       <ConfirmSheet />
