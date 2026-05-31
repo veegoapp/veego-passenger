@@ -16,8 +16,8 @@ import { RouteCard, FeaturedOffers } from '@/components/RouteCard';
 import { SectionHeader } from '@/components/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
-import { CarServiceScreen } from '@/components/car/CarServiceScreen';
-import { BikeServiceScreen } from '@/components/bike/BikeServiceScreen';
+import { CarMap } from '@/components/car/CarMap';
+import { BikeMap } from '@/components/bike/BikeMap';
 
 type ServiceMode = 'shuttle' | 'car' | 'bike';
 
@@ -141,11 +141,10 @@ export default function HomeScreen() {
 
   const filteredRoutes = routeFilter === 'all_lines' ? routes : routes.filter((r) => r.code === routeFilter);
 
-  // Hide tab bar when car/bike mode is active
   useEffect(() => {
-    setTabBarVisible(mode === 'shuttle');
+    setTabBarVisible(true);
     return () => setTabBarVisible(true);
-  }, [mode, setTabBarVisible]);
+  }, [setTabBarVisible]);
 
   const showSoon = () => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -381,23 +380,15 @@ export default function HomeScreen() {
       )}
 
       {mode === 'car' && (
-        <CarServiceScreen
-          embedded
-          onBack={() => {
-            if (Platform.OS !== 'web') Haptics.selectionAsync();
-            setMode('shuttle');
-          }}
-        />
+        <View style={{ flex: 1, position: 'relative' }}>
+          <CarMap phase="idle" destination={null} driverLocation={null} />
+        </View>
       )}
 
       {mode === 'bike' && (
-        <BikeServiceScreen
-          embedded
-          onBack={() => {
-            if (Platform.OS !== 'web') Haptics.selectionAsync();
-            setMode('shuttle');
-          }}
-        />
+        <View style={{ flex: 1, position: 'relative' }}>
+          <BikeMap phase="idle" destination={null} />
+        </View>
       )}
     </View>
   );
