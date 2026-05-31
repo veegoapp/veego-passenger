@@ -115,7 +115,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
-  const { getService, handleServiceTap } = useServiceControl();
+  const { getService, handleServiceTap, isServiceVisibleForZone } = useServiceControl();
 
   const [pickupLocation, setPickupLocation] = useState('Current Location');
   const [destinationLocation, setDestinationLocation] = useState('');
@@ -193,6 +193,9 @@ export default function HomeScreen() {
               const ctrl = getService(svc.id as ServiceType);
               const displayMode = ctrl?.display_mode ?? 'live';
               const isEnabled = ctrl?.is_enabled ?? true;
+
+              // Zone check: hide service if user is outside all active zones
+              if (!isServiceVisibleForZone(svc.id as ServiceType)) return null;
 
               // hide_service: don't render at all
               if (
