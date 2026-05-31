@@ -18,10 +18,9 @@ pnpm install
 echo "=== Starting Expo ==="
 
 # ── Critical fixes for Replit + Expo ──────────────────────────────
-export EXPO_NO_WATCH=1
-export NODE_OPTIONS=--max-old-space-size=4096
 export EXPO_NO_TELEMETRY=1
+export NODE_OPTIONS=--max-old-space-size=4096
 export CI=1
 
-# ── Start Expo web on port 5000 ───────────────────────────────────
-exec pnpm exec expo start --web --port 5000
+# ── Start Expo web on port 5000 (offline skips version-check API) ──
+exec pnpm exec expo start --web --port 5000 --offline
