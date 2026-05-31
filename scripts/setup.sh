@@ -1,37 +1,29 @@
 #!/bin/bash
 set -e
 
-# ── Validate required secrets ──────────────────────────────────────────────
+# ── Validate secrets ──────────────────────────────────────────────
 if [ -z "$BACKEND_URL" ]; then
   echo "ERROR: BACKEND_URL secret is not set."
-  echo ""
-  echo "  Go to Tools → Secrets in Replit and add:"
-  echo "    BACKEND_URL = https://your-backend.replit.app/api"
-  echo ""
-  echo "  The value must be the deployed backend URL ending in /api"
   exit 1
 fi
 
-# ── Write EXPO_PUBLIC_API_URL to .env (always refresh) ────────────────────
+# ── Env file ──────────────────────────────────────────────────────
 printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
 echo "=== API URL set: $BACKEND_URL ==="
 
-# ── First-time dependency install ─────────────────────────────────────────
+# ── Install deps once ─────────────────────────────────────────────
 if [ ! -f .setup_done ]; then
-  echo "=== Installing dependencies (first run only) ==="
+  echo "=== Installing dependencies ==="
   pnpm install
   touch .setup_done
-  echo "=== Setup complete ==="
-else
-  echo "=== Dependencies already installed ==="
 fi
 
-# ── Start Expo ────────────────────────────────────────────────────────────
-echo "=== Starting Passenger App on :5000 ==="
-exec sh -c '
-  EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN \
-  EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN \
-  EXPO_PUBLIC_REPL_ID=$REPL_ID \
-  REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN \
-  pnpm exec expo start --web --port 5000 --clear
-'
+echo "=== Starting Expo ==="
+
+# ── Critical fixes for Replit + Expo ──────────────────────────────
+export EXPO_NO_WATCH=1
+export NODE_OPTIONS=--max-old-space-size=4096
+
+# ── Start Expo (stable mode first, tunnel fallback if needed) ────
+npx expo start --web --port 5000 --clear || \
+npx expo start --tunnel --port 5000 --clear

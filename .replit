@@ -13,8 +13,8 @@ mode = "parallel"
 author = "agent"
 
 [[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
+task = "shell.exec"
+args = "bash scripts/setup.sh"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -24,9 +24,8 @@ author = "agent"
 outputType = "webview"
 
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash scripts/setup.sh"
-waitForPort = 5000
+task = "workflow.run"
+args = "Start application"
 
 [[ports]]
 localPort = 5000
