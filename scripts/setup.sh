@@ -11,19 +11,17 @@ fi
 printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
 echo "=== API URL set: $BACKEND_URL ==="
 
-# ── Install deps once ─────────────────────────────────────────────
-if [ ! -f .setup_done ]; then
-  echo "=== Installing dependencies ==="
-  pnpm install
-  touch .setup_done
-fi
+# ── Install deps ──────────────────────────────────────────────────
+echo "=== Installing dependencies ==="
+pnpm install
 
 echo "=== Starting Expo ==="
 
 # ── Critical fixes for Replit + Expo ──────────────────────────────
 export EXPO_NO_WATCH=1
 export NODE_OPTIONS=--max-old-space-size=4096
+export EXPO_NO_TELEMETRY=1
+export CI=1
 
-# ── Start Expo (stable mode first, tunnel fallback if needed) ────
-npx expo start --web --port 5000 || \
-npx expo start --tunnel --port 5000
+# ── Start Expo web on port 5000 ───────────────────────────────────
+exec pnpm exec expo start --web --port 5000
