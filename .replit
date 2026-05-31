@@ -16,6 +16,10 @@ author = "agent"
 task = "shell.exec"
 args = "bash scripts/setup.sh"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -24,15 +28,12 @@ author = "agent"
 outputType = "webview"
 
 [[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
+task = "shell.exec"
+args = "bash scripts/setup.sh"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 8081
 externalPort = 80
 
 [[ports]]

@@ -1,46 +1,9 @@
 import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useCallback } from 'react';
 import { MOCK_DESTINATIONS, USER_LOCATION, DRIVER_LOCATION } from './carMapData';
+import { WebMap, makeSvgEl, MarkerSpec } from '@/components/shared/WebMap.web';
 
 export { MOCK_DESTINATIONS, USER_LOCATION, DRIVER_LOCATION };
-
-async function fetchOSRMRoute(coords: [number, number][]): Promise<[number, number][] | null> {
-  if (coords.length < 2) return null;
-  try {
-    const c = coords.map(([lng, lat]) => `${lng},${lat}`).join(';');
-    const res = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${c}?overview=full&geometries=geojson`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.code !== 'Ok' || !data.routes?.length) return null;
-    return data.routes[0].geometry.coordinates as [number, number][];
-  } catch {
-    return null;
-  }
-}
-
-const OSM_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>",
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-};
-
-function svgEl(html: string): HTMLElement {
-  const d = document.createElement('div');
-  d.innerHTML = html;
-  return d;
-}
 
 const PICKUP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
   <circle cx="9" cy="9" r="7" fill="#22c55e" stroke="white" stroke-width="2"/>
@@ -76,111 +39,71 @@ interface CarMapProps {
 }
 
 export function CarMap({ destination, driverLocation }: CarMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
   const driverMarkerRef = useRef<maplibregl.Marker | null>(null);
-  const lastLocUpdate = useRef(0);
+  const lastUpdateRef = useRef(0);
 
   const pickupCoords: [number, number] = [USER_LOCATION.longitude, USER_LOCATION.latitude];
-  const destCoords: [number, number] | null = destination && MOCK_DESTINATIONS[destination]
-    ? [MOCK_DESTINATIONS[destination].longitude, MOCK_DESTINATIONS[destination].latitude]
-    : null;
-  const driverCoords: [number, number] | null = driverLocation
+
+  const destCoords: [number, number] | null =
+    destination && MOCK_DESTINATIONS[destination]
+      ? [MOCK_DESTINATIONS[destination].longitude, MOCK_DESTINATIONS[destination].latitude]
+      : null;
+
+  const driverCoords: [number, number] = driverLocation
     ? [driverLocation.longitude, driverLocation.latitude]
-    : null;
+    : [DRIVER_LOCATION.longitude, DRIVER_LOCATION.latitude];
 
-  useEffect(() => {
-    if (!containerRef.current) return;
+  const markers: MarkerSpec[] = [
+    {
+      lngLat: pickupCoords,
+      svg: PICKUP_SVG,
+      anchor: 'center',
+      popupText: 'Your location',
+    },
+    ...(destCoords
+      ? [{
+          lngLat: destCoords,
+          svg: DROPOFF_SVG,
+          anchor: 'bottom' as const,
+          popupText: destination ?? 'Dropoff',
+          popupOffset: 22,
+        }]
+      : []),
+  ];
 
-    const allPts = [driverCoords ?? pickupCoords, pickupCoords, destCoords].filter(Boolean) as [number, number][];
-    const center: [number, number] = allPts.length
-      ? [
-          allPts.reduce((s, p) => s + p[0], 0) / allPts.length,
-          allPts.reduce((s, p) => s + p[1], 0) / allPts.length,
-        ]
-      : pickupCoords;
+  const routePoints: [number, number][] = [
+    driverCoords,
+    pickupCoords,
+    ...(destCoords ? [destCoords] : []),
+  ];
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: OSM_STYLE,
-      center,
-      zoom: 13,
-      attributionControl: { compact: true },
-    });
-
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-    mapRef.current = map;
-
-    map.on('load', async () => {
-      new maplibregl.Marker({ element: svgEl(PICKUP_SVG), anchor: 'center' })
-        .setLngLat(pickupCoords)
-        .setPopup(new maplibregl.Popup({ offset: 12, closeButton: false }).setText('Your location'))
-        .addTo(map);
-
-      if (destCoords) {
-        new maplibregl.Marker({ element: svgEl(DROPOFF_SVG), anchor: 'bottom' })
-          .setLngLat(destCoords)
-          .setPopup(new maplibregl.Popup({ offset: 22, closeButton: false }).setText(destination ?? 'Dropoff'))
-          .addTo(map);
-      }
-
-      const startCoords = driverCoords ?? pickupCoords;
-      const driverEl = svgEl(DRIVER_SVG);
-      const driverMarker = new maplibregl.Marker({ element: driverEl, anchor: 'bottom' })
-        .setLngLat(startCoords)
-        .addTo(map);
-      driverMarkerRef.current = driverMarker;
-
-      const routePts = [startCoords, pickupCoords, destCoords].filter(Boolean) as [number, number][];
-      if (routePts.length >= 2) {
-        const osrmCoords = await fetchOSRMRoute(routePts);
-        const coords = osrmCoords ?? routePts;
-        map.addSource('route', {
-          type: 'geojson',
-          data: { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} },
-        });
-        map.addLayer({
-          id: 'route-casing',
-          type: 'line',
-          source: 'route',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#fff', 'line-width': 6, 'line-opacity': 0.4 },
-        });
-        map.addLayer({
-          id: 'route-line',
-          type: 'line',
-          source: 'route',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#2563eb', 'line-width': 3.5, 'line-opacity': 0.9 },
-        });
-      }
-
-      const bounds = new maplibregl.LngLatBounds();
-      routePts.forEach((p) => bounds.extend(p));
-      if (routePts.length > 1) {
-        map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 600 });
-      }
-    });
-
-    return () => {
-      driverMarkerRef.current = null;
-      map.remove();
-      mapRef.current = null;
-    };
-  }, []);
+  const handleLoad = useCallback((map: maplibregl.Map) => {
+    const el = makeSvgEl(DRIVER_SVG);
+    const mk = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+      .setLngLat(driverCoords)
+      .addTo(map);
+    driverMarkerRef.current = mk;
+  }, []); // runs once when map loads
 
   useEffect(() => {
     const now = Date.now();
-    if (now - lastLocUpdate.current < 1500) return;
-    lastLocUpdate.current = now;
+    if (now - lastUpdateRef.current < 1500) return;
+    lastUpdateRef.current = now;
     if (!driverLocation || !driverMarkerRef.current) return;
-    driverMarkerRef.current.setLngLat([driverLocation.longitude, driverLocation.latitude]);
+    driverMarkerRef.current.setLngLat([
+      driverLocation.longitude,
+      driverLocation.latitude,
+    ]);
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* @ts-ignore – div valid in Expo web */}
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-    </View>
+    <WebMap
+      center={pickupCoords}
+      zoom={13}
+      markers={markers}
+      routePoints={routePoints}
+      routeColor="#2563eb"
+      onLoad={handleLoad}
+    />
   );
 }

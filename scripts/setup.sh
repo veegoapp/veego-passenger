@@ -25,5 +25,5 @@ export EXPO_NO_WATCH=1
 export NODE_OPTIONS=--max-old-space-size=4096
 
 # ── Start Expo (stable mode first, tunnel fallback if needed) ────
-npx expo start --web --port 5000 --clear || \
-npx expo start --tunnel --port 5000 --clear
+npx expo start --web --port 5000 || \
+npx expo start --tunnel --port 5000

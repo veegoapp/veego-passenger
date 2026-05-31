@@ -1,0 +1,34 @@
+Inspect the current Car and Bike map implementations and fix all issues causing map invisibility or missing map rendering.
+
+🚗 CAR SERVICE MAP (CRITICAL FIX)
+- Fix MapLibre GL integration so the map is fully visible and functional.
+- Remove or avoid relying on CSS imports inside .tsx/.ts files if they are not being applied correctly in the bundler.
+- Ensure the map container always has explicit height and width (no 0px layout cases).
+- Fix any parent View/div layout issues that collapse the map (absoluteFill, flex, or missing height).
+- Ensure OpenStreetMap tiles load correctly and are not blocked or failing silently.
+- Ensure the map is visible on first render (no blank/white screen).
+- Ensure map is not hidden behind overlays, modals, or absolute positioned views.
+- Add safe fallback styles to guarantee visibility across web and mobile.
+- Ensure correct initial center, zoom, and user location handling.
+
+🚲 BIKE SERVICE MAP (FEATURE PARITY FIX)
+- Replace the current BikeMap placeholder UI completely.
+- Remove any fake/animated map UI (gradients, pulsing dots, decorative map-like visuals).
+- Implement the exact same MapLibre GL map used in the Car service.
+- Ensure Bike service has a fully interactive real map with tiles, zoom, pan, and markers.
+- Keep only UI differences (icons/markers styling), not map logic.
+- Ensure GPS/user location works the same as Car service.
+
+🔧 ARCHITECTURE IMPROVEMENTS (IMPORTANT)
+- Refactor into a shared reusable Map component used by both Car and Bike.
+- Do not duplicate map logic in separate files.
+- Ensure consistent behavior across both services.
+- Ensure map initialization is safe (no race conditions or invisible initial state).
+- Prevent double initialization or memory leaks.
+
+✅ FINAL REQUIREMENTS
+- Both Car and Bike must show a fully working, visible, interactive MapLibre map.
+- No placeholders or fake maps allowed anywhere.
+- No blank screens or invisible canvases.
+- Must work reliably on both web and mobile environments.
+- Production-ready, clean, and reusable implementation.

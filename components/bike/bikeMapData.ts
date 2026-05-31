@@ -1,0 +1,31 @@
+export const BIKE_USER_LOCATION = { latitude: 25.4529, longitude: 30.5523 };
+
+export const BIKE_DESTINATIONS: Record<string, { latitude: number; longitude: number }> = {
+  'الخارجة - وسط المدينة': { latitude: 25.4480, longitude: 30.5490 },
+  'الداخلة - موط':         { latitude: 25.4510, longitude: 30.5460 },
+  'بلاط':                  { latitude: 25.4530, longitude: 30.5540 },
+  'قصر الداخلة':           { latitude: 25.4495, longitude: 30.5505 },
+  'الفرافرة':              { latitude: 25.4555, longitude: 30.5555 },
+  'باريس':                 { latitude: 25.4470, longitude: 30.5470 },
+  'بلاط الجديدة':          { latitude: 25.4540, longitude: 30.5548 },
+  'موط - الشمال':          { latitude: 25.4565, longitude: 30.5530 },
+  'سوق الخارجة':           { latitude: 25.4485, longitude: 30.5515 },
+  'مستشفى الخارجة':        { latitude: 25.4500, longitude: 30.5480 },
+  'محطة الخارجة':          { latitude: 25.4518, longitude: 30.5502 },
+  'مطار الخارجة':          { latitude: 25.4460, longitude: 30.5572 },
+  'جامعة وادي الجديد':     { latitude: 25.4575, longitude: 30.5568 },
+
+  'Al-Kharga Downtown':      { latitude: 25.4480, longitude: 30.5490 },
+  'Dakhla - Mut':            { latitude: 25.4510, longitude: 30.5460 },
+  'Balat':                   { latitude: 25.4530, longitude: 30.5540 },
+  'Qasr Dakhla':             { latitude: 25.4495, longitude: 30.5505 },
+  'Farafra':                 { latitude: 25.4555, longitude: 30.5555 },
+  'Baris':                   { latitude: 25.4470, longitude: 30.5470 },
+  'New Balat':               { latitude: 25.4540, longitude: 30.5548 },
+  'Mut North':               { latitude: 25.4565, longitude: 30.5530 },
+  'Kharga Market':           { latitude: 25.4485, longitude: 30.5515 },
+  'Kharga Hospital':         { latitude: 25.4500, longitude: 30.5480 },
+  'Kharga Station':          { latitude: 25.4518, longitude: 30.5502 },
+  'Kharga Airport':          { latitude: 25.4460, longitude: 30.5572 },
+  'Wadi El Gedid University':{ latitude: 25.4575, longitude: 30.5568 },
+};
