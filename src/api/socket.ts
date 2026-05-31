@@ -11,7 +11,11 @@ if (!_rawApiUrl) {
     '  EXPO_PUBLIC_API_URL=https://<your-replit-domain>/api'
   );
 }
-const _apiBase: string = _rawApiUrl.startsWith('http') ? _rawApiUrl : `https://${_rawApiUrl}`;
+// Normalize: handle cases where the value was entered as "KEY = https://..." or "KEY=https://..."
+const _normalizedUrl = _rawApiUrl.includes('=')
+  ? _rawApiUrl.split('=').slice(1).join('=').trim()
+  : _rawApiUrl.trim();
+const _apiBase: string = _normalizedUrl.startsWith('http') ? _normalizedUrl : `https://${_normalizedUrl}`;
 const SOCKET_URL = _apiBase.replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;
@@ -56,6 +60,16 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+}
+
+/**
+ * Reconnects the socket with the latest stored token.
+ * Call this after a successful token refresh so the socket
+ * authenticates with the new access token.
+ */
+export async function reconnectSocket(): Promise<Socket> {
+  disconnectSocket();
+  return getSocket();
 }
 
 export type RideStatus =
