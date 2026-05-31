@@ -1,15 +1,15 @@
 #!/bin/bash
 set -e
 
-# ── Validate secrets ──────────────────────────────────────────────
-if [ -z "$BACKEND_URL" ]; then
-  echo "ERROR: BACKEND_URL secret is not set."
-  exit 1
-fi
-
 # ── Env file ──────────────────────────────────────────────────────
-printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
-echo "=== API URL set: $BACKEND_URL ==="
+if [ -n "$BACKEND_URL" ]; then
+  printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
+  echo "=== API URL set: $BACKEND_URL ==="
+else
+  echo "=== WARNING: BACKEND_URL not set. App will start without a backend URL. ==="
+  echo "=== Set BACKEND_URL in Replit Secrets to connect to your API server. ==="
+  touch .env
+fi
 
 # ── Install deps ──────────────────────────────────────────────────
 echo "=== Installing dependencies ==="
