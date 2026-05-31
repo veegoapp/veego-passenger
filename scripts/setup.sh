@@ -27,11 +27,11 @@ else
 fi
 
 # ── Start Expo ────────────────────────────────────────────────────────────
-echo "=== Starting Passenger App on :8081 ==="
+echo "=== Starting Passenger App on :5000 ==="
 exec sh -c '
   EXPO_PACKAGER_PROXY_URL=https://$REPLIT_EXPO_DEV_DOMAIN \
   EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN \
   EXPO_PUBLIC_REPL_ID=$REPL_ID \
   REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN \
-  pnpm exec expo start --web --port 8081 --non-interactive
+  pnpm exec expo start --web --port 5000 --non-interactive
 '

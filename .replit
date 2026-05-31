@@ -2,6 +2,7 @@ modules = ["nodejs-20"]
 
 [agent]
 expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
 
 [workflows]
 runButton = "Project"
@@ -20,11 +21,12 @@ name = "Start application"
 author = "agent"
 
 [workflows.workflow.metadata]
-outputType = "console"
+outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm exec expo start --tunnel --clear --non-interactive"
+args = "bash scripts/setup.sh"
+waitForPort = 5000
 
 [[ports]]
 localPort = 8081
@@ -33,3 +35,7 @@ externalPort = 80
 [[ports]]
 localPort = 8082
 externalPort = 3000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
