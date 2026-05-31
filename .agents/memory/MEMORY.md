@@ -1,2 +1,3 @@
 - [Workflow config fix](workflow-config.md) — original .replit had a circular workflow.run self-reference; fixed via configureWorkflow() with waitForPort: 5000
 - [MapLibre CSS injection](maplibre-css.md) — +html.tsx broken (expo-router/html missing build/static/html); use ensureMaplibreCSS() DOM injection in WebMap.web.tsx instead
+- [Chat + Rating integration](chat-rating-integration.md) — how chat/rating hook into the ride lifecycle in car.tsx

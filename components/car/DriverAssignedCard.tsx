@@ -24,9 +24,10 @@ interface DriverAssignedCardProps {
   destination: string | null;
   onCancel: () => void;
   onStart: () => void;
+  rideId?: string | null;
 }
 
-export function DriverAssignedCard({ visible, rideType, destination, onCancel, onStart }: DriverAssignedCardProps) {
+export function DriverAssignedCard({ visible, rideType, destination, onCancel, onStart, rideId }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -161,7 +162,12 @@ export function DriverAssignedCard({ visible, rideType, destination, onCancel, o
         </TouchableOpacity>
       </View>
 
-      <ChatModal visible={chatOpen} onClose={() => setChatOpen(false)} driverName={MOCK_DRIVER.name} />
+      <ChatModal
+        visible={chatOpen}
+        onClose={() => setChatOpen(false)}
+        driverName={MOCK_DRIVER.name}
+        tripId={rideId ?? null}
+      />
     </Animated.View>
   );
 }

@@ -4,7 +4,7 @@ import {
   ScrollView, TextInput, Platform, Alert, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Car, ShieldCheck, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X } from 'lucide-react-native';
+import { MapPin, Car, ShieldCheck, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -12,6 +12,9 @@ import { C, S, glassStyle } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import { useRide } from '@/src/hooks/useRide';
 import api from '@/src/api/client';
+import { RatingSheet } from '@/components/shared/RatingSheet';
+import { ChatModal } from '@/components/car/ChatModal';
+import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
 
 const haptic = {
   selection: () => { if (Platform.OS !== 'web') Haptics.selectionAsync(); },
@@ -256,6 +259,33 @@ export default function CarScreen() {
 
   const { rideState, requesting, requestRide, cancelRide: hookCancelRide, resetRide: hookResetRide } = useRide();
 
+  const [ratingVisible, setRatingVisible] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const ratedRideIds = useRef<Set<string>>(new Set());
+
+  // Auto-show rating sheet when ride completes (once per rideId)
+  useEffect(() => {
+    if (phase === 'completed' && rideState.rideId && !ratedRideIds.current.has(rideState.rideId)) {
+      setRatingVisible(true);
+    }
+  }, [phase, rideState.rideId]);
+
+  const handleRatingSubmit = useCallback(async (stars: number, comment: string) => {
+    setRatingVisible(false);
+    if (!rideState.rideId) return;
+    ratedRideIds.current.add(rideState.rideId);
+    try {
+      await api.post(`/rides/${rideState.rideId}/rate-driver`, { rating: stars, comment });
+    } catch {
+      // silently ignore — rating already dismissed for the user
+    }
+  }, [rideState.rideId]);
+
+  const handleRatingSkip = useCallback(() => {
+    setRatingVisible(false);
+    if (rideState.rideId) ratedRideIds.current.add(rideState.rideId);
+  }, [rideState.rideId]);
+
   // Map rideState.status → local phase
   useEffect(() => {
     const s = rideState.status;
@@ -357,47 +387,58 @@ export default function CarScreen() {
     const fare = rideState.fare ?? priceEstimate;
     return (
       <LinearGradient colors={C.luxeSoftGrad} style={{ flex: 1 }}>
-        <View style={[styles.arrivedScreen, { paddingTop: top + 40 }]}>
-          <LinearGradient colors={[C.accentMint, '#3daa80']} style={styles.successCircle}>
-            <Check size={38} color={C.white} />
-          </LinearGradient>
-          <Text style={styles.arrivedTitle}>{t('trip_complete')}</Text>
-          <Text style={styles.arrivedSub}>{pickup}  →  {dropoff}</Text>
+        <View style={{ flex: 1 }}>
+          <View style={[styles.arrivedScreen, { paddingTop: top + 40 }]}>
+            <LinearGradient colors={[C.accentMint, '#3daa80']} style={styles.successCircle}>
+              <Check size={38} color={C.white} />
+            </LinearGradient>
+            <Text style={styles.arrivedTitle}>{t('trip_complete')}</Text>
+            <Text style={styles.arrivedSub}>{pickup}  →  {dropoff}</Text>
 
-          {rideState.driver && (
-            <View style={[glassStyle, styles.arrivedCard, S.luxe]}>
-              <View style={styles.arrivedRow}>
-                <View style={styles.driverAvatarSm}>
-                  <Text style={styles.driverAvatarSmText}>{driverInitials}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.arrivedDriverName}>{rideState.driver.name}</Text>
-                  <Text style={styles.arrivedDriverCar}>{rideState.driver.vehicle}</Text>
-                </View>
-                <View style={styles.ratingBadge}>
-                  <Star size={11} color="#f5a623" fill="#f5a623" />
-                  <Text style={styles.ratingText}>{rideState.driver.rating?.toFixed(1) ?? '—'}</Text>
-                </View>
-              </View>
-              {fare != null && (
-                <>
-                  <View style={styles.arrivedDivider} />
-                  <View style={styles.arrivedPayRow}>
-                    <Banknote size={16} color={C.inkSoft} />
-                    <Text style={styles.arrivedPayText}>{t('cash_paid').replace('{p}', String(fare.toFixed(2)))}</Text>
-                    <View style={styles.paidBadge}>
-                      <Text style={styles.paidBadgeText}>{t('cash_only')}</Text>
-                    </View>
+            {rideState.driver && (
+              <View style={[glassStyle, styles.arrivedCard, S.luxe]}>
+                <View style={styles.arrivedRow}>
+                  <View style={styles.driverAvatarSm}>
+                    <Text style={styles.driverAvatarSmText}>{driverInitials}</Text>
                   </View>
-                </>
-              )}
-            </View>
-          )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.arrivedDriverName}>{rideState.driver.name}</Text>
+                    <Text style={styles.arrivedDriverCar}>{rideState.driver.vehicle}</Text>
+                  </View>
+                  <View style={styles.ratingBadge}>
+                    <Star size={11} color="#f5a623" fill="#f5a623" />
+                    <Text style={styles.ratingText}>{rideState.driver.rating?.toFixed(1) ?? '—'}</Text>
+                  </View>
+                </View>
+                {fare != null && (
+                  <>
+                    <View style={styles.arrivedDivider} />
+                    <View style={styles.arrivedPayRow}>
+                      <Banknote size={16} color={C.inkSoft} />
+                      <Text style={styles.arrivedPayText}>{t('cash_paid').replace('{p}', String(fare.toFixed(2)))}</Text>
+                      <View style={styles.paidBadge}>
+                        <Text style={styles.paidBadgeText}>{t('cash_only')}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+              </View>
+            )}
 
-          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 28 }]} onPress={resetRide} activeOpacity={0.85}>
-            <PlusCircle size={16} color={C.white} />
-            <Text style={styles.primaryBtnText}>{t('book_another')}</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={[styles.primaryBtn, { marginTop: 28 }]} onPress={resetRide} activeOpacity={0.85}>
+              <PlusCircle size={16} color={C.white} />
+              <Text style={styles.primaryBtnText}>{t('book_another')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <RatingSheet
+            visible={ratingVisible}
+            driverName={rideState.driver?.name ?? 'Your Driver'}
+            driverInitials={driverInitials}
+            driverColor="#3A7BD5"
+            onSubmit={handleRatingSubmit}
+            onSkip={handleRatingSkip}
+          />
         </View>
       </LinearGradient>
     );
@@ -432,7 +473,18 @@ export default function CarScreen() {
         <Text style={styles.screenSub}>Ride-hailing · Wadi El Gedid</Text>
       </View>
 
-      <RideMap phase={phase} />
+      {rideState.driverLocation && (phase === 'active' || phase === 'arrived' || phase === 'in_trip')
+        ? (
+          <View style={{ height: MAP_H, overflow: 'hidden' }}>
+            <PassengerTrackingMap
+              pickup={WG_COORDS[pickup] ?? null}
+              dropoff={WG_COORDS[dropoff] ?? null}
+              driverLocation={rideState.driverLocation}
+            />
+          </View>
+        )
+        : <RideMap phase={phase} />
+      }
 
       {outsideZone && phase === 'request' && (
         <View style={styles.zoneBanner}>
@@ -563,6 +615,13 @@ export default function CarScreen() {
                 <PhoneCall size={15} color={C.accentMint} />
               </TouchableOpacity>
             ) : null}
+            <TouchableOpacity
+              style={[styles.callBtn, { marginLeft: 6 }]}
+              activeOpacity={0.8}
+              onPress={() => { haptic.selection(); setChatOpen(true); }}
+            >
+              <MessageCircle size={15} color={C.accentMint} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.tripSummaryRow}>
@@ -603,9 +662,23 @@ export default function CarScreen() {
                 <PhoneCall size={15} color={C.accentMint} />
               </TouchableOpacity>
             ) : null}
+            <TouchableOpacity
+              style={[styles.callBtn, { marginLeft: 6 }]}
+              activeOpacity={0.8}
+              onPress={() => { haptic.selection(); setChatOpen(true); }}
+            >
+              <MessageCircle size={15} color={C.accentMint} />
+            </TouchableOpacity>
           </View>
         </View>
       )}
+
+      <ChatModal
+        visible={chatOpen}
+        onClose={() => setChatOpen(false)}
+        driverName={rideState.driver?.name ?? 'Your Driver'}
+        tripId={rideState.rideId}
+      />
 
       {phase === 'in_trip' && (
         <View style={styles.sheet}>
@@ -628,6 +701,13 @@ export default function CarScreen() {
               <Text style={styles.driverName}>{rideState.driver?.name ?? 'Driver'}</Text>
               <Text style={styles.driverCarText}>{rideState.driver?.vehicle ?? ''}</Text>
             </View>
+            <TouchableOpacity
+              style={[styles.callBtn, { marginRight: 6 }]}
+              activeOpacity={0.8}
+              onPress={() => { haptic.selection(); setChatOpen(true); }}
+            >
+              <MessageCircle size={15} color={C.accentMint} />
+            </TouchableOpacity>
             {priceEstimate !== null && (
               <View style={styles.tripPriceBadge}>
                 <Text style={styles.tripPriceLabel}>EGP</Text>

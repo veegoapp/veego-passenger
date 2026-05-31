@@ -115,7 +115,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
-  const { getService, handleServiceTap, isServiceVisibleForZone } = useServiceControl();
+  const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
 
   const [pickupLocation, setPickupLocation] = useState('Current Location');
   const [destinationLocation, setDestinationLocation] = useState('');
@@ -271,6 +271,29 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Zone-filtered services banner */}
+          {(() => {
+            const hiddenCount = SERVICES.filter(svc => !isServiceVisibleForZone(svc.id as ServiceType)).length;
+            if (hiddenCount === 0 || userZoneId === undefined) return null;
+            return (
+              <View style={{
+                marginHorizontal: 20, marginTop: -4, marginBottom: 8,
+                flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+                backgroundColor: c.isDark ? 'rgba(255,180,0,0.10)' : 'rgba(245,158,11,0.08)',
+                borderRadius: 12, borderWidth: 1,
+                borderColor: c.isDark ? 'rgba(255,180,0,0.20)' : 'rgba(245,158,11,0.2)',
+                padding: 10,
+              }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#f59e0b', marginTop: 5 }} />
+                <Text style={{ flex: 1, fontSize: 11.5, color: c.isDark ? '#f59e0b' : '#92400e', lineHeight: 16 }}>
+                  {hiddenCount === 1
+                    ? '1 service is not available in your area'
+                    : `${hiddenCount} services are not available in your area`}
+                </Text>
+              </View>
+            );
+          })()}
 
           {/* Car / Bike destination search */}
           {mode !== 'shuttle' && (

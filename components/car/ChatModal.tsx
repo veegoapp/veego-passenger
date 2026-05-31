@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, Modal, Platform, KeyboardAvoidingView,
@@ -7,57 +7,36 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-
-type Message = { id: string; text: string; isDriver: boolean; time: string };
-
-const INITIAL_MESSAGES: Message[] = [
-  { id: '1', text: 'على الطريق إليك الآن 👋', isDriver: true, time: '10:32' },
-  { id: '2', text: "On my way to you now 👋", isDriver: true, time: '10:32' },
-  { id: '3', text: 'حركة المرور خفيفة اليوم، سأصل قريباً', isDriver: true, time: '10:33' },
-];
+import { useRideChat } from '@/src/hooks/useRideChat';
+import { useState } from 'react';
 
 interface ChatModalProps {
   visible: boolean;
   onClose: () => void;
   driverName: string;
+  tripId: string | null;
 }
 
-export function ChatModal({ visible, onClose, driverName }: ChatModalProps) {
+export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalProps) {
   const { colors: c, t, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const { messages, sending, sendMessage } = useRideChat(visible ? tripId : null);
   const [text, setText] = useState('');
   const listRef = useRef<FlatList>(null);
 
-  const now = () => {
-    const d = new Date();
-    return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
-
-  const sendMessage = () => {
-    if (!text.trim()) return;
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    const msg: Message = { id: Date.now().toString(), text: text.trim(), isDriver: false, time: now() };
-    setMessages((prev) => [...prev, msg]);
-    setText('');
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
-
-    setTimeout(() => {
-      const replies = [
-        'حسناً، أفهم ذلك ✓',
-        'OK, understood ✓',
-        'سأكون عندك قريباً 🚗',
-        'Almost there! 🚗',
-      ];
-      const reply: Message = {
-        id: (Date.now() + 1).toString(),
-        text: replies[Math.floor(Math.random() * replies.length)],
-        isDriver: true,
-        time: now(),
-      };
-      setMessages((prev) => [...prev, reply]);
+  useEffect(() => {
+    if (messages.length > 0) {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
-    }, 1500);
+    }
+  }, [messages.length]);
+
+  const handleSend = async () => {
+    if (!text.trim() || sending) return;
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    const msg = text.trim();
+    setText('');
+    await sendMessage(msg);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   const bgColor = c.isDark ? '#0f0f1e' : '#f4f4f8';
@@ -88,31 +67,40 @@ export function ChatModal({ visible, onClose, driverName }: ChatModalProps) {
           <View style={{ width: 36 }} />
         </View>
 
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.messageList, { paddingBottom: 16 }]}
-          showsVerticalScrollIndicator={false}
-          onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
-          renderItem={({ item }) => (
-            <View style={[styles.bubble, item.isDriver ? styles.driverBubble : styles.userBubble]}>
-              <View style={[
-                styles.bubbleInner,
-                item.isDriver
-                  ? { backgroundColor: c.isDark ? '#1e1e32' : '#ffffff', borderBottomLeftRadius: 4 }
-                  : { backgroundColor: c.ink, borderBottomRightRadius: 4 },
-              ]}>
-                <Text style={[styles.bubbleText, { color: item.isDriver ? c.ink : (c.isDark ? c.background : c.white) }]}>
-                  {item.text}
-                </Text>
-                <Text style={[styles.bubbleTime, { color: item.isDriver ? c.inkSoft : 'rgba(255,255,255,0.55)' }]}>
-                  {item.time}
-                </Text>
+        {messages.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="chatbubble-ellipses-outline" size={42} color={c.silver} />
+            <Text style={[styles.emptyText, { color: c.inkSoft }]}>
+              {t('no_messages_yet') ?? 'No messages yet.\nSay hello to your driver!'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[styles.messageList, { paddingBottom: 16 }]}
+            showsVerticalScrollIndicator={false}
+            onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
+            renderItem={({ item }) => (
+              <View style={[styles.bubble, item.isDriver ? styles.driverBubble : styles.userBubble]}>
+                <View style={[
+                  styles.bubbleInner,
+                  item.isDriver
+                    ? { backgroundColor: c.isDark ? '#1e1e32' : '#ffffff', borderBottomLeftRadius: 4 }
+                    : { backgroundColor: c.ink, borderBottomRightRadius: 4 },
+                ]}>
+                  <Text style={[styles.bubbleText, { color: item.isDriver ? c.ink : (c.isDark ? c.background : c.white) }]}>
+                    {item.text}
+                  </Text>
+                  <Text style={[styles.bubbleTime, { color: item.isDriver ? c.inkSoft : 'rgba(255,255,255,0.55)' }]}>
+                    {item.time}
+                  </Text>
+                </View>
               </View>
-            </View>
-          )}
-        />
+            )}
+          />
+        )}
 
         <View style={[
           styles.inputBar,
@@ -131,13 +119,18 @@ export function ChatModal({ visible, onClose, driverName }: ChatModalProps) {
             multiline
             maxLength={300}
             textAlign={isRTL ? 'right' : 'left'}
+            onSubmitEditing={handleSend}
           />
           <TouchableOpacity
-            style={[styles.sendBtn, { backgroundColor: text.trim() ? c.ink : c.mist }]}
-            onPress={sendMessage}
+            style={[styles.sendBtn, { backgroundColor: text.trim() && !sending ? c.ink : c.mist }]}
+            onPress={handleSend}
+            disabled={sending || !text.trim()}
             activeOpacity={0.85}
           >
-            <Ionicons name="send" size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
+            {sending
+              ? <Ionicons name="hourglass-outline" size={16} color={c.silver} />
+              : <Ionicons name="send" size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
+            }
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -157,6 +150,8 @@ const styles = StyleSheet.create({
   driverAvatarText: { fontSize: 14, fontWeight: '700' },
   headerName: { fontSize: 15, fontWeight: '600' },
   headerSub: { fontSize: 11, fontWeight: '500' },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40 },
+  emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   messageList: { padding: 16, gap: 8 },
   bubble: { width: '100%' },
   driverBubble: { alignItems: 'flex-start' },

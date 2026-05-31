@@ -15,6 +15,7 @@ export const SOCKET_EVENTS = {
   RIDE_TIMEOUT:          "ride:timeout",
   NOTIFICATION_NEW:      "notification:new",
   BOOKING_BOARDED:       "booking:boarded",
+  TRIP_CHAT_MESSAGE:     "trip:chat-message",
 
   // Client → Server
   JOIN:                  "join",
