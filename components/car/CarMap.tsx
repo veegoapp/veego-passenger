@@ -1,495 +1,260 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  Animated, 
-  TouchableOpacity, 
-  Platform, 
-  Text, 
-  Dimensions, 
-  PanResponder,
-  Modal,
-  ActivityIndicator
-} from 'react-native';
-import MapView, { Marker, UrlTile, Polyline } from 'react-native-maps';
-import { 
-  MapPin, 
-  Car, 
-  Navigation, 
-  Star, 
-  Phone, 
-  MessageSquare, 
-  XCircle, 
-  ShieldCheck, 
-  CheckCircle2, 
-  ChevronDown,
-  User,
-  Search
-} from 'lucide-react-native';
-import * as Location from 'expo-location';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, Dimensions, Animated, Platform, Linking, Alert, Modal, TextInput, FlatList } from 'react-native';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
+import { MapPin, Car, Search, Phone, MessageSquare, XCircle, Navigation } from 'lucide-react-native';
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// إحداثيات افتراضية ثابتة للـ Mock
+// البيانات الثابتة الافتراضية بدلاً من ملف الـ Context
 const USER_LOCATION = { latitude: 30.0444, longitude: 31.2357 };
-const DRIVER_LOCATION = { latitude: 30.0390, longitude: 31.2290 };
+const MOCK_DRIVER = {
+  name: 'Ahmed Hassan',
+  vehicle: 'Toyota Camry 2022',
+  plate: 'WG 1234',
+  rating: 4.8,
+  trips: 1247,
+  eta: 3,
+  phone: '+201234567890'
+};
 
-type Phase = 'idle' | 'searching' | 'driver_assigned' | 'arrived' | 'started' | 'completed';
+export function CarMap({ destination: initialDestination = 'Smart Village', onCloseShuttleSheet }: any) {
+  const [currentPhase, setCurrentPhase] = useState<'idle' | 'searching' | 'driver_assigned'>('idle');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { id: '1', text: 'على الطريق إليك الآن 👋', isDriver: true, time: '10:32' },
+    { id: '2', text: 'حركة المرور خفيفة اليوم، سأصل قريباً 🚗', isDriver: true, time: '10:33' }
+  ]);
+  const [chatText, setChatText] = useState('');
 
-interface CarMapProps {
-  phase?: Phase;
-  destination?: string | null;
-  onCloseShuttleSheet?: () => void; // متاح لربطه مع إغلاق صفحة الشاتيل عند السحب لأسفل
-}
+  // أنيميشن النبض للرادار
+  const pulseRing = useRef(new Animated.Value(0)).current;
 
-export function CarMap({ destination: initialDestination, onCloseShuttleSheet }: CarMapProps) {
-  const mapRef = useRef<MapView>(null);
-  const radarPulse = useRef(new Animated.Value(0)).current;
-  const panY = useRef(new Animated.Value(0)).current;
-
-  // إدارة الحالات يدوياً للتيست الكامل بناءً على رغبتك
-  const [currentPhase, setCurrentPhase] = useState<Phase>('idle');
-  const [destination, setDestination] = useState<string | null>(initialDestination || 'Smart Village');
-  const [liveLocation, setLiveLocation] = useState(USER_LOCATION);
-  const [simulatedDriver, setSimulatedDriver] = useState(DRIVER_LOCATION);
-
-  // إحداثيات الوجهة التخيلية المقيدة بموقعك
-  const destLat = liveLocation.latitude + 0.006;
-  const destLon = liveLocation.longitude + 0.004;
-
-  // تأثير لوجيك الرادار النبضي المطور في مرحلة البحث
   useEffect(() => {
     if (currentPhase === 'searching') {
-      radarPulse.setValue(0);
-      Animated.loop(
-        Animated.timing(radarPulse, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        })
-      ).start();
-    } else {
-      radarPulse.setValue(0);
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseRing, { toValue: 1, duration: 1500, useNativeDriver: true }),
+          Animated.timing(pulseRing, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+
+      // محاكاة قبول الكابتن للرحلة بعد 3.5 ثانية
+      const timer = setTimeout(() => {
+        setCurrentPhase('driver_assigned');
+      }, 3500);
+
+      return () => {
+        pulse.stop();
+        clearTimeout(timer);
+      };
     }
   }, [currentPhase]);
 
-  // توليد مسار شوارع ملتوي ومنحني بدقة لإلغاء فكرة الخط المستقيم
-  const curvedRouteCoordinates = useMemo(() => {
-    if (!destination) return [];
-    const points = [];
-    const steps = 15; 
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const lat = liveLocation.latitude + (destLat - liveLocation.latitude) * t;
-      const lon = liveLocation.longitude + (destLon - liveLocation.longitude) * t;
-      const offset = Math.sin(t * Math.PI) * 0.001; 
-      points.push({ latitude: lat + offset, longitude: lon - offset });
-    }
-    return points;
-  }, [destination, liveLocation]);
+  const scale = pulseRing.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.4] });
+  const opacity = pulseRing.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.4, 0.2, 0] });
 
-  // جلب موقع العميل الفعلي فور تشغيل الخريطة
-  useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
-        let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const currentCoords = { latitude: location.coords.latitude, longitude: location.coords.longitude };
-        setLiveLocation(currentCoords);
-        mapRef.current?.animateToRegion({ ...currentCoords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 1000);
-      } catch (error) {
-        console.log("Location fetch omitted or error:", error);
-      }
-    })();
-  }, []);
+  const handleCall = () => {
+    const url = `tel:${MOCK_DRIVER.phone}`;
+    Linking.openURL(url).catch(() => Alert.alert('خطأ', 'جهازك لا يدعم إجراء المكالمات'));
+  };
 
-  // التحكم التلقائي بالكاميرا والزوم لمتابعة حركة الماركرز بدقة وحساب الـ padding السفلية للـ Sheets
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const coords = [{ latitude: liveLocation.latitude, longitude: liveLocation.longitude }];
-    if (destination) coords.push({ latitude: destLat, longitude: destLon });
-    if (['driver_assigned', 'arrived', 'started'].includes(currentPhase)) {
-      coords.push({ latitude: simulatedDriver.latitude, longitude: simulatedDriver.longitude });
-    }
-    setTimeout(() => {
-      mapRef.current?.fitToCoordinates(coords, {
-        edgePadding: { top: 180, right: 60, bottom: 340, left: 60 },
-        animated: true,
-      });
-    }, 300);
-  }, [currentPhase, destination, simulatedDriver, liveLocation]);
-
-  // إعداد سحب الـ Sheet لأسفل للتراجع (Swipe Down Gesture)
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          panY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 120) {
-          // السحب لأسفل كافٍ للتراجع
-          if (onCloseShuttleSheet) onCloseShuttleSheet();
-          setCurrentPhase('idle');
-          Animated.timing(panY, { toValue: 0, duration: 200, useNativeDriver: true }).start();
-        } else {
-          Animated.spring(panY, { toValue: 0, useNativeDriver: true }).start();
-        }
-      },
-    })
-  ).current;
+  const handleSendMessage = () => {
+    if (!chatText.trim()) return;
+    const newMsg = { id: Date.now().toString(), text: chatText.trim(), isDriver: false, time: 'الان' };
+    setMessages(prev => [...prev, newMsg]);
+    setChatText('');
+  };
 
   return (
     <View style={styles.container}>
-
-      {/* 📍 الخريطة: تبدأ من أعلى الشاشة تحت أزرار التحكم تماماً */}
+      {/* 1. الخريطة تبدأ أسفل الهيدر وتأخذ المساحة بالكامل */}
       <View style={styles.mapWrapper}>
         <MapView
-          ref={mapRef}
           style={StyleSheet.absoluteFillObject}
-          initialRegion={{
-            latitude: liveLocation.latitude,
-            longitude: liveLocation.longitude,
-            latitudeDelta: 0.015,
-            longitudeDelta: 0.015,
-          }}
-          showsUserLocation={false}
-          compassEnabled={false}
+          initialRegion={{ ...USER_LOCATION, latitudeDelta: 0.015, longitudeDelta: 0.015 }}
         >
-          <UrlTile
-            urlTemplate="https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-            maximumZ={19}
-            tileSize={256}
-          />
+          <UrlTile urlTemplate="https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" maximumZ={19} tileSize={256} />
 
-          {destination && curvedRouteCoordinates.length > 0 && (
-            <Polyline
-              coordinates={curvedRouteCoordinates}
-              strokeColor="#111827"
-              strokeWidth={4}
-            />
-          )}
-
-          {/* ماركر العميل الذكي بدون حواف أو خطوط بيضاء مخربة للمظهر */}
-          <Marker coordinate={{ latitude: liveLocation.latitude, longitude: liveLocation.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.userMarkerContainer}>
-              <View style={styles.userMarkerDot} />
-            </View>
+          {/* ماركر المستخدم */}
+          <Marker coordinate={USER_LOCATION}>
+            <View style={styles.userMarkerDot} />
           </Marker>
-
-          {/* ماركر الوجهة المستهدفة */}
-          {destination && (
-            <Marker coordinate={{ latitude: destLat, longitude: destLon }} anchor={{ x: 0.5, y: 1 }}>
-              <View style={styles.destMarkerContainer}>
-                <View style={styles.destMarkerCircle}>
-                  <MapPin size={13} color="#ffffff" />
-                </View>
-              </View>
-            </Marker>
-          )}
-
-          {/* ماركر الكابتن التفاعلي */}
-          {['driver_assigned', 'arrived', 'started'].includes(currentPhase) && (
-            <Marker coordinate={{ latitude: simulatedDriver.latitude, longitude: simulatedDriver.longitude }} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={styles.driverMarkerBox}>
-                <Car size={14} color="#ffffff" />
-              </View>
-            </Marker>
-          )}
         </MapView>
-
-        {/* 🔍 بوكس البحث المطور: عائم بتأثير شفاف ناعم (Glassmorphism Concept) وبدون خطوط بيضاء داخلية */}
-        <View style={styles.floatingSearchBox}>
-          <View style={styles.searchRow}>
-            <View style={[styles.indicatorDot, { backgroundColor: '#10b981' }]} />
-            <Text style={styles.locationText}>Maadi Degla, Cairo</Text>
-          </View>
-          <View style={styles.searchDivider} />
-          <View style={styles.searchRow}>
-            <View style={[styles.indicatorDot, { backgroundColor: '#ef4444' }]} />
-            <Text style={styles.locationText}>{destination || 'Where to?'}</Text>
-            <Search size={16} color="#9ca3af" style={styles.searchIconRight} />
-          </View>
-        </View>
-
-        {/* زر الفلوتنج لإعادة التمركز */}
-        <TouchableOpacity style={styles.myLocationButton} onPress={() => mapRef.current?.animateToRegion({ ...liveLocation, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 600)}>
-          <Navigation size={18} color="#111827" fill="#111827" />
-        </TouchableOpacity>
       </View>
 
-      {/* 🛠️ لوحات التحكم السفلية المدمجة والذكية - مقسمة حسب كل مرحلة يدوية */}
+      {/* 2. بوكس البحث (منين لفين) شغال وشكله ممتاز */}
+      <View style={styles.floatingSearchBox}>
+        <View style={styles.searchRow}>
+          <View style={[styles.dot, { backgroundColor: '#10b981' }]} />
+          <Text style={styles.text}>الموقع الحالي (Current Location)</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.searchRow}>
+          <View style={[styles.dot, { backgroundColor: '#ef4444' }]} />
+          <Text style={styles.text}>{initialDestination}</Text>
+          <Search size={16} color="#9ca3af" style={{ marginLeft: 'auto' }} />
+        </View>
+      </View>
 
-      {/* 1. مرحلة الخمول البدئية - إتاحة طلب الرحلة يدويًا */}
+      {/* 3. واجهة الـ IDLE (البداية قبل الطلب) */}
       {currentPhase === 'idle' && (
         <View style={styles.bottomSheetCard}>
-          <Text style={styles.sheetTitle}>Ready for your next destination?</Text>
-          <Text style={styles.sheetSubtitle}>Get matched with top rated local drivers instantly.</Text>
-          <TouchableOpacity style={styles.primaryActionBtn} onPress={() => setCurrentPhase('searching')}>
-            <Text style={styles.primaryActionBtnTxt}>Search for Driver</Text>
+          <Text style={styles.sheetTitle}>جاهز لبدء رحلتك؟</Text>
+          <TouchableOpacity style={styles.btn} onPress={() => setCurrentPhase('searching')}>
+            <Text style={styles.btnText}>اطلب كابتن الآن</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* 2. مرحلة البحث المتقدمة - رادار متوهج ومتحرك شيك */}
+      {/* 4. واجهة الـ SEARCHING (الرادار والنبض الأخضر) */}
       {currentPhase === 'searching' && (
         <View style={styles.bottomSheetCard}>
           <View style={styles.radarContainer}>
-            <Animated.View style={[styles.radarWave, {
-              transform: [{ scale: radarPulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2.2] }) }],
-              opacity: radarPulse.interpolate({ inputRange: [0, 0.8, 1], outputRange: [0.4, 0.2, 0] })
-            }]} />
-            <Animated.View style={[styles.radarWave, {
-              transform: [{ scale: radarPulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.8] }) }],
-              opacity: radarPulse.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.5, 0.2, 0] }),
-              animationDelay: '0.5s'
-            }]} />
-            <View style={styles.radarCore}>
-              <Car size={24} color="#ffffff" />
+            <Animated.View style={[styles.ring, { transform: [{ scale }], opacity }]} />
+            <View style={styles.iconCircle}>
+              <Text style={{ fontSize: 24 }}>⚡</Text>
             </View>
           </View>
-          <Text style={[styles.sheetTitle, { textAlign: 'center', marginTop: 16 }]}>Searching for near drivers...</Text>
-          <Text style={[styles.sheetSubtitle, { textAlign: 'center', marginBottom: 15 }]}>Contacting nearby luxury shuttles & cars.</Text>
-
-          <TouchableOpacity style={styles.cancelLink} onPress={() => setCurrentPhase('idle')}>
-            <XCircle size={16} color="#ef4444" />
-            <Text style={styles.cancelLinkTxt}>Cancel Request</Text>
+          <Text style={[styles.sheetTitle, { textAlign: 'center', marginTop: 10 }]}>جاري البحث عن كابتن...</Text>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: '#ef4444' }]} onPress={() => setCurrentPhase('idle')}>
+            <Text style={styles.btnText}>إلغاء البحث</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* 3. كارد بيانات السائق الاحترافي والشامل (تم قبول الطلب أو وصل تحت البيت) */}
-      {['driver_assigned', 'arrived'].includes(currentPhase) && (
+      {/* 5. واجهة الـ DRIVER_ASSIGNED (كارد بيانات الكابتن أحمد حسن) */}
+      {currentPhase === 'driver_assigned' && (
         <View style={styles.bottomSheetCard}>
-          <View style={styles.dragHandleContainer} {...panResponder.panHandlers}>
-            <View style={styles.dragBarHandle} />
+          <View style={styles.etaRow}>
+            <View style={styles.pulseDot} />
+            <Text style={styles.etaText}>الكابتن يصلك خلال {MOCK_DRIVER.eta} دقائق</Text>
           </View>
 
-          <View style={styles.statusRowHeader}>
-            <View style={[styles.phaseIndicatorTag, { backgroundColor: currentPhase === 'arrived' ? '#ef4444' : '#10b981' }]} />
-            <Text style={styles.phaseIndicatorTxt}>
-              {currentPhase === 'arrived' ? 'Captain has arrived downstairs!' : 'Captain is approaching your location'}
-            </Text>
-          </View>
-
-          {/* تفاصيل الكابتن والمركبة الفخمة */}
-          <View style={styles.driverInfoBody}>
-            <View style={styles.avatarProfilePlaceholder}>
-              <User size={20} color="#6b7280" />
+          <View style={styles.driverCard}>
+            <View style={styles.avatarWrap}>
+              <Text style={styles.avatarText}>AH</Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.driverProfileName}>Captain Ahmed Mansour</Text>
-              <View style={styles.starRowInline}>
-                <Star size={13} color="#f59e0b" fill="#f59e0b" />
-                <Text style={styles.starRatingVal}>4.96 • Verified VeeGo Driver</Text>
+            <View style={styles.driverMeta}>
+              <Text style={styles.driverName}>{MOCK_DRIVER.name}</Text>
+              <Text style={styles.driverStats}>⭐ {MOCK_DRIVER.rating} • {MOCK_DRIVER.trips} رحلة</Text>
+            </View>
+            <View style={styles.vehicleBlock}>
+              <Text style={styles.vehicleText}>{MOCK_DRIVER.vehicle}</Text>
+              <View style={styles.plateBadge}>
+                <Text style={styles.plateText}>{MOCK_DRIVER.plate}</Text>
               </View>
             </View>
-            <View style={styles.vehiclePlateBadge}>
-              <Text style={styles.plateTextCode}>ن د ر ٥٩٧</Text>
-              <Text style={styles.vehicleSubName}>Hyundai Elantra</Text>
+          </View>
+
+          {/* أزرار التحكم (شات - اتصال - إلغاء) */}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.chatBtn} onPress={() => setChatOpen(true)}>
+              <MessageSquare size={18} color="#fff" />
+              <Text style={styles.chatBtnText}>المحادثة</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.circleBtn} onPress={handleCall}>
+              <Phone size={18} color="#111827" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.circleBtn, { backgroundColor: '#ffeeec' }]} onPress={() => setCurrentPhase('idle')}>
+              <XCircle size={18} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* 6. مودال الشات (Chat Window) */}
+      <Modal visible={chatOpen} animationType="slide" onRequestClose={() => setChatOpen(false)}>
+        <View style={styles.chatHeader}>
+          <TouchableOpacity onPress={() => setChatOpen(false)} style={styles.backBtn}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>رجوع</Text>
+          </TouchableOpacity>
+          <Text style={styles.chatHeaderTitle}>{MOCK_DRIVER.name}</Text>
+          <View style={{ width: 50 }} />
+        </View>
+
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, gap: 10 }}
+          renderItem={({ item }) => (
+            <View style={[styles.bubble, item.isDriver ? styles.driverBubble : styles.userBubble]}>
+              <View style={[styles.bubbleInner, { backgroundColor: item.isDriver ? '#f3f4f6' : '#111827' }]}>
+                <Text style={{ color: item.isDriver ? '#000' : '#fff', fontSize: 14 }}>{item.text}</Text>
+              </View>
             </View>
-          </View>
+          )}
+        />
 
-          {/* صف الأزرار التفاعلية الجاهزة للربط بالباك إند والـ API */}
-          <View style={styles.driverActionButtonsRow}>
-            <TouchableOpacity style={styles.iconSecondaryBtn} onPress={() => alert('Connecting voice call via VeeGo VoIP...')}>
-              <Phone size={16} color="#1f2937" />
-              <Text style={styles.iconSecondaryBtnTxt}>Call</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconSecondaryBtn} onPress={() => alert('Opening Direct Chat View...')}>
-              <MessageSquare size={16} color="#1f2937" />
-              <Text style={styles.iconSecondaryBtnTxt}>Chat</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.iconSecondaryBtn, { borderColor: '#fee2e2' }]} onPress={() => setCurrentPhase('idle')}>
-              <XCircle size={16} color="#ef4444" />
-              <Text style={[styles.iconSecondaryBtnTxt, { color: '#ef4444' }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* زر التأكيد اليدوي للركوب للتيست وعرض الأزرار */}
-          <TouchableOpacity style={styles.confirmBoardedBtn} onPress={() => setCurrentPhase('started')}>
-            <Text style={styles.confirmBoardedBtnTxt}>I have boarded the car</Text>
+        <View style={styles.inputBar}>
+          <TextInput
+            style={styles.chatInput}
+            placeholder="اكتب رسالة للكابتن..."
+            value={chatText}
+            onChangeText={setChatText}
+          />
+          <TouchableOpacity style={styles.sendBtn} onPress={handleSendMessage}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>إرسال</Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {/* 4. أثناء سير الرحلة الفعلي في الطريق للوجهة */}
-      {currentPhase === 'started' && (
-        <View style={styles.bottomSheetCard}>
-          <View style={styles.statusRowHeader}>
-            <ActivityIndicator size="small" color="#111827" style={{ marginRight: 8 }} />
-            <Text style={styles.phaseIndicatorTxt}>On the move... Tracking path live</Text>
-          </View>
-          <Text style={styles.etaCounterLabel}>Estimated Time to Destination: 12 mins</Text>
-          <View style={styles.linearBarContainer}>
-            <View style={styles.linearBarFillProgress} />
-          </View>
-          <TouchableOpacity style={[styles.confirmBoardedBtn, { marginTop: 15, backgroundColor: '#10b981' }]} onPress={() => setCurrentPhase('completed')}>
-            <Text style={styles.confirmBoardedBtnTxt}>End Simulation Trip</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* 5. شاشة الفاتورة والإنهاء المستقرة الأنيقة الفلات بدون حواف عشوائية */}
-      {currentPhase === 'completed' && (
-        <View style={styles.bottomSheetCard}>
-          <View style={{ alignItems: 'center', paddingVertical: 10 }}>
-            <CheckCircle2 size={40} color="#10b981" />
-            <Text style={[styles.sheetTitle, { marginTop: 10 }]}>Hope you enjoyed your ride!</Text>
-            <Text style={styles.sheetSubtitle}>Your account payment settlement completed smoothly.</Text>
-
-            <View style={styles.invoiceFlatCard}>
-              <Text style={styles.invoiceFlatLabel}>Total Fare Charged</Text>
-              <Text style={styles.invoiceFlatPrice}>185.00 EGP</Text>
-            </View>
-
-            <TouchableOpacity style={[styles.confirmBoardedBtn, { width: '100%', backgroundColor: '#111827' }]} onPress={() => setCurrentPhase('idle')}>
-              <Text style={styles.confirmBoardedBtnTxt}>Done & Back Home</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* 🎛️ لوحة التبديل السريع اليدوية (Manual Test Panel) بالأسفل تماماً لتمكينك من فحص كل الواجهات والأشكال براحتك */}
-      <View style={styles.manualTestControlPanel}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 10 }}>
-          <Text style={styles.testLabelTxt}>Test Steps:</Text>
-          <TouchableOpacity style={styles.testMiniBtn} onPress={() => setCurrentPhase('idle')}><Text style={styles.testMiniBtnTxt}>Idle</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.testMiniBtn} onPress={() => setCurrentPhase('searching')}><Text style={styles.testMiniBtnTxt}>Searching</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.testMiniBtn} onPress={() => setCurrentPhase('driver_assigned')}><Text style={styles.testMiniBtnTxt}>Assigned</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.testMiniBtn} onPress={() => setCurrentPhase('arrived')}><Text style={styles.testMiniBtnTxt}>Arrived</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.testMiniBtn} onPress={() => setCurrentPhase('started')}><Text style={styles.testMiniBtnTxt}>Started</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.testMiniBtn} onPress={() => setCurrentPhase('completed')}><Text style={styles.testMiniBtnTxt}>Completed</Text></TouchableOpacity>
-        </ScrollView>
-      </View>
-
+      </Modal>
     </View>
   );
 }
 
-// استخدام سكرول فيو مبسط للوحة الاختبار التفاعلية
-import { ScrollView } from 'react-native-gesture-handler';
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
-  mapWrapper: { flex: 1, position: 'relative' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  mapWrapper: { flex: 1 },
+  floatingSearchBox: { position: 'absolute', top: 20, left: 16, right: 16, backgroundColor: '#fff', padding: 15, borderRadius: 12, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
+  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
+  text: { fontSize: 13, color: '#111', fontWeight: '500' },
+  divider: { height: 1, backgroundColor: '#eee', marginVertical: 8, marginLeft: 18 },
 
-  // استايل ماركرز فلات ونظيفة تماماً
-  userMarkerContainer: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(17,24,39,0.15)', alignItems: 'center', justifyContent: 'center' },
-  userMarkerDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#111827' },
-  destMarkerContainer: { alignItems: 'center' },
-  destMarkerCircle: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-  driverMarkerBox: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center', elevation: 3 },
+  // الكارد السفلي الآمن المرفوع فوق الـ Navigation Bar
+  bottomSheetCard: { position: 'absolute', bottom: 110, left: 16, right: 16, backgroundColor: '#fff', padding: 20, borderRadius: 24, elevation: 15, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 15 },
+  sheetTitle: { fontSize: 16, fontWeight: 'bold', color: '#111', marginBottom: 10 },
+  btn: { backgroundColor: '#111827', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 5 },
+  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 
-  // 🔍 البوكس العائم الشفاف المتناسق هندسياً تحت أزرار الفئات
-  floatingSearchBox: {
-    position: 'absolute',
-    top: 15,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.88)',
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(243, 244, 246, 0.6)',
-  },
-  searchRow: { flexDirection: 'row', alignItems: 'center', height: 26 },
-  indicatorDot: { width: 6, height: 6, borderRadius: 3, marginRight: 10 },
-  locationText: { fontSize: 13.5, fontWeight: '500', color: '#1f2937' },
-  searchDivider: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 8, marginLeft: 16 },
-  searchIconRight: { marginLeft: 'auto' },
+  // استايلات الرادار والبحث
+  radarContainer: { alignItems: 'center', justifyContent: 'center', height: 80, marginVertical: 10 },
+  ring: { position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: '#10b981' },
+  iconCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#e6f7f0', alignItems: 'center', justifyContent: 'center' },
 
-  myLocationButton: {
-    position: 'absolute',
-    bottom: 290,
-    right: 16,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 5,
-  },
+  // استايلات كارد الكابتن وبياناته
+  etaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
+  etaText: { fontSize: 13, fontWeight: '600', color: '#10b981' },
+  driverCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: '#f3f4f6' },
+  avatarWrap: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#3a7bd5', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  driverMeta: { flex: 1, marginLeft: 10, gap: 2 },
+  driverName: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+  driverStats: { fontSize: 12, color: '#6b7280' },
+  vehicleBlock: { alignItems: 'flex-end', gap: 4 },
+  vehicleText: { fontSize: 11, color: '#4b5563' },
+  plateBadge: { backgroundColor: '#e5e7eb', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  plateText: { fontSize: 12, fontWeight: 'bold', color: '#111827' },
 
-  // 💳 استايل الكروت السفلية النظيفة (Flat Concept)
-  bottomSheetCard: {
-    position: 'absolute',
-    bottom: 75,
-    left: 16,
-    right: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 18,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -2 },
-  },
-  dragHandleContainer: { width: '100%', alignItems: 'center', paddingBottom: 10, marginTop: -6 },
-  dragBarHandle: { width: 38, height: 4, backgroundColor: '#e5e7eb', borderRadius: 2 },
+  // أزرار الشات والاتصال
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15 },
+  chatBtn: { flex: 1, height: 48, backgroundColor: '#111827', borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  chatBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  circleBtn: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
 
-  sheetTitle: { fontSize: 16, fontWeight: '700', color: '#111827', letterSpacing: -0.2 },
-  sheetSubtitle: { fontSize: 12.5, color: '#6b7280', marginTop: 3, lineHeight: 17 },
-  primaryActionBtn: { backgroundColor: '#111827', height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 15 },
-  primaryActionBtnTxt: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-
-  // لوجيك الرادار
-  radarContainer: { alignItems: 'center', justifyContent: 'center', height: 80, marginTop: 10 },
-  radarCore: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  radarWave: { position: 'absolute', width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(17,24,39,0.2)' },
-  cancelLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8 },
-  cancelLinkTxt: { fontSize: 13, fontWeight: '600', color: '#ef4444' },
-
-  // بيانات الكابتن الفخمة والمحترفة
-  statusRowHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  phaseIndicatorTag: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  phaseIndicatorTxt: { fontSize: 11.5, fontWeight: '600', color: '#4b5563', textTransform: 'uppercase' },
-  driverInfoBody: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  avatarProfilePlaceholder: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
-  driverProfileName: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  starRowInline: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  starRatingVal: { fontSize: 11.5, color: '#6b7280' },
-  vehiclePlateBadge: { backgroundColor: '#f3f4f6', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, alignItems: 'center' },
-  plateTextCode: { fontSize: 13, fontWeight: '700', color: '#111827' },
-  vehicleSubName: { fontSize: 9.5, color: '#6b7280', marginTop: 1 },
-
-  // صف أزرار التحكم الفلات والمستعدة للـ API
-  driverActionButtonsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  iconSecondaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 38, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
-  iconSecondaryBtnTxt: { fontSize: 12.5, fontWeight: '600', color: '#1f2937' },
-  confirmBoardedBtn: { backgroundColor: '#111827', height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  confirmBoardedBtnTxt: { color: '#ffffff', fontSize: 13.5, fontWeight: '600' },
-
-  // شريط خط السير المستمر
-  etaCounterLabel: { fontSize: 14, fontWeight: '700', color: '#111827', marginTop: 6 },
-  linearBarContainer: { height: 5, backgroundColor: '#e5e7eb', borderRadius: 3, marginTop: 8, overflow: 'hidden' },
-  linearBarFillProgress: { width: '40%', height: '100%', backgroundColor: '#111827' },
-
-  // الفاتورة الفلات
-  invoiceFlatCard: { backgroundColor: '#f9fafb', width: '100%', padding: 12, borderRadius: 14, alignItems: 'center', marginVertical: 12 },
-  invoiceFlatLabel: { fontSize: 12, color: '#6b7280' },
-  invoiceFlatPrice: { fontSize: 20, fontWeight: '800', color: '#10b981', marginTop: 2 },
-
-  // لوحة التيست السفلية المريحة
-  manualTestControlPanel: { position: 'absolute', bottom: 15, left: 0, right: 0, height: 45, backgroundColor: '#f9fafb', borderTopWidth: 1, borderTopColor: '#e5e7eb', justifyContent: 'center' },
-  testLabelTxt: { fontSize: 11, fontWeight: '700', color: '#6b7280', alignSelf: 'center', marginRight: 4 },
-  testMiniBtn: { backgroundColor: '#e5e7eb', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, alignSelf: 'center' },
-  testMiniBtnTxt: { fontSize: 11, fontWeight: '600', color: '#1f2937' }
+  // استايلات شاشة الشات المودال
+  chatHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee', paddingTop: 40 },
+  backBtn: { padding: 8 },
+  chatHeaderTitle: { fontSize: 16, fontWeight: 'bold' },
+  bubble: { width: '100%', marginVertical: 4 },
+  driverBubble: { alignItems: 'flex-start' },
+  userBubble: { alignItems: 'flex-end' },
+  bubbleInner: { padding: 12, borderRadius: 16, maxWidth: '75%' },
+  inputBar: { flexDirection: 'row', padding: 16, borderTopWidth: 1, borderTopColor: '#eee', alignItems: 'center', gap: 10 },
+  chatInput: { flex: 1, backgroundColor: '#f3f4f6', padding: 12, borderRadius: 20, fontSize: 14 },
+  sendBtn: { backgroundColor: '#111827', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20 },
+  userMarkerDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#111', borderWidth: 2, borderColor: '#fff' }
 });
