@@ -2,7 +2,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { MOCK_DESTINATIONS, USER_LOCATION } from './CarMap';
+import { MOCK_DESTINATIONS, USER_LOCATION } from './carMapData';
 
 async function fetchOSRMRoute(coords: [number, number][]): Promise<[number, number][] | null> {
   if (coords.length < 2) return null;
