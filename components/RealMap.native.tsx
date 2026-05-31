@@ -60,14 +60,13 @@ export function RealMap({
       <MapView
         style={StyleSheet.absoluteFillObject}
         initialRegion={{ ...center, ...DELTA }}
-        region={{ ...center, ...DELTA }}
         mapType="none"
         showsUserLocation={false}
         showsCompass={false}
         toolbarEnabled={false}
         rotateEnabled={false}
-        scrollEnabled={false}
-        zoomEnabled={false}
+        scrollEnabled={true}
+        zoomEnabled={true}
         pitchEnabled={false}
       >
         <UrlTile

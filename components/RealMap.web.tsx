@@ -1,7 +1,16 @@
 import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
+
+const MAPLIBRE_CSS_ID = 'maplibre-gl-css';
+function ensureMaplibreCSS() {
+  if (document.getElementById(MAPLIBRE_CSS_ID)) return;
+  const link = document.createElement('link');
+  link.id = MAPLIBRE_CSS_ID;
+  link.rel = 'stylesheet';
+  link.href = 'https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.min.css';
+  document.head.appendChild(link);
+}
 
 const DEFAULT_CENTER: [number, number] = [30.5523, 25.4529];
 
@@ -79,6 +88,8 @@ export function RealMap({
 
   useEffect(() => {
     if (!containerRef.current) return;
+
+    ensureMaplibreCSS();
 
     const pts = [driverLocation, pickup, dropoff, defaultCenter].filter(Boolean) as LatLng[];
     const center: [number, number] = pts.length
