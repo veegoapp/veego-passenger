@@ -122,8 +122,9 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
 
-  // 4. Ready when fonts + assets resolve, OR the 3-second fallback fires
-  const allReady = ((fontsLoaded || !!fontError) && assetsReady) || timedOut;
+  // 4. On web, SplashScreen is a no-op so render immediately.
+  //    On native, wait for fonts+assets or the 3-second fallback.
+  const allReady = Platform.OS === 'web' || ((fontsLoaded || !!fontError) && assetsReady) || timedOut;
 
   useEffect(() => {
     if (allReady) {
