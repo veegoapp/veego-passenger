@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, Modal, Platform, KeyboardAvoidingView,
 } from 'react-native';
-import { ArrowLeft, ArrowRight, Send } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -72,7 +72,7 @@ export function ChatModal({ visible, onClose, driverName }: ChatModalProps) {
       >
         <View style={[styles.header, { backgroundColor: headerBg, paddingTop: Platform.OS === 'web' ? 20 : insets.top + 4 }]}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.8} style={styles.backBtn}>
-            {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
+            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={20} color={c.ink} />
           </TouchableOpacity>
           <View style={styles.headerMeta}>
             <View style={[styles.driverAvatar, { backgroundColor: c.ink }]}>
@@ -137,7 +137,7 @@ export function ChatModal({ visible, onClose, driverName }: ChatModalProps) {
             onPress={sendMessage}
             activeOpacity={0.85}
           >
-            <Send size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
+            <Ionicons name="send" size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
