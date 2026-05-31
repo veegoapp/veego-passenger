@@ -49,8 +49,11 @@ export const DARK: ThemeColors = {
 export function makeGlassStyle(c: ThemeColors) {
   return {
     backgroundColor: c.isDark ? 'rgba(28,30,54,0.94)' : 'rgba(255,255,255,0.78)',
-    borderWidth: 1,
-    borderColor: c.isDark ? 'rgba(90,95,160,0.22)' : 'rgba(255,255,255,0.6)',
+
+    // 🛠️ التعديل هنا: تم إخفاء الخط تماماً بجعل السُمك 0 واللون شفاف
+    borderWidth: 0,
+    borderColor: 'transparent',
+
     shadowColor: c.isDark ? '#000' : '#1e1e28',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: c.isDark ? 0.5 : 0.08,

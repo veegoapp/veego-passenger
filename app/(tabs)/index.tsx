@@ -96,7 +96,9 @@ function makeStyles(c: ThemeColors) {
 
     mostBookedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8 },
     mostBookedTitle: { fontSize: 15, fontWeight: '700', color: c.ink, flexDirection: 'row', alignItems: 'center', gap: 4 },
-    routesSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 12 },
+
+    // رجعنا الاستايل الأصلي هنا ليكون متناسق
+    routesSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: 4, marginBottom: 12 },
     viewAllBtn: { fontSize: 13, fontWeight: '600', color: '#3b82f6' },
     routesList: { gap: 12 },
   });
@@ -120,16 +122,16 @@ export default function HomeScreen() {
   const [typedText, setTypedText] = useState('');
   const [headerHeight, setHeaderHeight] = useState(220);
 
+  // تحديث لـ 5 خطوط في الـ Most Booked
   const mostBookedRoutes = useMemo(() => {
     if (!routes || routes.length === 0) return [];
-    return routes.slice(0, 2);
+    return routes.slice(0, 5);
   }, [routes]);
 
   useEffect(() => {
     setTabBarVisible(true);
   }, [setTabBarVisible]);
 
-  // وضوح الوجهة بيحرك CarMap لـ flow البحث
   const handleServicePress = (id: string, soon?: boolean) => {
     if (soon) {
       if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -223,6 +225,16 @@ export default function HomeScreen() {
                 <Text style={styles.searchPlaceholder}>Search for route or station</Text>
                 <View style={styles.searchDivider} />
                 <MapPin size={16} color={c.ink} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ═══ تم نقل السيكشن الأصلي والكلمة هنا بالظبط بنفس ستايلها القديم ═══ */}
+          {mode === 'shuttle' && (
+            <View style={styles.routesSectionHeader}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: c.ink }}>Shuttle Routes</Text>
+              <TouchableOpacity onPress={() => router.push('/routes')}>
+                <Text style={styles.viewAllBtn}>View all routes</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -355,6 +367,7 @@ export default function HomeScreen() {
           <SectionHeader title={t('featured_offers')} />
           <FeaturedOffers />
 
+          {/* عرض الـ Most Booked لـ 5 خطوط كحد أقصى */}
           {mostBookedRoutes.length > 0 && (
             <View>
               <View style={styles.mostBookedHeader}>
@@ -370,18 +383,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          <View style={styles.routesSectionHeader}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: c.ink }}>Shuttle Routes</Text>
-            <TouchableOpacity onPress={() => router.push('/routes')}>
-              <Text style={styles.viewAllBtn}>View all routes</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.routesList}>
-            {routes.map((route) => (
-              <RouteCard key={route.id} route={route} onPress={() => openRoute(route)} />
-            ))}
-          </View>
+          {/* تم إزالة قائمة المسارات الطويلة بالكامل من هنا لسرعة التحميل والتخلص من الثقل */}
         </ScrollView>
       )}
 
