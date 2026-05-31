@@ -114,6 +114,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     setActiveBooking(pendingBooking);
 
+    let bookingSuccess = false;
+
     try {
       const routeId = pendingBooking.route.id;
       let tripId: number | null = null;
@@ -148,7 +150,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           seatCount: pendingBooking.passengers,
         });
         const bookingId = data.bookingId ?? data.id ?? data._id ?? null;
-        if (bookingId) setConfirmedBookingId(String(bookingId));
+        if (bookingId) {
+          setConfirmedBookingId(String(bookingId));
+          bookingSuccess = true;
+        }
       } else {
         console.warn('[BookingContext] No available trip found for routeId:', routeId);
       }
@@ -159,7 +164,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    setTimeout(() => router.push('/ticket'), 260);
+    // ✅ Only navigate to ticket if booking was actually created on the server
+    if (bookingSuccess) {
+      setTimeout(() => router.push('/ticket'), 260);
+    } else {
+      setActiveBooking(null);
+    }
   }, [pendingBooking, routeActiveTrips]);
 
   const closeConfirmSheet = useCallback(() => {

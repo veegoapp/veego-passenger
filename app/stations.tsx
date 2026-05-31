@@ -1,13 +1,36 @@
-import { useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, MapPin } from 'lucide-react-native';
+import { ArrowLeft, MapPin, RefreshCw } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { stations } from '@/constants/data';
+import { stations as staticStations } from '@/constants/data';
 import { MapMockView } from '@/components/Shared';
+import api from '@/src/api/client';
+
+interface StationItem {
+  id: string;
+  name: string;
+  area: string;
+  distance: string;
+  eta: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+function mapApiStation(s: any): StationItem {
+  return {
+    id: String(s.id ?? s._id ?? Math.random()),
+    name: s.name ?? s.stationName ?? s.station_name ?? '',
+    area: s.area ?? s.district ?? s.zone ?? '',
+    distance: s.distance ?? '—',
+    eta: s.eta ?? '—',
+    latitude: s.latitude ?? s.lat ?? undefined,
+    longitude: s.longitude ?? s.lng ?? s.lon ?? undefined,
+  };
+}
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -37,6 +60,10 @@ function makeStyles(c: ThemeColors) {
     etaTagNear: { backgroundColor: c.isDark ? 'rgba(85,196,154,0.15)' : 'rgba(85,196,154,0.15)' },
     etaText: { fontSize: 11, fontWeight: '500', color: c.inkSoft },
     etaTextNear: { color: '#2a9e6b' },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 40 },
+    errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
+    retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 99, backgroundColor: c.mist },
+    retryText: { fontSize: 13, fontWeight: '600', color: c.ink },
   });
 }
 
@@ -46,6 +73,34 @@ export default function StationsScreen() {
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
+  const [stations, setStations] = useState<StationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // ✅ Fetch from API Server — السيرفر هو المصدر الوحيد للبيانات
+      const { data } = await api.get('/shuttle/stations');
+      const list: any[] = Array.isArray(data) ? data : data.data ?? data.stations ?? data.items ?? [];
+      if (list.length > 0) {
+        setStations(list.map(mapApiStation));
+      } else {
+        // Fallback to static only if server returns empty
+        setStations(staticStations.map(mapApiStation));
+      }
+    } catch {
+      // Use static fallback if API unavailable, but show error
+      setStations(staticStations.map(mapApiStation));
+      setError('Could not load live stations — showing cached data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchStations(); }, [fetchStations]);
+
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
@@ -53,7 +108,9 @@ export default function StationsScreen() {
           <ArrowLeft size={18} color={c.ink} />
         </TouchableOpacity>
         <Text style={styles.title}>{t('stations_title')}</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={[gs, styles.backBtn]} onPress={fetchStations} activeOpacity={0.8}>
+          <RefreshCw size={16} color={c.ink} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.mapWrap}>
@@ -66,14 +123,31 @@ export default function StationsScreen() {
         <View style={styles.mapOverlay}>
           <View style={[gs, styles.mapLabel]}>
             <MapPin size={12} color={c.ink} />
-            <Text style={styles.mapLabelText}>3 {t('nearby')}</Text>
+            <Text style={styles.mapLabelText}>{stations.length} {t('stations_title')}</Text>
           </View>
         </View>
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <Text style={styles.listTitle}>{t('all_stations')}</Text>
-        {stations.map((s, i) => (
+
+        {loading && (
+          <View style={styles.centered}>
+            <ActivityIndicator color={c.ink} />
+          </View>
+        )}
+
+        {!loading && error && (
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={fetchStations} activeOpacity={0.8}>
+              <RefreshCw size={14} color={c.ink} />
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!loading && stations.map((s, i) => (
           <TouchableOpacity key={s.id} style={[gs, styles.stationCard]} activeOpacity={0.85}>
             <View style={styles.stationLeft}>
               <View style={styles.stationIndex}>

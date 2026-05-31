@@ -1,17 +1,21 @@
 import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
 import { tokenStore } from './client';
-import { SOCKET_EVENTS } from '../constants/socketEvents';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
   throw new Error(
     '[VeeGo] EXPO_PUBLIC_API_URL is not set. ' +
-    'Create a .env file in artifacts/passenger-app/ with:\n' +
+    'Create a .env file with:\n' +
     '  EXPO_PUBLIC_API_URL=https://<your-replit-domain>/api'
   );
 }
-const _apiBase: string = _rawApiUrl.startsWith('http') ? _rawApiUrl : `https://${_rawApiUrl}`;
+
+// ✅ Same KEY=VALUE normalization as client.ts
+const _normalized = _rawApiUrl.includes('=')
+  ? _rawApiUrl.split('=').slice(1).join('=').trim()
+  : _rawApiUrl.trim();
+const _apiBase: string = _normalized.startsWith('http') ? _normalized : `https://${_normalized}`;
 const SOCKET_URL = _apiBase.replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;
@@ -56,6 +60,12 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+}
+
+// ✅ Call this after token refresh to reconnect with new token
+export async function reconnectSocket(): Promise<void> {
+  disconnectSocket();
+  await getSocket();
 }
 
 export type RideStatus =

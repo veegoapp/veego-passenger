@@ -69,42 +69,46 @@ export default function TripTrackingScreen() {
     if (!rideId || socketListening.current) return;
     socketListening.current = true;
 
+    // ✅ Store named handler references so socket.off removes only OUR listeners
+    const onDriverLocation = (data: any) => {
+      if (data.rideId !== rideId) return;
+      setDriverLocation(data.location);
+    };
+    const onArrived = (data: any) => {
+      if (data.rideId !== rideId) return;
+      setStatus('arrived');
+    };
+    const onStarted = (data: any) => {
+      if (data.rideId !== rideId) return;
+      setStatus('started');
+    };
+    const onCompleted = (data: any) => {
+      if (data.rideId !== rideId) return;
+      setStatus('completed');
+      setTimeout(() => router.back(), 3000);
+    };
+    const onCancelled = (data: any) => {
+      if (data.rideId !== rideId) return;
+      setStatus('cancelled');
+      setTimeout(() => router.back(), 3000);
+    };
+
     getSocket().then((socket) => {
-      socket.on('ride:driver_location', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setDriverLocation(data.location);
-      });
-
-      socket.on('ride:arrived', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setStatus('arrived');
-      });
-
-      socket.on('ride:started', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setStatus('started');
-      });
-
-      socket.on('ride:completed', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setStatus('completed');
-        setTimeout(() => router.back(), 3000);
-      });
-
-      socket.on('ride:cancelled', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setStatus('cancelled');
-        setTimeout(() => router.back(), 3000);
-      });
+      socket.on('ride:driver_location', onDriverLocation);
+      socket.on('ride:arrived', onArrived);
+      socket.on('ride:started', onStarted);
+      socket.on('ride:completed', onCompleted);
+      socket.on('ride:cancelled', onCancelled);
     }).catch(() => {});
 
     return () => {
+      // ✅ Pass handler reference — removes only this component's listeners
       getSocket().then((socket) => {
-        socket.off('ride:driver_location');
-        socket.off('ride:arrived');
-        socket.off('ride:started');
-        socket.off('ride:completed');
-        socket.off('ride:cancelled');
+        socket.off('ride:driver_location', onDriverLocation);
+        socket.off('ride:arrived', onArrived);
+        socket.off('ride:started', onStarted);
+        socket.off('ride:completed', onCompleted);
+        socket.off('ride:cancelled', onCancelled);
       }).catch(() => {});
       socketListening.current = false;
     };

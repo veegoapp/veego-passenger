@@ -10,6 +10,8 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
+import { useProfile } from '@/src/hooks/useProfile';
+import { tokenStore } from '@/src/api/client';
 import { ThemeColors, S } from '@/constants/colors';
 
 type ProfileScreen =
@@ -125,51 +127,21 @@ function ModalHeader({ title, onClose, actionLabel, onAction }: { title: string;
   );
 }
 
-const PROFILE_KEY = '@veego_profile_v1';
-
+// ✅ useProfileInfo delegates to useProfile which fetches from GET /users/me
 export function useProfileInfo() {
-  const [name, setNameState] = useState('يوسف عادل');
-  const [email, setEmailState] = useState('youssef@example.com');
-  const [dob, setDobState] = useState('01/01/1995');
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem(PROFILE_KEY).then(async (raw) => {
-      if (raw) {
-        try {
-          const cached = JSON.parse(raw);
-          if (cached.name) setNameState(cached.name);
-          if (cached.email) setEmailState(cached.email);
-          if (cached.dob) setDobState(cached.dob);
-        } catch {}
-      }
-      try {
-        const { default: api } = await import('@/src/api/client');
-        const { data } = await api.get('/auth/me');
-        const p = data.user ?? data.profile ?? data;
-        if (p.name) setNameState(p.name);
-        if (p.email) setEmailState(p.email);
-        const dobVal = p.dob ?? p.dateOfBirth ?? p.birthdate;
-        if (dobVal) setDobState(dobVal);
-      } catch {}
-      setLoaded(true);
-    });
-  }, []);
+  const { profile, loading, saveProfile: apiSave } = useProfile();
 
   const saveProfile = useCallback(async (n: string, em: string, d: string) => {
-    setNameState(n);
-    setEmailState(em);
-    setDobState(d);
-    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify({ name: n, email: em, dob: d }));
-    try {
-      const { default: api } = await import('@/src/api/client');
-      await api.patch('/users/me', { name: n, email: em, dob: d });
-    } catch (e: any) {
-      console.warn('[Profile] API save failed:', e?.response?.data?.message ?? e?.message);
-    }
-  }, []);
+    await apiSave({ name: n, email: em, dob: d });
+  }, [apiSave]);
 
-  return { name, email, dob, loaded, saveProfile };
+  return {
+    name: profile.name || 'User',
+    email: profile.email || '',
+    dob: profile.dob || '',
+    loaded: !loading,
+    saveProfile,
+  };
 }
 
 function PersonalInfoModal({ visible, onClose, onSaved }: { visible: boolean; onClose: () => void; onSaved?: (name: string) => void }) {
@@ -583,10 +555,16 @@ export default function ProfileScreen() {
   const { colors: c, glassStyle: gs, darkMode, setDarkMode, language, setLanguage, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
-  const { name: profileName } = useProfileInfo();
+  const { name: profileName, email: profileEmail } = useProfileInfo();
   const [displayName, setDisplayName] = useState<string | null>(null);
 
   const heroName = displayName ?? profileName;
+  const heroInitials = heroName
+    .split(' ')
+    .map((w) => w.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'VG';
 
   const open = (screen: ProfileScreen) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -606,11 +584,11 @@ export default function ProfileScreen() {
             <View style={styles.heroGlow} />
             <View style={styles.heroContent}>
               <TouchableOpacity style={styles.avatarLg} onPress={() => open('personal_info')} activeOpacity={0.85}>
-                <Text style={styles.avatarLgText}>VG</Text>
+                <Text style={styles.avatarLgText}>{heroInitials}</Text>
               </TouchableOpacity>
               <View style={styles.heroText}>
                 <Text style={styles.heroName}>{heroName}</Text>
-                <Text style={styles.heroEmail}>+20 100 000 0000</Text>
+                <Text style={styles.heroEmail}>{profileEmail || '+20 100 000 0000'}</Text>
                 <View style={styles.heroStats}>
                   <View style={styles.heroStat}>
                     <Text style={styles.heroStatNum}>24</Text>
@@ -636,7 +614,7 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>{t('account')}</Text>
           <View style={[gs, styles.groupCard]}>
             {[
-              { icon: User, label: t('personal_info'), value: 'يوسف عادل', screen: 'personal_info' as ProfileScreen },
+              { icon: User, label: t('personal_info'), value: heroName, screen: 'personal_info' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: '2 cards', screen: 'payment_methods' as ProfileScreen },
               { icon: Lock, label: t('security_title'), value: undefined, screen: 'security' as ProfileScreen },
               { icon: Shield, label: t('privacy'), value: undefined, screen: 'privacy' as ProfileScreen },
@@ -756,7 +734,7 @@ export default function ProfileScreen() {
             if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             Alert.alert(t('sign_out'), t('sign_out_q'), [
               { text: t('cancel'), style: 'cancel' },
-              { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {} router.replace('/auth'); } },
+              { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {} try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {} router.replace('/auth'); } },
             ]);
           }}
         >

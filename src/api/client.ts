@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
@@ -16,16 +17,12 @@ const _normalizedUrl = _rawApiUrl.includes('=')
   : _rawApiUrl.trim();
 const BASE_URL: string = _normalizedUrl.startsWith('http') ? _normalizedUrl : `https://${_normalizedUrl}`;
 
-console.log('[VeeGo] API base URL:', BASE_URL);
-
 const TOKEN_KEY = 'veego_access_token';
 const REFRESH_KEY = 'veego_refresh_token';
 
 async function getToken(key: string): Promise<string | null> {
   try {
-    if (Platform.OS === 'web') {
-      return localStorage.getItem(key);
-    }
+    if (Platform.OS === 'web') return localStorage.getItem(key);
     return await SecureStore.getItemAsync(key);
   } catch {
     return null;
@@ -34,20 +31,14 @@ async function getToken(key: string): Promise<string | null> {
 
 async function setToken(key: string, value: string): Promise<void> {
   try {
-    if (Platform.OS === 'web') {
-      localStorage.setItem(key, value);
-      return;
-    }
+    if (Platform.OS === 'web') { localStorage.setItem(key, value); return; }
     await SecureStore.setItemAsync(key, value);
   } catch {}
 }
 
 async function removeToken(key: string): Promise<void> {
   try {
-    if (Platform.OS === 'web') {
-      localStorage.removeItem(key);
-      return;
-    }
+    if (Platform.OS === 'web') { localStorage.removeItem(key); return; }
     await SecureStore.deleteItemAsync(key);
   } catch {}
 }
@@ -66,13 +57,6 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     config.headers = config.headers ?? {};
     config.headers['Authorization'] = `Bearer ${token}`;
   }
-  const fullUrl = `${config.baseURL ?? BASE_URL}${config.url ?? ''}`;
-  console.log(`[API] --> ${config.method?.toUpperCase()} ${fullUrl}`);
-  if (config.data) {
-    const safeData = { ...config.data };
-    if (safeData.password) safeData.password = '***';
-    console.log('[API] --> payload:', JSON.stringify(safeData));
-  }
   return config;
 });
 
@@ -80,19 +64,14 @@ let isRefreshing = false;
 let refreshQueue: Array<(token: string) => void> = [];
 
 api.interceptors.response.use(
-  (response: AxiosResponse) => {
-    console.log(`[API] <-- ${response.status} ${response.config.url}`);
-    return response;
-  },
+  (response: AxiosResponse) => response,
   async (error) => {
     const status = error.response?.status;
-    const url = error.config?.url ?? '?';
-    const body = error.response?.data;
-    console.warn(`[API] <-- ERROR ${status} ${url}:`, JSON.stringify(body ?? error.message));
-
     const originalRequest = error.config;
+
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
       if (isRefreshing) {
         return new Promise((resolve) => {
           refreshQueue.push((token) => {
@@ -101,6 +80,7 @@ api.interceptors.response.use(
           });
         });
       }
+
       isRefreshing = true;
       try {
         const refreshToken = await getToken(REFRESH_KEY);
@@ -116,6 +96,8 @@ api.interceptors.response.use(
         refreshQueue = [];
         await removeToken(TOKEN_KEY);
         await removeToken(REFRESH_KEY);
+        // ✅ Redirect to auth screen when refresh fails
+        router.replace('/auth');
         return Promise.reject(error);
       } finally {
         isRefreshing = false;

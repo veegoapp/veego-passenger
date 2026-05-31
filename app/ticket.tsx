@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowRight, Ticket } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowRight, Ticket, QrCode } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import QRCode from 'react-native-qrcode-svg';
@@ -14,6 +14,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { getSocket } from '@/src/api/socket';
 
+const FALLBACK_BOOKING_ID = 'VEEGO-0000';
 
 function SparkleParticle({ deg, delay, color }: { deg: number; delay: number; color: string }) {
   const opacity = useRef(new Animated.Value(0)).current;
