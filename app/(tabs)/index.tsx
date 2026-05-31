@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bus, Car, Bike, Package, Bell, Search, MapPin, ArrowRight, Navigation, Flame } from 'lucide-react-native';
+import { Bus, Car, Bike, Package, Bell, Search, MapPin, ArrowRight, Navigation, Flame, Wrench } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -16,6 +16,7 @@ import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarMap } from '@/components/car/CarMap';
 import { BikeMap } from '@/components/bike/BikeMap';
+import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 
 type ServiceMode = 'shuttle' | 'car' | 'bike';
 
@@ -23,7 +24,7 @@ const SERVICES = [
   { id: 'shuttle' as const, labelKey: 'shuttle' as const, icon: Bus },
   { id: 'car' as const, labelKey: 'car' as const, icon: Car },
   { id: 'bike' as const, labelKey: 'bike' as const, icon: Bike },
-  { id: 'delivery' as const, labelKey: 'delivery' as const, icon: Package, soon: true },
+  { id: 'delivery' as const, labelKey: 'delivery' as const, icon: Package },
 ];
 
 const MOCK_LOCATIONS = [
@@ -108,13 +109,13 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
   const [mode, setMode] = useState<ServiceMode>('shuttle');
-  const [soonVisible, setSoonVisible] = useState(false);
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openRoute, activeBooking } = useBooking();
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
+  const { getService, handleServiceTap } = useServiceControl();
 
   const [pickupLocation, setPickupLocation] = useState('Current Location');
   const [destinationLocation, setDestinationLocation] = useState('');
@@ -132,18 +133,15 @@ export default function HomeScreen() {
     setTabBarVisible(true);
   }, [setTabBarVisible]);
 
-  const handleServicePress = (id: string, soon?: boolean) => {
-    if (soon) {
+  const handleServicePress = (id: string) => {
+    handleServiceTap(id as ServiceType, () => {
       if (Platform.OS !== 'web') Haptics.selectionAsync();
-      setSoonVisible(true);
-      if (soonTimer.current) clearTimeout(soonTimer.current);
-      soonTimer.current = setTimeout(() => setSoonVisible(false), 2200);
-      return;
-    }
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    setMode(id as ServiceMode);
-    setActiveSearchField(null);
-    setDestinationLocation('');
+      if (id === 'shuttle' || id === 'car' || id === 'bike') {
+        setMode(id as ServiceMode);
+        setActiveSearchField(null);
+        setDestinationLocation('');
+      }
+    });
   };
 
   const filteredSuggestions = useMemo(() => {
@@ -192,24 +190,56 @@ export default function HomeScreen() {
           {/* Service tabs */}
           <View style={styles.serviceGrid}>
             {SERVICES.map((svc) => {
-              const active = !svc.soon && mode === svc.id;
+              const ctrl = getService(svc.id as ServiceType);
+              const displayMode = ctrl?.display_mode ?? 'live';
+              const isEnabled = ctrl?.is_enabled ?? true;
+
+              // hide_service: don't render at all
+              if (
+                ctrl &&
+                (!isEnabled || displayMode === 'unavailable') &&
+                ctrl.unavailable_action === 'hide_service'
+              ) return null;
+
+              const active = mode === svc.id && displayMode === 'live' && isEnabled;
+              const isComingSoon = displayMode === 'coming_soon';
+              const isMaintenance = displayMode === 'maintenance';
+              const isDisabled = isComingSoon || isMaintenance || (!isEnabled && displayMode !== 'live');
+
+              const btnStyle = active
+                ? styles.serviceBtnActive
+                : isDisabled
+                ? styles.serviceBtnSoon
+                : styles.serviceBtnInactive;
+
+              const iconColor = active
+                ? (c.isDark ? c.background : c.white)
+                : c.inkSoft;
+
               return (
                 <TouchableOpacity
                   key={svc.id}
-                  style={[
-                    styles.serviceBtn,
-                    active ? styles.serviceBtnActive : svc.soon ? styles.serviceBtnSoon : styles.serviceBtnInactive,
-                  ]}
-                  onPress={() => handleServicePress(svc.id, svc.soon)}
-                  activeOpacity={0.8}
+                  style={[styles.serviceBtn, btnStyle]}
+                  onPress={() => !isComingSoon && !isMaintenance && handleServicePress(svc.id)}
+                  activeOpacity={isDisabled ? 1 : 0.8}
                 >
-                  <svc.icon size={15} color={active ? (c.isDark ? c.background : c.white) : c.inkSoft} />
+                  {isMaintenance
+                    ? <Wrench size={15} color={c.inkSoft} />
+                    : <svc.icon size={15} color={iconColor} />
+                  }
                   <Text style={[styles.serviceLabel, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>
                     {t(svc.labelKey)}
                   </Text>
-                  {svc.soon && (
+                  {isComingSoon && (
                     <View style={styles.soonBadge}>
                       <Text style={styles.soonBadgeText}>{t('soon')}</Text>
+                    </View>
+                  )}
+                  {isMaintenance && (
+                    <View style={styles.soonBadge}>
+                      <Text style={styles.soonBadgeText}>
+                        {ctrl?.maintenance_eta ? `Back ${ctrl.maintenance_eta}` : 'Maintenance'}
+                      </Text>
                     </View>
                   )}
                 </TouchableOpacity>

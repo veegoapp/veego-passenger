@@ -33,6 +33,10 @@ args = "bash scripts/setup.sh"
 waitForPort = 5000
 
 [[ports]]
+localPort = 500
+externalPort = 4200
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 

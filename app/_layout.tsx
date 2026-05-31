@@ -19,6 +19,7 @@ import { BookingProvider } from '@/context/BookingContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { TabBarProvider } from '@/context/TabBarContext';
+import { ServiceControlProvider } from '@/context/ServiceControlContext';
 import { TripSheet } from '@/components/TripSheet';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { usePushToken } from '@/src/hooks/usePushToken';
@@ -157,11 +158,13 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <TabBarProvider>
-            <BookingProvider>
-              <FavoritesProvider>
-                <AppShell />
-              </FavoritesProvider>
-            </BookingProvider>
+            <ServiceControlProvider>
+              <BookingProvider>
+                <FavoritesProvider>
+                  <AppShell />
+                </FavoritesProvider>
+              </BookingProvider>
+            </ServiceControlProvider>
           </TabBarProvider>
         </ThemeProvider>
       </SafeAreaProvider>

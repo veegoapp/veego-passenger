@@ -1,0 +1,74 @@
+We added a Service Control system to the backend. 
+The Passenger App needs to integrate with it.
+
+ARCHITECTURE RULE (non-negotiable):
+The API Server controls everything. 
+The app never decides on its own whether to show 
+or hide a service — it always follows what the 
+server says.
+
+PART 1 — Fetch service status on app load
+Call GET /api/services/control (JWT required) 
+on app startup and store the result in a context 
+or global state (e.g. ServiceControlContext).
+
+Response shape:
+{
+  data: [{
+    service_type: "car"|"shuttle"|"motorcycle"|"delivery",
+    is_enabled: boolean,
+    display_mode: "live"|"coming_soon"|"unavailable"|"maintenance",
+    unavailable_message: string | null,
+    unavailable_action: "none"|"show_message"|"hide_service",
+    active_zone_ids: number[],
+    maintenance_eta: string | null
+  }]
+}
+
+PART 2 — Apply display logic everywhere a service is shown
+For each service displayed in the app, apply this logic:
+
+- display_mode === "live" → show normally
+- display_mode === "coming_soon" → show grayed out 
+  with "Coming Soon" badge, disable tap
+- display_mode === "unavailable":
+    - unavailable_action === "none" → show disabled, tap does nothing
+    - unavailable_action === "show_message" → tap shows 
+      unavailable_message in a modal/alert
+    - unavailable_action === "hide_service" → do not render 
+      the service at all
+- display_mode === "maintenance" → show maintenance banner; 
+  if maintenance_eta is set display "Back at [time]"
+- is_enabled === false → treat same as unavailable_action logic
+
+If active_zone_ids is non-empty, only show the service 
+when the user's current zone ID is in that list.
+
+PART 3 — Real-time updates via Socket.io
+Listen for this event after connecting:
+
+socket.on("service:control:changed", (payload) => {
+  // Update local service state for payload.serviceType
+  // Re-apply display logic immediately
+  // No need to re-fetch from REST endpoint
+})
+
+Payload shape:
+{
+  serviceType: "car"|"shuttle"|"motorcycle"|"delivery",
+  isEnabled: boolean,
+  displayMode: "live"|"coming_soon"|"unavailable"|"maintenance",
+  unavailableMessage: string | null,
+  unavailableAction: "none"|"show_message"|"hide_service",
+  activeZoneIds: number[],
+  maintenanceEta: string | null,
+  changedBy: number,
+  changedAt: string
+}
+
+IMPORTANT:
+- Do not hardcode any service visibility logic in the UI
+- Do not break any existing functionality
+- Use the existing API client (src/api/client.ts) for the REST call
+- Use the existing socket setup (src/api/socket.ts) for the event
+- Follow the existing code style and folder structure
