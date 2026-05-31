@@ -99,8 +99,9 @@ function AppShell() {
 
 export default function RootLayout() {
   const [assetsReady, setAssetsReady] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
-  // 1. Preload Google-fonts Inter variants (useFonts returns instantly on web)
+  // 1. Preload Google-fonts Inter variants
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -108,15 +109,21 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  // 2. Preload image assets + Ionicons font concurrently
+  // 2. Preload image assets concurrently
   useEffect(() => {
     preloadAssets()
       .catch((e) => console.warn('[Assets] Preload failed (non-fatal):', e))
       .finally(() => setAssetsReady(true));
   }, []);
 
-  // 3. Hide splash only when BOTH fonts AND assets are fully ready
-  const allReady = (fontsLoaded || !!fontError) && assetsReady;
+  // 3. Safety timeout — if fonts/assets stall on web, unblock after 3 s
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 3000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // 4. Ready when fonts + assets resolve, OR the 3-second fallback fires
+  const allReady = ((fontsLoaded || !!fontError) && assetsReady) || timedOut;
 
   useEffect(() => {
     if (allReady) {
@@ -124,7 +131,7 @@ export default function RootLayout() {
     }
   }, [allReady]);
 
-  // 4. Render nothing while splash is still showing — prevents flash of unstyled content
+  // 5. Render nothing while loading — prevents flash of unstyled content
   if (!allReady) return null;
 
   return (
