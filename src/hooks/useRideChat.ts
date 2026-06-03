@@ -57,12 +57,12 @@ export function useRideChat(tripId: string | null) {
     };
 
     getSocket().then((socket) => {
-      socket.on('trip:chat-message', handler);
+      socket.on('trip:chat:message', handler);
     }).catch(() => {});
 
     return () => {
       getSocket().then((socket) => {
-        socket.off('trip:chat-message', handler);
+        socket.off('trip:chat:message', handler);
       }).catch(() => {});
       listenerRef.current = false;
     };

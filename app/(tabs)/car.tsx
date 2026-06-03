@@ -293,10 +293,10 @@ export default function CarScreen() {
     if (s === 'driver_assigned' || s === 'driver_en_route') {
       setPhase('active');
       haptic.notify(Haptics.NotificationFeedbackType.Success);
-    } else if (s === 'arrived') {
+    } else if (s === 'arrived' || s === 'driver_arrived') {
       setPhase('arrived');
       haptic.notify(Haptics.NotificationFeedbackType.Success);
-    } else if (s === 'started') {
+    } else if (s === 'started' || s === 'active') {
       setPhase('in_trip');
     } else if (s === 'completed') {
       setPhase('completed');

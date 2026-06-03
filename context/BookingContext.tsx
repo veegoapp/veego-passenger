@@ -128,9 +128,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!tripId) {
-        // Fallback: query trips API
+        // Fallback: query shuttle trips API (passenger-accessible)
         try {
-          const tripsRes = await api.get('/trips', {
+          const tripsRes = await api.get('/shuttle/trips', {
             params: { routeId, status: 'scheduled', limit: 5 },
           });
           const tripsList: any[] = Array.isArray(tripsRes.data)
@@ -145,9 +145,14 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (tripId) {
-        const { data } = await api.post('/bookings', {
+        const route = pendingBooking.route;
+        const boardingStationId = route.path[pendingBooking.fromIdx]?.id ?? null;
+        const alightingStationId = route.path[pendingBooking.toIdx]?.id ?? null;
+        const { data } = await api.post('/shuttle/book', {
           tripId,
           seatCount: pendingBooking.passengers,
+          boardingStationId,
+          alightingStationId,
         });
         const bookingId = data.bookingId ?? data.id ?? data._id ?? null;
         if (bookingId) {

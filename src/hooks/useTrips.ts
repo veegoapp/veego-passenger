@@ -69,7 +69,7 @@ export function useTrips(): UseTripsResult {
     try {
       // Fetch bookings and routes in parallel — routes needed to resolve route names
       const [bookingsRes, routesRes] = await Promise.allSettled([
-        api.get('/users/me/bookings'),
+        api.get('/shuttle/bookings'),
         api.get('/shuttle/lines'),
       ]);
 

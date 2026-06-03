@@ -74,7 +74,7 @@ export function useRoutes(): UseRoutesResult {
       // Fetch routes and scheduled trips in parallel
       const [routesRes, tripsRes] = await Promise.allSettled([
         api.get('/shuttle/lines'),
-        api.get('/trips?status=scheduled&limit=200'),
+        api.get('/shuttle/trips?status=scheduled&limit=200'),
       ]);
 
       // Build routeId → earliest upcoming trip map for seatsLeft + nextDeparture

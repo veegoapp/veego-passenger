@@ -117,7 +117,7 @@ export default function TripsScreen() {
   const doCancel = async (tripId: string) => {
     setCancellingId(tripId);
     try {
-      await api.patch(`/bookings/${tripId}/cancel`);
+      await api.patch(`/shuttle/bookings/${tripId}/cancel`);
       await refresh();
     } catch {
     } finally {
