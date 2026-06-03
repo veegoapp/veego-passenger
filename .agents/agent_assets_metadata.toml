@@ -6,3 +6,9 @@ id = "_P6tyAW4urtpCVM_R_9hN"
 uri = "file://PASSENGER_APP_AUDIT.md"
 type = "text"
 title = "VeeGo Passenger App — Integration Audit"
+
+[[outputs]]
+id = "ONNyIbT5H-RtuWSzxeQQ6"
+uri = "file://rider-app-audit.md"
+type = "text"
+title = "Rider App — Backend Contract Audit Report"
