@@ -92,6 +92,6 @@ export interface RideSocketEvents {
   'ride:completed': (data: { rideId: string; fare: number }) => void;
   'ride:cancelled': (data: { rideId: string; reason: string }) => void;
   'ride:timeout': (data: { rideId: string }) => void;
-  'notification:new': (data: { id: string; category: string; title: string; body: string; time: string }) => void;
+  'notification:new': (data: { id: string; type: string; title: string; body: string; createdAt: string }) => void;
   'booking:boarded': (data: { bookingId: string; passengerId?: string; timestamp: string }) => void;
 }

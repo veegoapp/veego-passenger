@@ -42,10 +42,10 @@ export type Trip = {
 
 export type Notification = {
   id: string;
-  category: 'trip' | 'promo' | 'system';
+  type: 'trip' | 'promo' | 'system';
   title: string;
   body: string;
-  time: string;
+  createdAt: string;
   unread?: boolean;
 };
 

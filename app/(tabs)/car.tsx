@@ -275,7 +275,7 @@ export default function CarScreen() {
     if (!rideState.rideId) return;
     ratedRideIds.current.add(rideState.rideId);
     try {
-      await api.post(`/rides/${rideState.rideId}/rate-driver`, { rating: stars, comment });
+      await api.post(`/rides/${rideState.rideId}/rate`, { rating: stars, comment });
     } catch {
       // silently ignore — rating already dismissed for the user
     }
@@ -290,7 +290,7 @@ export default function CarScreen() {
   useEffect(() => {
     const s = rideState.status;
     if (!s) return;
-    if (s === 'driver_assigned' || s === 'driver_en_route') {
+    if (s === 'driver_assigned') {
       setPhase('active');
       haptic.notify(Haptics.NotificationFeedbackType.Success);
     } else if (s === 'arrived' || s === 'driver_arrived') {

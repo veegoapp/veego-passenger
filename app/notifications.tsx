@@ -71,14 +71,14 @@ export default function NotificationsScreen() {
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
           {notifications.map((n) => {
-            const NotifIcon = CATEGORY_ICONS[n.category as keyof typeof CATEGORY_ICONS] ?? Bell;
+            const NotifIcon = CATEGORY_ICONS[n.type as keyof typeof CATEGORY_ICONS] ?? Bell;
             return (
             <TouchableOpacity
               key={n.id}
               style={[gs, styles.notifCard, n.unread && styles.notifCardUnread]}
               activeOpacity={0.88}
             >
-              <View style={[styles.notifIconWrap, { backgroundColor: iconBg[n.category] ?? c.mist }]}>
+              <View style={[styles.notifIconWrap, { backgroundColor: iconBg[n.type] ?? c.mist }]}>
                 <NotifIcon size={16} color={c.ink} />
               </View>
               <View style={styles.notifContent}>
@@ -87,7 +87,7 @@ export default function NotificationsScreen() {
                   {n.unread && <View style={styles.unreadDot} />}
                 </View>
                 <Text style={styles.notifBody} numberOfLines={2}>{n.body}</Text>
-                <Text style={styles.notifTime}>{n.time}</Text>
+                <Text style={styles.notifTime}>{n.createdAt}</Text>
               </View>
             </TouchableOpacity>
             );

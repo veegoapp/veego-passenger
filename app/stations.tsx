@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, MapPin, RefreshCw } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -72,6 +72,7 @@ export default function StationsScreen() {
   const top = Platform.OS === 'web' ? 60 : insets.top;
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const { routeId } = useLocalSearchParams<{ routeId?: string }>();
 
   const [stations, setStations] = useState<StationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,8 +82,7 @@ export default function StationsScreen() {
     setLoading(true);
     setError(null);
     try {
-      // ✅ Fetch from API Server — السيرفر هو المصدر الوحيد للبيانات
-      const { data } = await api.get('/shuttle/stations');
+      const { data } = await api.get(`/routes/${routeId}/stations`);
       const list: any[] = Array.isArray(data) ? data : data.data ?? data.stations ?? data.items ?? [];
       if (list.length > 0) {
         setStations(list.map(mapApiStation));
@@ -97,7 +97,7 @@ export default function StationsScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [routeId]);
 
   useEffect(() => { fetchStations(); }, [fetchStations]);
 

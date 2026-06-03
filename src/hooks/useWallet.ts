@@ -100,7 +100,7 @@ export function useWallet(): UseWalletResult {
     setError(null);
     try {
       const [walletRes, txRes] = await Promise.allSettled([
-        api.get('/wallet'),
+        api.get('/wallet/balance'),
         api.get('/wallet/transactions'),
       ]);
 

@@ -58,7 +58,7 @@ function mapApiPromo(p: any, idx: number): PromoCard {
 interface UsePromosResult {
   promos: PromoCard[];
   loading: boolean;
-  validateCode: (code: string) => Promise<{ valid: boolean; discount?: string; message?: string }>;
+  validateCode: (code: string, orderAmount?: number) => Promise<{ valid: boolean; discount?: string; message?: string }>;
 }
 
 export function usePromos(): UsePromosResult {
@@ -68,7 +68,7 @@ export function usePromos(): UsePromosResult {
   const fetchPromos = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/promo');
+      const { data } = await api.get('/promo/codes');
       const list = Array.isArray(data) ? data : data.promos ?? data.codes ?? data.data ?? data.items ?? [];
       setPromos(list.map(mapApiPromo));
     } catch {
@@ -80,9 +80,9 @@ export function usePromos(): UsePromosResult {
 
   useEffect(() => { fetchPromos(); }, [fetchPromos]);
 
-  const validateCode = useCallback(async (code: string) => {
+  const validateCode = useCallback(async (code: string, orderAmount: number = 0) => {
     try {
-      const { data } = await api.post('/promo/validate', { code });
+      const { data } = await api.post('/promo/validate', { code, orderAmount });
       const valid = data.valid ?? data.isValid ?? data.is_valid ?? data.success ?? true;
       const discountValue = data.discountValue ?? data.discount_value ?? data.discount ?? data.value ?? '';
       const discountType = data.discountType ?? data.discount_type ?? data.type ?? '';

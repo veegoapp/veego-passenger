@@ -13,13 +13,13 @@ interface UseNotificationsResult {
 }
 
 function mapApiNotif(n: any): Notification {
-  const cat = (n.category ?? n.type ?? 'system').toLowerCase();
+  const cat = (n.type ?? n.category ?? 'system').toLowerCase();
   return {
     id: String(n.id ?? n._id ?? Math.random()),
-    category: (cat === 'trip' || cat === 'promo' || cat === 'system') ? cat as any : 'system',
+    type: (cat === 'trip' || cat === 'promo' || cat === 'system') ? cat as any : 'system',
     title: n.title ?? n.subject ?? '',
     body: n.body ?? n.message ?? n.content ?? '',
-    time: n.createdAt ?? n.created_at ?? n.time ?? n.timestamp ?? '',
+    createdAt: n.createdAt ?? n.created_at ?? n.time ?? n.timestamp ?? '',
     unread: n.unread ?? (n.isRead === false) ?? (n.is_read === false) ?? false,
   };
 }
