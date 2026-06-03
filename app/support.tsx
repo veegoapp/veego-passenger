@@ -14,6 +14,18 @@ import api from '@/src/api/client';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 
+const ISSUE_TYPE_SUBJECT: Record<string, string> = {
+  issue_booking: 'Booking problem',
+  issue_payment: 'Payment issue',
+  issue_driver: 'Driver complaint',
+  issue_app: 'App not working',
+  issue_other: 'Other',
+};
+
+function toBackendType(issueKey: string): 'passenger' | 'driver' {
+  return issueKey === 'issue_driver' ? 'driver' : 'passenger';
+}
+
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, gap: 12 },
@@ -94,8 +106,10 @@ export default function SupportScreen() {
     setSending(true);
     try {
       await api.post('/support/tickets', {
-        issueType: selectedIssue,
-        message: message.trim(),
+        subject:  ISSUE_TYPE_SUBJECT[selectedIssue] ?? 'Support Request',
+        message:  message.trim(),
+        type:     toBackendType(selectedIssue),
+        priority: 'medium',
       });
     } catch (e: any) {
       const status = e?.response?.status;
