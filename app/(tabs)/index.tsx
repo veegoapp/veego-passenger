@@ -191,8 +191,8 @@ export default function HomeScreen() {
           <View style={styles.serviceGrid}>
             {SERVICES.map((svc) => {
               const ctrl = getService(svc.id as ServiceType);
-              const displayMode = ctrl?.display_mode ?? 'live';
-              const isEnabled = ctrl?.is_enabled ?? true;
+              const displayMode = ctrl?.displayMode ?? 'live';
+              const isEnabled = ctrl?.isEnabled ?? true;
 
               // Zone check: hide service if user is outside all active zones
               if (!isServiceVisibleForZone(svc.id as ServiceType)) return null;
@@ -201,7 +201,7 @@ export default function HomeScreen() {
               if (
                 ctrl &&
                 (!isEnabled || displayMode === 'unavailable') &&
-                ctrl.unavailable_action === 'hide_service'
+                ctrl.unavailableAction === 'hide_service'
               ) return null;
 
               const active = mode === svc.id && displayMode === 'live' && isEnabled;
@@ -241,7 +241,7 @@ export default function HomeScreen() {
                   {isMaintenance && (
                     <View style={styles.soonBadge}>
                       <Text style={styles.soonBadgeText}>
-                        {ctrl?.maintenance_eta ? `Back ${ctrl.maintenance_eta}` : 'Maintenance'}
+                        {ctrl?.maintenanceEta ? `Back ${ctrl.maintenanceEta}` : 'Maintenance'}
                       </Text>
                     </View>
                   )}

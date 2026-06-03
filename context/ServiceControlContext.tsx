@@ -12,13 +12,13 @@ export type DisplayMode = 'live' | 'coming_soon' | 'unavailable' | 'maintenance'
 export type UnavailableAction = 'none' | 'show_message' | 'hide_service';
 
 export interface ServiceControl {
-  service_type: ServiceType;
-  is_enabled: boolean;
-  display_mode: DisplayMode;
-  unavailable_message: string | null;
-  unavailable_action: UnavailableAction;
-  active_zone_ids: number[];
-  maintenance_eta: string | null;
+  serviceType: ServiceType;
+  isEnabled: boolean;
+  displayMode: DisplayMode;
+  unavailableMessage: string | null;
+  unavailableAction: UnavailableAction;
+  activeZoneIds: number[];
+  maintenanceEta: string | null;
 }
 
 type ServiceControlMap = Partial<Record<ServiceType, ServiceControl>>;
@@ -101,7 +101,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
         if (cancelled) return;
         const list: ServiceControl[] = Array.isArray(data.data) ? data.data : [];
         const map: ServiceControlMap = {};
-        list.forEach((svc) => { map[svc.service_type] = svc; });
+        list.forEach((svc) => { map[svc.serviceType] = svc; });
         setServices(map);
       })
       .catch((e) => {
@@ -126,26 +126,10 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
   }, []);
 
   // ── Real-time socket updates ─────────────────────────────────────
-  const applyUpdate = useCallback((payload: {
-    serviceType: ServiceType;
-    isEnabled: boolean;
-    displayMode: DisplayMode;
-    unavailableMessage: string | null;
-    unavailableAction: UnavailableAction;
-    activeZoneIds: number[];
-    maintenanceEta: string | null;
-  }) => {
+  const applyUpdate = useCallback((payload: ServiceControl) => {
     setServices((prev) => ({
       ...prev,
-      [payload.serviceType]: {
-        service_type: payload.serviceType,
-        is_enabled: payload.isEnabled,
-        display_mode: payload.displayMode,
-        unavailable_message: payload.unavailableMessage,
-        unavailable_action: payload.unavailableAction,
-        active_zone_ids: payload.activeZoneIds,
-        maintenance_eta: payload.maintenanceEta,
-      },
+      [payload.serviceType]: payload,
     }));
   }, []);
 
@@ -169,15 +153,15 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
 
   // ── Zone visibility check ────────────────────────────────────────
   // Rules:
-  //   - active_zone_ids is empty  → visible in all zones
-  //   - active_zone_ids non-empty + userZoneId unknown → fail open (visible)
-  //   - active_zone_ids non-empty + userZoneId known   → visible only if in list
+  //   - activeZoneIds is empty  → visible in all zones
+  //   - activeZoneIds non-empty + userZoneId unknown → fail open (visible)
+  //   - activeZoneIds non-empty + userZoneId known   → visible only if in list
   const isServiceVisibleForZone = useCallback((type: ServiceType): boolean => {
     const svc = services[type];
     if (!svc) return true;
-    if (!svc.active_zone_ids || svc.active_zone_ids.length === 0) return true;
+    if (!svc.activeZoneIds || svc.activeZoneIds.length === 0) return true;
     if (userZoneId === null) return true;
-    return svc.active_zone_ids.includes(userZoneId);
+    return svc.activeZoneIds.includes(userZoneId);
   }, [services, userZoneId]);
 
   // ── Helpers ──────────────────────────────────────────────────────
@@ -192,9 +176,9 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     const svc = services[type];
     if (!svc) { onAllow(); return; }
 
-    const mode = svc.display_mode;
+    const mode = svc.displayMode;
 
-    if (mode === 'live' && svc.is_enabled) {
+    if (mode === 'live' && svc.isEnabled) {
       onAllow();
       return;
     }
@@ -202,12 +186,12 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     if (mode === 'coming_soon') return;
     if (mode === 'maintenance') return;
 
-    if (mode === 'unavailable' || !svc.is_enabled) {
-      const action = svc.unavailable_action;
+    if (mode === 'unavailable' || !svc.isEnabled) {
+      const action = svc.unavailableAction;
       if (action === 'hide_service') return;
       if (action === 'none') return;
-      if (action === 'show_message' && svc.unavailable_message) {
-        Alert.alert('Service Unavailable', svc.unavailable_message);
+      if (action === 'show_message' && svc.unavailableMessage) {
+        Alert.alert('Service Unavailable', svc.unavailableMessage);
         return;
       }
       return;
