@@ -27,6 +27,7 @@ interface UseRideResult {
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
     notes?: string;
+    promoCode?: string;
   }) => Promise<{ success: boolean; rideId?: string; error?: string }>;
   cancelRide: () => Promise<void>;
   resetRide: () => void;
@@ -173,6 +174,7 @@ export function useRide(): UseRideResult {
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
     notes?: string;
+    promoCode?: string;
   }) => {
     setRequesting(true);
     setRideState(DEFAULT_STATE);
@@ -188,6 +190,7 @@ export function useRide(): UseRideResult {
         dropoffLongitude:   payload.dropoff.longitude,
         dropoffAddress:     payload.dropoff.address ?? '',
         notes:              payload.notes,
+        ...(payload.promoCode ? { promoCode: payload.promoCode } : {}),
       });
       // FIXED: server wraps the ride object in { data: { id, ... } }
       const rideId = String(data?.data?.id ?? data?.rideId ?? data?.id ?? data?._id ?? Date.now());

@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
   TextInput, FlatList, Animated, Modal, Alert, PanResponder,
 } from 'react-native';
-import { ArrowLeft, ArrowRight, Bell, XCircle, Search, Clock, MapPin, ChevronLeft, ChevronRight, Bike, User, ArrowRightCircle, Star, MessageCircle, Phone } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Bell, XCircle, Search, Clock, MapPin, ChevronLeft, ChevronRight, Bike, User, ArrowRightCircle, Star, MessageCircle, Phone, X, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -11,6 +11,7 @@ import { ThemeColors } from '@/constants/colors';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { RatingSheet } from '@/components/shared/RatingSheet';
 import { useRide } from '@/src/hooks/useRide';
+import { usePromos } from '@/src/hooks/usePromos';
 import { ChatModal } from '@/components/car/ChatModal';
 import { BikeMap } from '@/components/bike/BikeMap';
 
@@ -127,6 +128,14 @@ function makeStyles(c: ThemeColors, insetTop: number) {
     priceAmount: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
     confirmBtn: { marginHorizontal: 16, height: 56, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, shadowColor: '#55c49a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 14, elevation: 8 },
     confirmText: { fontSize: 16, fontWeight: '700' },
+    promoSection: {},
+    promoInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    promoInput: { flex: 1, height: 38, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, fontSize: 13 },
+    promoApplyBtn: { height: 38, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center' },
+    promoApplyText: { fontSize: 12, fontWeight: '700' },
+    promoSuccess: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(34,160,107,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+    promoSuccessText: { fontSize: 12, fontWeight: '600', color: '#22a06b', flex: 1 },
+    promoError: { fontSize: 11.5, color: '#e0584a' },
     container: { paddingHorizontal: 18, gap: 12 },
     etaRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
     pulseDot: { width: 8, height: 8, borderRadius: 4 },
@@ -225,6 +234,38 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
   const socketResponded = useRef(false);
   const { recents, addRecent, clearRecents } = useRecentSearches('bike');
   const { requestRide, rideState } = useRide();
+  const { validateCode } = usePromos();
+  const [promoInput, setPromoInput] = useState<string>('');
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle');
+  const [promoDiscount, setPromoDiscount] = useState('');
+  const [promoError, setPromoError] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState('');
+
+  const handleApplyPromo = useCallback(async () => {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoStatus('loading');
+    setPromoError('');
+    const result = await validateCode(code, 15);
+    if (result.valid) {
+      setPromoStatus('valid');
+      setPromoDiscount(result.discount ?? '');
+      setAppliedPromoCode(code);
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      setPromoStatus('invalid');
+      setPromoError(result.message ?? 'Invalid promo code');
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [promoInput, validateCode]);
+
+  const clearPromo = useCallback(() => {
+    setPromoInput('');
+    setPromoStatus('idle');
+    setPromoDiscount('');
+    setPromoError('');
+    setAppliedPromoCode('');
+  }, []);
 
   useEffect(() => {
     if (rideState.status === 'driver_assigned' && phase === 'searching') {
@@ -343,6 +384,7 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
       type: 'bike',
       pickup: { latitude: 25.4449, longitude: 30.5597, address: CURRENT_LOCATION_EN },
       dropoff: { latitude: 25.4449, longitude: 30.5597, address: destination ?? '' },
+      ...(appliedPromoCode ? { promoCode: appliedPromoCode } : {}),
     }).then((result) => {
       if (!result.success && !socketResponded.current) {
         searchTimer.current = setTimeout(() => {
@@ -593,9 +635,53 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
           </View>
           <View style={styles.priceBlock}>
             <Text style={[styles.priceLabel, { color: c.inkSoft }]}>{t('egp')}</Text>
-            <Text style={[styles.priceAmount, { color: '#55c49a' }]}>15</Text>
+            {promoStatus === 'valid' ? (
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={[styles.priceAmount, { color: c.inkSoft, textDecorationLine: 'line-through', fontSize: 16, fontWeight: '600' }]}>15</Text>
+                <Text style={[styles.priceAmount, { color: '#55c49a', fontSize: 13 }]}>-{promoDiscount}</Text>
+              </View>
+            ) : (
+              <Text style={[styles.priceAmount, { color: '#55c49a' }]}>15</Text>
+            )}
           </View>
         </View>
+
+        <View style={[styles.promoSection, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)', borderRadius: 16, marginHorizontal: 16, padding: 12, marginBottom: 12, gap: 8 }]}>
+          <View style={styles.promoInputRow}>
+            <Tag size={14} color={c.inkSoft} />
+            <TextInput
+              style={[styles.promoInput, { color: c.ink, borderColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+              placeholder="Enter promo code"
+              placeholderTextColor={c.inkSoft}
+              value={promoInput}
+              onChangeText={(v) => { setPromoInput(v); if (promoStatus === 'invalid') setPromoStatus('idle'); }}
+              autoCapitalize="characters"
+              editable={promoStatus !== 'valid' && promoStatus !== 'loading'}
+              returnKeyType="done"
+              onSubmitEditing={handleApplyPromo}
+            />
+            <TouchableOpacity
+              style={[styles.promoApplyBtn, (promoInput.trim().length === 0 || promoStatus === 'loading' || promoStatus === 'valid') && { opacity: 0.4 }]}
+              onPress={handleApplyPromo}
+              disabled={promoInput.trim().length === 0 || promoStatus === 'loading' || promoStatus === 'valid'}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.promoApplyText, { color: '#ffffff' }]}>{promoStatus === 'loading' ? '...' : 'Apply'}</Text>
+            </TouchableOpacity>
+          </View>
+          {promoStatus === 'valid' && (
+            <View style={styles.promoSuccess}>
+              <Text style={styles.promoSuccessText}>Discount applied: -{promoDiscount}</Text>
+              <TouchableOpacity onPress={clearPromo} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={14} color="#22a06b" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {promoStatus === 'invalid' && (
+            <Text style={styles.promoError}>{promoError}</Text>
+          )}
+        </View>
+
         <TouchableOpacity
           style={[styles.confirmBtn, { backgroundColor: '#55c49a' }]}
           onPress={handleConfirm}

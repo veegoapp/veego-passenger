@@ -15,7 +15,7 @@ type BookingContextType = {
   openRoute: (route: Route) => void;
   closeTripSheet: () => void;
   handleBook: (booking: Booking) => void;
-  handleConfirm: () => void;
+  handleConfirm: (promoCode?: string) => void;
   closeConfirmSheet: () => void;
   setActiveBooking: (b: Booking | null) => void;
 };
@@ -32,7 +32,7 @@ const BookingContext = createContext<BookingContextType>({
   openRoute: () => {},
   closeTripSheet: () => {},
   handleBook: () => {},
-  handleConfirm: () => {},
+  handleConfirm: (_promoCode?: string) => {},
   closeConfirmSheet: () => {},
   setActiveBooking: () => {},
 });
@@ -108,7 +108,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setConfirmSheetOpen(true), 280);
   }, []);
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = useCallback(async (promoCode?: string) => {
     setConfirmSheetOpen(false);
     if (!pendingBooking) return;
 
@@ -153,6 +153,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
           seatCount: pendingBooking.passengers,
           boardingStationId,
           alightingStationId,
+          ...(promoCode ? { promoCode } : {}),
         });
         const bookingId = data.bookingId ?? data.id ?? data._id ?? null;
         if (bookingId) {

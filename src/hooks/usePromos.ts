@@ -80,7 +80,7 @@ export function usePromos(): UsePromosResult {
 
   useEffect(() => { fetchPromos(); }, [fetchPromos]);
 
-  const validateCode = useCallback(async (code: string, orderAmount: number = 0) => {
+  const validateCode = useCallback(async (code: string, orderAmount: number) => {
     try {
       const { data } = await api.post('/promo/validate', { code, orderAmount });
       const valid = data.valid ?? data.isValid ?? data.is_valid ?? data.success ?? true;

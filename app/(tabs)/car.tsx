@@ -4,7 +4,7 @@ import {
   ScrollView, TextInput, Platform, Alert, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Car, ShieldCheck, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle } from 'lucide-react-native';
+import { MapPin, Car, ShieldCheck, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -15,6 +15,7 @@ import api from '@/src/api/client';
 import { RatingSheet } from '@/components/shared/RatingSheet';
 import { ChatModal } from '@/components/car/ChatModal';
 import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
+import { usePromos } from '@/src/hooks/usePromos';
 
 const haptic = {
   selection: () => { if (Platform.OS !== 'web') Haptics.selectionAsync(); },
@@ -257,6 +258,39 @@ export default function CarScreen() {
   const [priceEstimate, setPriceEstimate] = useState<number | null>(null);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
 
+  const { validateCode } = usePromos();
+  const [promoInput, setPromoInput] = useState('');
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle');
+  const [promoDiscount, setPromoDiscount] = useState('');
+  const [promoError, setPromoError] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState('');
+
+  const handleApplyPromo = useCallback(async () => {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoStatus('loading');
+    setPromoError('');
+    const result = await validateCode(code, priceEstimate ?? 0);
+    if (result.valid) {
+      setPromoStatus('valid');
+      setPromoDiscount(result.discount ?? '');
+      setAppliedPromoCode(code);
+      haptic.notify(Haptics.NotificationFeedbackType.Success);
+    } else {
+      setPromoStatus('invalid');
+      setPromoError(result.message ?? 'Invalid promo code');
+      haptic.notify(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [promoInput, priceEstimate, validateCode]);
+
+  const clearPromo = useCallback(() => {
+    setPromoInput('');
+    setPromoStatus('idle');
+    setPromoDiscount('');
+    setPromoError('');
+    setAppliedPromoCode('');
+  }, []);
+
   const { rideState, requesting, requestRide, cancelRide: hookCancelRide, resetRide: hookResetRide } = useRide();
 
   const [ratingVisible, setRatingVisible] = useState(false);
@@ -362,8 +396,9 @@ export default function CarScreen() {
       type: 'car',
       pickup:  { ...pickupCoords,  address: pickup },
       dropoff: { ...dropoffCoords, address: dropoff },
+      ...(appliedPromoCode ? { promoCode: appliedPromoCode } : {}),
     });
-  }, [pickup, dropoff, requestRide]);
+  }, [pickup, dropoff, requestRide, appliedPromoCode]);
 
   const cancelRide = useCallback(() => {
     haptic.notify(Haptics.NotificationFeedbackType.Warning);
@@ -535,6 +570,42 @@ export default function CarScreen() {
               )}
             </View>
           )}
+
+          <View style={[glassStyle, styles.promoSection, S.luxe]}>
+            <View style={styles.promoInputRow}>
+              <Tag size={15} color={C.inkSoft} />
+              <TextInput
+                style={styles.promoInput}
+                placeholder="Enter promo code"
+                placeholderTextColor={C.inkSoft}
+                value={promoInput}
+                onChangeText={(v) => { setPromoInput(v); if (promoStatus === 'invalid') setPromoStatus('idle'); }}
+                autoCapitalize="characters"
+                editable={promoStatus !== 'valid' && promoStatus !== 'loading'}
+                returnKeyType="done"
+                onSubmitEditing={handleApplyPromo}
+              />
+              <TouchableOpacity
+                style={[styles.promoApplyBtn, (promoInput.trim().length === 0 || promoStatus === 'loading' || promoStatus === 'valid') && styles.promoApplyBtnDisabled]}
+                onPress={handleApplyPromo}
+                disabled={promoInput.trim().length === 0 || promoStatus === 'loading' || promoStatus === 'valid'}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.promoApplyText}>{promoStatus === 'loading' ? '...' : 'Apply'}</Text>
+              </TouchableOpacity>
+            </View>
+            {promoStatus === 'valid' && (
+              <View style={styles.promoSuccess}>
+                <Text style={styles.promoSuccessText}>Discount applied: -{promoDiscount}</Text>
+                <TouchableOpacity onPress={clearPromo} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <X size={14} color="#22a06b" />
+                </TouchableOpacity>
+              </View>
+            )}
+            {promoStatus === 'invalid' && (
+              <Text style={styles.promoError}>{promoError}</Text>
+            )}
+          </View>
 
           <TouchableOpacity
             style={[styles.primaryBtn, (!pickup || !dropoff || requesting) && styles.primaryBtnDisabled]}
@@ -930,6 +1001,16 @@ const styles = StyleSheet.create({
   },
   primaryBtnDisabled: { opacity: 0.4 },
   primaryBtnText: { fontSize: 15, fontWeight: '700', color: C.white },
+
+  promoSection: { borderRadius: 16, padding: 14, marginTop: 12, gap: 10 },
+  promoInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  promoInput: { flex: 1, height: 40, borderRadius: 12, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, fontSize: 13, color: C.ink, backgroundColor: C.snow },
+  promoApplyBtn: { height: 40, paddingHorizontal: 16, borderRadius: 12, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' },
+  promoApplyBtnDisabled: { opacity: 0.4 },
+  promoApplyText: { fontSize: 12, fontWeight: '700', color: C.white },
+  promoSuccess: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(34,160,107,0.12)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
+  promoSuccessText: { fontSize: 12.5, fontWeight: '600', color: '#22a06b', flex: 1 },
+  promoError: { fontSize: 12, color: '#e0584a', paddingHorizontal: 2 },
 
   findingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   etaBubble: {
