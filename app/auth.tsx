@@ -105,19 +105,19 @@ export default function AuthPage() {
 
 function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   const { t } = useTheme();
-  const [credential, setCredential] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
   const handleSignIn = async () => {
-    if (!credential.trim() || !password.trim()) return;
+    if (!email.trim() || !password.trim()) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { credential: credential.trim(), password });
+      const { data } = await api.post('/auth/login', { email: email.trim(), password });
       await persistTokens(data);
-      await saveSession(credential.trim(), data.user?.name ?? data.name);
+      await saveSession(email.trim(), data.user?.name ?? data.name);
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (e: any) {
@@ -148,8 +148,8 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           style={styles.inputField}
           placeholder={t('email_or_phone')}
           placeholderTextColor={C.silver}
-          value={credential}
-          onChangeText={setCredential}
+          value={email}
+          onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -176,10 +176,10 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       </View>
 
       <TouchableOpacity
-        style={[styles.primaryBtn, (!credential.trim() || !password.trim() || loading) && { opacity: 0.6 }]}
+        style={[styles.primaryBtn, (!email.trim() || !password.trim() || loading) && { opacity: 0.6 }]}
         activeOpacity={0.9}
         onPress={handleSignIn}
-        disabled={!credential.trim() || !password.trim() || loading}
+        disabled={!email.trim() || !password.trim() || loading}
       >
         {loading ? (
           <ActivityIndicator color={C.white} size="small" />
