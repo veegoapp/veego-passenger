@@ -68,7 +68,7 @@ export function usePromos(): UsePromosResult {
   const fetchPromos = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/promo/codes');
+      const { data } = await api.get('/promo');
       const list = Array.isArray(data) ? data : data.promos ?? data.codes ?? data.data ?? data.items ?? [];
       setPromos(list.map(mapApiPromo));
     } catch {
@@ -82,7 +82,7 @@ export function usePromos(): UsePromosResult {
 
   const validateCode = useCallback(async (code: string, orderAmount: number) => {
     try {
-      const { data } = await api.post('/promo/validate', { code, orderAmount });
+      const { data } = await api.post('/promo/validate', { code });
       const valid = data.valid ?? data.isValid ?? data.is_valid ?? data.success ?? true;
       const discountValue = data.discountValue ?? data.discount_value ?? data.discount ?? data.value ?? '';
       const discountType = data.discountType ?? data.discount_type ?? data.type ?? '';

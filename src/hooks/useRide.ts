@@ -109,6 +109,7 @@ export function useRide(): UseRideResult {
         s.off('ride:completed');
         s.off('ride:cancelled');
         s.off('ride:timeout');
+        s.off('ride:status_update');
       }).catch(() => {});
       socketListening.current = false;
       stopPolling();
@@ -163,6 +164,14 @@ export function useRide(): UseRideResult {
         if (data.rideId !== rideId) return;
         setRideState((prev) => ({ ...prev, status: 'timeout' }));
         cleanup();
+      });
+
+      socket.on('ride:status_update', (data: any) => {
+        if (data.rideId !== rideId) return;
+        const status: RideStatus = data.status;
+        if (!status) return;
+        setRideState((prev) => ({ ...prev, status }));
+        if (TERMINAL_STATUSES.includes(status)) cleanup();
       });
     } catch (err) {
       console.warn('[useRide] Socket setup failed:', err);

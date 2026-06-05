@@ -71,7 +71,6 @@ export async function reconnectSocket(): Promise<void> {
 export type RideStatus =
   | 'searching'
   | 'driver_assigned'
-  | 'driver_en_route'
   | 'arrived'
   | 'started'
   | 'completed'

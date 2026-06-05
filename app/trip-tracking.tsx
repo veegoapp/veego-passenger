@@ -10,7 +10,6 @@ import type { DriverLocation } from '@/src/api/socket';
 const STATUS_LABELS: Record<string, string> = {
   searching: 'Finding your driver…',
   driver_assigned: 'Driver is on the way',
-  driver_en_route: 'Driver is on the way',
   arrived: 'Driver has arrived',
   started: 'Trip in progress',
   completed: 'Trip completed',
@@ -21,7 +20,6 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   searching: '#f59e0b',
   driver_assigned: '#2563eb',
-  driver_en_route: '#2563eb',
   arrived: '#22c55e',
   started: '#2563eb',
   completed: '#10b981',
