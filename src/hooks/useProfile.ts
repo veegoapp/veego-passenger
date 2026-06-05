@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 
 export interface UserProfile {
+  id: number | null;
   name: string;
   email: string;
   dob: string;
@@ -9,6 +10,7 @@ export interface UserProfile {
 }
 
 const EMPTY_PROFILE: UserProfile = {
+  id: null,
   name: '',
   email: '',
   dob: '',
@@ -19,12 +21,13 @@ interface UseProfileResult {
   profile: UserProfile;
   loading: boolean;
   error: string | null;
-  saveProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
+  saveProfile: (updates: Partial<Omit<UserProfile, 'id'>>) => Promise<{ success: boolean; error?: string }>;
   refresh: () => void;
 }
 
 function mapApiProfile(d: any): UserProfile {
   return {
+    id: d.id ?? d.userId ?? d.user_id ?? null,
     name: d.name ?? d.fullName ?? d.displayName ?? '',
     email: d.email ?? d.emailAddress ?? '',
     dob: d.dob ?? d.dateOfBirth ?? d.birthdate ?? '',
@@ -53,7 +56,7 @@ export function useProfile(): UseProfileResult {
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
-  const saveProfile = useCallback(async (updates: Partial<UserProfile>) => {
+  const saveProfile = useCallback(async (updates: Partial<Omit<UserProfile, 'id'>>) => {
     try {
       const { data } = await api.patch('/users/me', updates);
       const d = data.user ?? data.profile ?? data;

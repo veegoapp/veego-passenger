@@ -19,8 +19,8 @@ pnpm install
 echo "=== Starting Expo (Tunnel Mode) ==="
 
 # ── Kill any process on port 5000 ───────────────────────────────
-fuser -k 5000/tcp || true
-sleep 2
+lsof -ti:5000 2>/dev/null | xargs kill -9 2>/dev/null || true
+sleep 1
 
 # ── Critical fixes for Replit + Expo ────────────────────────────
 export EXPO_NO_TELEMETRY=1

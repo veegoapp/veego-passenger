@@ -5,8 +5,6 @@ import type { Booking, Route } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 
-const TRIPS_PER_PAGE = 20;
-
 type BookingContextType = {
   selectedRoute: Route | null;
   tripSheetOpen: boolean;
@@ -31,6 +29,7 @@ type BookingContextType = {
   fetchTripsForDate: (routeId: string, utcDate: string) => Promise<void>;
   loadMoreTrips: () => Promise<void>;
   clearBookingError: () => void;
+  refreshLineTrips: (routeId: string) => Promise<void>;
 };
 
 const BookingContext = createContext<BookingContextType>({
@@ -57,6 +56,7 @@ const BookingContext = createContext<BookingContextType>({
   fetchTripsForDate: async () => {},
   loadMoreTrips: async () => {},
   clearBookingError: () => {},
+  refreshLineTrips: async () => {},
 });
 
 function mapStations(rawStations: any[]): Route['path'] {
@@ -81,6 +81,16 @@ async function fetchWalletBalance(): Promise<number | null> {
   }
 }
 
+async function fetchLineTrips(routeId: string): Promise<any[]> {
+  try {
+    const { data } = await api.get(`/shuttle/lines/${routeId}`);
+    const full = data?.data ?? data;
+    return Array.isArray(full.activeTrips) ? full.activeTrips : [];
+  } catch {
+    return [];
+  }
+}
+
 export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [tripSheetOpen, setTripSheetOpen] = useState(false);
@@ -93,41 +103,28 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [tripsLoading, setTripsLoading] = useState(false);
   const [scheduledTrips, setScheduledTrips] = useState<any[]>([]);
   const [tripsTotal, setTripsTotal] = useState(0);
-  const [tripsPage, setTripsPage] = useState(1);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
-  const [currentRouteId, setCurrentRouteId] = useState<string | null>(null);
-  const [currentDateFilter, setCurrentDateFilter] = useState<string | null>(null);
 
-  const fetchScheduledTrips = useCallback(async (
-    routeId: string,
-    utcDate: string | null,
-    page: number,
-    append: boolean,
-  ) => {
+  // Refresh trips for a line after booking/cancel
+  const refreshLineTrips = useCallback(async (routeId: string) => {
     setTripsLoading(true);
     try {
-      // No status filter — fetch all upcoming trips so the UI can show
-      // which ones are bookable (scheduled/active) vs awaiting a driver
-      const params: Record<string, any> = {
-        routeId,
-        limit: TRIPS_PER_PAGE,
-        page,
-      };
-      if (utcDate) params.date = utcDate;
-
-      const { data } = await api.get('/trips', { params });
-      const list: any[] = Array.isArray(data) ? data : data.data ?? data.trips ?? [];
-      const total: number = data.total ?? list.length;
-
-      setTripsTotal(total);
-      setTripsPage(page);
-      setScheduledTrips((prev) => (append ? [...prev, ...list] : list));
-    } catch (e: any) {
-      console.warn('[BookingContext] Failed to fetch trips:', e?.message ?? e);
+      const trips = await fetchLineTrips(routeId);
+      setScheduledTrips(trips);
+      setTripsTotal(trips.length);
     } finally {
       setTripsLoading(false);
     }
+  }, []);
+
+  // Client-side date filter — no extra API call needed
+  const fetchTripsForDate = useCallback(async (_routeId: string, _utcDate: string) => {
+    // Trips are already loaded from /shuttle/lines/:id — filtering is done in TripSheet
+  }, []);
+
+  const loadMoreTrips = useCallback(async () => {
+    // All trips are returned in a single call from /shuttle/lines/:id
   }, []);
 
   const openRoute = useCallback(async (route: Route) => {
@@ -136,56 +133,36 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     setTripSheetOpen(true);
     setScheduledTrips([]);
     setTripsTotal(0);
-    setTripsPage(1);
-    setCurrentRouteId(route.id);
-    setCurrentDateFilter(null);
 
     try {
-      const [detailRes] = await Promise.allSettled([
-        api.get(`/shuttle/lines/${route.id}`),
-      ]);
+      const { data } = await api.get(`/shuttle/lines/${route.id}`);
+      const full = data?.data ?? data;
+      const rawStations: any[] = Array.isArray(full.stations) ? full.stations : [];
+      const path = rawStations.length >= 2 ? mapStations(rawStations) : route.path;
+      const activeTrips: any[] = Array.isArray(full.activeTrips) ? full.activeTrips : [];
 
-      if (detailRes.status === 'fulfilled') {
-        const full = detailRes.value.data?.data ?? detailRes.value.data;
-        const rawStations: any[] = Array.isArray(full.stations) ? full.stations : [];
-        const path = rawStations.length >= 2 ? mapStations(rawStations) : route.path;
-        const activeTrips: any[] = Array.isArray(full.activeTrips) ? full.activeTrips : [];
-        const bestTrip = activeTrips.find((t) => (t.availableSeats ?? 0) > 0) ?? activeTrips[0];
+      // Use trip with most available seats for route-level seat display
+      const bestTrip = activeTrips.find((t) => (t.availableSeats ?? 0) > 0) ?? activeTrips[0];
 
-        setSelectedRoute((prev) =>
-          prev
-            ? {
-                ...prev,
-                path,
-                seatsLeft: bestTrip?.availableSeats ?? prev.seatsLeft,
-                totalSeats: bestTrip?.totalSeats ?? prev.totalSeats,
-              }
-            : prev,
-        );
-      }
+      setSelectedRoute((prev) =>
+        prev
+          ? {
+              ...prev,
+              path,
+              seatsLeft: bestTrip?.availableSeats ?? prev.seatsLeft,
+              totalSeats: bestTrip?.totalSeats ?? prev.totalSeats ?? 14,
+            }
+          : prev,
+      );
+
+      setScheduledTrips(activeTrips);
+      setTripsTotal(activeTrips.length);
     } catch (e: any) {
       console.warn('[BookingContext] Failed to load route details:', e?.message ?? e);
     } finally {
       setRouteLoading(false);
     }
-
-    // Fetch scheduled trips after route detail (non-blocking)
-    await fetchScheduledTrips(route.id, null, 1, false);
-  }, [fetchScheduledTrips]);
-
-  const fetchTripsForDate = useCallback(async (routeId: string, utcDate: string) => {
-    setCurrentDateFilter(utcDate);
-    setCurrentRouteId(routeId);
-    setTripsPage(1);
-    await fetchScheduledTrips(routeId, utcDate, 1, false);
-  }, [fetchScheduledTrips]);
-
-  const loadMoreTrips = useCallback(async () => {
-    if (!currentRouteId) return;
-    const nextPage = tripsPage + 1;
-    if ((tripsPage * TRIPS_PER_PAGE) >= tripsTotal) return;
-    await fetchScheduledTrips(currentRouteId, currentDateFilter, nextPage, true);
-  }, [currentRouteId, currentDateFilter, tripsPage, tripsTotal, fetchScheduledTrips]);
+  }, []);
 
   const closeTripSheet = useCallback(() => {
     setTripSheetOpen(false);
@@ -230,63 +207,43 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const tripId = pendingBooking.tripId ?? null;
+
+    if (!tripId) {
+      setBookingError('No trip selected. Please select a departure time.');
+      setActiveBooking(null);
+      return;
+    }
+
     let bookingSuccess = false;
 
     try {
-      const routeId = pendingBooking.route.id;
+      const body: Record<string, any> = {
+        tripId,
+        seatCount: 1, // API contract: seatCount MUST always be 1
+      };
+      if (promoCode) body.promoCode = promoCode;
 
-      let tripId: number | null = pendingBooking.tripId ?? null;
+      const { data } = await api.post('/bookings', body);
+      const bookingId = data?.id ?? data?.booking?.id ?? null;
 
-      if (!tripId) {
-        // Try bookable statuses in priority order (backend only accepts scheduled/active)
-        const needed = pendingBooking.passengers ?? 1;
-        for (const status of ['scheduled', 'active', 'boarding', 'driver_assigned']) {
-          try {
-            const tripsRes = await api.get('/trips', {
-              params: { routeId, status, limit: 10 },
-            });
-            const tripsList: any[] = Array.isArray(tripsRes.data)
-              ? tripsRes.data
-              : tripsRes.data.data ?? tripsRes.data.trips ?? [];
-            const fit = tripsList.find((t) => (t.availableSeats ?? 0) >= needed);
-            const candidate = fit ?? tripsList[0];
-            if (candidate?.id) {
-              tripId = candidate.id;
-              break;
-            }
-          } catch {
-            // try next status
-          }
+      if (bookingId) {
+        setConfirmedBookingId(String(bookingId));
+        setConfirmedTripId(Number(tripId));
+        bookingSuccess = true;
+
+        // Refresh trip data immediately after booking
+        if (pendingBooking.route?.id) {
+          refreshLineTrips(pendingBooking.route.id).catch(() => {});
         }
-      }
 
-      if (tripId) {
-        const body: Record<string, any> = {
-          tripId,
-          seatCount: pendingBooking.passengers,
-        };
-        if (promoCode) body.promoCode = promoCode;
-
-        const { data } = await api.post('/bookings', body);
-        const bookingId = data?.booking?.id ?? data?.id ?? null;
-
-        if (bookingId) {
-          setConfirmedBookingId(String(bookingId));
-          setConfirmedTripId(Number(tripId));
-          bookingSuccess = true;
-
-          // Emit socket join after confirmed booking
-          try {
-            const socket = await getSocket();
-            socket.emit('passenger:join:trip', Number(tripId));
-          } catch (socketErr) {
-            console.warn('[BookingContext] Socket join failed:', socketErr);
-          }
+        // Emit socket join after confirmed booking
+        try {
+          const socket = await getSocket();
+          socket.emit('passenger:join:trip', Number(tripId));
+        } catch (socketErr) {
+          console.warn('[BookingContext] Socket join failed:', socketErr);
         }
-      } else {
-        console.warn('[BookingContext] No available trip found for routeId:', routeId);
-        setBookingError('No available trips found. Please try again.');
-        setActiveBooking(null);
       }
     } catch (e: any) {
       const status = e?.response?.status;
@@ -294,8 +251,18 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? 'Booking failed';
 
       if (status === 409) {
-        setBookingError('Seats just filled up, please try again.');
-        Alert.alert('Seats Taken', 'Seats just filled up. Please select a different trip or try again.');
+        // Could be duplicate booking OR race condition (seat snatched)
+        const isDuplicate = msg.toLowerCase().includes('already have');
+        if (isDuplicate) {
+          setBookingError('You already have an active booking for this trip.');
+          Alert.alert('Already Booked', 'You already have an active booking for this trip.');
+        } else {
+          setBookingError('Sorry, those seats were just taken. Please check for another trip.');
+          Alert.alert(
+            'Seats Taken',
+            'Sorry, those seats were just taken. Please check for another trip.',
+          );
+        }
       } else if (
         status === 400 &&
         (msg.toLowerCase().includes('wallet') ||
@@ -320,7 +287,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     if (bookingSuccess) {
       setTimeout(() => router.push('/ticket'), 260);
     }
-  }, [pendingBooking]);
+  }, [pendingBooking, refreshLineTrips]);
 
   const closeConfirmSheet = useCallback(() => {
     setConfirmSheetOpen(false);
@@ -340,7 +307,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         tripsLoading,
         scheduledTrips,
         tripsTotal,
-        tripsPage,
+        tripsPage: 1,
         walletBalance,
         bookingError,
         openRoute,
@@ -352,6 +319,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         fetchTripsForDate,
         loadMoreTrips,
         clearBookingError,
+        refreshLineTrips,
       }}
     >
       {children}

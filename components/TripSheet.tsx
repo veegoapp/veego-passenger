@@ -4,51 +4,44 @@ import {
   Animated, Platform, ActivityIndicator, Alert,
 } from 'react-native';
 import {
-  Users, Heart, Calendar, Clock, MapPin, AlertCircle,
-  Minus, Plus, Ticket, Star, ArrowRight, Wallet, ChevronDown,
+  Users, Heart, Clock, MapPin, AlertCircle,
+  Ticket, ArrowRight, Wallet, ChevronRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
-import { DATES, calcSegmentPrice } from '@/constants/data';
+import { calcSegmentPrice } from '@/constants/data';
 import { SectionLabel } from '@/components/Shared';
 
-// UTC date strings for each day in DATES — used as the `date` param for GET /trips
-const DATES_UTC_API: string[] = (() => {
-  const result: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + i));
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    result.push(`${y}-${m}-${day}`);
-  }
-  return result;
-})();
-
-// Statuses the backend accepts for POST /bookings (Section 4 of API spec)
-const BOOKABLE_STATUSES = new Set(['scheduled', 'active', 'boarding', 'driver_assigned']);
+// shuttleStatus values per API contract
+type ShuttleStatus = 'open' | 'active' | 'cancelled';
 
 function isTripBookable(trip: any): boolean {
-  return BOOKABLE_STATUSES.has(trip?.status ?? '');
+  const status: ShuttleStatus = trip?.shuttleStatus ?? trip?.status ?? '';
+  return (status === 'open' || status === 'active') && (trip?.availableSeats ?? 0) > 0;
 }
 
-function tripStatusLabel(trip: any): string {
-  switch (trip?.status) {
-    case 'waiting_driver': return 'Awaiting driver';
-    case 'scheduled':      return 'Ready';
-    case 'driver_assigned':return 'Driver assigned';
-    case 'boarding':       return 'Boarding';
-    case 'active':         return 'In progress';
-    case 'completed':      return 'Completed';
-    case 'cancelled':      return 'Cancelled';
-    default:               return '';
+function shuttleStatusLabel(trip: any): string {
+  const status: ShuttleStatus = trip?.shuttleStatus ?? trip?.status ?? '';
+  switch (status) {
+    case 'open':      return 'Open';
+    case 'active':    return 'Active';
+    case 'cancelled': return 'Cancelled';
+    default:          return '';
   }
 }
 
-// Format a UTC ISO timestamp as HH:MM in UTC (no local offset)
+function shuttleStatusColor(trip: any): string {
+  const status: ShuttleStatus = trip?.shuttleStatus ?? trip?.status ?? '';
+  switch (status) {
+    case 'open':      return '#d97706'; // amber
+    case 'active':    return '#16a34a'; // green
+    case 'cancelled': return '#dc2626'; // red
+    default:          return '#6b7280';
+  }
+}
+
 function formatTripTimeUTC(raw: string): string {
   if (!raw) return '';
   const d = new Date(raw);
@@ -61,7 +54,6 @@ function formatTripTimeUTC(raw: string): string {
   });
 }
 
-// Format a UTC ISO timestamp as a display date in UTC
 function formatTripDateUTC(raw: string): string {
   if (!raw) return '';
   const d = new Date(raw);
@@ -69,7 +61,6 @@ function formatTripDateUTC(raw: string): string {
   return d.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
     timeZone: 'UTC',
   });
 }
@@ -91,18 +82,34 @@ function makeStyles(c: ThemeColors, gs: object) {
     seatsTagText: { fontSize: 11, color: c.inkSoft },
     section: { marginTop: 20, gap: 8 },
     hScroll: { marginTop: 8 },
-    dateBtn: { minWidth: 64, paddingVertical: 10, borderRadius: 16, borderWidth: 1, alignItems: 'center' },
-    dateBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
-    dateBtnInactive: { backgroundColor: c.white, borderColor: c.border },
-    dateDayLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
-    dateDay: { fontSize: 18, fontWeight: '600', lineHeight: 24 },
-    timeBtn: { height: 52, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    timeBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
-    timeBtnInactive: { backgroundColor: c.white, borderColor: c.border },
-    timeText: { fontSize: 13, fontWeight: '500' },
-    timeSeatsBadge: { fontSize: 10, color: c.inkSoft, marginTop: 2 },
-    timeSeatsBadgeActive: { color: c.isDark ? c.background : 'rgba(255,255,255,0.75)' },
-    timeSeatsFull: { color: '#e53e3e', fontSize: 10, marginTop: 2 },
+
+    // Trip card (replaces simple time button)
+    tripCard: {
+      borderRadius: 16, borderWidth: 1, borderColor: c.border,
+      padding: 12, minWidth: 180, backgroundColor: c.white,
+    },
+    tripCardActive: { backgroundColor: c.ink, borderColor: c.ink },
+    tripCardDisabled: { opacity: 0.45 },
+    tripCardTime: { fontSize: 15, fontWeight: '600', color: c.ink },
+    tripCardTimeActive: { color: c.isDark ? c.background : c.white },
+    tripCardDate: { fontSize: 10, color: c.inkSoft, marginTop: 1 },
+    tripCardDateActive: { color: c.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.7)' },
+    tripStatusBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3,
+      marginTop: 6, alignSelf: 'flex-start',
+    },
+    tripStatusDot: { width: 5, height: 5, borderRadius: 3 },
+    tripStatusText: { fontSize: 10, fontWeight: '600' },
+    tripSeatText: { fontSize: 10, color: c.inkSoft, marginTop: 4 },
+    tripSeatTextActive: { color: c.isDark ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.75)' },
+    tripMessage: { fontSize: 10, color: c.inkSoft, marginTop: 3, lineHeight: 14 },
+    tripMessageActive: { color: c.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.7)' },
+
+    // Seat progress bar
+    progressBarWrap: { height: 4, borderRadius: 2, backgroundColor: c.mist, marginTop: 6, overflow: 'hidden' },
+    progressBarFill: { height: '100%' as any, borderRadius: 2 },
+
     pickTabWrap: { flexDirection: 'row', padding: 4, borderRadius: 16, marginTop: 8, gap: 2 },
     pickTab: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     pickTabActive: { backgroundColor: c.ink },
@@ -123,26 +130,14 @@ function makeStyles(c: ThemeColors, gs: object) {
     tlBadge: { backgroundColor: c.ink, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
     tlBadgeText: { fontSize: 10, fontWeight: '600', color: c.isDark ? c.background : c.white, textTransform: 'uppercase', letterSpacing: 0.8 },
     tlArea: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
-    paxRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 16, marginTop: 8 },
-    paxCount: { fontSize: 13.5, fontWeight: '600', color: c.ink },
-    paxLimit: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
-    paxControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    paxBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-    paxBtnOutline: { backgroundColor: c.white, borderWidth: 1, borderColor: c.border },
-    paxBtnFilled: { backgroundColor: c.ink },
-    paxNum: { width: 24, textAlign: 'center', fontSize: 15, fontWeight: '600', color: c.ink },
     priceSummary: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, padding: 16, marginTop: 20, gap: 16 },
     priceIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
     priceSegLabel: { fontSize: 12, color: c.inkSoft },
     priceTotal: { fontSize: 20, fontWeight: '600', color: c.ink, letterSpacing: -0.5 },
-    ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    ratingText: { fontSize: 11, color: c.inkSoft },
     walletRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
     walletText: { fontSize: 11, color: c.inkSoft },
     walletLow: { color: '#e53e3e' },
     walletOk: { color: '#38a169' },
-    loadMoreBtn: { height: 44, borderRadius: 14, borderWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, marginBottom: 4 },
-    loadMoreText: { fontSize: 13, fontWeight: '500', color: c.ink },
     noTripsWrap: { paddingVertical: 20, alignItems: 'center', gap: 6 },
     noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     cta: { padding: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.white },
@@ -153,15 +148,14 @@ function makeStyles(c: ThemeColors, gs: object) {
     errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     retryBtn: { marginTop: 4, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: c.border },
     retryBtnText: { fontSize: 13, fontWeight: '500', color: c.ink },
-    tripsLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
   });
 }
 
 export function TripSheet() {
   const {
     tripSheetOpen, closeTripSheet, selectedRoute, handleBook,
-    routeLoading, tripsLoading, scheduledTrips, tripsTotal, tripsPage,
-    openRoute, fetchTripsForDate, loadMoreTrips, walletBalance,
+    routeLoading, tripsLoading, scheduledTrips,
+    openRoute, walletBalance,
   } = useBooking();
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c, gs), [c]);
@@ -170,31 +164,17 @@ export function TripSheet() {
   const [visible, setVisible] = useState(false);
   const [fromIdx, setFromIdx] = useState(0);
   const [toIdx, setToIdx] = useState(1);
-  const [pax, setPax] = useState(1);
-  const [dateIdx, setDateIdx] = useState(0);
   const [timeIdx, setTimeIdx] = useState(0);
   const [pick, setPick] = useState<'from' | 'to'>('from');
-  const prevDateIdx = useRef<number>(0);
 
   useEffect(() => {
     if (selectedRoute && selectedRoute.path.length >= 2) {
       setFromIdx(0);
       setToIdx(selectedRoute.path.length - 1);
-      setPax(1); setDateIdx(0); setTimeIdx(0); setPick('from');
-      prevDateIdx.current = 0;
+      setTimeIdx(0);
+      setPick('from');
     }
   }, [selectedRoute?.id, selectedRoute?.path.length]);
-
-  // Refetch trips when the selected date changes
-  useEffect(() => {
-    if (!selectedRoute || dateIdx === prevDateIdx.current) return;
-    prevDateIdx.current = dateIdx;
-    const utcDate = DATES_UTC_API[dateIdx];
-    if (utcDate) {
-      fetchTripsForDate(selectedRoute.id, utcDate);
-      setTimeIdx(0);
-    }
-  }, [dateIdx, selectedRoute, fetchTripsForDate]);
 
   useEffect(() => {
     if (tripSheetOpen) {
@@ -213,31 +193,13 @@ export function TripSheet() {
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [900, 0] });
 
-  // Build time buttons from real API trips — UTC formatted
-  const tripTimes: string[] = useMemo(() => {
-    return scheduledTrips
-      .map((trip: any) => formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? ''))
-      .filter(Boolean);
-  }, [scheduledTrips]);
-
-  const safeTimeIdx = Math.min(timeIdx, Math.max(0, tripTimes.length - 1));
+  const safeTimeIdx = Math.min(timeIdx, Math.max(0, scheduledTrips.length - 1));
+  const selectedTrip = scheduledTrips[safeTimeIdx] ?? null;
 
   const selectedTripSeats: number = useMemo(() => {
-    if (scheduledTrips.length > 0 && scheduledTrips[safeTimeIdx]) {
-      return scheduledTrips[safeTimeIdx].availableSeats ?? (selectedRoute?.seatsLeft ?? 0);
-    }
+    if (selectedTrip) return selectedTrip.availableSeats ?? 0;
     return selectedRoute?.seatsLeft ?? 0;
-  }, [scheduledTrips, safeTimeIdx, selectedRoute?.seatsLeft]);
-
-  const hasMoreTrips = useMemo(
-    () => scheduledTrips.length < tripsTotal,
-    [scheduledTrips.length, tripsTotal],
-  );
-
-  const handleLoadMore = useCallback(async () => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    await loadMoreTrips();
-  }, [loadMoreTrips]);
+  }, [selectedTrip, selectedRoute?.seatsLeft]);
 
   if (!visible || !selectedRoute) return null;
 
@@ -247,11 +209,11 @@ export function TripSheet() {
   const safeTo = hasPath ? toIdx : 1;
   const lo = Math.min(safeFrom, safeTo);
   const hi = Math.max(safeFrom, safeTo);
-  const total = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, pax) : route.price * pax;
-  const selectedTrip = scheduledTrips[safeTimeIdx] ?? null;
+
+  // seatCount is always 1 per API contract
+  const total = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, 1) : route.price;
   const selectedTripBookable = !selectedTrip || isTripBookable(selectedTrip);
-  const valid = hasPath && safeFrom !== safeTo && !routeLoading && tripTimes.length > 0 && selectedTripBookable;
-  const maxPax = Math.max(1, Math.min(3, selectedTripSeats));
+  const valid = hasPath && safeFrom !== safeTo && !routeLoading && scheduledTrips.length > 0 && selectedTripBookable;
   const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
@@ -274,6 +236,7 @@ export function TripSheet() {
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
         <View style={styles.handle} />
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Route header */}
           <View style={styles.routeHeader}>
             <View style={styles.routeCodeBox}>
               <Text style={styles.routeCodeText}>{route.code}</Text>
@@ -288,101 +251,114 @@ export function TripSheet() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' }}
+              activeOpacity={0.7}
+            >
               <Heart size={16} color={c.ink} />
             </TouchableOpacity>
           </View>
 
-          {/* Date picker */}
-          <View style={styles.section}>
-            <SectionLabel icon={<Calendar size={14} color={c.inkSoft} />}>
-              {t('travel_date')}
-            </SectionLabel>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
-              {DATES.map((d, i) => {
-                const active = i === dateIdx;
-                return (
-                  <TouchableOpacity key={d.id} onPress={() => { setDateIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                    style={[styles.dateBtn, active ? styles.dateBtnActive : styles.dateBtnInactive]}>
-                    <Text style={[styles.dateDayLabel, { opacity: active ? 0.85 : 0.7, color: active ? (c.isDark ? c.background : c.white) : c.ink }]}>{d.label}</Text>
-                    <Text style={[styles.dateDay, { color: active ? (c.isDark ? c.background : c.white) : c.ink }]}>{d.day}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* Departure time picker */}
+          {/* Trip selector */}
           <View style={styles.section}>
             <SectionLabel icon={<Clock size={14} color={c.inkSoft} />}>
               {t('departure')}
-              {tripsTotal > 0 && (
-                <Text style={{ fontSize: 11, color: c.inkSoft, fontWeight: '400' }}> · {tripsTotal} trip{tripsTotal !== 1 ? 's' : ''} (UTC)</Text>
+              {scheduledTrips.length > 0 && (
+                <Text style={{ fontSize: 11, color: c.inkSoft, fontWeight: '400' }}>
+                  {' '}· {scheduledTrips.length} trip{scheduledTrips.length !== 1 ? 's' : ''}
+                </Text>
               )}
             </SectionLabel>
 
-            {routeLoading ? (
+            {routeLoading || tripsLoading ? (
               <View style={{ paddingVertical: 12, alignItems: 'flex-start' }}>
                 <ActivityIndicator size="small" color={c.ink} />
               </View>
-            ) : tripTimes.length === 0 && !tripsLoading ? (
+            ) : scheduledTrips.length === 0 ? (
               <View style={styles.noTripsWrap}>
                 <AlertCircle size={22} color={c.silver} />
-                <Text style={styles.noTripsText}>No departures for this date.{'\n'}Try a different day.</Text>
+                <Text style={styles.noTripsText}>No upcoming trips available for this route.</Text>
               </View>
             ) : (
-              <>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
-                  {tripTimes.map((time, i) => {
-                    const active = i === safeTimeIdx;
-                    const trip = scheduledTrips[i];
-                    const seats = trip?.availableSeats;
-                    const isFull = seats !== undefined && seats === 0;
-                    const bookable = isTripBookable(trip);
-                    const statusLabel = tripStatusLabel(trip);
-                    const disabled = isFull || !bookable;
-                    return (
-                      <TouchableOpacity
-                        key={`${time}-${i}`}
-                        onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                        disabled={disabled}
-                        style={[
-                          styles.timeBtn,
-                          active ? styles.timeBtnActive : styles.timeBtnInactive,
-                          disabled && { opacity: 0.45 },
-                        ]}
-                      >
-                        <Text style={[styles.timeText, { color: active ? (c.isDark ? c.background : c.white) : c.ink }]}>{time}</Text>
-                        {isFull ? (
-                          <Text style={styles.timeSeatsFull}>Full</Text>
-                        ) : !bookable ? (
-                          <Text style={styles.timeSeatsBadge}>{statusLabel}</Text>
-                        ) : seats !== undefined ? (
-                          <Text style={[styles.timeSeatsBadge, active && styles.timeSeatsBadgeActive]}>{seats} seats</Text>
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.hScroll}
+                contentContainerStyle={{ gap: 8, paddingRight: 4 }}
+              >
+                {scheduledTrips.map((trip: any, i: number) => {
+                  const active = i === safeTimeIdx;
+                  const bookable = isTripBookable(trip);
+                  const disabled = !bookable;
+                  const statusColor = shuttleStatusColor(trip);
+                  const statusLbl = shuttleStatusLabel(trip);
+                  const time = formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
+                  const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
+                  const bookedSeats: number = trip.bookedSeats ?? 0;
+                  const totalSeats: number = trip.totalSeats ?? 14;
+                  const availableSeats: number = trip.availableSeats ?? 0;
+                  const minRequired: number = trip.minRequired ?? 7;
+                  const message: string = trip.message ?? '';
 
-                {/* Trips loading indicator (pagination) */}
-                {tripsLoading && (
-                  <View style={styles.tripsLoadingRow}>
-                    <ActivityIndicator size="small" color={c.ink} />
-                    <Text style={{ fontSize: 12, color: c.inkSoft }}>Loading trips…</Text>
-                  </View>
-                )}
+                  // Progress fill: total seats taken
+                  const fillPct = totalSeats > 0 ? (bookedSeats / totalSeats) * 100 : 0;
+                  // Activation fill for open trips
+                  const activationPct = minRequired > 0 ? Math.min(100, (bookedSeats / minRequired) * 100) : 100;
 
-                {/* Load more button */}
-                {hasMoreTrips && !tripsLoading && (
-                  <TouchableOpacity style={[gs, styles.loadMoreBtn]} onPress={handleLoadMore} activeOpacity={0.8}>
-                    <ChevronDown size={14} color={c.ink} />
-                    <Text style={styles.loadMoreText}>
-                      Load more ({scheduledTrips.length}/{tripsTotal})
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
+                  const barColor = trip.shuttleStatus === 'active'
+                    ? '#16a34a'
+                    : trip.shuttleStatus === 'cancelled'
+                    ? '#dc2626'
+                    : '#d97706';
+
+                  return (
+                    <TouchableOpacity
+                      key={`${trip.id ?? i}`}
+                      onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                      disabled={disabled}
+                      style={[
+                        styles.tripCard,
+                        active && styles.tripCardActive,
+                        disabled && styles.tripCardDisabled,
+                      ]}
+                    >
+                      <Text style={[styles.tripCardTime, active && styles.tripCardTimeActive]}>{time}</Text>
+                      <Text style={[styles.tripCardDate, active && styles.tripCardDateActive]}>{date}</Text>
+
+                      {/* Status badge */}
+                      <View style={[styles.tripStatusBadge, { backgroundColor: `${statusColor}18` }]}>
+                        <View style={[styles.tripStatusDot, { backgroundColor: statusColor }]} />
+                        <Text style={[styles.tripStatusText, { color: statusColor }]}>{statusLbl}</Text>
+                      </View>
+
+                      {/* Seat count */}
+                      <Text style={[styles.tripSeatText, active && styles.tripSeatTextActive]}>
+                        {bookedSeats}/{totalSeats} seats · {availableSeats} left
+                      </Text>
+
+                      {/* Progress bar */}
+                      <View style={styles.progressBarWrap}>
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            {
+                              width: `${trip.shuttleStatus === 'open' ? activationPct : fillPct}%` as any,
+                              backgroundColor: active ? (c.isDark ? c.background : '#fff') : barColor,
+                            },
+                          ]}
+                        />
+                      </View>
+
+                      {/* Message from API */}
+                      {!!message && (
+                        <Text style={[styles.tripMessage, active && styles.tripMessageActive]} numberOfLines={2}>
+                          {message}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             )}
           </View>
 
@@ -455,103 +431,61 @@ export function TripSheet() {
             )}
           </View>
 
-          {/* Passenger count */}
-          <View style={styles.section}>
-            <SectionLabel icon={<Users size={14} color={c.inkSoft} />}>
-              {t('passengers')}
-            </SectionLabel>
-            <View style={[gs, styles.paxRow]}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.paxCount}>{pax} {pax === 1 ? t('pax_one') : t('pax_many')}</Text>
-                <Text style={styles.paxLimit}>{selectedTripSeats} {t('seats_left')}</Text>
-              </View>
-              <View style={styles.paxControls}>
-                <TouchableOpacity
-                  onPress={() => { setPax(Math.max(1, pax - 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                  disabled={pax <= 1}
-                  style={[styles.paxBtn, styles.paxBtnOutline, pax <= 1 && { opacity: 0.4 }]}
-                  activeOpacity={0.8}
-                >
-                  <Minus size={14} color={c.ink} />
-                </TouchableOpacity>
-                <Text style={styles.paxNum}>{pax}</Text>
-                <TouchableOpacity
-                  onPress={() => { setPax(Math.min(maxPax, pax + 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                  disabled={pax >= maxPax}
-                  style={[styles.paxBtn, styles.paxBtnFilled, pax >= maxPax && { opacity: 0.4 }]}
-                  activeOpacity={0.8}
-                >
-                  <Plus size={14} color={c.isDark ? c.background : c.white} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Price summary */}
+          {/* Price summary — always 1 passenger (API contract) */}
           <View style={[gs, styles.priceSummary]}>
             <View style={styles.priceIcon}>
               <Ticket size={20} color={c.isDark ? c.background : c.white} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.priceSegLabel}>
-                {hasPath ? `${Math.max(1, hi - lo)} ${hi - lo > 1 ? t('segments') : t('segment')} · ` : ''}{pax} {t('pax_one')}
+                {route.path[safeFrom]?.name ?? route.from} → {route.path[safeTo]?.name ?? route.to}
               </Text>
               <Text style={styles.priceTotal}>{total} {t('egp')}</Text>
-              {/* Wallet balance chip */}
-              {walletBalance !== null && (
-                <View style={styles.walletRow}>
-                  <Wallet size={11} color={walletLow ? '#e53e3e' : c.inkSoft} />
-                  <Text style={[styles.walletText, walletLow ? styles.walletLow : styles.walletOk]}>
-                    {walletLow
-                      ? `Low balance — ${walletBalance.toFixed(2)} EGP`
-                      : `Wallet: ${walletBalance.toFixed(2)} EGP`}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.walletRow}>
+                <Wallet size={11} color={walletLow ? '#e53e3e' : '#38a169'} />
+                <Text style={[styles.walletText, walletLow ? styles.walletLow : styles.walletOk]}>
+                  {walletBalance !== null
+                    ? `Wallet: ${walletBalance.toFixed(2)} EGP`
+                    : 'Wallet balance loading…'}
+                </Text>
+              </View>
             </View>
-            <View style={styles.ratingBox}>
-              <Star size={12} color={c.inkSoft} />
-              <Text style={styles.ratingText}>4.9</Text>
-            </View>
+            <ChevronRight size={16} color={c.inkSoft} />
           </View>
+
+          <View style={{ height: 120 }} />
         </ScrollView>
 
         <View style={styles.cta}>
           <TouchableOpacity
-            disabled={!valid}
+            style={[styles.ctaBtn, (!valid || walletLow) && { opacity: 0.45 }]}
+            disabled={!valid || walletLow}
+            activeOpacity={0.88}
             onPress={() => {
+              if (!valid) return;
               if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const realDate = selectedTrip
-                ? formatTripDateUTC(selectedTrip.departureTime ?? selectedTrip.departure_time ?? '')
-                : DATES[dateIdx].date;
-
+              const trip = scheduledTrips[safeTimeIdx];
               handleBook({
                 route,
                 fromIdx: safeFrom,
                 toIdx: safeTo,
-                passengers: pax,
-                date: realDate || DATES[dateIdx].date,
-                time: tripTimes[safeTimeIdx] ?? '—',
+                passengers: 1, // always 1
+                date: formatTripDateUTC(trip?.departureTime ?? ''),
+                time: formatTripTimeUTC(trip?.departureTime ?? ''),
                 price: total,
-                tripId: selectedTrip?.id ?? null,
+                tripId: trip?.id ?? null,
               });
             }}
-            style={[styles.ctaBtn, !valid && { opacity: 0.4 }]}
-            activeOpacity={0.9}
           >
-            <Text style={styles.ctaBtnText}>{t('book')} · {total} {t('egp')}</Text>
-            <ArrowRight size={16} color={c.isDark ? c.background : c.white} />
+            <Text style={styles.ctaBtnText}>
+              {!valid
+                ? t('select_trip')
+                : walletLow
+                ? 'Insufficient Balance'
+                : `${t('book_now')} · ${total} ${t('egp')}`}
+            </Text>
+            {valid && !walletLow && <ArrowRight size={16} color={c.isDark ? c.background : c.white} />}
           </TouchableOpacity>
-          {selectedTrip && !selectedTripBookable && (
-            <Text style={{ fontSize: 12, color: c.inkSoft, textAlign: 'center', marginTop: 8 }}>
-              This departure is awaiting a driver and can't be booked yet.
-            </Text>
-          )}
-          {tripTimes.length > 0 && !scheduledTrips.some(isTripBookable) && (
-            <Text style={{ fontSize: 12, color: c.inkSoft, textAlign: 'center', marginTop: 8 }}>
-              No bookable departures for this date yet — try another day.
-            </Text>
-          )}
         </View>
       </Animated.View>
     </View>
