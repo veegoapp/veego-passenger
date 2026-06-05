@@ -18,10 +18,11 @@ pnpm install
 
 echo "=== Starting Expo (Web + Tunnel) ==="
 
-# ── Kill any stale processes on port 5000 ────────────────────────
-lsof -ti:5000 2>/dev/null | xargs kill -9 2>/dev/null || true
-pkill -f "expo start" 2>/dev/null || true
-sleep 1
+# ── Kill anything on port 5000 first (SIGKILL, not SIGTERM) ──────
+fuser -k 5000/tcp 2>/dev/null || true
+pkill -9 -f "expo start" 2>/dev/null || true
+pkill -9 -f "metro" 2>/dev/null || true
+sleep 3
 
 # ── Expo settings ────────────────────────────────────────────────
 export EXPO_NO_TELEMETRY=1

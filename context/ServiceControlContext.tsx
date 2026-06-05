@@ -92,25 +92,38 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
   const [userZoneId, setUserZoneId] = useState<number | null>(null);
   const socketListenerAttached = useRef(false);
 
-  // ── Fetch service control list on mount ──────────────────────────
+  // ── Fetch service control list on mount (with exponential-backoff retry) ──
   useEffect(() => {
     let cancelled = false;
 
-    api.get('/services/control')
-      .then(({ data }) => {
+    async function loadWithRetry(attempt = 0): Promise<void> {
+      try {
+        const { data } = await api.get('/services/control', { timeout: 10_000 });
         if (cancelled) return;
-        const list: ServiceControl[] = Array.isArray(data.data) ? data.data : [];
+        const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
         const map: ServiceControlMap = {};
-        list.forEach((svc) => { map[svc.serviceType] = svc; });
+        (raw as ServiceControl[]).forEach((svc) => { map[svc.serviceType] = svc; });
         setServices(map);
-      })
-      .catch((e) => {
-        console.warn('[ServiceControl] Failed to load service statuses:', e?.message ?? e);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+      } catch (e: any) {
+        if (cancelled) return;
+        if (attempt < 3) {
+          // Retry with backoff: 2s, 4s, 8s
+          const delay = 2000 * Math.pow(2, attempt);
+          console.warn(`[ServiceControl] Fetch failed (attempt ${attempt + 1}/4), retrying in ${delay}ms…`);
+          setTimeout(() => { if (!cancelled) loadWithRetry(attempt + 1); }, delay);
+          return;
+        }
+        console.warn('[ServiceControl] Failed to load service statuses after 4 attempts:', e?.message ?? e);
+      } finally {
+        if (!cancelled && attempt === 0) {
+          // Clear loading state after first attempt regardless of success/fail
+          // Retries happen silently in background
+          setIsLoading(false);
+        }
+      }
+    }
 
+    loadWithRetry();
     return () => { cancelled = true; };
   }, []);
 

@@ -1,9 +1,10 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import type { Booking, Route } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
+import { useServiceControl } from '@/context/ServiceControlContext';
 
 type BookingContextType = {
   selectedRoute: Route | null;
@@ -92,6 +93,12 @@ async function fetchLineTrips(routeId: string): Promise<any[]> {
 }
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
+  // ServiceControlProvider wraps BookingProvider in _layout.tsx, so this is safe
+  const { getService } = useServiceControl();
+  // Use a ref so handleConfirm always reads the latest value without needing it in dep arrays
+  const getServiceRef = useRef(getService);
+  getServiceRef.current = getService;
+
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [tripSheetOpen, setTripSheetOpen] = useState(false);
   const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
@@ -213,6 +220,16 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const handleConfirm = useCallback(async (promoCode?: string) => {
     setConfirmSheetOpen(false);
     if (!pendingBooking) return;
+
+    // ── Service-control gate: re-check at confirmation time ──────────────────
+    // This catches the case where admin disabled the service AFTER TripSheet opened
+    const svc = getServiceRef.current('shuttle');
+    if (svc && (!svc.isEnabled || svc.displayMode !== 'live')) {
+      const msg = svc.unavailableMessage ?? 'Shuttle service is currently unavailable. Please try again later.';
+      Alert.alert('Service Unavailable', msg);
+      setActiveBooking(null);
+      return;
+    }
 
     setActiveBooking(pendingBooking);
     setBookingError(null);

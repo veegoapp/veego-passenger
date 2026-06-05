@@ -5,12 +5,13 @@ import {
 } from 'react-native';
 import {
   Users, Heart, Clock, MapPin, AlertCircle,
-  Ticket, ArrowRight, Wallet, ChevronRight,
+  Ticket, ArrowRight, Wallet, ChevronRight, AlertTriangle,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
+import { useServiceControl } from '@/context/ServiceControlContext';
 import { calcSegmentPrice } from '@/constants/data';
 import { SectionLabel } from '@/components/Shared';
 
@@ -140,6 +141,11 @@ function makeStyles(c: ThemeColors, gs: object) {
     walletOk: { color: '#38a169' },
     noTripsWrap: { paddingVertical: 20, alignItems: 'center', gap: 6 },
     noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
+    serviceBanner: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+      backgroundColor: '#fef3c7', borderRadius: 14, padding: 12, marginTop: 16,
+    },
+    serviceBannerText: { flex: 1, fontSize: 12.5, color: '#92400e', lineHeight: 18 },
     cta: { padding: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.white },
     ctaBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...S.float },
     ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600' },
@@ -157,8 +163,18 @@ export function TripSheet() {
     routeLoading, tripsLoading, scheduledTrips,
     openRoute, walletBalance,
   } = useBooking();
+  const { getService, handleServiceTap } = useServiceControl();
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c, gs), [c]);
+
+  // ── Service-level gate: is the shuttle service enabled? ──────────────────────
+  const shuttleSvc = getService('shuttle');
+  const shuttleServiceEnabled: boolean = !shuttleSvc || (shuttleSvc.isEnabled && shuttleSvc.displayMode === 'live');
+  const shuttleDisabledMessage: string =
+    shuttleSvc?.unavailableMessage ??
+    (shuttleSvc?.displayMode === 'maintenance' ? 'Shuttle service is under maintenance.' :
+     shuttleSvc?.displayMode === 'coming_soon' ? 'Shuttle service coming soon.' :
+     'Shuttle service is currently unavailable.');
   const slideAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [visible, setVisible] = useState(false);
@@ -213,7 +229,7 @@ export function TripSheet() {
   // seatCount is always 1 per API contract
   const total = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, 1) : route.price;
   const selectedTripBookable = !selectedTrip || isTripBookable(selectedTrip);
-  const valid = hasPath && safeFrom !== safeTo && !routeLoading && scheduledTrips.length > 0 && selectedTripBookable;
+  const valid = hasPath && safeFrom !== safeTo && !routeLoading && scheduledTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled;
   const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
@@ -258,6 +274,14 @@ export function TripSheet() {
               <Heart size={16} color={c.ink} />
             </TouchableOpacity>
           </View>
+
+          {/* Service disabled banner — shown when admin disables shuttle */}
+          {!shuttleServiceEnabled && (
+            <View style={styles.serviceBanner}>
+              <AlertTriangle size={15} color="#92400e" style={{ marginTop: 1 }} />
+              <Text style={styles.serviceBannerText}>{shuttleDisabledMessage}</Text>
+            </View>
+          )}
 
           {/* Trip selector */}
           <View style={styles.section}>
@@ -478,13 +502,15 @@ export function TripSheet() {
             }}
           >
             <Text style={styles.ctaBtnText}>
-              {!valid
+              {!shuttleServiceEnabled
+                ? 'Service Unavailable'
+                : !valid
                 ? t('select_trip')
                 : walletLow
                 ? 'Insufficient Balance'
                 : `${t('book_now')} · ${total} ${t('egp')}`}
             </Text>
-            {valid && !walletLow && <ArrowRight size={16} color={c.isDark ? c.background : c.white} />}
+            {valid && !walletLow && shuttleServiceEnabled && <ArrowRight size={16} color={c.isDark ? c.background : c.white} />}
           </TouchableOpacity>
         </View>
       </Animated.View>
