@@ -10,13 +10,13 @@ interface UseTripsResult {
   refresh: () => void;
 }
 
-function formatDateTime(raw: string): { date: string; time: string } {
+function formatDateTimeUTC(raw: string): { date: string; time: string } {
   if (!raw) return { date: '—', time: '—' };
   const d = new Date(raw);
   if (isNaN(d.getTime())) return { date: raw, time: '—' };
   return {
-    date: d.toLocaleDateString('ar-EG', { month: 'long', day: 'numeric' }),
-    time: d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+    date: d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }),
+    time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }),
   };
 }
 
@@ -35,7 +35,7 @@ function mapApiBooking(b: any, routeMap: Record<number, any>): Trip {
   const rawType = (route.type ?? b.type ?? 'shuttle').toLowerCase();
   const type: TripType = rawType === 'car' ? 'car' : rawType === 'bike' ? 'bike' : 'shuttle';
 
-  const { date, time } = formatDateTime(trip.departureTime ?? trip.departure_time ?? '');
+  const { date, time } = formatDateTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
 
   const routeCode = route.code ?? (routeId ? `R${routeId}` : '—');
   const routeName = route.name ?? (routeId ? `Route #${routeId}` : '—');
@@ -67,13 +67,11 @@ export function useTrips(): UseTripsResult {
     setLoading(true);
     setError(null);
     try {
-      // Fetch bookings and routes in parallel — routes needed to resolve route names
       const [bookingsRes, routesRes] = await Promise.allSettled([
         api.get('/shuttle/bookings'),
         api.get('/shuttle/lines'),
       ]);
 
-      // Build routeId → route lookup map
       let routeMap: Record<number, any> = {};
       if (routesRes.status === 'fulfilled') {
         const d = routesRes.value.data;

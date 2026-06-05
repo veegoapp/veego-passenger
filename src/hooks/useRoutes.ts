@@ -14,11 +14,16 @@ const ROUTE_COLORS = [
   '#fde8d8', '#d8f5e8', '#f5d8ec', '#dff5f8',
 ];
 
-function formatTime(raw: string): string {
+function formatTimeUTC(raw: string): string {
   if (!raw) return '—';
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
-  return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    hour12: false,
+  });
 }
 
 function mapApiRoute(r: any, idx: number, nextTripMap: Record<number, any>): Route {
@@ -33,14 +38,16 @@ function mapApiRoute(r: any, idx: number, nextTripMap: Record<number, any>): Rou
     to: r.toLocation ?? r.to_location ?? r.to ?? '',
     stations: r.stationCount ?? r.station_count ?? r.stations ?? 0,
     duration: r.estimatedDuration
-      ? `${r.estimatedDuration} دقيقة`
+      ? `${r.estimatedDuration} min`
       : r.estimated_duration
-      ? `${r.estimated_duration} دقيقة`
+      ? `${r.estimated_duration} min`
       : r.duration ?? '—',
     seatsLeft: nextTrip?.availableSeats ?? r.availableSeats ?? r.available_seats ?? r.seatsLeft ?? 0,
     totalSeats: nextTrip?.totalSeats ?? r.totalSeats ?? r.total_seats ?? r.capacity ?? 18,
     price: r.basePrice ?? r.base_price ?? r.price ?? 0,
-    nextDeparture: nextTrip ? formatTime(nextTrip.departureTime ?? nextTrip.departure_time) : (r.nextDeparture ?? r.next_departure ?? '—'),
+    nextDeparture: nextTrip
+      ? formatTimeUTC(nextTrip.departureTime ?? nextTrip.departure_time)
+      : (r.nextDeparture ?? r.next_departure ?? '—'),
     color: r.color ?? ROUTE_COLORS[idx % ROUTE_COLORS.length],
     path: Array.isArray(r.stations)
       ? r.stations.map((s: any) => ({
@@ -71,10 +78,9 @@ export function useRoutes(): UseRoutesResult {
     setLoading(true);
     setError(null);
     try {
-      // Fetch routes and scheduled trips in parallel
       const [routesRes, tripsRes] = await Promise.allSettled([
         api.get('/shuttle/lines'),
-        api.get('/shuttle/trips?status=scheduled&limit=200'),
+        api.get('/trips', { params: { status: 'waiting_driver', limit: 200 } }),
       ]);
 
       // Build routeId → earliest upcoming trip map for seatsLeft + nextDeparture

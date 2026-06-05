@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowRight, Ticket, QrCode } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowRight, Ticket, QrCode, MapPin } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import QRCode from 'react-native-qrcode-svg';
@@ -78,6 +78,14 @@ function QRDisplay({ value, bg, fg }: QRDisplayProps) {
   );
 }
 
+interface TrackingUpdate {
+  tripId: number;
+  stationId: number;
+  stationName: string;
+  status: string;
+  arrivedAt: string;
+}
+
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
@@ -87,8 +95,8 @@ function makeStyles(c: ThemeColors) {
     confirmBlock: { alignItems: 'center', gap: 10 },
     sparkleHost: { width: 80, height: 80, alignItems: 'center', justifyContent: 'center', position: 'relative' },
     checkCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center', shadowColor: c.ink, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.25, shadowRadius: 28, elevation: 10 },
-    confirmedLabel: { fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold' },
-    bookingId: { fontSize: 12, color: c.inkSoft, fontFamily: 'Inter_400Regular' },
+    confirmedLabel: { fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.5 },
+    bookingId: { fontSize: 12, color: c.inkSoft },
     ticketCard: { borderRadius: 32, overflow: 'hidden', backgroundColor: c.white, ...S.float },
     ticketHeader: { padding: 20, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden' },
     ticketHeaderGlow: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
@@ -103,6 +111,7 @@ function makeStyles(c: ThemeColors) {
     ticketTimeBox: { alignItems: 'flex-end' },
     ticketTimeLabel: { fontSize: 9, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1 },
     ticketTime: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
+    ticketTimeTz: { fontSize: 9, color: 'rgba(255,255,255,0.5)', textAlign: 'right', marginTop: 1 },
     perforationRow: { flexDirection: 'row', alignItems: 'center', height: 24, position: 'relative' },
     punchLeft: { width: 24, height: 24, borderRadius: 12, backgroundColor: c.isDark ? c.background : c.snow, marginLeft: -12 },
     perforationLine: { flex: 1, height: 1, borderTopWidth: 1.5, borderColor: c.border, borderStyle: 'dashed' },
@@ -119,11 +128,13 @@ function makeStyles(c: ThemeColors) {
     qrLiveBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
     qrLiveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: c.accentMint },
     qrLiveText: { fontSize: 11, fontWeight: '600', color: c.accentMint },
-    boardedBanner: {
-      flexDirection: 'row', alignItems: 'center', gap: 10,
-      backgroundColor: '#55c49a', borderRadius: 16, padding: 14, marginTop: 8,
-    },
+    boardedBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#55c49a', borderRadius: 16, padding: 14, marginTop: 8 },
     boardedBannerText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#ffffff' },
+    trackingCard: { borderRadius: 20, backgroundColor: c.mist, padding: 14, gap: 8 },
+    trackingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    trackingTitle: { fontSize: 13, fontWeight: '600', color: c.ink },
+    trackingStation: { fontSize: 13, color: c.ink, fontWeight: '500' },
+    trackingSub: { fontSize: 11, color: c.inkSoft },
     actions: { gap: 10 },
     primaryBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...S.float },
     primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600' },
@@ -137,11 +148,12 @@ function makeStyles(c: ThemeColors) {
 export default function TicketScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { activeBooking, confirmedBookingId } = useBooking();
+  const { activeBooking, confirmedBookingId, confirmedTripId } = useBooking();
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const [boarded, setBoarded] = useState(false);
+  const [latestTracking, setLatestTracking] = useState<TrackingUpdate | null>(null);
   const boardedAnim = useRef(new Animated.Value(0)).current;
 
   const checkScale = useRef(new Animated.Value(0.6)).current;
@@ -170,13 +182,23 @@ export default function TicketScreen() {
     ]).start();
   }, []);
 
-  // Listen for booking:boarded socket event (passenger side)
+  // Subscribe to real-time trip events via Socket.IO
   useEffect(() => {
-    if (!bookingId || Platform.OS === 'web') return;
-    let sub: { remove: () => void } | null = null;
+    if (Platform.OS === 'web') return;
+
+    let cleanedUp = false;
+    const handlers: Array<() => void> = [];
 
     getSocket().then((socket) => {
-      const handler = (data: { bookingId: string; timestamp: string }) => {
+      if (cleanedUp) return;
+
+      // Join this specific trip's room for real-time tracking updates
+      if (confirmedTripId) {
+        socket.emit('passenger:join:trip', confirmedTripId);
+      }
+
+      // Listen: boarding confirmation
+      const boardedHandler = (data: { bookingId: string; userId?: number; tripId?: number }) => {
         const id = bookingId.replace(/^#/, '');
         if (data.bookingId === id || data.bookingId === bookingId) {
           setBoarded(true);
@@ -184,15 +206,30 @@ export default function TicketScreen() {
           Animated.spring(boardedAnim, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 180 }).start();
         }
       };
-      socket.on('booking:boarded', handler);
-      sub = { remove: () => socket.off('booking:boarded', handler) };
+
+      // Listen: live trip progress (bus reached a stop)
+      const trackingHandler = (data: TrackingUpdate) => {
+        if (!confirmedTripId || data.tripId === confirmedTripId) {
+          setLatestTracking(data);
+        }
+      };
+
+      socket.on('booking:boarded', boardedHandler);
+      socket.on('passenger:trip:tracking', trackingHandler);
+
+      handlers.push(
+        () => socket.off('booking:boarded', boardedHandler),
+        () => socket.off('passenger:trip:tracking', trackingHandler),
+      );
     }).catch(() => {});
 
-    return () => { sub?.remove(); };
-  }, [bookingId]);
+    return () => {
+      cleanedUp = true;
+      handlers.forEach((off) => off());
+    };
+  }, [bookingId, confirmedTripId]);
 
   const rotateDeg = checkRotate.interpolate({ inputRange: [-20, 0], outputRange: ['-20deg', '0deg'] });
-
   const booking = activeBooking;
 
   if (!booking) {
@@ -230,12 +267,29 @@ export default function TicketScreen() {
           <Text style={styles.bookingId}>{bookingId}</Text>
         </View>
 
-        {/* Boarded confirmation banner */}
+        {/* Boarded banner */}
         {boarded && (
           <Animated.View style={[styles.boardedBanner, { transform: [{ scale: boardedAnim }] }]}>
             <CheckCircle size={24} color="#ffffff" />
             <Text style={styles.boardedBannerText}>You've been boarded! Have a great trip.</Text>
           </Animated.View>
+        )}
+
+        {/* Live tracking card */}
+        {latestTracking && (
+          <View style={styles.trackingCard}>
+            <View style={styles.trackingHeader}>
+              <MapPin size={14} color={c.ink} />
+              <Text style={styles.trackingTitle}>Live Update (UTC)</Text>
+            </View>
+            <Text style={styles.trackingStation}>{latestTracking.stationName}</Text>
+            <Text style={styles.trackingSub}>
+              Status: {latestTracking.status} ·{' '}
+              {new Date(latestTracking.arrivedAt).toLocaleTimeString('en-US', {
+                hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false,
+              })} UTC
+            </Text>
+          </View>
         )}
 
         <Animated.View style={[styles.ticketCard, { opacity: cardOpacity, transform: [{ translateY: cardY }] }]}>
@@ -251,18 +305,19 @@ export default function TicketScreen() {
                 <View style={styles.ticketRouteRow}>
                   <View style={styles.ticketStation}>
                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff', flexShrink: 0 }} />
-                    <Text style={styles.ticketStationText} numberOfLines={1}>{booking.route.path[booking.fromIdx].name}</Text>
+                    <Text style={styles.ticketStationText} numberOfLines={1}>{booking.route.path[booking.fromIdx]?.name}</Text>
                   </View>
                   <ArrowRight size={10} color="rgba(255,255,255,0.5)" />
                   <View style={styles.ticketStation}>
                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.accentMint, flexShrink: 0 }} />
-                    <Text style={styles.ticketStationText} numberOfLines={1}>{booking.route.path[booking.toIdx].name}</Text>
+                    <Text style={styles.ticketStationText} numberOfLines={1}>{booking.route.path[booking.toIdx]?.name}</Text>
                   </View>
                 </View>
               </View>
               <View style={styles.ticketTimeBox}>
                 <Text style={styles.ticketTimeLabel}>{t('dep')}</Text>
                 <Text style={styles.ticketTime}>{booking.time}</Text>
+                <Text style={styles.ticketTimeTz}>UTC</Text>
               </View>
             </View>
           </LinearGradient>

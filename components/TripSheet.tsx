@@ -1,18 +1,57 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Platform, ActivityIndicator } from 'react-native';
-import { Users, Heart, Calendar, Clock, MapPin, AlertCircle, Minus, Plus, Ticket, Star, ArrowRight } from 'lucide-react-native';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import {
+  View, Text, TouchableOpacity, ScrollView, StyleSheet,
+  Animated, Platform, ActivityIndicator, Alert,
+} from 'react-native';
+import {
+  Users, Heart, Calendar, Clock, MapPin, AlertCircle,
+  Minus, Plus, Ticket, Star, ArrowRight, Wallet, ChevronDown,
+} from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
-import { DATES, TIMES, calcSegmentPrice } from '@/constants/data';
+import { DATES, calcSegmentPrice } from '@/constants/data';
 import { SectionLabel } from '@/components/Shared';
 
-function formatTripTime(raw: string): string {
+// UTC date strings for each day in DATES — used as the `date` param for GET /trips
+const DATES_UTC_API: string[] = (() => {
+  const result: string[] = [];
+  const now = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + i));
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    result.push(`${y}-${m}-${day}`);
+  }
+  return result;
+})();
+
+// Format a UTC ISO timestamp as HH:MM in UTC (no local offset)
+function formatTripTimeUTC(raw: string): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
-  return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    hour12: false,
+  });
+}
+
+// Format a UTC ISO timestamp as a display date in UTC
+function formatTripDateUTC(raw: string): string {
+  if (!raw) return '';
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 function makeStyles(c: ThemeColors, gs: object) {
@@ -30,7 +69,6 @@ function makeStyles(c: ThemeColors, gs: object) {
     routePathText: { fontSize: 12, color: c.inkSoft, marginTop: 1 },
     seatsTag: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
     seatsTagText: { fontSize: 11, color: c.inkSoft },
-    heartBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     section: { marginTop: 20, gap: 8 },
     hScroll: { marginTop: 8 },
     dateBtn: { minWidth: 64, paddingVertical: 10, borderRadius: 16, borderWidth: 1, alignItems: 'center' },
@@ -38,12 +76,13 @@ function makeStyles(c: ThemeColors, gs: object) {
     dateBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     dateDayLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
     dateDay: { fontSize: 18, fontWeight: '600', lineHeight: 24 },
-    timeBtn: { height: 44, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    timeBtn: { height: 52, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
     timeBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     timeBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     timeText: { fontSize: 13, fontWeight: '500' },
     timeSeatsBadge: { fontSize: 10, color: c.inkSoft, marginTop: 2 },
     timeSeatsBadgeActive: { color: c.isDark ? c.background : 'rgba(255,255,255,0.75)' },
+    timeSeatsFull: { color: '#e53e3e', fontSize: 10, marginTop: 2 },
     pickTabWrap: { flexDirection: 'row', padding: 4, borderRadius: 16, marginTop: 8, gap: 2 },
     pickTab: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     pickTabActive: { backgroundColor: c.ink },
@@ -78,6 +117,14 @@ function makeStyles(c: ThemeColors, gs: object) {
     priceTotal: { fontSize: 20, fontWeight: '600', color: c.ink, letterSpacing: -0.5 },
     ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     ratingText: { fontSize: 11, color: c.inkSoft },
+    walletRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+    walletText: { fontSize: 11, color: c.inkSoft },
+    walletLow: { color: '#e53e3e' },
+    walletOk: { color: '#38a169' },
+    loadMoreBtn: { height: 44, borderRadius: 14, borderWidth: 1, borderColor: c.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, marginBottom: 4 },
+    loadMoreText: { fontSize: 13, fontWeight: '500', color: c.ink },
+    noTripsWrap: { paddingVertical: 20, alignItems: 'center', gap: 6 },
+    noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     cta: { padding: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.white },
     ctaBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...S.float },
     ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600' },
@@ -86,11 +133,16 @@ function makeStyles(c: ThemeColors, gs: object) {
     errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     retryBtn: { marginTop: 4, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: c.border },
     retryBtnText: { fontSize: 13, fontWeight: '500', color: c.ink },
+    tripsLoadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
   });
 }
 
 export function TripSheet() {
-  const { tripSheetOpen, closeTripSheet, selectedRoute, handleBook, routeLoading, scheduledTrips, openRoute } = useBooking();
+  const {
+    tripSheetOpen, closeTripSheet, selectedRoute, handleBook,
+    routeLoading, tripsLoading, scheduledTrips, tripsTotal, tripsPage,
+    openRoute, fetchTripsForDate, loadMoreTrips, walletBalance,
+  } = useBooking();
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c, gs), [c]);
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -102,14 +154,27 @@ export function TripSheet() {
   const [dateIdx, setDateIdx] = useState(0);
   const [timeIdx, setTimeIdx] = useState(0);
   const [pick, setPick] = useState<'from' | 'to'>('from');
+  const prevDateIdx = useRef<number>(0);
 
   useEffect(() => {
     if (selectedRoute && selectedRoute.path.length >= 2) {
       setFromIdx(0);
       setToIdx(selectedRoute.path.length - 1);
       setPax(1); setDateIdx(0); setTimeIdx(0); setPick('from');
+      prevDateIdx.current = 0;
     }
   }, [selectedRoute?.id, selectedRoute?.path.length]);
+
+  // Refetch trips when the selected date changes
+  useEffect(() => {
+    if (!selectedRoute || dateIdx === prevDateIdx.current) return;
+    prevDateIdx.current = dateIdx;
+    const utcDate = DATES_UTC_API[dateIdx];
+    if (utcDate) {
+      fetchTripsForDate(selectedRoute.id, utcDate);
+      setTimeIdx(0);
+    }
+  }, [dateIdx, selectedRoute, fetchTripsForDate]);
 
   useEffect(() => {
     if (tripSheetOpen) {
@@ -128,15 +193,11 @@ export function TripSheet() {
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [900, 0] });
 
-  // All hooks must be called before any early return
+  // Build time buttons from real API trips — UTC formatted
   const tripTimes: string[] = useMemo(() => {
-    if (scheduledTrips.length > 0) {
-      const times = scheduledTrips
-        .map((trip: any) => formatTripTime(trip.departureTime ?? trip.departure_time ?? ''))
-        .filter(Boolean);
-      if (times.length > 0) return times;
-    }
-    return TIMES;
+    return scheduledTrips
+      .map((trip: any) => formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? ''))
+      .filter(Boolean);
   }, [scheduledTrips]);
 
   const safeTimeIdx = Math.min(timeIdx, Math.max(0, tripTimes.length - 1));
@@ -148,6 +209,16 @@ export function TripSheet() {
     return selectedRoute?.seatsLeft ?? 0;
   }, [scheduledTrips, safeTimeIdx, selectedRoute?.seatsLeft]);
 
+  const hasMoreTrips = useMemo(
+    () => scheduledTrips.length < tripsTotal,
+    [scheduledTrips.length, tripsTotal],
+  );
+
+  const handleLoadMore = useCallback(async () => {
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    await loadMoreTrips();
+  }, [loadMoreTrips]);
+
   if (!visible || !selectedRoute) return null;
 
   const route = selectedRoute;
@@ -157,8 +228,9 @@ export function TripSheet() {
   const lo = Math.min(safeFrom, safeTo);
   const hi = Math.max(safeFrom, safeTo);
   const total = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, pax) : route.price * pax;
-  const valid = hasPath && safeFrom !== safeTo && !routeLoading;
+  const valid = hasPath && safeFrom !== safeTo && !routeLoading && tripTimes.length > 0;
   const maxPax = Math.max(1, Math.min(3, selectedTripSeats));
+  const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -194,11 +266,12 @@ export function TripSheet() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.heartBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' }} activeOpacity={0.7}>
               <Heart size={16} color={c.ink} />
             </TouchableOpacity>
           </View>
 
+          {/* Date picker */}
           <View style={styles.section}>
             <SectionLabel icon={<Calendar size={14} color={c.inkSoft} />}>
               {t('travel_date')}
@@ -217,33 +290,74 @@ export function TripSheet() {
             </ScrollView>
           </View>
 
+          {/* Departure time picker */}
           <View style={styles.section}>
             <SectionLabel icon={<Clock size={14} color={c.inkSoft} />}>
               {t('departure')}
+              {tripsTotal > 0 && (
+                <Text style={{ fontSize: 11, color: c.inkSoft, fontWeight: '400' }}> · {tripsTotal} trip{tripsTotal !== 1 ? 's' : ''} (UTC)</Text>
+              )}
             </SectionLabel>
+
             {routeLoading ? (
               <View style={{ paddingVertical: 12, alignItems: 'flex-start' }}>
                 <ActivityIndicator size="small" color={c.ink} />
               </View>
+            ) : tripTimes.length === 0 && !tripsLoading ? (
+              <View style={styles.noTripsWrap}>
+                <AlertCircle size={22} color={c.silver} />
+                <Text style={styles.noTripsText}>No departures for this date.{'\n'}Try a different day.</Text>
+              </View>
             ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
-                {tripTimes.map((time, i) => {
-                  const active = i === safeTimeIdx;
-                  const seats = scheduledTrips[i]?.availableSeats;
-                  return (
-                    <TouchableOpacity key={`${time}-${i}`} onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                      style={[styles.timeBtn, active ? styles.timeBtnActive : styles.timeBtnInactive]}>
-                      <Text style={[styles.timeText, { color: active ? (c.isDark ? c.background : c.white) : c.ink }]}>{time}</Text>
-                      {seats !== undefined && (
-                        <Text style={[styles.timeSeatsBadge, active && styles.timeSeatsBadgeActive]}>{seats} seats</Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hScroll} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>
+                  {tripTimes.map((time, i) => {
+                    const active = i === safeTimeIdx;
+                    const trip = scheduledTrips[i];
+                    const seats = trip?.availableSeats;
+                    const isFull = seats !== undefined && seats === 0;
+                    return (
+                      <TouchableOpacity
+                        key={`${time}-${i}`}
+                        onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                        disabled={isFull}
+                        style={[styles.timeBtn, active ? styles.timeBtnActive : styles.timeBtnInactive, isFull && { opacity: 0.4 }]}
+                      >
+                        <Text style={[styles.timeText, { color: active ? (c.isDark ? c.background : c.white) : c.ink }]}>{time}</Text>
+                        {seats !== undefined ? (
+                          isFull ? (
+                            <Text style={styles.timeSeatsFull}>Full</Text>
+                          ) : (
+                            <Text style={[styles.timeSeatsBadge, active && styles.timeSeatsBadgeActive]}>{seats} seats</Text>
+                          )
+                        ) : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Trips loading indicator (pagination) */}
+                {tripsLoading && (
+                  <View style={styles.tripsLoadingRow}>
+                    <ActivityIndicator size="small" color={c.ink} />
+                    <Text style={{ fontSize: 12, color: c.inkSoft }}>Loading trips…</Text>
+                  </View>
+                )}
+
+                {/* Load more button */}
+                {hasMoreTrips && !tripsLoading && (
+                  <TouchableOpacity style={[gs, styles.loadMoreBtn]} onPress={handleLoadMore} activeOpacity={0.8}>
+                    <ChevronDown size={14} color={c.ink} />
+                    <Text style={styles.loadMoreText}>
+                      Load more ({scheduledTrips.length}/{tripsTotal})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
 
+          {/* Station picker */}
           <View style={styles.section}>
             <SectionLabel icon={<MapPin size={14} color={c.inkSoft} />}>
               {t('boarding_dropoff')}
@@ -258,11 +372,7 @@ export function TripSheet() {
               <View style={styles.loadingWrap}>
                 <AlertCircle size={28} color={c.silver} />
                 <Text style={styles.errorText}>Stop information not available for this route.</Text>
-                <TouchableOpacity
-                  style={styles.retryBtn}
-                  onPress={() => openRoute(route)}
-                  activeOpacity={0.8}
-                >
+                <TouchableOpacity style={styles.retryBtn} onPress={() => openRoute(route)} activeOpacity={0.8}>
                   <Text style={styles.retryBtnText}>Retry</Text>
                 </TouchableOpacity>
               </View>
@@ -287,7 +397,8 @@ export function TripSheet() {
                 <View style={styles.timeline}>
                   {route.path.map((s, i) => {
                     const inSegment = i >= lo && i <= hi;
-                    const isFrom = i === safeFrom; const isTo = i === safeTo;
+                    const isFrom = i === safeFrom;
+                    const isTo = i === safeTo;
                     return (
                       <TouchableOpacity key={s.id} style={styles.timelineRow} onPress={() => pickStation(i)} activeOpacity={0.7}>
                         <View style={styles.timelineLeft}>
@@ -315,6 +426,7 @@ export function TripSheet() {
             )}
           </View>
 
+          {/* Passenger count */}
           <View style={styles.section}>
             <SectionLabel icon={<Users size={14} color={c.inkSoft} />}>
               {t('passengers')}
@@ -325,19 +437,28 @@ export function TripSheet() {
                 <Text style={styles.paxLimit}>{selectedTripSeats} {t('seats_left')}</Text>
               </View>
               <View style={styles.paxControls}>
-                <TouchableOpacity onPress={() => { setPax(Math.max(1, pax - 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }} disabled={pax <= 1}
-                  style={[styles.paxBtn, styles.paxBtnOutline, pax <= 1 && { opacity: 0.4 }]} activeOpacity={0.8}>
+                <TouchableOpacity
+                  onPress={() => { setPax(Math.max(1, pax - 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                  disabled={pax <= 1}
+                  style={[styles.paxBtn, styles.paxBtnOutline, pax <= 1 && { opacity: 0.4 }]}
+                  activeOpacity={0.8}
+                >
                   <Minus size={14} color={c.ink} />
                 </TouchableOpacity>
                 <Text style={styles.paxNum}>{pax}</Text>
-                <TouchableOpacity onPress={() => { setPax(Math.min(maxPax, pax + 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }} disabled={pax >= maxPax}
-                  style={[styles.paxBtn, styles.paxBtnFilled, pax >= maxPax && { opacity: 0.4 }]} activeOpacity={0.8}>
+                <TouchableOpacity
+                  onPress={() => { setPax(Math.min(maxPax, pax + 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                  disabled={pax >= maxPax}
+                  style={[styles.paxBtn, styles.paxBtnFilled, pax >= maxPax && { opacity: 0.4 }]}
+                  activeOpacity={0.8}
+                >
                   <Plus size={14} color={c.isDark ? c.background : c.white} />
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
+          {/* Price summary */}
           <View style={[gs, styles.priceSummary]}>
             <View style={styles.priceIcon}>
               <Ticket size={20} color={c.isDark ? c.background : c.white} />
@@ -347,6 +468,17 @@ export function TripSheet() {
                 {hasPath ? `${Math.max(1, hi - lo)} ${hi - lo > 1 ? t('segments') : t('segment')} · ` : ''}{pax} {t('pax_one')}
               </Text>
               <Text style={styles.priceTotal}>{total} {t('egp')}</Text>
+              {/* Wallet balance chip */}
+              {walletBalance !== null && (
+                <View style={styles.walletRow}>
+                  <Wallet size={11} color={walletLow ? '#e53e3e' : c.inkSoft} />
+                  <Text style={[styles.walletText, walletLow ? styles.walletLow : styles.walletOk]}>
+                    {walletLow
+                      ? `Low balance — ${walletBalance.toFixed(2)} EGP`
+                      : `Wallet: ${walletBalance.toFixed(2)} EGP`}
+                  </Text>
+                </View>
+              )}
             </View>
             <View style={styles.ratingBox}>
               <Star size={12} color={c.inkSoft} />
@@ -356,31 +488,29 @@ export function TripSheet() {
         </ScrollView>
 
         <View style={styles.cta}>
-          <TouchableOpacity disabled={!valid}
+          <TouchableOpacity
+            disabled={!valid}
             onPress={() => {
               if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               const selectedTrip = scheduledTrips[safeTimeIdx] ?? null;
               const realDate = selectedTrip
-                ? (() => {
-                    const raw = selectedTrip.departureTime ?? selectedTrip.departure_time ?? '';
-                    const d = raw ? new Date(raw) : null;
-                    return d && !isNaN(d.getTime())
-                      ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : DATES[dateIdx].date;
-                  })()
+                ? formatTripDateUTC(selectedTrip.departureTime ?? selectedTrip.departure_time ?? '')
                 : DATES[dateIdx].date;
+
               handleBook({
                 route,
                 fromIdx: safeFrom,
                 toIdx: safeTo,
                 passengers: pax,
-                date: realDate,
-                time: tripTimes[safeTimeIdx] ?? TIMES[0],
+                date: realDate || DATES[dateIdx].date,
+                time: tripTimes[safeTimeIdx] ?? '—',
                 price: total,
                 tripId: selectedTrip?.id ?? null,
               });
             }}
-            style={[styles.ctaBtn, !valid && { opacity: 0.4 }]} activeOpacity={0.9}>
+            style={[styles.ctaBtn, !valid && { opacity: 0.4 }]}
+            activeOpacity={0.9}
+          >
             <Text style={styles.ctaBtnText}>{t('book')} · {total} {t('egp')}</Text>
             <ArrowRight size={16} color={c.isDark ? c.background : c.white} />
           </TouchableOpacity>
