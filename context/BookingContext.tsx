@@ -107,9 +107,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   ) => {
     setTripsLoading(true);
     try {
+      // No status filter — fetch all upcoming trips so the UI can show
+      // which ones are bookable (scheduled/active) vs awaiting a driver
       const params: Record<string, any> = {
         routeId,
-        status: 'waiting_driver',
         limit: TRIPS_PER_PAGE,
         page,
       };
@@ -237,18 +238,25 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       let tripId: number | null = pendingBooking.tripId ?? null;
 
       if (!tripId) {
-        try {
-          const tripsRes = await api.get('/trips', {
-            params: { routeId, status: 'waiting_driver', limit: 5 },
-          });
-          const tripsList: any[] = Array.isArray(tripsRes.data)
-            ? tripsRes.data
-            : tripsRes.data.data ?? tripsRes.data.trips ?? [];
-          const needed = pendingBooking.passengers ?? 1;
-          const fit = tripsList.find((t) => (t.availableSeats ?? 0) >= needed);
-          tripId = (fit ?? tripsList[0])?.id ?? null;
-        } catch {
-          // No trips found
+        // Try bookable statuses in priority order (backend only accepts scheduled/active)
+        const needed = pendingBooking.passengers ?? 1;
+        for (const status of ['scheduled', 'active', 'boarding', 'driver_assigned']) {
+          try {
+            const tripsRes = await api.get('/trips', {
+              params: { routeId, status, limit: 10 },
+            });
+            const tripsList: any[] = Array.isArray(tripsRes.data)
+              ? tripsRes.data
+              : tripsRes.data.data ?? tripsRes.data.trips ?? [];
+            const fit = tripsList.find((t) => (t.availableSeats ?? 0) >= needed);
+            const candidate = fit ?? tripsList[0];
+            if (candidate?.id) {
+              tripId = candidate.id;
+              break;
+            }
+          } catch {
+            // try next status
+          }
         }
       }
 

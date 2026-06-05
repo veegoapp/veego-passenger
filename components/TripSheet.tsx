@@ -28,6 +28,26 @@ const DATES_UTC_API: string[] = (() => {
   return result;
 })();
 
+// Statuses the backend accepts for POST /bookings (Section 4 of API spec)
+const BOOKABLE_STATUSES = new Set(['scheduled', 'active', 'boarding', 'driver_assigned']);
+
+function isTripBookable(trip: any): boolean {
+  return BOOKABLE_STATUSES.has(trip?.status ?? '');
+}
+
+function tripStatusLabel(trip: any): string {
+  switch (trip?.status) {
+    case 'waiting_driver': return 'Awaiting driver';
+    case 'scheduled':      return 'Ready';
+    case 'driver_assigned':return 'Driver assigned';
+    case 'boarding':       return 'Boarding';
+    case 'active':         return 'In progress';
+    case 'completed':      return 'Completed';
+    case 'cancelled':      return 'Cancelled';
+    default:               return '';
+  }
+}
+
 // Format a UTC ISO timestamp as HH:MM in UTC (no local offset)
 function formatTripTimeUTC(raw: string): string {
   if (!raw) return '';
@@ -228,7 +248,9 @@ export function TripSheet() {
   const lo = Math.min(safeFrom, safeTo);
   const hi = Math.max(safeFrom, safeTo);
   const total = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, pax) : route.price * pax;
-  const valid = hasPath && safeFrom !== safeTo && !routeLoading && tripTimes.length > 0;
+  const selectedTrip = scheduledTrips[safeTimeIdx] ?? null;
+  const selectedTripBookable = !selectedTrip || isTripBookable(selectedTrip);
+  const valid = hasPath && safeFrom !== safeTo && !routeLoading && tripTimes.length > 0 && selectedTripBookable;
   const maxPax = Math.max(1, Math.min(3, selectedTripSeats));
   const walletLow = walletBalance !== null && walletBalance < total;
 
@@ -316,20 +338,27 @@ export function TripSheet() {
                     const trip = scheduledTrips[i];
                     const seats = trip?.availableSeats;
                     const isFull = seats !== undefined && seats === 0;
+                    const bookable = isTripBookable(trip);
+                    const statusLabel = tripStatusLabel(trip);
+                    const disabled = isFull || !bookable;
                     return (
                       <TouchableOpacity
                         key={`${time}-${i}`}
                         onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                        disabled={isFull}
-                        style={[styles.timeBtn, active ? styles.timeBtnActive : styles.timeBtnInactive, isFull && { opacity: 0.4 }]}
+                        disabled={disabled}
+                        style={[
+                          styles.timeBtn,
+                          active ? styles.timeBtnActive : styles.timeBtnInactive,
+                          disabled && { opacity: 0.45 },
+                        ]}
                       >
                         <Text style={[styles.timeText, { color: active ? (c.isDark ? c.background : c.white) : c.ink }]}>{time}</Text>
-                        {seats !== undefined ? (
-                          isFull ? (
-                            <Text style={styles.timeSeatsFull}>Full</Text>
-                          ) : (
-                            <Text style={[styles.timeSeatsBadge, active && styles.timeSeatsBadgeActive]}>{seats} seats</Text>
-                          )
+                        {isFull ? (
+                          <Text style={styles.timeSeatsFull}>Full</Text>
+                        ) : !bookable ? (
+                          <Text style={styles.timeSeatsBadge}>{statusLabel}</Text>
+                        ) : seats !== undefined ? (
+                          <Text style={[styles.timeSeatsBadge, active && styles.timeSeatsBadgeActive]}>{seats} seats</Text>
                         ) : null}
                       </TouchableOpacity>
                     );
@@ -492,7 +521,6 @@ export function TripSheet() {
             disabled={!valid}
             onPress={() => {
               if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const selectedTrip = scheduledTrips[safeTimeIdx] ?? null;
               const realDate = selectedTrip
                 ? formatTripDateUTC(selectedTrip.departureTime ?? selectedTrip.departure_time ?? '')
                 : DATES[dateIdx].date;
@@ -514,6 +542,16 @@ export function TripSheet() {
             <Text style={styles.ctaBtnText}>{t('book')} · {total} {t('egp')}</Text>
             <ArrowRight size={16} color={c.isDark ? c.background : c.white} />
           </TouchableOpacity>
+          {selectedTrip && !selectedTripBookable && (
+            <Text style={{ fontSize: 12, color: c.inkSoft, textAlign: 'center', marginTop: 8 }}>
+              This departure is awaiting a driver and can't be booked yet.
+            </Text>
+          )}
+          {tripTimes.length > 0 && !scheduledTrips.some(isTripBookable) && (
+            <Text style={{ fontSize: 12, color: c.inkSoft, textAlign: 'center', marginTop: 8 }}>
+              No bookable departures for this date yet — try another day.
+            </Text>
+          )}
         </View>
       </Animated.View>
     </View>
