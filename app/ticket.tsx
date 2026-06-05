@@ -150,7 +150,7 @@ export default function TicketScreen() {
   const cardY = useRef(new Animated.Value(30)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
 
-  const bookingId = confirmedBookingId ?? '';
+  const bookingId = confirmedBookingId || FALLBACK_BOOKING_ID;
   const qrValue = JSON.stringify({ bookingId, app: 'veego', v: 1 });
 
   useEffect(() => {
