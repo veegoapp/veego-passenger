@@ -148,14 +148,14 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         const route = pendingBooking.route;
         const boardingStationId = route.path[pendingBooking.fromIdx]?.id ?? null;
         const alightingStationId = route.path[pendingBooking.toIdx]?.id ?? null;
-        const { data } = await api.post('/shuttle/book', {
+        const { data } = await api.post(`/shuttle/lines/${routeId}/book`, {
           tripId,
           seatCount: pendingBooking.passengers,
           boardingStationId,
           alightingStationId,
           ...(promoCode ? { promoCode } : {}),
         });
-        const bookingId = data.bookingId ?? data.id ?? data._id ?? null;
+        const bookingId = data?.booking?.id ?? null;
         if (bookingId) {
           setConfirmedBookingId(String(bookingId));
           bookingSuccess = true;
