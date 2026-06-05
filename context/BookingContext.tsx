@@ -136,10 +136,41 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const { data } = await api.get(`/shuttle/lines/${route.id}`);
-      const full = data?.data ?? data;
+
+      // ── Diagnostic: log the full raw response so we can confirm the key names ──
+      console.log('[BookingContext] GET /shuttle/lines/:id raw response:', JSON.stringify(data));
+
+      // Unwrap envelope — backend may wrap in { data: { ... } } or return flat object
+      const full: any = data?.data ?? data ?? {};
+
+      console.log('[BookingContext] Unwrapped "full" keys:', Object.keys(full));
+
+      // ── Stations ─────────────────────────────────────────────────────────────
       const rawStations: any[] = Array.isArray(full.stations) ? full.stations : [];
       const path = rawStations.length >= 2 ? mapStations(rawStations) : route.path;
-      const activeTrips: any[] = Array.isArray(full.activeTrips) ? full.activeTrips : [];
+
+      // ── Trips: tolerate every plausible key the backend might use ─────────────
+      // API contract says "activeTrips" but real backends sometimes use other names
+      const activeTrips: any[] =
+        Array.isArray(full.activeTrips)    ? full.activeTrips    :
+        Array.isArray(full.trips)          ? full.trips          :
+        Array.isArray(full.upcomingTrips)  ? full.upcomingTrips  :
+        Array.isArray(full.scheduledTrips) ? full.scheduledTrips :
+        Array.isArray(full.data)           ? full.data           :
+        [];
+
+      console.log(
+        `[BookingContext] Parsed ${activeTrips.length} trips from key:`,
+        full.activeTrips    != null ? 'activeTrips'    :
+        full.trips          != null ? 'trips'          :
+        full.upcomingTrips  != null ? 'upcomingTrips'  :
+        full.scheduledTrips != null ? 'scheduledTrips' :
+        full.data           != null ? 'data'           :
+        'NONE — check raw response above',
+      );
+      if (activeTrips.length > 0) {
+        console.log('[BookingContext] First trip sample:', JSON.stringify(activeTrips[0]));
+      }
 
       // Use trip with most available seats for route-level seat display
       const bestTrip = activeTrips.find((t) => (t.availableSeats ?? 0) > 0) ?? activeTrips[0];
@@ -159,6 +190,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       setTripsTotal(activeTrips.length);
     } catch (e: any) {
       console.warn('[BookingContext] Failed to load route details:', e?.message ?? e);
+      console.warn('[BookingContext] Error detail:', e?.response?.status, JSON.stringify(e?.response?.data));
     } finally {
       setRouteLoading(false);
     }

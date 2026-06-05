@@ -12,19 +12,20 @@ fi
 printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
 echo "=== API URL set: $BACKEND_URL ==="
 
-# ── Install deps ────────────────────────────────────────────────
+# ── Install deps ─────────────────────────────────────────────────
 echo "=== Installing dependencies ==="
 pnpm install
 
-echo "=== Starting Expo (Tunnel Mode) ==="
+echo "=== Starting Expo (Web + Tunnel) ==="
 
-# ── Kill any process on port 5000 ───────────────────────────────
+# ── Kill any stale processes on port 5000 ────────────────────────
 lsof -ti:5000 2>/dev/null | xargs kill -9 2>/dev/null || true
+pkill -f "expo start" 2>/dev/null || true
 sleep 1
 
-# ── Critical fixes for Replit + Expo ────────────────────────────
+# ── Expo settings ────────────────────────────────────────────────
 export EXPO_NO_TELEMETRY=1
 export NODE_OPTIONS=--max-old-space-size=4096
 
-# ── Start Expo (tunnel + clear cache) ───────────────────────────
+# ── Start Expo web on port 5000 ──────────────────────────────────
 exec pnpm exec expo start --web --port 5000 --tunnel --clear
