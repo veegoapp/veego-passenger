@@ -118,17 +118,19 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const routeId = pendingBooking.route.id;
-      let tripId: number | null = null;
 
-      // Use stored active trips (from route details fetch) for better seat matching
-      if (routeActiveTrips.length > 0) {
+      // Prefer the tripId the user explicitly selected in TripSheet
+      let tripId: number | null = pendingBooking.tripId ?? null;
+
+      // Fallback 1: best available trip from route details fetch
+      if (!tripId && routeActiveTrips.length > 0) {
         const needed = pendingBooking.passengers ?? 1;
         const fit = routeActiveTrips.find((t) => (t.availableSeats ?? 0) >= needed);
         tripId = (fit ?? routeActiveTrips[0])?.id ?? null;
       }
 
+      // Fallback 2: query scheduled trips
       if (!tripId) {
-        // Fallback: query shuttle trips API (passenger-accessible)
         try {
           const tripsRes = await api.get('/shuttle/trips', {
             params: { routeId, status: 'scheduled', limit: 5 },
@@ -145,17 +147,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (tripId) {
-        const route = pendingBooking.route;
-        const boardingStationId = route.path[pendingBooking.fromIdx]?.id ?? null;
-        const alightingStationId = route.path[pendingBooking.toIdx]?.id ?? null;
-        const { data } = await api.post(`/shuttle/lines/${routeId}/book`, {
+        const { data } = await api.post('/bookings', {
           tripId,
           seatCount: pendingBooking.passengers,
-          boardingStationId,
-          alightingStationId,
-          ...(promoCode ? { promoCode } : {}),
         });
-        const bookingId = data?.booking?.id ?? null;
+        const bookingId = data?.booking?.id ?? data?.id ?? null;
         if (bookingId) {
           setConfirmedBookingId(String(bookingId));
           bookingSuccess = true;

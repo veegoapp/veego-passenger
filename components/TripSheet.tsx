@@ -359,14 +359,25 @@ export function TripSheet() {
           <TouchableOpacity disabled={!valid}
             onPress={() => {
               if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const selectedTrip = scheduledTrips[safeTimeIdx] ?? null;
+              const realDate = selectedTrip
+                ? (() => {
+                    const raw = selectedTrip.departureTime ?? selectedTrip.departure_time ?? '';
+                    const d = raw ? new Date(raw) : null;
+                    return d && !isNaN(d.getTime())
+                      ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : DATES[dateIdx].date;
+                  })()
+                : DATES[dateIdx].date;
               handleBook({
                 route,
                 fromIdx: safeFrom,
                 toIdx: safeTo,
                 passengers: pax,
-                date: DATES[dateIdx].date,
+                date: realDate,
                 time: tripTimes[safeTimeIdx] ?? TIMES[0],
                 price: total,
+                tripId: selectedTrip?.id ?? null,
               });
             }}
             style={[styles.ctaBtn, !valid && { opacity: 0.4 }]} activeOpacity={0.9}>

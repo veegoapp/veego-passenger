@@ -57,6 +57,7 @@ export type Booking = {
   date: string;
   time: string;
   price: number;
+  tripId?: number | null;
 };
 
 export const stations: Station[] = [
