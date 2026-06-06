@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import { useMemo, useCallback, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Home, GraduationCap, Cross, Store, Heart, Clock, GitCommit, Navigation, Ticket, Bike } from 'lucide-react-native';
+import { Heart, Clock, GitCommit, Navigation, Ticket, Car, Bus, RefreshCw, Bike } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -9,11 +9,21 @@ import { useTheme } from '@/context/ThemeContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useBooking } from '@/context/BookingContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { routes } from '@/constants/data';
+import { useRoutes } from '@/src/hooks/useRoutes';
+import { useFavoriteDestinations } from '@/src/hooks/useFavoriteDestinations';
+import type { TripType } from '@/constants/data';
 
-const CAR_DESTINATIONS: { id: string; name: string; icon: (props: any) => any; fare: number; dist: string; eta: string; color: string }[] = [];
+const TYPE_ICON: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {
+  shuttle: Bus,
+  car: Car,
+  scooter: Bike,
+};
 
-const SCOOTER_TRIPS: { id: string; from: string; to: string; dist: string; duration: string; price: number; color: string }[] = [];
+const TYPE_COLOR: Record<TripType, string> = {
+  shuttle: '#d8ecf7',
+  car: '#fde8d8',
+  scooter: '#d8f5e8',
+};
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -26,6 +36,7 @@ function makeStyles(c: ThemeColors) {
     sectionTitle: { fontSize: 13, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.1 },
     sectionAction: { fontSize: 12, fontWeight: '600', color: c.ink },
 
+    // Shuttle card
     shuttleCard: { backgroundColor: c.white, borderRadius: 24, padding: 16, overflow: 'hidden', ...S.luxe },
     cardAccent: { position: 'absolute', top: -40, right: -40, width: 130, height: 130, borderRadius: 65, opacity: 0.5 },
     cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -45,35 +56,28 @@ function makeStyles(c: ThemeColors) {
     rebookText: { color: c.isDark ? c.background : c.white, fontSize: 13, fontWeight: '600' },
     removeBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
 
+    // Frequent destination card
+    destCard: { backgroundColor: c.white, borderRadius: 20, padding: 16, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
+    destAccent: { position: 'absolute', right: -30, top: -30, width: 100, height: 100, borderRadius: 50, opacity: 0.08 },
+    destIconBox: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    destMeta: { flex: 1 },
+    destFrom: { fontSize: 12, fontWeight: '600', color: c.ink },
+    destTo: { fontSize: 12, color: c.inkSoft, marginTop: 1 },
+    destDetail: { fontSize: 11, color: c.silver, marginTop: 3 },
+    destRight: { alignItems: 'flex-end', gap: 6 },
+    destPrice: { fontSize: 14, fontWeight: '700', color: c.ink },
+    destPriceLabel: { fontSize: 10, color: c.inkSoft },
+    destBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    destBtnText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: '600' },
+
+    // Empty / loading
     emptyShuttle: { backgroundColor: c.mist, borderRadius: 20, padding: 20, alignItems: 'center', gap: 8 },
     emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
     emptyTitle: { fontSize: 14, fontWeight: '600', color: c.ink },
     emptySub: { fontSize: 12, color: c.inkSoft, textAlign: 'center', lineHeight: 18 },
     emptyBtn: { marginTop: 8, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: c.ink },
     emptyBtnText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
-
-    carGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-    carCard: { width: '47%', backgroundColor: c.white, borderRadius: 20, padding: 14, overflow: 'hidden', ...S.float },
-    carCardAccent: { position: 'absolute', bottom: -20, right: -20, width: 70, height: 70, borderRadius: 35, opacity: 0.12 },
-    carIconBox: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-    carDestName: { fontSize: 12, fontWeight: '600', color: c.ink, lineHeight: 16 },
-    carFare: { fontSize: 11, color: c.inkSoft, marginTop: 3 },
-    carEta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-    carEtaText: { fontSize: 11, color: c.inkSoft },
-    carBookBtn: { marginTop: 10, height: 34, borderRadius: 10, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    carBookText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: '600' },
-
-    bikeCard: { backgroundColor: c.white, borderRadius: 20, padding: 16, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
-    bikeAccent: { position: 'absolute', right: -30, top: -30, width: 100, height: 100, borderRadius: 50, opacity: 0.08 },
-    bikeIconBox: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    bikeMeta: { flex: 1 },
-    bikeRoute: { fontSize: 12, fontWeight: '600', color: c.ink },
-    bikeDetail: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
-    bikePrice: { fontSize: 14, fontWeight: '700', color: c.ink },
-    bikePriceLabel: { fontSize: 10, color: c.inkSoft, textAlign: 'right' },
-    bikeRight: { alignItems: 'flex-end', gap: 6 },
-    bikeBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: c.ink },
-    bikeBtnText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: '600' },
+    loadingWrap: { paddingVertical: 32, alignItems: 'center' },
   });
 }
 
@@ -85,16 +89,27 @@ export default function FavoritesScreen() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { openRoute } = useBooking();
 
-  const favoriteRoutes = routes.filter((r) => isFavorite(r.id));
+  // Real shuttle routes from backend — filtered by local favorites
+  const { routes, loading: routesLoading, refresh: refreshRoutes } = useRoutes();
+  const favoriteRoutes = useMemo(() => routes.filter((r) => isFavorite(r.id)), [routes, isFavorite]);
 
-  const handleCarBook = () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Car Booking', 'Opening car booking flow…');
-  };
+  // Frequent destinations derived from booking history
+  const { destinations, loading: destLoading, refresh: refreshDest } = useFavoriteDestinations();
+  const carDest = useMemo(() => destinations.filter((d) => d.type === 'car'), [destinations]);
+  const scooterDest = useMemo(() => destinations.filter((d) => d.type === 'scooter'), [destinations]);
 
-  const handleScooterBook = () => {
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    await Promise.allSettled([refreshRoutes(), refreshDest()]);
+    setRefreshing(false);
+  }, [refreshRoutes, refreshDest]);
+
+  const handleBookAgain = (from: string, to: string, type: TripType) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Scooter Booking', 'Opening scooter booking flow…');
+    // Navigate to the appropriate service tab pre-filled with this route
+    router.push(`/(tabs)` as any);
   };
 
   return (
@@ -108,7 +123,16 @@ export default function FavoritesScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={[styles.content, { paddingBottom: 120 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={c.ink}
+            colors={[c.ink]}
+          />
+        }
       >
+        {/* ── Shuttle Favorites ─────────────────────────────────── */}
         <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('fav_shuttle_section')}</Text>
@@ -117,7 +141,11 @@ export default function FavoritesScreen() {
             </TouchableOpacity>
           </View>
 
-          {favoriteRoutes.length === 0 ? (
+          {routesLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={c.ink} />
+            </View>
+          ) : favoriteRoutes.length === 0 ? (
             <View style={styles.emptyShuttle}>
               <View style={styles.emptyIcon}>
                 <Heart size={24} color={c.silver} />
@@ -189,70 +217,124 @@ export default function FavoritesScreen() {
           )}
         </View>
 
+        {/* ── Car Frequent Destinations ─────────────────────────── */}
         <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('fav_car_section')}</Text>
           </View>
-          <View style={styles.carGrid}>
-            {CAR_DESTINATIONS.map((dest) => (
-              <TouchableOpacity
-                key={dest.id}
-                style={[gs, styles.carCard]}
-                activeOpacity={0.85}
-                onPress={handleCarBook}
-              >
-                <View style={[styles.carCardAccent, { backgroundColor: dest.color }]} />
-                <View style={[styles.carIconBox, { backgroundColor: `${dest.color}18` }]}>
-                  <dest.icon size={20} color={dest.color} />
-                </View>
-                <Text style={styles.carDestName} numberOfLines={2}>{dest.name}</Text>
-                <Text style={styles.carFare}>{dest.fare} {t('egp')}</Text>
-                <View style={styles.carEta}>
-                  <Clock size={11} color={c.inkSoft} />
-                  <Text style={styles.carEtaText}>{dest.eta}</Text>
-                  <Text style={[styles.carEtaText, { marginLeft: 2 }]}>• {dest.dist}</Text>
-                </View>
-                <View style={styles.carBookBtn}>
-                  <Text style={styles.carBookText}>{t('book_car')}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+
+          {destLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={c.ink} />
+            </View>
+          ) : carDest.length === 0 ? (
+            <View style={styles.emptyShuttle}>
+              <View style={styles.emptyIcon}>
+                <Car size={22} color={c.silver} />
+              </View>
+              <Text style={styles.emptyTitle}>{t('fav_empty_shuttle')}</Text>
+              <Text style={styles.emptySub}>Your frequent car destinations will appear here after your first ride.</Text>
+            </View>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {carDest.map((dest) => (
+                <TouchableOpacity
+                  key={dest.key}
+                  style={[gs, styles.destCard]}
+                  activeOpacity={0.85}
+                  onPress={() => handleBookAgain(dest.from, dest.to, 'car')}
+                >
+                  <View style={[styles.destAccent, { backgroundColor: TYPE_COLOR.car }]} />
+                  <View style={[styles.destIconBox, { backgroundColor: `${TYPE_COLOR.car}30` }]}>
+                    <Car size={22} color="#d97706" />
+                  </View>
+                  <View style={styles.destMeta}>
+                    <Text style={styles.destFrom} numberOfLines={1}>{dest.from}</Text>
+                    <Text style={styles.destTo} numberOfLines={1}>→ {dest.to}</Text>
+                    {dest.lastUsed && (
+                      <Text style={styles.destDetail}>Last used {dest.lastUsed} · {dest.count}×</Text>
+                    )}
+                  </View>
+                  <View style={styles.destRight}>
+                    {dest.lastPrice > 0 && (
+                      <>
+                        <Text style={styles.destPrice}>{dest.lastPrice} {t('egp')}</Text>
+                        <Text style={styles.destPriceLabel}>{t('approx_fare')}</Text>
+                      </>
+                    )}
+                    <TouchableOpacity
+                      style={styles.destBtn}
+                      onPress={() => handleBookAgain(dest.from, dest.to, 'car')}
+                      activeOpacity={0.85}
+                    >
+                      <RefreshCw size={11} color={c.isDark ? c.background : c.white} />
+                      <Text style={styles.destBtnText}>{t('book_car')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
+        {/* ── Scooter Frequent Routes ───────────────────────────── */}
         <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('fav_scooter_section')}</Text>
           </View>
-          <View style={{ gap: 10 }}>
-            {SCOOTER_TRIPS.map((trip) => (
-              <TouchableOpacity
-                key={trip.id}
-                style={[gs, styles.bikeCard]}
-                activeOpacity={0.85}
-                onPress={handleScooterBook}
-              >
-                <View style={[styles.bikeAccent, { backgroundColor: trip.color }]} />
-                <View style={[styles.bikeIconBox, { backgroundColor: `${trip.color}18` }]}>
-                  <Bike size={22} color={trip.color} />
-                </View>
-                <View style={styles.bikeMeta}>
-                  <Text style={styles.bikeRoute} numberOfLines={1}>{trip.from}</Text>
-                  <Text style={[styles.bikeRoute, { color: c.inkSoft, fontWeight: '400' }]} numberOfLines={1}>→ {trip.to}</Text>
-                  <Text style={styles.bikeDetail}>{trip.dist} · {trip.duration}</Text>
-                </View>
-                <View style={styles.bikeRight}>
-                  <View>
-                    <Text style={styles.bikePrice}>{trip.price} {t('egp')}</Text>
-                    <Text style={styles.bikePriceLabel}>{t('approx_fare')}</Text>
+
+          {destLoading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color={c.ink} />
+            </View>
+          ) : scooterDest.length === 0 ? (
+            <View style={styles.emptyShuttle}>
+              <View style={styles.emptyIcon}>
+                <Bike size={22} color={c.silver} />
+              </View>
+              <Text style={styles.emptyTitle}>{t('fav_empty_shuttle')}</Text>
+              <Text style={styles.emptySub}>Your frequent scooter routes will appear here after your first ride.</Text>
+            </View>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {scooterDest.map((dest) => (
+                <TouchableOpacity
+                  key={dest.key}
+                  style={[gs, styles.destCard]}
+                  activeOpacity={0.85}
+                  onPress={() => handleBookAgain(dest.from, dest.to, 'scooter')}
+                >
+                  <View style={[styles.destAccent, { backgroundColor: TYPE_COLOR.scooter }]} />
+                  <View style={[styles.destIconBox, { backgroundColor: `${TYPE_COLOR.scooter}30` }]}>
+                    <Bike size={22} color="#16a34a" />
                   </View>
-                  <View style={styles.bikeBtn}>
-                    <Text style={styles.bikeBtnText}>{t('book_scooter')}</Text>
+                  <View style={styles.destMeta}>
+                    <Text style={styles.destFrom} numberOfLines={1}>{dest.from}</Text>
+                    <Text style={styles.destTo} numberOfLines={1}>→ {dest.to}</Text>
+                    {dest.lastUsed && (
+                      <Text style={styles.destDetail}>Last used {dest.lastUsed} · {dest.count}×</Text>
+                    )}
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <View style={styles.destRight}>
+                    {dest.lastPrice > 0 && (
+                      <>
+                        <Text style={styles.destPrice}>{dest.lastPrice} {t('egp')}</Text>
+                        <Text style={styles.destPriceLabel}>{t('approx_fare')}</Text>
+                      </>
+                    )}
+                    <TouchableOpacity
+                      style={styles.destBtn}
+                      onPress={() => handleBookAgain(dest.from, dest.to, 'scooter')}
+                      activeOpacity={0.85}
+                    >
+                      <RefreshCw size={11} color={c.isDark ? c.background : c.white} />
+                      <Text style={styles.destBtnText}>{t('book_scooter')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </LinearGradient>

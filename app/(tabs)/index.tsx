@@ -45,6 +45,7 @@ function makeStyles(c: ThemeColors) {
     serviceBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     serviceBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     serviceBtnSoon: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist, borderColor: c.border, opacity: 0.9 },
+    serviceBtnColumn: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 72, gap: 2 },
     serviceLabel: { fontSize: 12.5, fontWeight: '500' },
     soonBadge: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
     soonBadgeText: { fontSize: 8.5, fontWeight: '600', color: c.inkSoft, letterSpacing: 0.3 },
@@ -214,33 +215,42 @@ export default function HomeScreen() {
               return (
                 <TouchableOpacity
                   key={svc.id}
-                  style={[styles.serviceBtn, btnStyle]}
+                  style={[styles.serviceBtn, btnStyle, isComingSoon && styles.serviceBtnColumn]}
                   onPress={() => !isDisabled && handleServicePress(svc.id)}
                   activeOpacity={isDisabled ? 1 : 0.8}
                 >
-                  {isMaintenance
-                    ? <Wrench size={15} color={c.inkSoft} />
-                    : <svc.icon size={15} color={iconColor} />
-                  }
-                  <Text style={[styles.serviceLabel, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>
-                    {t(svc.labelKey)}
-                  </Text>
-                  {isComingSoon && (
-                    <View style={styles.soonBadge}>
-                      <Text style={styles.soonBadgeText}>{t('soon')}</Text>
-                    </View>
-                  )}
-                  {isMaintenance && (
-                    <View style={styles.soonBadge}>
-                      <Text style={styles.soonBadgeText}>
-                        {ctrl?.maintenanceEta ? `Back ${ctrl.maintenanceEta}` : 'Maintenance'}
+                  {isComingSoon ? (
+                    <>
+                      <svc.icon size={15} color={c.inkSoft} />
+                      <Text style={[styles.serviceLabel, { color: c.inkSoft }]}>
+                        {t(svc.labelKey)}
                       </Text>
-                    </View>
-                  )}
-                  {isUnavailable && (
-                    <View style={styles.soonBadge}>
-                      <Text style={styles.soonBadgeText}>Unavailable</Text>
-                    </View>
+                      <View style={styles.soonBadge}>
+                        <Text style={styles.soonBadgeText}>{t('soon')}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      {isMaintenance
+                        ? <Wrench size={15} color={c.inkSoft} />
+                        : <svc.icon size={15} color={iconColor} />
+                      }
+                      <Text style={[styles.serviceLabel, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>
+                        {t(svc.labelKey)}
+                      </Text>
+                      {isMaintenance && (
+                        <View style={styles.soonBadge}>
+                          <Text style={styles.soonBadgeText}>
+                            {ctrl?.maintenanceEta ? `Back ${ctrl.maintenanceEta}` : 'Maintenance'}
+                          </Text>
+                        </View>
+                      )}
+                      {isUnavailable && (
+                        <View style={styles.soonBadge}>
+                          <Text style={styles.soonBadgeText}>Unavailable</Text>
+                        </View>
+                      )}
+                    </>
                   )}
                 </TouchableOpacity>
               );

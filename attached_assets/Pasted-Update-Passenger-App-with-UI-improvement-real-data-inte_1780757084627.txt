@@ -1,0 +1,88 @@
+Update Passenger App with UI improvement + real data integration for Trips and Favorites screens.
+
+----------------------------------------------------
+PART 1 — SERVICE UI (COMING SOON LAYOUT FIX)
+----------------------------------------------------
+Update service selection UI for services where displayMode = "coming_soon".
+
+CURRENT ISSUE:
+"Soon" label is displayed inline or next to service name.
+
+REQUIRED FIX:
+
+For any service with displayMode === "coming_soon":
+
+Change layout to:
+
+[Service Icon]
+[Service Name]
+[Soon Badge BELOW the icon]
+
+RULES:
+1. "Soon" must NOT be inline with service name.
+2. It must always appear under the icon (centered).
+3. Service name must remain below the icon but ABOVE "Soon".
+4. Only apply this layout for coming_soon services.
+5. No changes to other displayModes.
+
+EXPECTED UI:
+
+   🚗
+  Car
+ Soon
+
+----------------------------------------------------
+PART 2 — TRIPS + FAVORITES (REAL BACKEND DATA)
+----------------------------------------------------
+
+TRIPS SCREEN:
+Replace all mock/static data with real backend integration.
+
+REQUIREMENTS:
+- Fetch user trips from backend API
+- Show ONLY upcoming trips (not completed/cancelled)
+- Display:
+  - pickup location
+  - destination
+  - date/time
+  - service type (car / shuttle / scooter / delivery)
+- Refresh on screen focus or pull-to-refresh
+
+----------------------------------------------------
+
+FAVORITES SCREEN:
+Replace mock data with real backend data.
+
+REQUIREMENTS:
+- Fetch saved/frequent routes from backend
+- Each favorite should include:
+  - pickup location
+  - destination
+  - service type
+  - last used date (if available)
+- Add "Book Again" action for each favorite route
+
+----------------------------------------------------
+DATA RULES (CRITICAL)
+----------------------------------------------------
+- NO mock data
+- NO static arrays
+- NO hardcoded trips or favorites
+- ONLY backend-driven data
+
+----------------------------------------------------
+EXPECTED RESULT
+----------------------------------------------------
+1. Coming soon services show "Soon" under icon only
+2. Trips screen shows real upcoming bookings
+3. Favorites screen shows real repeat routes with rebook option
+
+----------------------------------------------------
+IF BACKEND IS MISSING DATA
+----------------------------------------------------
+Return:
+- missing endpoints
+- expected response shape
+- required backend changes
+
+Do not fabricate data.

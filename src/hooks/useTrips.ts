@@ -7,7 +7,7 @@ interface UseTripsResult {
   pastTrips: Trip[];
   loading: boolean;
   error: string | null;
-  refresh: () => void;
+  refresh: () => Promise<void>;
 }
 
 function formatDateTimeUTC(raw: string): { date: string; time: string } {
@@ -20,12 +20,22 @@ function formatDateTimeUTC(raw: string): { date: string; time: string } {
   };
 }
 
+function detectType(b: any): TripType {
+  const raw = (
+    b.type ?? b.bookingType ?? b.booking_type ??
+    b.serviceType ?? b.service_type ?? b.category ?? ''
+  ).toLowerCase();
+  if (raw === 'car' || raw === 'ride' || raw === 'car_ride') return 'car';
+  if (raw === 'scooter' || raw === 'scooter_ride' || raw === 'bike') return 'scooter';
+  return 'shuttle';
+}
+
 function mapApiBooking(b: any): Trip {
   const trip = b.trip ?? {};
   const route = trip.route ?? trip.shuttleLine ?? trip.line ?? {};
 
   const bStatus = (b.status ?? '').toLowerCase();
-  const tShuttleStatus = (trip.shuttleStatus ?? '').toLowerCase();
+  const tShuttleStatus = (trip.shuttleStatus ?? trip.shuttle_status ?? '').toLowerCase();
   const tStatus = (trip.status ?? '').toLowerCase();
 
   let status: Trip['status'];
@@ -34,23 +44,40 @@ function mapApiBooking(b: any): Trip {
   } else if (bStatus === 'completed' || tStatus === 'completed') {
     status = 'completed';
   } else {
-    // pending = upcoming (boarding not yet happened)
     status = 'upcoming';
   }
 
-  const rawType = 'shuttle';
-  const type: TripType = rawType;
+  const type = detectType(b);
 
-  const { date, time } = formatDateTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
+  const { date, time } = formatDateTimeUTC(
+    trip.departureTime ?? trip.departure_time ?? b.scheduledAt ?? b.scheduled_at ?? '',
+  );
 
-  const routeName = route.name ?? trip.name ?? (trip.routeId ? `Route #${trip.routeId}` : '—');
-  const from = route.fromLocation ?? route.from_location ?? route.from ?? '—';
-  const to = route.toLocation ?? route.to_location ?? route.to ?? '—';
+  // Shuttle: route name comes from line data. Car/Scooter: derive from destination.
+  const routeName =
+    route.name ??
+    trip.name ??
+    b.destinationName ?? b.destination_name ??
+    b.destinationAddress ?? b.destination_address ??
+    (type === 'car' ? 'Car Ride' : type === 'scooter' ? 'Scooter Ride' : '—');
+
+  const from =
+    route.fromLocation ?? route.from_location ?? route.from ??
+    b.pickupAddress ?? b.pickup_address ?? b.pickupName ?? b.pickup_name ?? b.origin ?? '—';
+
+  const to =
+    route.toLocation ?? route.to_location ?? route.to ??
+    b.destinationAddress ?? b.destination_address ?? b.destinationName ?? b.destination_name ?? b.destination ?? '—';
+
+  const routeCode =
+    route.code ??
+    (trip.lineId ? `L${trip.lineId}` : null) ??
+    (type === 'car' ? 'CAR' : type === 'scooter' ? 'SCOOTER' : '—');
 
   return {
     id: String(b.id ?? b._id ?? Math.random()),
     type,
-    routeCode: route.code ?? (trip.lineId ? `L${trip.lineId}` : '—'),
+    routeCode,
     routeName,
     from,
     to,
@@ -58,7 +85,7 @@ function mapApiBooking(b: any): Trip {
     time,
     seat: b.seatNumber ?? b.seat_number ?? b.seat ?? '—',
     status,
-    price: b.totalPrice ?? b.total_price ?? trip.price ?? b.price ?? 0,
+    price: b.totalPrice ?? b.total_price ?? trip.price ?? b.price ?? b.fare ?? 0,
   };
 }
 
@@ -72,10 +99,20 @@ export function useTrips(): UseTripsResult {
     setLoading(true);
     setError(null);
     try {
-      // GET /bookings — user's shuttle bookings (auth required)
-      const { data } = await api.get('/bookings');
-      const allBookings: any[] = Array.isArray(data) ? data : data.bookings ?? data.data ?? [];
-      const mapped = allBookings.map(mapApiBooking);
+      // Primary: shuttle bookings
+      const bookingsRes = await api.get('/bookings').catch(() => ({ data: [] }));
+      const bookings: any[] = Array.isArray(bookingsRes.data)
+        ? bookingsRes.data
+        : bookingsRes.data?.bookings ?? bookingsRes.data?.data ?? [];
+
+      // Secondary: car/scooter rides (backend may expose a /rides endpoint)
+      const ridesRes = await api.get('/rides').catch(() => ({ data: [] }));
+      const rides: any[] = Array.isArray(ridesRes.data)
+        ? ridesRes.data
+        : ridesRes.data?.rides ?? ridesRes.data?.data ?? [];
+
+      const all = [...bookings, ...rides];
+      const mapped = all.map(mapApiBooking);
 
       setUpcomingTrips(mapped.filter((t) => t.status === 'upcoming'));
       setPastTrips(mapped.filter((t) => t.status !== 'upcoming'));
