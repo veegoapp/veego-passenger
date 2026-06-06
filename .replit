@@ -1,4 +1,4 @@
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "web", "bash"]
 
 [agent]
 expertMode = true
@@ -62,3 +62,4 @@ externalPort = 3002
 
 [nix]
 packages = ["lsof"]
+channel = "stable-25_05"
