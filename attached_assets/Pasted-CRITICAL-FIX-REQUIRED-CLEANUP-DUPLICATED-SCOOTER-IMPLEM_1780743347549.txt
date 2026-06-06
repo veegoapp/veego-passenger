@@ -1,0 +1,64 @@
+CRITICAL FIX REQUIRED — CLEANUP DUPLICATED SCOOTER IMPLEMENTATION
+
+----------------------------------------------------
+PROBLEM
+----------------------------------------------------
+A wrong implementation was introduced where a NEW scooter service system was created instead of properly modifying the existing bike/motorcycle service flow.
+
+This caused duplication and architectural inconsistency.
+
+We already have a working service system that was previously mapped correctly to:
+motorcycle → scooter (backend mapping already done)
+
+----------------------------------------------------
+GOAL
+----------------------------------------------------
+CLEAN UP ALL DUPLICATION AND RESTORE SINGLE SOURCE SERVICE ARCHITECTURE.
+
+Scooter is NOT a new service.
+It is ONLY a renamed version of the existing bike/motorcycle service.
+
+----------------------------------------------------
+REQUIRED ACTIONS
+----------------------------------------------------
+
+1 — REMOVE DUPLICATED IMPLEMENTATION
+- Delete any newly created ScooterServiceScreen or scooter-only modules
+- Remove any duplicated service folders, components, or screens
+- Remove any parallel scooter-specific state logic
+
+----------------------------------------------------
+2 — RESTORE ORIGINAL FLOW
+- Reuse existing Bike/Motorcycle service components
+- Keep ONLY one implementation for the service
+
+----------------------------------------------------
+3 — APPLY CORRECT MAPPING ONLY
+- Ensure serviceType = "scooter" is used
+- Map it to existing Bike UI components
+- Do NOT create new UI flow
+
+----------------------------------------------------
+4 — STATE MANAGEMENT FIX
+- Ensure there is only ONE source of truth for services
+- Remove any duplicate scooter state or stores
+
+----------------------------------------------------
+5 — UI CONSISTENCY
+- Bike UI must now display Scooter
+- Icons and labels updated only, structure unchanged
+
+----------------------------------------------------
+CRITICAL RULE
+----------------------------------------------------
+NO NEW FEATURES. NO NEW SCREENS. NO DUPLICATE SYSTEMS.
+
+ONLY RENAMING + MAPPING FIX.
+
+----------------------------------------------------
+EXPECTED RESULT
+----------------------------------------------------
+- Single service implementation restored
+- No duplication in codebase
+- Scooter fully replaces Bike in UI
+- Backend mapping remains intact

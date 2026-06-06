@@ -15,7 +15,7 @@ import { SectionHeader } from '@/components/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarMap } from '@/components/car/CarMap';
-import { ScooterMap } from '@/components/scooter/ScooterMap';
+import { BikeMap } from '@/components/bike/BikeMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 
 type ServiceMode = 'shuttle' | 'car' | 'scooter';
@@ -453,7 +453,7 @@ export default function HomeScreen() {
       {/* Scooter */}
       {mode === 'scooter' && (
         <View style={{ flex: 1 }}>
-          <ScooterMap
+          <BikeMap
             phase={destinationLocation ? 'driver_assigned' : 'idle'}
             destination={destinationLocation || null}
           />
