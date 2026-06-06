@@ -135,10 +135,9 @@ export function useWallet(): UseWalletResult {
     fetchWallet();
   }, [fetchWallet]);
 
-  // FIXED: call the real POST /wallet/topup endpoint, then refetch to sync server state
-  const recharge = useCallback(async (amount: number) => {
+  const recharge = useCallback(async (amount: number, paymentMethod: string = 'wallet') => {
     try {
-      await api.post('/wallet/topup', { amount });
+      await api.post('/wallet/topup', { amount, paymentMethod });
       await fetchWallet();
       return { success: true };
     } catch (e: any) {

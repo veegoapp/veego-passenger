@@ -17,6 +17,9 @@ export interface RideState {
   driverLocation: DriverLocation | null;
   fare: number | null;
   cancelReason: string | null;
+  waitingCharge: number | null;
+  waitingChargeStatus: 'none' | 'active' | 'capped';
+  surgeMultiplier: number | null;
 }
 
 interface UseRideResult {
@@ -40,6 +43,9 @@ const DEFAULT_STATE: RideState = {
   driverLocation: null,
   fare: null,
   cancelReason: null,
+  waitingCharge: null,
+  waitingChargeStatus: 'none',
+  surgeMultiplier: null,
 };
 
 const TERMINAL_STATUSES: RideStatus[] = ['completed', 'cancelled', 'timeout'];
@@ -110,6 +116,10 @@ export function useRide(): UseRideResult {
         s.off('ride:cancelled');
         s.off('ride:timeout');
         s.off('ride:status_update');
+        s.off('ride:waiting:charge:started');
+        s.off('ride:waiting:charge:updated');
+        s.off('ride:waiting:charge:capped');
+        s.off('surge:updated');
       }).catch(() => {});
       socketListening.current = false;
       stopPolling();
@@ -172,6 +182,22 @@ export function useRide(): UseRideResult {
         if (!status) return;
         setRideState((prev) => ({ ...prev, status }));
         if (TERMINAL_STATUSES.includes(status)) cleanup();
+      });
+
+      socket.on('ride:waiting:charge:started', () => {
+        setRideState((prev) => ({ ...prev, waitingChargeStatus: 'active', waitingCharge: 0 }));
+      });
+
+      socket.on('ride:waiting:charge:updated', (data: any) => {
+        setRideState((prev) => ({ ...prev, waitingCharge: data?.charge ?? prev.waitingCharge }));
+      });
+
+      socket.on('ride:waiting:charge:capped', (data: any) => {
+        setRideState((prev) => ({ ...prev, waitingChargeStatus: 'capped', waitingCharge: data?.charge ?? prev.waitingCharge }));
+      });
+
+      socket.on('surge:updated', (data: any) => {
+        setRideState((prev) => ({ ...prev, surgeMultiplier: data?.multiplier ?? prev.surgeMultiplier }));
       });
     } catch (err) {
       console.warn('[useRide] Socket setup failed:', err);

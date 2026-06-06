@@ -309,7 +309,7 @@ export default function CarScreen() {
     if (!rideState.rideId) return;
     ratedRideIds.current.add(rideState.rideId);
     try {
-      await api.post(`/rides/${rideState.rideId}/rate`, { rating: stars, comment });
+      await api.post(`/rides/${rideState.rideId}/rate-driver`, { rating: stars, comment });
     } catch {
       // silently ignore — rating already dismissed for the user
     }
@@ -413,6 +413,16 @@ export default function CarScreen() {
     setDropoff('');
     setPriceEstimate(null);
   }, [hookResetRide]);
+
+  const handleSOS = useCallback(async () => {
+    if (!rideState.rideId) return;
+    haptic.notify(Haptics.NotificationFeedbackType.Warning);
+    try {
+      await api.post(`/rides/${rideState.rideId}/sos`);
+    } catch {
+      // SOS attempt is best-effort; do not block the user
+    }
+  }, [rideState.rideId]);
 
   const driverInitials = rideState.driver
     ? rideState.driver.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
@@ -706,6 +716,11 @@ export default function CarScreen() {
           <TouchableOpacity style={styles.cancelBtn} onPress={cancelRide} activeOpacity={0.8}>
             <Text style={styles.cancelBtnText}>{t('cancel_ride')}</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
+            <AlertTriangle size={16} color="#ffffff" />
+            <Text style={styles.sosBtnText}>SOS</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -741,6 +756,11 @@ export default function CarScreen() {
               <MessageCircle size={15} color={C.accentMint} />
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
+            <AlertTriangle size={16} color="#ffffff" />
+            <Text style={styles.sosBtnText}>SOS</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -806,6 +826,11 @@ export default function CarScreen() {
               </Text>
             </View>
           </View>
+
+          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
+            <AlertTriangle size={16} color="#ffffff" />
+            <Text style={styles.sosBtnText}>SOS</Text>
+          </TouchableOpacity>
         </View>
       )}
     </LinearGradient>
@@ -1073,6 +1098,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: C.inkSoft },
+
+  sosBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingVertical: 13,
+    borderRadius: 16,
+    backgroundColor: '#dc2626',
+  },
+  sosBtnText: { fontSize: 14, fontWeight: '800', color: '#ffffff', letterSpacing: 1 },
 
   liveBadge: {
     paddingHorizontal: 12, paddingVertical: 6,
