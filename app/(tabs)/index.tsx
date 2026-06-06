@@ -192,17 +192,14 @@ export default function HomeScreen() {
               // Zone check: hide service if user is outside all active zones
               if (!isServiceVisibleForZone(svc.id as ServiceType)) return null;
 
-              // hide_service: don't render at all
-              if (
-                ctrl &&
-                (!isEnabled || displayMode === 'unavailable') &&
-                ctrl.unavailableAction === 'hide_service'
-              ) return null;
+              // isEnabled = false → hide service completely (strict spec rule)
+              if (ctrl && !isEnabled) return null;
 
-              const active = mode === svc.id && displayMode === 'live' && isEnabled;
+              const active = mode === svc.id && displayMode === 'live';
               const isComingSoon = displayMode === 'coming_soon';
               const isMaintenance = displayMode === 'maintenance';
-              const isDisabled = isComingSoon || isMaintenance || (!isEnabled && displayMode !== 'live');
+              const isUnavailable = displayMode === 'unavailable';
+              const isDisabled = isComingSoon || isMaintenance || isUnavailable;
 
               const btnStyle = active
                 ? styles.serviceBtnActive
@@ -218,8 +215,8 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={svc.id}
                   style={[styles.serviceBtn, btnStyle]}
-                  onPress={() => !isComingSoon && !isMaintenance && handleServicePress(svc.id)}
-                  activeOpacity={isDisabled ? 1 : 0.8}
+                  onPress={() => handleServicePress(svc.id)}
+                  activeOpacity={isDisabled ? 0.85 : 0.8}
                 >
                   {isMaintenance
                     ? <Wrench size={15} color={c.inkSoft} />
@@ -238,6 +235,11 @@ export default function HomeScreen() {
                       <Text style={styles.soonBadgeText}>
                         {ctrl?.maintenanceEta ? `Back ${ctrl.maintenanceEta}` : 'Maintenance'}
                       </Text>
+                    </View>
+                  )}
+                  {isUnavailable && (
+                    <View style={styles.soonBadge}>
+                      <Text style={styles.soonBadgeText}>Unavailable</Text>
                     </View>
                   )}
                 </TouchableOpacity>

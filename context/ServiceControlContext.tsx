@@ -189,23 +189,27 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     const svc = services[type];
     if (!svc) { onAllow(); return; }
 
+    // isEnabled = false → hidden completely, should never be tappable
+    if (!svc.isEnabled) return;
+
     const mode = svc.displayMode;
 
-    if (mode === 'live' && svc.isEnabled) {
+    // live → fully available
+    if (mode === 'live') {
       onAllow();
       return;
     }
 
+    // coming_soon → disabled, no action
     if (mode === 'coming_soon') return;
+
+    // maintenance → blocked
     if (mode === 'maintenance') return;
 
-    if (mode === 'unavailable' || !svc.isEnabled) {
-      const action = svc.unavailableAction;
-      if (action === 'hide_service') return;
-      if (action === 'none') return;
-      if (action === 'show_message' && svc.unavailableMessage) {
+    // unavailable → block booking + always show unavailableMessage if present
+    if (mode === 'unavailable') {
+      if (svc.unavailableMessage) {
         Alert.alert('Service Unavailable', svc.unavailableMessage);
-        return;
       }
       return;
     }
