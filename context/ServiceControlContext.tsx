@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 
-export type ServiceType = 'car' | 'shuttle' | 'motorcycle' | 'delivery';
+export type ServiceType = 'car' | 'shuttle' | 'scooter' | 'delivery';
 export type DisplayMode = 'live' | 'coming_soon' | 'unavailable' | 'maintenance';
 export type UnavailableAction = 'none' | 'show_message' | 'hide_service';
 

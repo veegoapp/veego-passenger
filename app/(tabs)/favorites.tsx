@@ -13,7 +13,7 @@ import { routes } from '@/constants/data';
 
 const CAR_DESTINATIONS: { id: string; name: string; icon: (props: any) => any; fare: number; dist: string; eta: string; color: string }[] = [];
 
-const BIKE_TRIPS: { id: string; from: string; to: string; dist: string; duration: string; price: number; color: string }[] = [];
+const SCOOTER_TRIPS: { id: string; from: string; to: string; dist: string; duration: string; price: number; color: string }[] = [];
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -92,9 +92,9 @@ export default function FavoritesScreen() {
     Alert.alert('Car Booking', 'Opening car booking flow…');
   };
 
-  const handleBikeBook = () => {
+  const handleScooterBook = () => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Bike Booking', 'Opening bike booking flow…');
+    Alert.alert('Scooter Booking', 'Opening scooter booking flow…');
   };
 
   return (
@@ -222,15 +222,15 @@ export default function FavoritesScreen() {
 
         <View>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('fav_bike_section')}</Text>
+            <Text style={styles.sectionTitle}>{t('fav_scooter_section')}</Text>
           </View>
           <View style={{ gap: 10 }}>
-            {BIKE_TRIPS.map((trip) => (
+            {SCOOTER_TRIPS.map((trip) => (
               <TouchableOpacity
                 key={trip.id}
                 style={[gs, styles.bikeCard]}
                 activeOpacity={0.85}
-                onPress={handleBikeBook}
+                onPress={handleScooterBook}
               >
                 <View style={[styles.bikeAccent, { backgroundColor: trip.color }]} />
                 <View style={[styles.bikeIconBox, { backgroundColor: `${trip.color}18` }]}>
@@ -247,7 +247,7 @@ export default function FavoritesScreen() {
                     <Text style={styles.bikePriceLabel}>{t('approx_fare')}</Text>
                   </View>
                   <View style={styles.bikeBtn}>
-                    <Text style={styles.bikeBtnText}>{t('book_bike')}</Text>
+                    <Text style={styles.bikeBtnText}>{t('book_scooter')}</Text>
                   </View>
                 </View>
               </TouchableOpacity>

@@ -15,15 +15,15 @@ import { SectionHeader } from '@/components/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarMap } from '@/components/car/CarMap';
-import { BikeMap } from '@/components/bike/BikeMap';
+import { ScooterMap } from '@/components/scooter/ScooterMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 
-type ServiceMode = 'shuttle' | 'car' | 'bike';
+type ServiceMode = 'shuttle' | 'car' | 'scooter';
 
 const SERVICES = [
   { id: 'shuttle' as const, labelKey: 'shuttle' as const, icon: Bus },
   { id: 'car' as const, labelKey: 'car' as const, icon: Car },
-  { id: 'bike' as const, labelKey: 'bike' as const, icon: Bike },
+  { id: 'scooter' as const, labelKey: 'scooter' as const, icon: Bike },
   { id: 'delivery' as const, labelKey: 'delivery' as const, icon: Package },
 ];
 
@@ -131,7 +131,7 @@ export default function HomeScreen() {
   const handleServicePress = (id: string) => {
     handleServiceTap(id as ServiceType, () => {
       if (Platform.OS !== 'web') Haptics.selectionAsync();
-      if (id === 'shuttle' || id === 'car' || id === 'bike') {
+      if (id === 'shuttle' || id === 'car' || id === 'scooter') {
         setMode(id as ServiceMode);
         setActiveSearchField(null);
         setDestinationLocation('');
@@ -450,10 +450,10 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Bike */}
-      {mode === 'bike' && (
+      {/* Scooter */}
+      {mode === 'scooter' && (
         <View style={{ flex: 1 }}>
-          <BikeMap
+          <ScooterMap
             phase={destinationLocation ? 'driver_assigned' : 'idle'}
             destination={destinationLocation || null}
           />

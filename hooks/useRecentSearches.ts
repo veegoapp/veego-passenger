@@ -3,11 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MAX_RECENTS = 5;
 
-function key(service: 'car' | 'bike') {
+function key(service: 'car' | 'scooter') {
   return `@veego_recent_${service}_v1`;
 }
 
-export function useRecentSearches(service: 'car' | 'bike') {
+export function useRecentSearches(service: 'car' | 'scooter') {
   const [recents, setRecents] = useState<string[]>([]);
 
   useEffect(() => {

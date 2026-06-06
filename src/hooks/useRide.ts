@@ -26,7 +26,7 @@ interface UseRideResult {
   rideState: RideState;
   requesting: boolean;
   requestRide: (payload: {
-    type: 'car' | 'bike';
+    type: 'car' | 'scooter';
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
     notes?: string;
@@ -205,7 +205,7 @@ export function useRide(): UseRideResult {
   }, [stopPolling]);
 
   const requestRide = useCallback(async (payload: {
-    type: 'car' | 'bike';
+    type: 'car' | 'scooter';
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
     notes?: string;

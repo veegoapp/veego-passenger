@@ -24,7 +24,7 @@ export type Route = {
   path: Station[];
 };
 
-export type TripType = 'shuttle' | 'car' | 'bike';
+export type TripType = 'shuttle' | 'car' | 'scooter';
 
 export type Trip = {
   id: string;

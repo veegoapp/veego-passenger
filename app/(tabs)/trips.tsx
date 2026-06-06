@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Refresh
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Bus, Car, Bike, Ticket, User, X } from 'lucide-react-native';
+import { Bus, Car, Bike as ScooterIcon, Ticket, User, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { type TripType } from '@/constants/data';
@@ -15,17 +15,17 @@ import api from '@/src/api/client';
 
 const ROUTE_COLORS_LIGHT: Record<string, string> = {
   L01: '#d8ecf7', L02: '#d5f0e5', L03: '#e3daf5', L04: '#f5f0d3',
-  CAR: '#fde8d8', BIKE: '#d8f5e8',
+  CAR: '#fde8d8', SCOOTER: '#d8f5e8',
 };
 const ROUTE_COLORS_DARK: Record<string, string> = {
   L01: '#1a2a38', L02: '#1a2e26', L03: '#252038', L04: '#2e2a18',
-  CAR: '#2e1e10', BIKE: '#0f2e1e',
+  CAR: '#2e1e10', SCOOTER: '#0f2e1e',
 };
 
 const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {
   shuttle: Bus,
   car: Car,
-  bike: Bike,
+  scooter: ScooterIcon,
 };
 
 function makeStyles(c: ThemeColors) {
