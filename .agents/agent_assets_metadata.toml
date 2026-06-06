@@ -12,3 +12,9 @@ id = "ONNyIbT5H-RtuWSzxeQQ6"
 uri = "file://rider-app-audit.md"
 type = "text"
 title = "Rider App — Backend Contract Audit Report"
+
+[[outputs]]
+id = "K60Sy7bjv581PoRI0Zhqq"
+uri = "file://FRONTEND_BACKEND_INTEGRATION_AUDIT.md"
+type = "text"
+title = "Frontend–Backend Integration Audit Report"

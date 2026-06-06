@@ -1,0 +1,118 @@
+You have access to:
+1.	The current frontend source code.
+2.	The uploaded backend source code (ZIP). (attached)
+3.	The backend integration report / API contract. (attached)
+Your task is to perform a complete frontend-backend integration audit.
+________________________________________
+IMPORTANT RULES:
+•	Audit only.
+•	Do NOT modify any files.
+•	Do NOT generate code changes.
+•	Do NOT create pull requests.
+•	Do NOT implement fixes.
+•	Do NOT refactor anything.
+•	Do NOT create new endpoints.
+•	Do NOT assume a feature is integrated simply because an API call exists.
+•	Verify that the UI actually consumes, displays, updates, and persists real backend data.
+•	Prefer existing backend functionality over proposing new backend functionality.
+•	Base all findings on actual code evidence.
+________________________________________
+MOCK DATA STRICT VALIDATION RULE
+If any UI data (tables, cards, charts, lists, dashboards) has NO corresponding backend API, endpoint, or socket event in the provided backend contract:
+Mark it as:
+ORPHAN MOCK DATA (NO BACKEND SUPPORT)
+For each case provide:
+•	Frontend file path
+•	Component name
+•	Exact mock data variable or object
+•	UI section where it is used
+•	Evidence from code
+•	Explanation why it has no backend reference
+ALSO CLASSIFY:
+•	Should be REMOVED (if unnecessary UI or test data)
+•	OR Requires NEW backend endpoint (ONLY as a suggestion)
+⚠️ IMPORTANT:
+•	Do NOT delete anything.
+•	Do NOT assume backend support exists.
+________________________________________
+ANALYSIS SCOPE:
+Mock Data
+•	Pages using mock data
+•	Static components
+•	Fake dashboard statistics
+•	Hardcoded tables, charts, lists
+•	Placeholder UI data still in production code
+API Integration Issues
+•	Missing API integrations
+•	Wrong endpoints
+•	Incorrect payloads
+•	Incorrect response mapping
+•	Wrong HTTP methods
+•	Missing CRUD operations already available in backend
+Socket Integration Issues
+•	Missing real-time connections
+•	Unused socket events
+•	Incorrect event mapping
+UI Action Issues
+•	Buttons not connected to backend
+•	Wrong actions wired
+•	Forms not persisting data
+•	Filters/search not connected
+•	Export/download not functional
+Data Flow Issues
+•	UI showing stale data
+•	Data not rendered
+•	Data fetched but not used
+•	No refresh after updates
+Authentication & Authorization
+•	Missing auth headers
+•	Permission mismatches
+•	Admin/user access issues
+•	Unauthorized API usage
+Feature Coverage Analysis
+•	Backend features not exposed in UI
+•	Frontend features not supported by backend
+•	Partial implementations
+•	Dead code
+•	Legacy integrations
+Quality Checks
+•	Loading states missing
+•	Error handling missing
+•	Empty states missing
+•	Pagination issues
+•	Sorting/filtering not connected
+________________________________________
+OUTPUT REQUIREMENTS:
+Generate a full audit report in Markdown format named:
+FRONTEND_BACKEND_INTEGRATION_AUDIT.md
+________________________________________
+REPORT STRUCTURE:
+Executive Summary
+Audit Scope
+Integration Statistics
+Critical Issues
+High Priority Issues
+Medium Priority Issues
+Low Priority Issues
+Orphan Mock Data (No Backend Reference)
+Mock Data Inventory
+Missing API Integrations
+Missing Socket Integrations
+Broken Actions and Buttons
+Authentication & Authorization Issues
+Data Flow Issues
+Backend Features Not Exposed In UI
+Frontend Features Without Backend Support
+Dead Code & Obsolete Integrations
+Recommended Implementation Order
+Final Integration Score
+Appendix (Evidence)
+________________________________________
+FINAL RULE:
+Only generate the audit report.
+Do not modify any code.
+Do not implement any fixes.
+Do not create any endpoints.
+Do not refactor anything.
+Save output strictly as FRONTEND_BACKEND_INTEGRATION_AUDIT.md.
+
