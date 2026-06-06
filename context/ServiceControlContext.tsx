@@ -2,7 +2,7 @@ import React, {
   createContext, useContext, useState, useEffect,
   useCallback, useMemo, useRef,
 } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, AppState, AppStateStatus, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import api from '@/src/api/client';
 import { tokenStore } from '@/src/api/client';
@@ -214,6 +214,40 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
       unsubLogin();
       unsubLogout();
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Foreground refresh — single shot, no retry, no socket/auth side-effects ─
+  useEffect(() => {
+    const appStateRef = { prev: AppState.currentState };
+    let isRefreshing = false;
+
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      const wasBackground = appStateRef.prev === 'background' || appStateRef.prev === 'inactive';
+      appStateRef.prev = next;
+
+      if (next !== 'active' || !wasBackground) return;
+      if (isRefreshing || isInitializing.current || !isMounted.current) return;
+
+      tokenStore.getToken(tokenStore.TOKEN_KEY).then((token) => {
+        if (!token || !isMounted.current || isRefreshing || isInitializing.current) return;
+        isRefreshing = true;
+        console.log('[ServiceControl] app foregrounded — refreshing state');
+
+        api.get('/services/control', { timeout: 10_000 })
+          .then(({ data }) => {
+            if (!isMounted.current) return;
+            const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+            const map: ServiceControlMap = {};
+            (raw as ServiceControl[]).forEach((svc) => { map[svc.serviceType] = svc; });
+            setServices(map);
+            console.log('[ServiceControl] foreground refresh completed');
+          })
+          .catch(() => {})
+          .finally(() => { isRefreshing = false; });
+      }).catch(() => {});
+    });
+
+    return () => { sub.remove(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Resolve user zone on mount (fail open) ────────────────────────────────
