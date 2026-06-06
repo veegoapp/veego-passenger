@@ -27,12 +27,7 @@ const SERVICES = [
   { id: 'delivery' as const, labelKey: 'delivery' as const, icon: Package },
 ];
 
-const MOCK_LOCATIONS = [
-  { id: '1', name: 'Cairo Festival City', description: 'New Cairo, Egypt', lat: 30.0299, lng: 31.4116 },
-  { id: '2', name: 'Zamalek (26th of July St)', description: 'Cairo, Egypt', lat: 30.0596, lng: 31.2222 },
-  { id: '3', name: 'Smart Village', description: 'Giza, Egypt', lat: 30.0768, lng: 31.0182 },
-  { id: '4', name: 'Maadi Degla', description: 'Cairo, Egypt', lat: 29.9602, lng: 31.2741 },
-];
+const MOCK_LOCATIONS: { id: string; name: string; description: string; lat: number; lng: number }[] = [];
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({

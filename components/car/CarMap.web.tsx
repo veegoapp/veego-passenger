@@ -1,7 +1,7 @@
 import { WebMap, MarkerSpec } from '@/components/shared/WebMap.web';
 
 const USER_LOCATION: [number, number] = [31.2357, 30.0444];
-const DRIVER_LOCATION: [number, number] = [31.2290, 30.0390];
+const DRIVER_LOCATION: [number, number] = [...USER_LOCATION];
 
 const PICKUP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
   <circle cx="9" cy="9" r="7" fill="#22c55e" stroke="white" stroke-width="2"/>

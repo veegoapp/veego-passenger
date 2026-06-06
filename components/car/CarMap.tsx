@@ -11,7 +11,9 @@ import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
 
 const USER_LOCATION = { latitude: 30.0444, longitude: 31.2357 };
-const DRIVER_LOCATION = { latitude: 30.0390, longitude: 31.2290 };
+const DRIVER_LOCATION = { ...USER_LOCATION };
+
+export const MOCK_DESTINATIONS: Record<string, { latitude: number; longitude: number }> = {};
 
 type Phase = 'idle' | 'searching' | 'driver_assigned' | 'arrived' | 'started' | 'completed';
 

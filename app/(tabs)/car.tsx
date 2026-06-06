@@ -32,39 +32,9 @@ function isInGeofence(lat: number, lon: number) {
     && lon >= GEOFENCE.minLon && lon <= GEOFENCE.maxLon;
 }
 
-const WG_PLACES = [
-  'Kharga Central Station',
-  'Al Nasser Square',
-  'Al Mochtat',
-  'Hiraiz District',
-  'Al Qasaba',
-  'Baris Town Center',
-  'Al Qasr Village',
-  'Dakhla Medical Center',
-  'New Valley University',
-  'Al Farafra Hospital',
-  'Kharga Market',
-  'Government Complex',
-  'Al Kharga Airport',
-  'Tiba Mall',
-];
+const WG_PLACES: string[] = [];
 
-const WG_COORDS: Record<string, { latitude: number; longitude: number }> = {
-  'Kharga Central Station': { latitude: 25.4444, longitude: 30.5503 },
-  'Al Nasser Square':       { latitude: 25.4500, longitude: 30.5480 },
-  'Al Mochtat':             { latitude: 25.4350, longitude: 30.5400 },
-  'Hiraiz District':        { latitude: 25.4600, longitude: 30.5520 },
-  'Al Qasaba':              { latitude: 25.4420, longitude: 30.5550 },
-  'Baris Town Center':      { latitude: 24.4500, longitude: 30.6167 },
-  'Al Qasr Village':        { latitude: 25.6900, longitude: 28.8800 },
-  'Dakhla Medical Center':  { latitude: 25.4900, longitude: 28.9800 },
-  'New Valley University':  { latitude: 25.4555, longitude: 30.5522 },
-  'Al Farafra Hospital':    { latitude: 27.0564, longitude: 27.9731 },
-  'Kharga Market':          { latitude: 25.4455, longitude: 30.5490 },
-  'Government Complex':     { latitude: 25.4480, longitude: 30.5510 },
-  'Al Kharga Airport':      { latitude: 25.4736, longitude: 30.5978 },
-  'Tiba Mall':              { latitude: 25.4422, longitude: 30.5460 },
-};
+const WG_COORDS: Record<string, { latitude: number; longitude: number }> = {};
 
 type Phase = 'request' | 'finding' | 'active' | 'arrived' | 'in_trip' | 'completed' | 'error';
 
@@ -705,6 +675,17 @@ export default function CarScreen() {
             </TouchableOpacity>
           </View>
 
+          {(rideState.waitingChargeStatus === 'active' || rideState.waitingChargeStatus === 'capped') && (
+            <View style={[styles.waitingBanner, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerCapped]}>
+              <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
+              <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
+                {rideState.waitingChargeStatus === 'capped'
+                  ? `Max waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
+                  : `Waiting charges active — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.tripSummaryRow}>
             <View style={[styles.tripDot, { backgroundColor: C.ink }]} />
             <Text style={styles.tripStopText} numberOfLines={1}>{pickup}</Text>
@@ -734,6 +715,17 @@ export default function CarScreen() {
               <Text style={styles.sheetSub}>Your driver is waiting at the pickup point.</Text>
             </View>
           </View>
+
+          {(rideState.waitingChargeStatus === 'active' || rideState.waitingChargeStatus === 'capped') && (
+            <View style={[styles.waitingBanner, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerCapped]}>
+              <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
+              <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
+                {rideState.waitingChargeStatus === 'capped'
+                  ? `Max waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
+                  : `Waiting charges active — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+              </Text>
+            </View>
+          )}
 
           <View style={[glassStyle, styles.driverCard, S.luxe, { marginTop: 12 }]}>
             <View style={styles.driverAvatar}>
@@ -806,6 +798,17 @@ export default function CarScreen() {
               </View>
             )}
           </View>
+
+          {(rideState.waitingChargeStatus === 'active' || rideState.waitingChargeStatus === 'capped') && (
+            <View style={[styles.waitingBanner, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerCapped]}>
+              <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
+              <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
+                {rideState.waitingChargeStatus === 'capped'
+                  ? `Max waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
+                  : `Waiting charges active — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+              </Text>
+            </View>
+          )}
 
           <View style={[glassStyle, styles.routeCard, S.luxe]}>
             <View style={styles.routeRow}>
@@ -1110,6 +1113,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#dc2626',
   },
   sosBtnText: { fontSize: 14, fontWeight: '800', color: '#ffffff', letterSpacing: 1 },
+
+  waitingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#fef3c7',
+    borderLeftWidth: 3,
+    borderLeftColor: '#f59e0b',
+  },
+  waitingBannerCapped: {
+    backgroundColor: '#fff7ed',
+    borderLeftColor: '#ea580c',
+  },
+  waitingBannerText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#92400e',
+  },
+  waitingBannerTextCapped: {
+    color: '#9a3412',
+  },
 
   liveBadge: {
     paddingHorizontal: 12, paddingVertical: 6,

@@ -7,15 +7,15 @@ import { useTheme } from '@/context/ThemeContext';
 import { ChatModal } from './ChatModal';
 
 export const MOCK_DRIVER = {
-  name: 'Ahmed Hassan',
-  initials: 'AH',
-  vehicle: 'Toyota Camry 2022',
-  plate: 'WG 1234',
-  rating: 4.8,
-  trips: 1247,
-  eta: 3,
-  phone: '+201234567890',
-  color: '#3A7BD5',
+  name: '',
+  initials: '',
+  vehicle: '',
+  plate: '',
+  rating: 0,
+  trips: 0,
+  eta: 0,
+  phone: '',
+  color: '#888888',
 };
 
 interface DriverAssignedCardProps {

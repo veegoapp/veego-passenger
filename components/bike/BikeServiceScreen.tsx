@@ -27,31 +27,21 @@ interface BikeServiceScreenProps {
   embedded?: boolean;
 }
 
-const WADI_LOCS_AR = [
-  'الخارجة - وسط المدينة', 'الداخلة - موط', 'بلاط', 'قصر الداخلة',
-  'الفرافرة', 'باريس', 'بلاط الجديدة', 'موط - الشمال',
-  'سوق الخارجة', 'مستشفى الخارجة',
-  'محطة الخارجة', 'مطار الخارجة', 'جامعة وادي الجديد',
-];
-const WADI_LOCS_EN = [
-  'Al-Kharga Downtown', 'Dakhla - Mut', 'Balat', 'Qasr Dakhla',
-  'Farafra', 'Baris', 'New Balat', 'Mut North',
-  'Kharga Market', 'Kharga Hospital',
-  'Kharga Station', 'Kharga Airport', 'Wadi El Gedid University',
-];
+const WADI_LOCS_AR: string[] = [];
+const WADI_LOCS_EN: string[] = [];
 
 const MOCK_RIDER = {
-  name: 'محمد علي',
-  nameEn: 'Mohamed Ali',
-  initials: 'مع',
-  initialsEn: 'MA',
-  vehicle: 'Honda 150',
-  plate: 'WG 5678',
-  rating: 4.9,
-  trips: 843,
-  eta: 2,
-  phone: '+201234567890',
-  color: '#55c49a',
+  name: '',
+  nameEn: '',
+  initials: '',
+  initialsEn: '',
+  vehicle: '',
+  plate: '',
+  rating: 0,
+  trips: 0,
+  eta: 0,
+  phone: '',
+  color: '#888888',
 };
 
 const DISMISS_THRESHOLD = 80;

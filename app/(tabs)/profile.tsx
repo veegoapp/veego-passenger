@@ -202,10 +202,7 @@ function PersonalInfoModal({ visible, onClose, onSaved }: { visible: boolean; on
   );
 }
 
-const MOCK_CARDS = [
-  { id: 'c1', type: 'Visa', last4: '4242', expiry: '12/27', isDefault: true },
-  { id: 'c2', type: 'Mastercard', last4: '8539', expiry: '09/26', isDefault: false },
-];
+const MOCK_CARDS: { id: string; type: string; last4: string; expiry: string; isDefault: boolean }[] = [];
 
 function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t } = useTheme();

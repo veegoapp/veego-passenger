@@ -11,18 +11,9 @@ import { useBooking } from '@/context/BookingContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { routes } from '@/constants/data';
 
-const CAR_DESTINATIONS = [
-  { id: 'cd1', name: 'الخارجة - وسط المدينة', icon: Home, fare: 25, dist: '3.2 كم', eta: '8 دق', color: '#4a9fcc' },
-  { id: 'cd2', name: 'جامعة وادي الجديد', icon: GraduationCap, fare: 35, dist: '6.1 كم', eta: '14 دق', color: '#8b6fd4' },
-  { id: 'cd3', name: 'مستشفى الخارجة', icon: Cross, fare: 30, dist: '4.7 كم', eta: '11 دق', color: '#e94e4e' },
-  { id: 'cd4', name: 'سوق الخارجة', icon: Store, fare: 20, dist: '2.1 كم', eta: '6 دق', color: '#f59e0b' },
-];
+const CAR_DESTINATIONS: { id: string; name: string; icon: (props: any) => any; fare: number; dist: string; eta: string; color: string }[] = [];
 
-const BIKE_TRIPS = [
-  { id: 'bt1', from: 'الخارجة - وسط المدينة', to: 'سوق الخارجة', dist: '2.1 كم', duration: '12 دق', price: 8, color: '#22c55e' },
-  { id: 'bt2', from: 'جامعة وادي الجديد', to: 'الخارجة - وسط المدينة', dist: '4.0 كم', duration: '22 دق', price: 12, color: '#06b6d4' },
-  { id: 'bt3', from: 'مستشفى الخارجة', to: 'قصر الداخلة', dist: '5.8 كم', duration: '30 دق', price: 15, color: '#a855f7' },
-];
+const BIKE_TRIPS: { id: string; from: string; to: string; dist: string; duration: string; price: number; color: string }[] = [];
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({

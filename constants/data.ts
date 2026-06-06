@@ -60,80 +60,9 @@ export type Booking = {
   tripId?: number | null;
 };
 
-export const stations: Station[] = [
-  { id: 's1', name: 'الخارجة - وسط المدينة', area: 'الخارجة', distance: '240 م', eta: '3 دقائق', latitude: 25.4456, longitude: 30.5480 },
-  { id: 's2', name: 'سوق الخارجة', area: 'الخارجة', distance: '650 م', eta: '7 دقائق', latitude: 25.4425, longitude: 30.5445 },
-  { id: 's3', name: 'مستشفى الخارجة', area: 'الخارجة', distance: '1.1 كم', eta: '12 دقيقة', latitude: 25.4510, longitude: 30.5420 },
-  { id: 's4', name: 'جامعة وادي الجديد', area: 'الخارجة', distance: '1.6 كم', eta: '16 دقيقة', latitude: 25.4580, longitude: 30.5390 },
-  { id: 's5', name: 'الداخلة - موط', area: 'الداخلة', distance: '2.0 كم', eta: '21 دقيقة', latitude: 25.4950, longitude: 30.5280 },
-  { id: 's6', name: 'قصر الداخلة', area: 'الداخلة', distance: '2.4 كم', eta: '24 دقيقة', latitude: 25.5020, longitude: 30.5250 },
-];
+export const stations: Station[] = [];
 
-const path = (ids: string[]) =>
-  ids.map((id) => stations.find((s) => s.id === id)!).filter(Boolean);
-
-export const routes: Route[] = [
-  {
-    id: 'r1',
-    code: 'L01',
-    name: 'خط الخارجة السريع',
-    from: 'الخارجة - وسط المدينة',
-    to: 'جامعة وادي الجديد',
-    stations: 5,
-    duration: '28 دقيقة',
-    seatsLeft: 7,
-    totalSeats: 18,
-    price: 15,
-    nextDeparture: '08:45',
-    color: '#d8ecf7',
-    path: path(['s1', 's2', 's3', 's5', 's4']),
-  },
-  {
-    id: 'r2',
-    code: 'L02',
-    name: 'خط الداخلة',
-    from: 'مستشفى الخارجة',
-    to: 'قصر الداخلة',
-    stations: 6,
-    duration: '34 دقيقة',
-    seatsLeft: 3,
-    totalSeats: 18,
-    price: 20,
-    nextDeparture: '09:10',
-    color: '#d5f0e5',
-    path: path(['s3', 's2', 's1', 's5', 's4', 's6']),
-  },
-  {
-    id: 'r3',
-    code: 'L03',
-    name: 'خط الجامعة',
-    from: 'الداخلة - موط',
-    to: 'سوق الخارجة',
-    stations: 4,
-    duration: '22 دقيقة',
-    seatsLeft: 12,
-    totalSeats: 18,
-    price: 12,
-    nextDeparture: '09:25',
-    color: '#e3daf5',
-    path: path(['s5', 's4', 's3', 's2']),
-  },
-  {
-    id: 'r4',
-    code: 'L04',
-    name: 'خط الليل',
-    from: 'جامعة وادي الجديد',
-    to: 'الخارجة - وسط المدينة',
-    stations: 5,
-    duration: '30 دقيقة',
-    seatsLeft: 16,
-    totalSeats: 18,
-    price: 10,
-    nextDeparture: '22:15',
-    color: '#f5f0d3',
-    path: path(['s4', 's5', 's3', 's2', 's1']),
-  },
-];
+export const routes: Route[] = [];
 
 
 export const DATES = (() => {
