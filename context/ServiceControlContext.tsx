@@ -187,7 +187,8 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     if (!isServiceVisibleForZone(type)) return;
 
     const svc = services[type];
-    if (!svc) { onAllow(); return; }
+    // No backend data for this service → block (fail closed, never allow without explicit backend permission)
+    if (!svc) return;
 
     // isEnabled = false → hidden completely, should never be tappable
     if (!svc.isEnabled) return;
@@ -214,7 +215,8 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
       return;
     }
 
-    onAllow();
+    // Unknown displayMode — fail closed, do not allow
+    console.warn(`[ServiceControl] Unknown displayMode "${mode}" for ${type} — blocking tap`);
   }, [services, isServiceVisibleForZone]);
 
   const value = useMemo(

@@ -215,8 +215,8 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={svc.id}
                   style={[styles.serviceBtn, btnStyle]}
-                  onPress={() => handleServicePress(svc.id)}
-                  activeOpacity={isDisabled ? 0.85 : 0.8}
+                  onPress={() => !isDisabled && handleServicePress(svc.id)}
+                  activeOpacity={isDisabled ? 1 : 0.8}
                 >
                   {isMaintenance
                     ? <Wrench size={15} color={c.inkSoft} />
