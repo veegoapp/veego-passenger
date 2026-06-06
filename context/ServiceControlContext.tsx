@@ -5,7 +5,9 @@ import React, {
 import { Alert, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import api from '@/src/api/client';
-import { getSocket } from '@/src/api/socket';
+import { tokenStore } from '@/src/api/client';
+import { getSocket, disconnectSocket } from '@/src/api/socket';
+import { onAuthEvent } from '@/src/api/authEvents';
 
 export type ServiceType = 'car' | 'shuttle' | 'scooter' | 'delivery';
 export type DisplayMode = 'live' | 'coming_soon' | 'unavailable' | 'maintenance';
@@ -35,10 +37,10 @@ type ServiceControlContextType = {
 const ServiceControlContext = createContext<ServiceControlContextType>({
   services: {},
   getService: () => null,
-  isLoading: true,
+  isLoading: false,
   userZoneId: null,
   isServiceVisibleForZone: () => true,
-  handleServiceTap: (_type, onAllow) => onAllow(),
+  handleServiceTap: () => {},
 });
 
 // ─── Zone resolution ──────────────────────────────────────────────────────────
@@ -61,7 +63,6 @@ async function resolveUserZoneId(
 
 async function fetchUserZoneId(): Promise<number | null> {
   try {
-    // Web uses the browser Geolocation API via expo-location
     if (Platform.OS === 'web') {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -88,46 +89,134 @@ async function fetchUserZoneId(): Promise<number | null> {
 
 export function ServiceControlProvider({ children }: { children: React.ReactNode }) {
   const [services, setServices] = useState<ServiceControlMap>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [userZoneId, setUserZoneId] = useState<number | null>(null);
+
   const socketListenerAttached = useRef(false);
+  const isInitializing = useRef(false);
+  const isMounted = useRef(true);
 
-  // ── Fetch service control list on mount (with exponential-backoff retry) ──
-  useEffect(() => {
-    let cancelled = false;
+  // ── Stable update handler for socket events ───────────────────────────────
+  const applyUpdate = useCallback((payload: ServiceControl) => {
+    setServices((prev) => ({ ...prev, [payload.serviceType]: payload }));
+  }, []);
 
-    async function loadWithRetry(attempt = 0): Promise<void> {
-      try {
-        const { data } = await api.get('/services/control', { timeout: 10_000 });
-        if (cancelled) return;
-        const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-        const map: ServiceControlMap = {};
-        (raw as ServiceControl[]).forEach((svc) => { map[svc.serviceType] = svc; });
-        setServices(map);
-      } catch (e: any) {
-        if (cancelled) return;
-        if (attempt < 3) {
-          // Retry with backoff: 2s, 4s, 8s
-          const delay = 2000 * Math.pow(2, attempt);
-          console.warn(`[ServiceControl] Fetch failed (attempt ${attempt + 1}/4), retrying in ${delay}ms…`);
-          setTimeout(() => { if (!cancelled) loadWithRetry(attempt + 1); }, delay);
-          return;
-        }
-        console.warn('[ServiceControl] Failed to load service statuses after 4 attempts:', e?.message ?? e);
-      } finally {
-        if (!cancelled && attempt === 0) {
-          // Clear loading state after first attempt regardless of success/fail
-          // Retries happen silently in background
+  // ── Socket lifecycle ──────────────────────────────────────────────────────
+  function attachSocket() {
+    if (socketListenerAttached.current) return;
+    socketListenerAttached.current = true;
+
+    getSocket().then((sock) => {
+      sock.on('service:control:changed', applyUpdate);
+      console.log('[ServiceControl] socket authenticated successfully');
+    }).catch((e) => {
+      console.warn('[ServiceControl] socket listener setup failed:', e?.message ?? e);
+    });
+  }
+
+  function detachSocket() {
+    if (!socketListenerAttached.current) return;
+    socketListenerAttached.current = false;
+
+    getSocket().then((sock) => {
+      sock.off('service:control:changed', applyUpdate);
+    }).catch(() => {});
+    disconnectSocket();
+    console.log('[ServiceControl] socket disconnected');
+  }
+
+  // ── Fetch with exponential-backoff retry ──────────────────────────────────
+  async function loadWithRetry(attempt = 0): Promise<void> {
+    if (!isMounted.current) return;
+
+    if (attempt === 0) {
+      console.log('[ServiceControl] service control fetch started');
+    }
+
+    try {
+      const { data } = await api.get('/services/control', { timeout: 10_000 });
+      if (!isMounted.current) return;
+
+      const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+      const map: ServiceControlMap = {};
+      (raw as ServiceControl[]).forEach((svc) => { map[svc.serviceType] = svc; });
+      setServices(map);
+      console.log(`[ServiceControl] service control fetch succeeded — ${raw.length} service(s) loaded`);
+
+      if (isMounted.current) {
+        setIsLoading(false);
+        isInitializing.current = false;
+        attachSocket();
+      }
+    } catch (e: any) {
+      if (!isMounted.current) return;
+
+      if (attempt < 3) {
+        const delay = 2000 * Math.pow(2, attempt);
+        console.warn(`[ServiceControl] fetch failed (attempt ${attempt + 1}/4), retrying in ${delay}ms…`);
+        setTimeout(() => { if (isMounted.current) loadWithRetry(attempt + 1); }, delay);
+      } else {
+        console.warn('[ServiceControl] failed to load service statuses after 4 attempts:', e?.message ?? e);
+        if (isMounted.current) {
           setIsLoading(false);
+          isInitializing.current = false;
+          attachSocket();
         }
       }
     }
+  }
 
-    loadWithRetry();
-    return () => { cancelled = true; };
-  }, []);
+  // ── Public init: call after authentication is confirmed ───────────────────
+  function initServiceControl() {
+    if (isInitializing.current) return;
+    isInitializing.current = true;
+    setIsLoading(true);
+    loadWithRetry(0);
+  }
 
-  // ── Resolve user zone on mount (fail open) ───────────────────────
+  // ── Public reset: call on logout ──────────────────────────────────────────
+  function resetServiceControl() {
+    detachSocket();
+    setServices({});
+    isInitializing.current = false;
+    console.log('[ServiceControl] service control cleared on logout');
+  }
+
+  // ── Mount: check for existing token; subscribe to auth events ────────────
+  useEffect(() => {
+    isMounted.current = true;
+
+    // Returning user — token already in storage from a previous session
+    tokenStore.getToken(tokenStore.TOKEN_KEY).then((token) => {
+      if (!isMounted.current) return;
+      if (token) {
+        console.log('[ServiceControl] token detected on mount, initializing…');
+        initServiceControl();
+      } else {
+        console.log('[ServiceControl] no token on mount, waiting for authentication…');
+      }
+    }).catch(() => {});
+
+    const unsubLogin = onAuthEvent('auth:login', () => {
+      if (!isMounted.current) return;
+      console.log('[ServiceControl] auth:login received, initializing service control…');
+      initServiceControl();
+    });
+
+    const unsubLogout = onAuthEvent('auth:logout', () => {
+      if (!isMounted.current) return;
+      console.log('[ServiceControl] auth:logout received, clearing service control…');
+      resetServiceControl();
+    });
+
+    return () => {
+      isMounted.current = false;
+      unsubLogin();
+      unsubLogout();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Resolve user zone on mount (fail open) ────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -138,37 +227,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     return () => { cancelled = true; };
   }, []);
 
-  // ── Real-time socket updates ─────────────────────────────────────
-  const applyUpdate = useCallback((payload: ServiceControl) => {
-    setServices((prev) => ({
-      ...prev,
-      [payload.serviceType]: payload,
-    }));
-  }, []);
-
-  useEffect(() => {
-    if (socketListenerAttached.current) return;
-    socketListenerAttached.current = true;
-
-    getSocket().then((socket) => {
-      socket.on('service:control:changed', applyUpdate);
-    }).catch((e) => {
-      console.warn('[ServiceControl] Socket listener setup failed:', e?.message ?? e);
-    });
-
-    return () => {
-      getSocket().then((socket) => {
-        socket.off('service:control:changed', applyUpdate);
-      }).catch(() => {});
-      socketListenerAttached.current = false;
-    };
-  }, [applyUpdate]);
-
-  // ── Zone visibility check ────────────────────────────────────────
-  // Rules:
-  //   - activeZoneIds is empty  → visible in all zones
-  //   - activeZoneIds non-empty + userZoneId unknown → fail open (visible)
-  //   - activeZoneIds non-empty + userZoneId known   → visible only if in list
+  // ── Zone visibility check ─────────────────────────────────────────────────
   const isServiceVisibleForZone = useCallback((type: ServiceType): boolean => {
     const svc = services[type];
     if (!svc) return true;
@@ -177,37 +236,31 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     return svc.activeZoneIds.includes(userZoneId);
   }, [services, userZoneId]);
 
-  // ── Helpers ──────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const getService = useCallback((type: ServiceType): ServiceControl | null => {
     return services[type] ?? null;
   }, [services]);
 
   const handleServiceTap = useCallback((type: ServiceType, onAllow: () => void) => {
-    // Zone check first — if not in an active zone, silently block
     if (!isServiceVisibleForZone(type)) return;
 
     const svc = services[type];
     // No backend data for this service → block (fail closed, never allow without explicit backend permission)
     if (!svc) return;
 
-    // isEnabled = false → hidden completely, should never be tappable
     if (!svc.isEnabled) return;
 
     const mode = svc.displayMode;
 
-    // live → fully available
     if (mode === 'live') {
       onAllow();
       return;
     }
 
-    // coming_soon → disabled, no action
     if (mode === 'coming_soon') return;
 
-    // maintenance → blocked
     if (mode === 'maintenance') return;
 
-    // unavailable → block booking + always show unavailableMessage if present
     if (mode === 'unavailable') {
       if (svc.unavailableMessage) {
         Alert.alert('Service Unavailable', svc.unavailableMessage);
@@ -215,8 +268,8 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
       return;
     }
 
-    // Unknown displayMode — fail closed, do not allow
-    console.warn(`[ServiceControl] Unknown displayMode "${mode}" for ${type} — blocking tap`);
+    // Unknown displayMode — fail closed
+    console.warn(`[ServiceControl] unknown displayMode "${mode}" for ${type} — blocking tap`);
   }, [services, isServiceVisibleForZone]);
 
   const value = useMemo(

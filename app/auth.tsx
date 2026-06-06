@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { C, S } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
+import { emitAuthEvent } from '@/src/api/authEvents';
 
 const SESSION_KEY = '@veego_session_v1';
 
@@ -118,6 +119,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       const { data } = await api.post('/auth/login', { email: email.trim(), password });
       await persistTokens(data);
       await saveSession(email.trim(), data.user?.name ?? data.name);
+      emitAuthEvent('auth:login');
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (e: any) {
@@ -220,6 +222,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       });
       await persistTokens(data);
       await saveSession(email.trim(), name.trim());
+      emitAuthEvent('auth:login');
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (e: any) {
