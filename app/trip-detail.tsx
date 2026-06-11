@@ -132,6 +132,7 @@ export default function TripDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
 
   const tripIdRef = useRef<string | number | null>(null);
 
@@ -181,7 +182,7 @@ export default function TripDetailScreen() {
     fetchTrip();
   }, [fetchTrip]);
 
-  // Socket: join/leave trip room + listen for driver location
+  // Socket: join/leave trip room + listen for driver location + live status updates
   useEffect(() => {
     if (Platform.OS === 'web') return;
     if (!id) return;
@@ -194,14 +195,44 @@ export default function TripDetailScreen() {
 
       socket.emit('join:trip', { tripId: id });
 
-      const locationHandler = (payload: { tripId: string | number; driverId?: string | number; lat: number; lng: number; heading?: number }) => {
+      // Driver location — moves the map marker in real time
+      const locationHandler = (payload: {
+        tripId: string | number;
+        driverId?: string | number;
+        lat: number;
+        lng: number;
+        heading?: number;
+      }) => {
         if (String(payload.tripId) === String(id)) {
           setDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
         }
       };
 
+      // Live status — updates badge and map visibility instantly, no API refetch needed
+      const statusHandler = (payload: {
+        tripId: string | number;
+        status: string;
+        passengerCount?: number;
+      }) => {
+        if (String(payload.tripId) === String(id)) {
+          const normalized = payload.status?.toLowerCase() ?? '';
+          setLiveStatus(normalized);
+          // If passenger count changed (someone else joined/left), update it too
+          if (typeof payload.passengerCount === 'number') {
+            setTrip((prev) =>
+              prev ? { ...prev, passengerCount: payload.passengerCount } : prev
+            );
+          }
+        }
+      };
+
       socket.on('shuttle:driver:location', locationHandler);
-      handlers.push(() => socket.off('shuttle:driver:location', locationHandler));
+      socket.on('shuttle:trip:status', statusHandler);
+
+      handlers.push(
+        () => socket.off('shuttle:driver:location', locationHandler),
+        () => socket.off('shuttle:trip:status', statusHandler),
+      );
     }).catch(() => {});
 
     return () => {
@@ -213,27 +244,32 @@ export default function TripDetailScreen() {
     };
   }, [id]);
 
-  // Poll trip status every 30s to detect status changes
+  // Fallback poll every 2 minutes — real-time socket handles instant updates;
+  // polling only catches drift (e.g., socket reconnect gap)
   useEffect(() => {
     if (!id) return;
     const interval = setInterval(() => {
       fetchTrip();
-    }, 30000);
+    }, 120000);
     return () => clearInterval(interval);
   }, [id, fetchTrip]);
 
+  // Merge socket live status over API status — socket wins when present
+  const effectiveStatus = liveStatus ?? trip?.status ?? '';
+
   const showMap = useMemo(() => {
     if (!trip) return false;
-    if (HIDE_MAP_STATUSES.includes(trip.status)) return false;
-    if (!SHOW_MAP_STATUSES.includes(trip.status)) return false;
+    if (HIDE_MAP_STATUSES.includes(effectiveStatus)) return false;
+    if (!SHOW_MAP_STATUSES.includes(effectiveStatus)) return false;
     return isWithin20Min(trip.departureIso) || !!driverLocation;
-  }, [trip, driverLocation]);
+  }, [effectiveStatus, trip, driverLocation]);
 
   const isUnderBooked = useMemo(() => {
     if (!trip) return false;
     if (!trip.minPassengers || !trip.passengerCount) return false;
+    if (['completed', 'cancelled', 'active', 'boarding'].includes(effectiveStatus)) return false;
     return trip.passengerCount < trip.minPassengers;
-  }, [trip]);
+  }, [trip, effectiveStatus]);
 
   const deepLink = `veego://shuttle/trip/${id}`;
 
@@ -287,7 +323,7 @@ export default function TripDetailScreen() {
     );
   }
 
-  const statusColor = {
+  const statusColor: Record<string, string> = {
     waiting_driver: '#f59e0b',
     scheduled: '#4d9ef6',
     driver_assigned: '#4d9ef6',
@@ -295,7 +331,8 @@ export default function TripDetailScreen() {
     boarding: '#55c49a',
     completed: c.silver,
     cancelled: c.badge,
-  }[trip.status] ?? c.silver;
+  };
+  const resolvedStatusColor = statusColor[effectiveStatus] ?? c.silver;
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
@@ -317,10 +354,18 @@ export default function TripDetailScreen() {
           <Text style={styles.routeSub}>{trip.from} → {trip.to}</Text>
 
           <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {shuttleStatusLabel(trip.status, isAr ? 'ar' : 'en')}
+            <View style={[styles.statusDot, { backgroundColor: resolvedStatusColor }]} />
+            <Text style={[styles.statusText, { color: resolvedStatusColor }]}>
+              {shuttleStatusLabel(effectiveStatus, isAr ? 'ar' : 'en')}
             </Text>
+            {liveStatus !== null && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 6 }}>
+                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#55c49a' }} />
+                <Text style={{ fontSize: 10, color: '#55c49a', fontWeight: '600' }}>
+                  {isAr ? 'مباشر' : 'live'}
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.gridRow}>

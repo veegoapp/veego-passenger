@@ -30,9 +30,10 @@ All 8 fixes have been implemented. Below is a complete backend impact analysis.
 
 | # | Direction | Event Name | Payload Shape | When |
 |---|-----------|------------|---------------|------|
-| 1 | **Listen** | `shuttle:driver:location` | `{ tripId, driverId, lat, lng, heading? }` | While `TripDetailScreen` is mounted, when trip status is `driver_assigned` or `scheduled` and departure is within 20 minutes |
-| 2 | **Emit** | `join:trip` | `{ tripId }` | On `TripDetailScreen` mount |
-| 3 | **Emit** | `leave:trip` | `{ tripId }` | On `TripDetailScreen` unmount |
+| 1 | **Listen** | `shuttle:driver:location` | `{ tripId, driverId, lat, lng, heading? }` | While `TripDetailScreen` is mounted; moves driver map marker in real time |
+| 2 | **Listen** | `shuttle:trip:status` | `{ tripId, status, passengerCount? }` | While `TripDetailScreen` is mounted; updates status badge, map visibility, and share button instantly without an API refetch |
+| 3 | **Emit** | `join:trip` | `{ tripId }` | On `TripDetailScreen` mount |
+| 4 | **Emit** | `leave:trip` | `{ tripId }` | On `TripDetailScreen` unmount |
 
 ---
 
