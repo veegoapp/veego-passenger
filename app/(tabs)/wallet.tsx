@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, Check } from 'lucide-react-native';
+import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useWallet } from '@/src/hooks/useWallet';
+import { useDebt } from '@/src/hooks/useDebt';
 
 const CHARGE_OPTIONS = [50, 100, 200, 500];
 
@@ -47,6 +48,24 @@ function makeStyles(c: ThemeColors) {
     txSub: { fontSize: 11.5, color: c.inkSoft },
     txDate: { fontSize: 10.5, color: c.silver, marginTop: 2 },
     txAmount: { fontSize: 15, fontWeight: '700' },
+    debtBanner: {
+      marginHorizontal: 20, marginBottom: 16, borderRadius: 18,
+      backgroundColor: '#fff3cd', borderWidth: 1.5, borderColor: '#f59e0b',
+      padding: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    },
+    debtBannerDark: {
+      backgroundColor: '#2e2100', borderColor: '#f59e0b',
+    },
+    debtBannerIcon: {
+      width: 36, height: 36, borderRadius: 10,
+      backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    },
+    debtBannerText: { flex: 1, gap: 4 },
+    debtBannerTitle: { fontSize: 13.5, fontWeight: '700', color: '#92400e' },
+    debtBannerTitleDark: { color: '#fcd34d' },
+    debtBannerBody: { fontSize: 12.5, color: '#78350f', lineHeight: 18 },
+    debtBannerBodyDark: { color: '#fde68a' },
   });
 }
 
@@ -59,6 +78,7 @@ export default function WalletScreen() {
   const isAr = language === 'ar';
 
   const { balance, spent, transactions, recharge } = useWallet();
+  const { debt } = useDebt();
 
   const handleConfirmCharge = async () => {
     if (!selectedCharge) return;
@@ -106,6 +126,31 @@ export default function WalletScreen() {
             </View>
           </LinearGradient>
         </View>
+
+        {debt?.hasDebt && (
+          <View style={[styles.debtBanner, c.isDark && styles.debtBannerDark]}>
+            <View style={styles.debtBannerIcon}>
+              <AlertTriangle size={18} color="#f59e0b" />
+            </View>
+            <View style={styles.debtBannerText}>
+              <Text style={[styles.debtBannerTitle, c.isDark && styles.debtBannerTitleDark]}>
+                {isAr ? 'دين نقدي' : 'Cash Debt'}
+              </Text>
+              <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark]}>
+                {isAr
+                  ? `عليك مبلغ ${debt.amount} جنيه، ادفعه للسائق في رحلتك القادمة.`
+                  : `You owe ${debt.amount} EGP — pay the driver on your next trip.`}
+              </Text>
+              {debt.offenceCount > 1 && (
+                <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark, { marginTop: 4 }]}>
+                  {isAr
+                    ? `لديك ${debt.offenceCount} مخالفات غياب.`
+                    : `You have ${debt.offenceCount} no-show offences.`}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
 
         <View style={styles.actionRow}>
           <TouchableOpacity

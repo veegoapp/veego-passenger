@@ -14,7 +14,7 @@ import * as Font from 'expo-font';
 import { Asset } from 'expo-asset';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
-import Constants from 'expo-constants'; // استدعاء الكونستانتس للتأكد من بيئة التشغيل
+import Constants from 'expo-constants';
 import { BookingProvider } from '@/context/BookingContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
@@ -24,10 +24,8 @@ import { TripSheet } from '@/components/TripSheet';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { usePushToken } from '@/src/hooks/usePushToken';
 
-// Keep splash visible until we explicitly hide it
 SplashScreen.preventAutoHideAsync();
 
-// All local image assets to cache before first render
 const IMAGE_ASSETS = [
   require('../assets/images/icon.png'),
   require('../assets/images/splash-icon.png'),
@@ -37,7 +35,6 @@ const IMAGE_ASSETS = [
 
 async function preloadAssets(): Promise<void> {
   await Promise.all([
-    // Download & cache every image asset
     Asset.loadAsync(IMAGE_ASSETS),
   ]);
 }
@@ -46,23 +43,44 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
   if (!notification) return;
   const data = (notification.request.content.data ?? {}) as Record<string, any>;
   const category = (data.category ?? data.type ?? '').toLowerCase();
+  const deepLink: string = data.deep_link ?? data.deepLink ?? '';
+
+  // Fix 7: Handle invite/share deep link: veego://shuttle/trip/{tripId}
+  if (deepLink.startsWith('veego://shuttle/trip/')) {
+    const tripId = deepLink.replace('veego://shuttle/trip/', '').split('?')[0];
+    if (tripId) {
+      router.push(`/trip-detail?id=${tripId}` as any);
+      return;
+    }
+  }
+
+  // Fix 6: Booking confirmation notification — navigate to trip detail
+  if (category === 'booking' || category === 'trip') {
+    const tripId = data.tripId ?? data.trip_id ?? data.bookingId ?? data.booking_id ?? null;
+    if (tripId) {
+      router.push(`/trip-detail?id=${tripId}` as any);
+    } else {
+      router.push('/(tabs)/trips' as any);
+    }
+    return;
+  }
 
   if (category === 'promo' && data.code) {
     router.push(`/promo?code=${encodeURIComponent(String(data.code))}` as any);
-  } else if (category === 'booking' || category === 'trip') {
-    router.push('/(tabs)/trips' as any);
-  } else if (category === 'ride') {
+    return;
+  }
+
+  if (category === 'ride') {
     router.push('/(tabs)/car' as any);
+    return;
   }
 }
 
-// فاكشن مساعدة للتأكد هل التطبيق يعمل داخل Expo Go أم لا
 const isExpoGo = Constants.appOwnership === 'expo';
 
 function AppShell() {
   const { darkMode } = useTheme();
 
-  // تفعيل الـ Push Token فقط إذا كنا بره Expo Go أو على الـ Build الحقيقي لمنع الكراش
   if (!isExpoGo) {
     usePushToken();
   }
@@ -70,16 +88,13 @@ function AppShell() {
   const notifSubRef = useRef<any>(null);
 
   useEffect(() => {
-    // لو ويب أو شغالين جوة Expo Go بنوقف اللوجيك فوراً عشان نمنع رسائل الخطأ
     if (Platform.OS === 'web' || isExpoGo) return;
 
     try {
-      // Tapped while app is in background
       notifSubRef.current = Notifications.addNotificationResponseReceivedListener(
         (response) => handleNotificationDeepLink(response.notification),
       );
 
-      // Tapped when app was fully killed (cold start)
       Notifications.getLastNotificationResponseAsync()
         .then((response) => { if (response) handleNotificationDeepLink(response.notification); })
         .catch(() => {});
@@ -87,9 +102,9 @@ function AppShell() {
       console.warn('[Notifications] Setup bypassed or failed:', e);
     }
 
-    return () => { 
+    return () => {
       if (notifSubRef.current && typeof notifSubRef.current.remove === 'function') {
-        notifSubRef.current.remove(); 
+        notifSubRef.current.remove();
       }
     };
   }, []);
@@ -106,8 +121,10 @@ function AppShell() {
         <Stack.Screen name="stations"     options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="ticket"        options={{ animation: 'fade_from_bottom' }} />
+        <Stack.Screen name="trip-detail"   options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="promo"         options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="support"       options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="suspended"     options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
       <TripSheet />
       <ConfirmSheet />
@@ -119,7 +136,6 @@ export default function RootLayout() {
   const [assetsReady, setAssetsReady] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
 
-  // 1. Preload Google-fonts Inter variants
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -127,21 +143,17 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
-  // 2. Preload image assets concurrently
   useEffect(() => {
     preloadAssets()
       .catch((e) => console.warn('[Assets] Preload failed (non-fatal):', e))
       .finally(() => setAssetsReady(true));
   }, []);
 
-  // 3. Safety timeout — if fonts/assets stall on web, unblock after 3 s
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), 3000);
     return () => clearTimeout(t);
   }, []);
 
-  // 4. On web, SplashScreen is a no-op so render immediately.
-  //    On native, wait for fonts+assets or the 3-second fallback.
   const allReady = Platform.OS === 'web' || ((fontsLoaded || !!fontError) && assetsReady) || timedOut;
 
   useEffect(() => {
@@ -150,7 +162,6 @@ export default function RootLayout() {
     }
   }, [allReady]);
 
-  // 5. Render nothing while loading — prevents flash of unstyled content
   if (!allReady) return null;
 
   return (

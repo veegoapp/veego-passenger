@@ -26,6 +26,16 @@ export type Route = {
 
 export type TripType = 'shuttle' | 'car' | 'scooter';
 
+export type ShuttleTripStatus =
+  | 'waiting_driver'
+  | 'scheduled'
+  | 'driver_assigned'
+  | 'active'
+  | 'boarding'
+  | 'completed'
+  | 'cancelled'
+  | 'upcoming';
+
 export type Trip = {
   id: string;
   type: TripType;
@@ -35,9 +45,15 @@ export type Trip = {
   to: string;
   date: string;
   time: string;
+  departureIso: string;
   seat: string;
-  status: 'upcoming' | 'completed' | 'cancelled';
+  status: ShuttleTripStatus;
   price: number;
+  tripId?: number | string | null;
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  passengerCount?: number;
+  minPassengers?: number;
 };
 
 export type Notification = {
@@ -88,4 +104,35 @@ export function calcSegmentPrice(route: Route, fromIdx: number, toIdx: number, p
   const perSegment = route.price / Math.max(1, route.path.length - 1);
   const segPrice = Math.max(perSegment * span, perSegment);
   return Math.round(segPrice * pax);
+}
+
+export function shuttleStatusLabel(status: string, lang: 'ar' | 'en' = 'ar'): string {
+  if (lang === 'ar') {
+    switch (status) {
+      case 'waiting_driver': return 'جاري البحث عن سائق';
+      case 'scheduled':      return 'مؤكدة';
+      case 'driver_assigned': return 'تم تعيين السائق';
+      case 'active':         return 'جارية';
+      case 'boarding':       return 'جاري الركوب';
+      case 'completed':      return 'مكتملة';
+      case 'cancelled':      return 'ملغية';
+      case 'upcoming':       return 'قادمة';
+      default:               return status;
+    }
+  }
+  switch (status) {
+    case 'waiting_driver':  return 'Searching for driver';
+    case 'scheduled':       return 'Confirmed';
+    case 'driver_assigned': return 'Driver assigned';
+    case 'active':          return 'Active';
+    case 'boarding':        return 'Boarding';
+    case 'completed':       return 'Completed';
+    case 'cancelled':       return 'Cancelled';
+    case 'upcoming':        return 'Upcoming';
+    default:                return status;
+  }
+}
+
+export function isShuttleTripUpcoming(status: ShuttleTripStatus | string): boolean {
+  return ['waiting_driver', 'scheduled', 'driver_assigned', 'active', 'boarding', 'upcoming'].includes(status);
 }

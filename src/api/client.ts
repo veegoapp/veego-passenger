@@ -11,7 +11,6 @@ if (!_rawApiUrl) {
     '  EXPO_PUBLIC_API_URL=https://<your-replit-domain>/api'
   );
 }
-// Normalize: handle cases where the value was entered as "KEY = https://..." or "KEY=https://..."
 const _normalizedUrl = _rawApiUrl.includes('=')
   ? _rawApiUrl.split('=').slice(1).join('=').trim()
   : _rawApiUrl.trim();
@@ -67,7 +66,14 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error) => {
     const status = error.response?.status;
+    const reason = error.response?.data?.reason ?? error.response?.data?.code ?? '';
     const originalRequest = error.config;
+
+    // Fix 8: Account suspended — block navigation entirely
+    if (status === 403 && reason === 'account_suspended') {
+      router.replace('/suspended' as any);
+      return Promise.reject(error);
+    }
 
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -96,7 +102,6 @@ api.interceptors.response.use(
         refreshQueue = [];
         await removeToken(TOKEN_KEY);
         await removeToken(REFRESH_KEY);
-        // ✅ Redirect to auth screen when refresh fails
         router.replace('/auth');
         return Promise.reject(error);
       } finally {

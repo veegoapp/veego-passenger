@@ -3,10 +3,10 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Refresh
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Bus, Car, Bike as ScooterIcon, Ticket, User, X } from 'lucide-react-native';
+import { Bus, Car, Bike as ScooterIcon, Ticket, User, X, ChevronDown } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { type TripType } from '@/constants/data';
+import { type TripType, shuttleStatusLabel, isShuttleTripUpcoming } from '@/constants/data';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -27,6 +27,25 @@ const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: 
   car: Car,
   scooter: ScooterIcon,
 };
+
+function statusDotColor(status: string, c: ThemeColors): string {
+  switch (status) {
+    case 'waiting_driver':
+    case 'scheduled':
+      return '#f59e0b';
+    case 'driver_assigned':
+      return '#4d9ef6';
+    case 'active':
+    case 'boarding':
+    case 'upcoming':
+      return '#55c49a';
+    case 'cancelled':
+      return c.badge;
+    case 'completed':
+    default:
+      return c.silver;
+  }
+}
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -74,6 +93,8 @@ function makeStyles(c: ThemeColors) {
     modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
     modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
     modalBtnText: { fontSize: 14, fontWeight: '600', fontFamily: 'Inter_700Bold' },
+    loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4, paddingVertical: 12 },
+    loadMoreText: { fontSize: 13, fontWeight: '600', color: c.inkSoft },
   });
 }
 
@@ -82,14 +103,16 @@ export default function TripsScreen() {
   const top = Platform.OS === 'web' ? 60 : insets.top;
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const { activeBooking } = useBooking();
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const routeColors = c.isDark ? ROUTE_COLORS_DARK : ROUTE_COLORS_LIGHT;
 
-  const { upcomingTrips, pastTrips, loading, refresh } = useTrips();
+  const { upcomingTrips, pastTrips, loading, refresh, hasMore, loadMore } = useTrips();
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -97,6 +120,12 @@ export default function TripsScreen() {
     await refresh();
     setRefreshing(false);
   }, [refresh]);
+
+  const handleLoadMore = useCallback(async () => {
+    setLoadingMore(true);
+    await loadMore();
+    setLoadingMore(false);
+  }, [loadMore]);
 
   const handleCancelPress = (tripId: string) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -134,19 +163,17 @@ export default function TripsScreen() {
         routeName: activeBooking.route.name,
         from: activeBooking.route.path[activeBooking.fromIdx].name,
         to: activeBooking.route.path[activeBooking.toIdx].name,
-        date: activeBooking.date, time: activeBooking.time, seat: 'B4',
+        date: activeBooking.date, time: activeBooking.time,
+        departureIso: '',
+        seat: 'B4',
         status: 'upcoming' as const, price: activeBooking.price,
+        tripId: null,
       }, ...upcomingTrips]
     : upcomingTrips;
 
   const trips = tab === 'upcoming' ? upcoming : pastTrips;
 
-  const statusLabel = (status: string) => {
-    if (status === 'upcoming') return t('upcoming');
-    if (status === 'completed') return t('past');
-    if (status === 'cancelled') return t('cancel_trip');
-    return status;
-  };
+  const statusLabel = (status: string) => shuttleStatusLabel(status, isAr ? 'ar' : 'en');
 
   return (
     <LinearGradient colors={c.luxeSoftGrad} style={{ flex: 1 }}>
@@ -206,13 +233,17 @@ export default function TripsScreen() {
         )}
         {trips.map((trip) => {
           const TripTypeIcon = TYPE_ICONS[trip.type];
-          const isUpcoming = trip.status === 'upcoming' && trip.id !== 'live';
+          const isUpcoming = isShuttleTripUpcoming(trip.status) && trip.id !== 'live';
           const isCancelling = cancellingId === trip.id;
           return (
           <TouchableOpacity
             key={trip.id}
             style={[gs, styles.tripCard]}
-            onPress={() => { if (trip.id === 'live') router.push('/ticket'); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+            onPress={() => {
+              if (trip.id === 'live') { router.push('/ticket'); }
+              else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+            }}
             activeOpacity={0.9}
           >
             <View style={[styles.cardAccent, { backgroundColor: routeColors[trip.routeCode] ?? c.mist }]} />
@@ -225,7 +256,7 @@ export default function TripsScreen() {
                 <Text style={styles.tripDate}>{trip.date} · {trip.time}</Text>
               </View>
               <View style={styles.statusBadge}>
-                <View style={[styles.statusDot, { backgroundColor: trip.status === 'upcoming' ? '#55c49a' : trip.status === 'cancelled' ? c.badge : c.silver }]} />
+                <View style={[styles.statusDot, { backgroundColor: statusDotColor(trip.status, c) }]} />
                 <Text style={styles.statusText}>{statusLabel(trip.status)}</Text>
               </View>
             </View>
@@ -271,10 +302,24 @@ export default function TripsScreen() {
           </TouchableOpacity>
           );
         })}
+
+        {hasMore && tab === 'past' && (
+          <TouchableOpacity
+            style={styles.loadMoreBtn}
+            onPress={handleLoadMore}
+            disabled={loadingMore}
+            activeOpacity={0.7}
+          >
+            <ChevronDown size={16} color={c.inkSoft} />
+            <Text style={styles.loadMoreText}>
+              {loadingMore ? (isAr ? 'جاري التحميل...' : 'Loading...') : (isAr ? 'تحميل المزيد' : 'Load more')}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Web confirmation modal */}
       {Platform.OS === 'web' && confirmId !== null && (
         <Modal transparent animationType="fade" visible>
           <View style={styles.modalOverlay}>
