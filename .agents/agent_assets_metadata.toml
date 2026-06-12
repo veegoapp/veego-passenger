@@ -18,3 +18,9 @@ id = "K60Sy7bjv581PoRI0Zhqq"
 uri = "file://FRONTEND_BACKEND_INTEGRATION_AUDIT.md"
 type = "text"
 title = "Frontend–Backend Integration Audit Report"
+
+[[outputs]]
+id = "YVfZeR3UHPWj2YuY3psTc"
+uri = "file://audit_rider_app.md"
+type = "text"
+title = "VeeGo Rider App — Comprehensive Technical Audit Report"

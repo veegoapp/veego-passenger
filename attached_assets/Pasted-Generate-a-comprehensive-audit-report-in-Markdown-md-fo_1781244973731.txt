@@ -1,0 +1,70 @@
+Generate a comprehensive audit report in Markdown (.md) for this React Native passenger app. The report must cover every detail without exception. Structure it exactly as follows:
+1. Project Structure
+
+Full folder/file tree
+Navigation structure (all routes, how they connect, what leads where)
+Entry point and auth flow
+
+2. Authentication & Registration
+
+Every step in the login and registration flow
+OTP verification
+Auto-login / token persistence
+For each feature: Exists ✅ / Missing ❌ / Partial ⚠️ | Connected to backend? | Issues?
+
+3. Every Screen — for each screen in the app:
+
+What it shows and does
+Every API call it makes (endpoint, method, real or mock, auth token used?)
+Every socket event it listens to or emits
+UI/UX issues or missing elements
+Connection issues with the backend
+
+4. All API Calls — complete table:
+
+File | Endpoint | Method | Real/Mock | Auth Token | Issues
+
+5. Socket / Real-Time
+
+Connection setup
+Every server→client event: is it handled? where? any issues?
+Every client→server event: is it emitted? where? any issues?
+Any mock or fake socket events?
+
+6. State Management
+
+What is stored where (Context, AsyncStorage, query cache)
+Persistence across sessions
+
+7. Localization
+
+i18n coverage
+Hardcoded strings that should be in i18n
+RTL support
+
+8. Dead Code & Unused Features
+
+Screens never navigated to
+API endpoints defined but never called
+Socket events defined but never handled
+
+9. Missing Features (compared to spec)
+
+List every feature that is described in the product spec or implied by the backend API but not yet built in the app.
+10. Summary Table
+
+For every feature: Status (Done/Partial/Missing) | Priority (High/Medium/Low)
+11. Critical Action Items
+
+Grouped by priority (High / Medium / Low), numbered, specific.
+12. Stats
+
+Total screens
+Screens fully connected
+Screens partial/missing
+Mock data count
+Hardcoded strings count
+Unused API endpoints
+Unhandled socket events
+
+Be exhaustive. Do not summarize or skip anything. Every screen, every API call, every socket event must appear in the report.
