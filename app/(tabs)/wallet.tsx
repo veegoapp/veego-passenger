@@ -31,7 +31,7 @@ function makeStyles(c: ThemeColors) {
     actionBtn: { flex: 1, height: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     actionBtnText: { fontSize: 14, fontWeight: '600' },
     section: { marginBottom: 20 },
-    sectionLabel: { fontSize: 11, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingLeft: 24, marginBottom: 10 },
+    sectionLabel: { fontSize: 11, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 24, marginBottom: 10 },
     chargeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20 },
     chargeBtn: { width: '47%', height: 52, borderRadius: 18, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
     chargeBtnText: { fontSize: 15, fontWeight: '600' },

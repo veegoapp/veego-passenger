@@ -1,3 +1,5 @@
+/* Static fallback data — no longer used in production. Safe to delete after confirming all routes load from API. */
+
 export type Station = {
   id: string;
   name: string;

@@ -45,10 +45,10 @@ function makeStyles(c: ThemeColors) {
     heroStatLabel: { fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 1 },
     heroStatDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)' },
     section: { marginBottom: 16, gap: 8 },
-    sectionLabel: { fontSize: 11, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingLeft: 4 },
+    sectionLabel: { fontSize: 11, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 4 },
     groupCard: { borderRadius: 24, overflow: 'hidden', backgroundColor: c.white },
     settingItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-    itemDivider: { height: 1, backgroundColor: c.border, opacity: 0.6, marginLeft: 64 },
+    itemDivider: { height: 1, backgroundColor: c.border, opacity: 0.6, marginStart: 64 },
     settingIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     settingLabel: { flex: 1, fontSize: 13.5, fontWeight: '500', color: c.ink },
     settingRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -233,8 +233,70 @@ function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: 
 function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const { profile, saveProfile } = useProfile();
   const [biometric, setBiometric] = useState(false);
   const [twoFa, setTwoFa] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    const load = async () => {
+      const bioApi = profile.biometricEnabled;
+      const twoApi = profile.twoFactorEnabled;
+      const [bioStored, twoStored] = await Promise.all([
+        AsyncStorage.getItem('veego_biometric'),
+        AsyncStorage.getItem('veego_2fa'),
+      ]);
+      setBiometric(bioApi || bioStored === 'true');
+      setTwoFa(twoApi || twoStored === 'true');
+    };
+    load().catch(() => {});
+  }, [visible, profile.biometricEnabled, profile.twoFactorEnabled]);
+
+  const persistToggle = async (newBio: boolean, newTwoFa: boolean) => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        AsyncStorage.setItem('veego_biometric', String(newBio)),
+        AsyncStorage.setItem('veego_2fa', String(newTwoFa)),
+      ]);
+      const result = await saveProfile({ biometricEnabled: newBio, twoFactorEnabled: newTwoFa });
+      if (!result.success) {
+        setBiometric(!newBio === biometric ? biometric : !newBio);
+        setTwoFa(!newTwoFa === twoFa ? twoFa : !newTwoFa);
+        Alert.alert(t('error'), t('toggle_save_failed'));
+      }
+    } catch {
+      Alert.alert(t('error'), t('toggle_save_failed'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBiometricToggle = async (v: boolean) => {
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    if (v && Platform.OS !== 'web') {
+      try {
+        const LocalAuth = await import('expo-local-authentication');
+        const hasHardware = await LocalAuth.hasHardwareAsync();
+        const isEnrolled = await LocalAuth.isEnrolledAsync();
+        if (!hasHardware || !isEnrolled) {
+          Alert.alert(t('biometric'), t('biometric_not_available'));
+          return;
+        }
+        const result = await LocalAuth.authenticateAsync({ promptMessage: t('biometric_verify_prompt') });
+        if (!result.success) return;
+      } catch {}
+    }
+    setBiometric(v);
+    await persistToggle(v, twoFa);
+  };
+
+  const handleTwoFaToggle = async (v: boolean) => {
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    setTwoFa(v);
+    await persistToggle(biometric, v);
+  };
 
   const ACTIONS = [
     { icon: Smartphone, label: t('change_phone'), sub: t('change_phone_sub'), onPress: () => Alert.alert(t('change_phone'), 'Phone change flow would open here.') },
@@ -266,7 +328,7 @@ function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => 
               <Text style={styles.toggleLabel}>{t('biometric')}</Text>
               <Text style={styles.toggleSub}>{t('biometric_sub')}</Text>
             </View>
-            <Switch value={biometric} onValueChange={(v) => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setBiometric(v); }} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
+            <Switch value={biometric} onValueChange={handleBiometricToggle} disabled={saving} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
           </View>
           <View style={styles.toggleRow}>
             <View style={styles.toggleIcon}>
@@ -276,7 +338,7 @@ function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => 
               <Text style={styles.toggleLabel}>{t('two_fa')}</Text>
               <Text style={styles.toggleSub}>{t('two_fa_sub')}</Text>
             </View>
-            <Switch value={twoFa} onValueChange={(v) => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setTwoFa(v); }} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
+            <Switch value={twoFa} onValueChange={handleTwoFaToggle} disabled={saving} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
           </View>
         </ScrollView>
       </SafeAreaView>

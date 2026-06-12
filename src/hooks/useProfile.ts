@@ -7,6 +7,8 @@ export interface UserProfile {
   email: string;
   dob: string;
   phone: string;
+  biometricEnabled: boolean;
+  twoFactorEnabled: boolean;
 }
 
 const EMPTY_PROFILE: UserProfile = {
@@ -15,6 +17,8 @@ const EMPTY_PROFILE: UserProfile = {
   email: '',
   dob: '',
   phone: '',
+  biometricEnabled: false,
+  twoFactorEnabled: false,
 };
 
 interface UseProfileResult {
@@ -32,8 +36,13 @@ function mapApiProfile(d: any): UserProfile {
     email: d.email ?? d.emailAddress ?? '',
     dob: d.dob ?? d.dateOfBirth ?? d.birthdate ?? '',
     phone: d.phone ?? d.phoneNumber ?? d.mobile ?? '',
+    biometricEnabled: d.biometricEnabled ?? d.biometric_enabled ?? false,
+    twoFactorEnabled: d.twoFactorEnabled ?? d.two_factor_enabled ?? d.twoFA ?? false,
   };
 }
+
+export const BIOMETRIC_KEY = 'veego_biometric';
+export const TWO_FA_KEY = 'veego_2fa';
 
 export function useProfile(): UseProfileResult {
   const [profile, setProfile] = useState<UserProfile>(EMPTY_PROFILE);

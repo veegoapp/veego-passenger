@@ -787,7 +787,7 @@ export default function CarScreen() {
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
-              style={[styles.callBtn, { marginLeft: 6 }]}
+              style={[styles.callBtn, { marginStart: 6 }]}
               activeOpacity={0.8}
               onPress={() => { haptic.selection(); setChatOpen(true); }}
             >
@@ -831,7 +831,7 @@ export default function CarScreen() {
               <Text style={styles.driverCarText}>{rideState.driver?.vehicle ?? ''}</Text>
             </View>
             <TouchableOpacity
-              style={[styles.callBtn, { marginRight: 6 }]}
+              style={[styles.callBtn, { marginEnd: 6 }]}
               activeOpacity={0.8}
               onPress={() => { haptic.selection(); setChatOpen(true); }}
             >
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   tripDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  tripStopText: { flex: 1, fontSize: 12, color: C.ink, marginLeft: 6 },
+  tripStopText: { flex: 1, fontSize: 12, color: C.ink, marginStart: 6 },
 
   cancelBtn: {
     marginTop: 12,
@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   routeConnector: {
     width: 1, height: 14, backgroundColor: C.border,
-    marginLeft: 4, marginVertical: 3,
+    marginStart: 4, marginVertical: 3,
   },
   routeText: { flex: 1, fontSize: 13, color: C.ink, fontWeight: '500' },
   routePayRow: {

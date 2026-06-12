@@ -377,6 +377,15 @@ const en = {
   save_location_btn: 'Save this location',
   service_unavailable: 'Unavailable',
   payment_methods_cash: 'Cash',
+
+  bike: 'Bike',
+  no_messages_yet: 'No messages yet.\nSay hello to your driver!',
+  select_trip: 'Select a trip',
+  book_now: 'Book now',
+  stations_load_error: 'Could not load stations. Please check your connection and try again.',
+  biometric_verify_prompt: 'Verify your identity to enable biometric login',
+  biometric_not_available: 'Biometric authentication is not available on this device',
+  toggle_save_failed: 'Failed to save setting. Please try again.',
 };
 
 const ar: typeof en = {
@@ -758,6 +767,15 @@ const ar: typeof en = {
   save_location_btn: 'حفظ هذا الموقع',
   service_unavailable: 'غير متاح',
   payment_methods_cash: 'نقداً',
+
+  bike: 'دراجة',
+  no_messages_yet: 'لا توجد رسائل بعد.\nقل مرحباً لسائقك!',
+  select_trip: 'اختر رحلة',
+  book_now: 'احجز الآن',
+  stations_load_error: 'تعذر تحميل المحطات. يرجى التحقق من اتصالك والمحاولة مجدداً.',
+  biometric_verify_prompt: 'تحقق من هويتك لتفعيل تسجيل الدخول بالبصمة',
+  biometric_not_available: 'المصادقة بالبصمة غير متاحة على هذا الجهاز',
+  toggle_save_failed: 'فشل حفظ الإعداد. يرجى المحاولة مجدداً.',
 };
 
 export type LangKey = keyof typeof en;

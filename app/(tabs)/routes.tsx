@@ -27,7 +27,7 @@ function makeStyles(c: ThemeColors) {
       flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 23,
       paddingHorizontal: 16, marginBottom: 16, borderWidth: 1
     },
-    searchInput: { flex: 1, fontSize: 14, fontWeight: '500', paddingVertical: 0, marginLeft: 8 },
+    searchInput: { flex: 1, fontSize: 14, fontWeight: '500', paddingVertical: 0, marginStart: 8 },
 
     filterScroll: { flexGrow: 0, marginBottom: 16 },
     filterChip: { height: 38, paddingHorizontal: 16, borderRadius: 99, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },

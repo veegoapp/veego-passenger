@@ -2,11 +2,10 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, MapPin, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, MapPin, RefreshCw, WifiOff } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { stations as staticStations } from '@/constants/data';
 import { MapMockView } from '@/components/Shared';
 import api from '@/src/api/client';
 
@@ -61,9 +60,12 @@ function makeStyles(c: ThemeColors) {
     etaText: { fontSize: 11, fontWeight: '500', color: c.inkSoft },
     etaTextNear: { color: '#2a9e6b' },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 40 },
-    errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
-    retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 99, backgroundColor: c.mist },
-    retryText: { fontSize: 13, fontWeight: '600', color: c.ink },
+    fullErrorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    fullErrorCard: { width: '100%', borderRadius: 28, backgroundColor: c.white, padding: 32, alignItems: 'center', gap: 12 },
+    fullErrorTitle: { fontSize: 17, fontWeight: '700', color: c.ink, marginTop: 4 },
+    fullErrorText: { fontSize: 13.5, color: c.inkSoft, textAlign: 'center', lineHeight: 22 },
+    retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 99, backgroundColor: c.ink, marginTop: 4 },
+    retryText: { fontSize: 13, fontWeight: '600', color: c.isDark ? c.background : c.white },
   });
 }
 
@@ -84,16 +86,10 @@ export default function StationsScreen() {
     try {
       const { data } = await api.get(`/routes/${routeId}/stations`);
       const list: any[] = Array.isArray(data) ? data : data.data ?? data.stations ?? data.items ?? [];
-      if (list.length > 0) {
-        setStations(list.map(mapApiStation));
-      } else {
-        // Fallback to static only if server returns empty
-        setStations(staticStations.map(mapApiStation));
-      }
+      setStations(list.map(mapApiStation));
     } catch {
-      // Use static fallback if API unavailable, but show error
-      setStations(staticStations.map(mapApiStation));
-      setError('Could not load live stations — showing cached data');
+      setStations([]);
+      setError(t('stations_load_error'));
     } finally {
       setLoading(false);
     }
@@ -128,26 +124,31 @@ export default function StationsScreen() {
         </View>
       </View>
 
+      {loading && (
+        <View style={styles.centered}>
+          <ActivityIndicator color={c.ink} size="large" />
+        </View>
+      )}
+
+      {!loading && error && (
+        <View style={styles.fullErrorWrap}>
+          <View style={styles.fullErrorCard}>
+            <WifiOff size={40} color={c.silver} />
+            <Text style={styles.fullErrorTitle}>{t('error')}</Text>
+            <Text style={styles.fullErrorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={fetchStations} activeOpacity={0.8}>
+              <RefreshCw size={14} color={c.ink} />
+              <Text style={styles.retryText}>{t('retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {!loading && !error && (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <Text style={styles.listTitle}>{t('all_stations')}</Text>
 
-        {loading && (
-          <View style={styles.centered}>
-            <ActivityIndicator color={c.ink} />
-          </View>
-        )}
-
-        {!loading && error && (
-          <View style={styles.centered}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryBtn} onPress={fetchStations} activeOpacity={0.8}>
-              <RefreshCw size={14} color={c.ink} />
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {!loading && stations.map((s, i) => (
+        {stations.map((s, i) => (
           <TouchableOpacity key={s.id} style={[gs, styles.stationCard]} activeOpacity={0.85}>
             <View style={styles.stationLeft}>
               <View style={styles.stationIndex}>
@@ -171,6 +172,7 @@ export default function StationsScreen() {
         ))}
         <View style={{ height: 40 }} />
       </ScrollView>
+      )}
     </LinearGradient>
   );
 }

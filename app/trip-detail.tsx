@@ -409,7 +409,7 @@ export default function TripDetailScreen() {
               {shuttleStatusLabel(effectiveStatus, isAr ? 'ar' : 'en')}
             </Text>
             {liveStatus !== null && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginStart: 6 }}>
                 <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#55c49a' }} />
                 <Text style={{ fontSize: 10, color: '#55c49a', fontWeight: '600' }}>
                   {isAr ? 'مباشر' : 'live'}
