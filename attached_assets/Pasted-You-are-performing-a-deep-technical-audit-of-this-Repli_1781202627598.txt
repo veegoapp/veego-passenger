@@ -1,0 +1,114 @@
+You are performing a deep technical audit of this Replit project.
+
+This is the Rider App for a ride-hailing app called VeeGo — built with React Native. It serves passengers who book rides across 4 services: Shuttle (Shatel), Car, Scooter, and Delivery.
+
+Your job is to produce a comprehensive audit report as a `.md` file named `audit_rider_app.md`.
+
+---
+
+## AUDIT SCOPE
+
+### 1. PROJECT STRUCTURE
+- List every folder and file with a one-line description
+- Identify navigation structure (stack, tabs, etc.)
+- Identify dead or unused screens/components
+
+### 2. SCREENS INVENTORY — For EVERY screen:
+- Screen name and file path
+- What it displays and does
+- Connected to backend? (real API call or mock/hardcoded)
+- Status: ✅ Fully working | ⚠️ Needs improvement | ❌ Broken/mock | 🗑️ Dead/unused
+
+### 3. API INTEGRATION
+- List every API call made from the app
+- Endpoint called, method, what triggers it, what it does with the response
+- Are error states handled?
+- Is the base URL configured correctly for the backend?
+
+### 4. SOCKET / REAL-TIME
+- Are sockets implemented?
+- List all socket events the app listens to or emits
+- Which are working end-to-end vs. mocked?
+
+### 5. AUTHENTICATION FLOW
+- Language selection screen (first launch only) — implemented?
+- Onboarding screens (3 pages, first launch only) — implemented?
+- Phone number signup + OTP — implemented and connected to real backend?
+- Token-based auto-login (no re-login after app reopen) — implemented?
+
+### 6. HOME SCREEN
+- Shuttle service: search bar for routes/stations, view all routes, upcoming trips, most booked — implemented?
+- Other services (Car/Scooter/Delivery): map + location bar + destination — implemented?
+- Service switcher tabs (Shuttle / Car / Scooter / Delivery) — implemented?
+- "Soon" badge for inactive services — implemented?
+- Notification bell — implemented?
+
+### 7. SHUTTLE BOOKING FLOW
+- Browse and search routes/stations — implemented?
+- Select departure and arrival station — implemented?
+- Select date and time — implemented?
+- View price and confirm — implemented?
+- Ticket received after booking — implemented?
+- Pending vs. Active trip status shown to rider — implemented?
+- Cancellation with 10-hour rule and penalty — implemented?
+
+### 8. CAR/SCOOTER/DELIVERY RIDE FLOW
+- Map with current location — implemented?
+- Destination selection — implemented?
+- Show available categories with prices — implemented?
+- Searching for driver logic (5km → 7km radius, 15s per batch) — implemented?
+- Driver info shown after acceptance (name, rating, vehicle, color) — implemented?
+- Call and chat buttons to driver — implemented?
+- Cancel with reason — implemented?
+- Safety button (call 122 + WhatsApp with full trip details) — implemented?
+- Route deviation notification — implemented?
+- End of trip: payment confirmation + driver rating — implemented?
+
+### 9. TRIPS PAGE
+- Upcoming trips list — implemented?
+- Trip history list — implemented?
+- Trip detail view — implemented?
+- Cancel upcoming trip from detail — implemented?
+- Help/support from trip detail — implemented?
+
+### 10. FAVORITES PAGE
+- Shows frequently booked trips — implemented and pulling real data?
+
+### 11. WALLET PAGE
+- Balance display — implemented?
+- Transaction history — implemented?
+- Card management — implemented?
+- Cash-only mode (other methods hidden/disabled) — implemented?
+
+### 12. PROFILE PAGE
+- Profile photo, personal info, ratings — implemented?
+- Inbox/support messages — implemented?
+- Language toggle — implemented?
+- Dark/light mode toggle — implemented?
+- Help & policies — implemented?
+- Sign out — implemented?
+
+### 13. LOCALIZATION
+- Arabic and English supported?
+- Is the translation complete across all screens?
+
+### 14. DEAD CODE & UNNECESSARY FEATURES
+- Screens, components, or API calls that are unused or conflict with project spec
+
+---
+
+## OUTPUT FORMAT
+
+Generate a single file: `audit_rider_app.md`
+
+Use this structure:
+- Use `##` for each section
+- Use tables for screens and API calls
+- Use status emojis: ✅ ⚠️ ❌ 🗑️
+- End with a prioritized summary table:
+
+| # | Item | Status | Priority |
+|---|------|--------|----------|
+| 1 | ... | ❌ Missing | 🔴 High |
+
+Be exhaustive. Do not skip any screen or component. Flag anything unclear with ❓.
