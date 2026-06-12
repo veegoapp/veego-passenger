@@ -112,6 +112,7 @@ export default function TripsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmDeparture, setConfirmDeparture] = useState<string>('');
   const [loadingMore, setLoadingMore] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -127,19 +128,28 @@ export default function TripsScreen() {
     setLoadingMore(false);
   }, [loadMore]);
 
-  const handleCancelPress = (tripId: string) => {
+  const isWithin10Hours = (departureIso: string): boolean => {
+    if (!departureIso) return false;
+    const dep = new Date(departureIso).getTime();
+    if (isNaN(dep)) return false;
+    return dep - Date.now() < 10 * 60 * 60 * 1000;
+  };
+
+  const handleCancelPress = (tripId: string, departureIso: string) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const within10h = isWithin10Hours(departureIso);
     if (Platform.OS !== 'web') {
       Alert.alert(
-        'Cancel Booking',
-        'Are you sure you want to cancel this booking? Your wallet will be refunded.',
+        t('cancel_warning_title'),
+        within10h ? t('cancel_warning_10h') : t('cancel_warning_free'),
         [
-          { text: 'Keep Booking', style: 'cancel' },
-          { text: 'Cancel Booking', style: 'destructive', onPress: () => doCancel(tripId) },
+          { text: t('cancel_keep'), style: 'cancel' },
+          { text: t('cancel_confirm'), style: 'destructive', onPress: () => doCancel(tripId) },
         ],
       );
     } else {
       setConfirmId(tripId);
+      setConfirmDeparture(departureIso);
     }
   };
 
@@ -289,7 +299,7 @@ export default function TripsScreen() {
             {isUpcoming && (
               <TouchableOpacity
                 style={[styles.cancelBtn, { borderColor: c.badge, opacity: isCancelling ? 0.5 : 1 }]}
-                onPress={(e) => { (e as any).stopPropagation?.(); handleCancelPress(trip.id); }}
+                onPress={(e) => { (e as any).stopPropagation?.(); handleCancelPress(trip.id, trip.departureIso); }}
                 disabled={isCancelling}
                 activeOpacity={0.7}
               >
@@ -324,16 +334,16 @@ export default function TripsScreen() {
         <Modal transparent animationType="fade" visible>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalBox, { backgroundColor: c.white }]}>
-              <Text style={[styles.modalTitle, { color: c.ink }]}>Cancel Booking</Text>
+              <Text style={[styles.modalTitle, { color: c.ink }]}>{t('cancel_warning_title')}</Text>
               <Text style={[styles.modalBody, { color: c.inkSoft }]}>
-                Are you sure you want to cancel this booking? Your wallet will be refunded.
+                {isWithin10Hours(confirmDeparture) ? t('cancel_warning_10h') : t('cancel_warning_free')}
               </Text>
               <View style={styles.modalActions}>
                 <Pressable
                   style={[styles.modalBtn, { backgroundColor: c.mist }]}
-                  onPress={() => setConfirmId(null)}
+                  onPress={() => { setConfirmId(null); setConfirmDeparture(''); }}
                 >
-                  <Text style={[styles.modalBtnText, { color: c.ink }]}>Keep Booking</Text>
+                  <Text style={[styles.modalBtnText, { color: c.ink }]}>{t('cancel_keep')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.modalBtn, { backgroundColor: c.badge }]}
@@ -341,7 +351,7 @@ export default function TripsScreen() {
                   disabled={cancellingId !== null}
                 >
                   <Text style={[styles.modalBtnText, { color: '#fff' }]}>
-                    {cancellingId !== null ? 'Cancelling...' : 'Cancel Booking'}
+                    {cancellingId !== null ? `${t('cancel_confirm')}…` : t('cancel_confirm')}
                   </Text>
                 </Pressable>
               </View>

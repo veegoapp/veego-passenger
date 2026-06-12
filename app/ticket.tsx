@@ -14,7 +14,6 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { getSocket } from '@/src/api/socket';
 
-const FALLBACK_BOOKING_ID = 'VEEGO-0000';
 
 function SparkleParticle({ deg, delay, color }: { deg: number; delay: number; color: string }) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -68,7 +67,7 @@ function QRDisplay({ value, bg, fg }: QRDisplayProps) {
   return (
     <View style={{ backgroundColor: bg, borderRadius: 16, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
       <QRCode
-        value={value || FALLBACK_BOOKING_ID}
+        value={value || 'VEEGO'}
         size={80}
         color={fg}
         backgroundColor={bg}
@@ -162,7 +161,7 @@ export default function TicketScreen() {
   const cardY = useRef(new Animated.Value(30)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
 
-  const bookingId = confirmedBookingId || FALLBACK_BOOKING_ID;
+  const bookingId = confirmedBookingId ?? '';
   const qrValue = JSON.stringify({ bookingId, app: 'veego', v: 1 });
 
   useEffect(() => {
@@ -230,6 +229,19 @@ export default function TicketScreen() {
   }, [bookingId, confirmedTripId]);
 
   const rotateDeg = checkRotate.interpolate({ inputRange: [-20, 0], outputRange: ['-20deg', '0deg'] });
+  if (!confirmedBookingId) {
+    return (
+      <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: c.ink, textAlign: 'center', marginBottom: 8 }}>
+          {t('ticket_load_error')}
+        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.goHomeBtn}>
+          <Text style={styles.goHomeBtnText}>{t('go_back')}</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+    );
+  }
+
   const booking = activeBooking;
 
   if (!booking) {

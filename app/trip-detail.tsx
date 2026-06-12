@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Share, ActivityIndicator,
+  Alert, Modal, Pressable,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, MapPin, Share2, Navigation } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Share2, Navigation, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -13,6 +14,7 @@ import { shuttleStatusLabel } from '@/constants/data';
 import { getSocket } from '@/src/api/socket';
 import api from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
+
 
 const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled'];
 const HIDE_MAP_STATUSES = ['boarding', 'completed', 'cancelled'];
@@ -117,6 +119,15 @@ function makeStyles(c: ThemeColors) {
     errorText: { fontSize: 14, color: c.badge, textAlign: 'center', marginHorizontal: 32 },
     goBack: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 14, backgroundColor: c.ink },
     goBackText: { fontSize: 14, fontWeight: '600', color: c.isDark ? c.background : c.white },
+    cancelBtn: { marginHorizontal: 20, marginBottom: 8, borderRadius: 16, borderWidth: 1.5, borderColor: c.badge, backgroundColor: 'rgba(220,38,38,0.05)', padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    cancelBtnText: { fontSize: 14, fontWeight: '600', color: c.badge },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 32 },
+    modalBox: { borderRadius: 24, padding: 24, width: '100%', maxWidth: 380, gap: 12 },
+    modalTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
+    modalBody: { fontSize: 14, lineHeight: 21, textAlign: 'center' },
+    modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    modalBtn: { flex: 1, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    modalBtnText: { fontSize: 14, fontWeight: '600' },
   });
 }
 
@@ -133,6 +144,8 @@ export default function TripDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const tripIdRef = useRef<string | number | null>(null);
 
@@ -271,6 +284,43 @@ export default function TripDetailScreen() {
     return trip.passengerCount < trip.minPassengers;
   }, [trip, effectiveStatus]);
 
+  const isWithin10Hours = (departureIso: string): boolean => {
+    if (!departureIso) return false;
+    const dep = new Date(departureIso).getTime();
+    if (isNaN(dep)) return false;
+    return dep - Date.now() < 10 * 60 * 60 * 1000;
+  };
+
+  const handleCancelPress = () => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const within10h = isWithin10Hours(trip?.departureIso ?? '');
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        t('cancel_warning_title'),
+        within10h ? t('cancel_warning_10h') : t('cancel_warning_free'),
+        [
+          { text: t('cancel_keep'), style: 'cancel' },
+          { text: t('cancel_confirm'), style: 'destructive', onPress: doCancel },
+        ],
+      );
+    } else {
+      setShowCancelModal(true);
+    }
+  };
+
+  const doCancel = async () => {
+    if (!id) return;
+    setCancellingId(String(id));
+    try {
+      await api.patch(`/bookings/${id}/cancel`);
+      router.back();
+    } catch {
+    } finally {
+      setCancellingId(null);
+      setShowCancelModal(false);
+    }
+  };
+
   const deepLink = `veego://shuttle/trip/${id}`;
 
   const handleShare = async () => {
@@ -405,6 +455,21 @@ export default function TripDetailScreen() {
           </View>
         )}
 
+        {/* Cancel booking — only for cancellable statuses */}
+        {!['completed', 'cancelled', 'boarding', 'active'].includes(effectiveStatus) && (
+          <TouchableOpacity
+            style={[styles.cancelBtn, { opacity: cancellingId ? 0.5 : 1 }]}
+            disabled={!!cancellingId}
+            onPress={handleCancelPress}
+            activeOpacity={0.8}
+          >
+            <X size={14} color={c.badge} strokeWidth={2.5} />
+            <Text style={styles.cancelBtnText}>
+              {cancellingId ? `${t('cancel_trip')}…` : t('cancel_trip')}
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* Share invite when trip is under minimum passenger count */}
         {isUnderBooked && (
           <View style={styles.shareCard}>
@@ -426,6 +491,36 @@ export default function TripDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {Platform.OS === 'web' && showCancelModal && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalBox, { backgroundColor: c.white }]}>
+              <Text style={[styles.modalTitle, { color: c.ink }]}>{t('cancel_warning_title')}</Text>
+              <Text style={[styles.modalBody, { color: c.inkSoft }]}>
+                {isWithin10Hours(trip?.departureIso ?? '') ? t('cancel_warning_10h') : t('cancel_warning_free')}
+              </Text>
+              <View style={styles.modalActions}>
+                <Pressable
+                  style={[styles.modalBtn, { backgroundColor: c.mist }]}
+                  onPress={() => setShowCancelModal(false)}
+                >
+                  <Text style={[styles.modalBtnText, { color: c.ink }]}>{t('cancel_keep')}</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalBtn, { backgroundColor: c.badge }]}
+                  onPress={doCancel}
+                  disabled={!!cancellingId}
+                >
+                  <Text style={[styles.modalBtnText, { color: '#fff' }]}>
+                    {cancellingId ? `${t('cancel_confirm')}…` : t('cancel_confirm')}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </LinearGradient>
   );
 }

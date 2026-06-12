@@ -125,6 +125,7 @@ function AppShell() {
         <Stack.Screen name="promo"         options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="support"       options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="suspended"     options={{ animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="receipt"       options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
       </Stack>
       <TripSheet />
       <ConfirmSheet />

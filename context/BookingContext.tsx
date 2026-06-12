@@ -21,6 +21,8 @@ type BookingContextType = {
   tripsPage: number;
   walletBalance: number | null;
   bookingError: string | null;
+  seatCount: number;
+  setSeatCount: (n: number) => void;
   openRoute: (route: Route) => void;
   closeTripSheet: () => void;
   handleBook: (booking: Booking) => void;
@@ -48,6 +50,8 @@ const BookingContext = createContext<BookingContextType>({
   tripsPage: 1,
   walletBalance: null,
   bookingError: null,
+  seatCount: 1,
+  setSeatCount: () => {},
   openRoute: () => {},
   closeTripSheet: () => {},
   handleBook: () => {},
@@ -112,6 +116,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [tripsTotal, setTripsTotal] = useState(0);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [seatCount, setSeatCount] = useState<number>(1);
 
   // Refresh trips for a line after booking/cancel
   const refreshLineTrips = useCallback(async (routeId: string) => {
@@ -238,7 +243,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const balance = await fetchWalletBalance();
     setWalletBalance(balance);
 
-    if (balance !== null && balance < pendingBooking.price) {
+    if (balance !== null && balance < pendingBooking.price * seatCount) {
       Alert.alert(
         'Insufficient Balance',
         `Your wallet balance is ${balance.toFixed(2)} EGP but this trip costs ${pendingBooking.price} EGP. Please top up your wallet to continue.`,
@@ -269,7 +274,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     try {
       const body: Record<string, any> = {
         tripId,
-        seatCount: 1, // API contract: seatCount MUST always be 1
+        seatCount,
       };
       if (promoCode) body.promoCode = promoCode;
 
@@ -359,6 +364,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         tripsPage: 1,
         walletBalance,
         bookingError,
+        seatCount,
+        setSeatCount,
         openRoute,
         closeTripSheet,
         handleBook,

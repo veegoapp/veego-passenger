@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Animated, Easing,
   ScrollView, TextInput, Platform, Dimensions,
 } from 'react-native';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MapPin, Car, ShieldCheck, ShieldAlert, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -226,6 +227,11 @@ export default function CarScreen() {
   const [phase, setPhase] = useState<Phase>('request');
   const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
+
+  const pickupRef = useRef('');
+  pickupRef.current = pickup;
+  const dropoffRef = useRef('');
+  dropoffRef.current = dropoff;
   const [outsideZone, setOutsideZone] = useState(false);
   const [priceEstimate, setPriceEstimate] = useState<number | null>(null);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
@@ -264,6 +270,8 @@ export default function CarScreen() {
   }, []);
 
   const { rideState, requesting, requestRide, cancelRide: hookCancelRide, clearDeviationWarning, resetRide: hookResetRide } = useRide();
+  const rideStateRef = useRef(rideState);
+  rideStateRef.current = rideState;
 
   const [ratingVisible, setRatingVisible] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -309,6 +317,18 @@ export default function CarScreen() {
     } else if (s === 'completed') {
       setPhase('completed');
       haptic.notify(Haptics.NotificationFeedbackType.Success);
+      const rs = rideStateRef.current;
+      router.push({
+        pathname: '/receipt',
+        params: {
+          rideId: rs.rideId ?? '',
+          pickup: pickupRef.current,
+          dropoff: dropoffRef.current,
+          fare: String(rs.fare ?? ''),
+          driverName: rs.driver?.name ?? '',
+          driverRating: String(rs.driver?.rating ?? ''),
+        },
+      } as any);
     } else if (s === 'cancelled' || s === 'timeout') {
       setPhase('error');
     }

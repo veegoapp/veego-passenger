@@ -344,6 +344,30 @@ const en = {
   reset_password: 'Reset password',
   passwords_no_match: 'Passwords do not match',
   password_reset_success: 'Password reset! Please sign in with your new password.',
+
+  ticket_load_error: 'Could not load your ticket. Please go back and try again.',
+  go_back: 'Go Back',
+
+  seat_count: 'Seats',
+  seat_selector_label: 'Number of seats',
+
+  cancel_warning_title: 'Cancel Booking?',
+  cancel_warning_10h: 'This trip departs within 10 hours. The full ticket price will be charged as a cancellation fee.',
+  cancel_warning_free: 'Cancelling now will fully refund your wallet.',
+  cancel_confirm: 'Yes, Cancel',
+  cancel_keep: 'Keep Booking',
+
+  receipt_title: 'Trip Receipt',
+  waiting_charge: 'Waiting Charge',
+  surge_fee: 'Surge Fee',
+  promo_discount_line: 'Promo Discount',
+  total_fare: 'Total',
+  payment_method: 'Payment Method',
+  rate_driver: 'Rate Your Driver',
+  cash_payment: 'Cash',
+  wallet_payment: 'Wallet',
+  trip_distance: 'Distance',
+  trip_duration: 'Duration',
 };
 
 const ar: typeof en = {
@@ -692,6 +716,30 @@ const ar: typeof en = {
   reset_password: 'إعادة تعيين كلمة المرور',
   passwords_no_match: 'كلمتا المرور غير متطابقتين',
   password_reset_success: 'تمت إعادة التعيين! سجل دخولك بكلمة المرور الجديدة.',
+
+  ticket_load_error: 'تعذر تحميل تذكرتك. يرجى العودة والمحاولة مجدداً.',
+  go_back: 'رجوع',
+
+  seat_count: 'مقاعد',
+  seat_selector_label: 'عدد المقاعد',
+
+  cancel_warning_title: 'إلغاء الحجز؟',
+  cancel_warning_10h: 'تغادر هذه الرحلة خلال أقل من 10 ساعات. سيُحسب كامل سعر التذكرة كرسوم إلغاء.',
+  cancel_warning_free: 'سيُعاد المبلغ كاملاً إلى محفظتك عند الإلغاء.',
+  cancel_confirm: 'نعم، إلغاء',
+  cancel_keep: 'الإبقاء على الحجز',
+
+  receipt_title: 'فاتورة الرحلة',
+  waiting_charge: 'رسوم الانتظار',
+  surge_fee: 'رسوم الذروة',
+  promo_discount_line: 'خصم ترويجي',
+  total_fare: 'الإجمالي',
+  payment_method: 'طريقة الدفع',
+  rate_driver: 'قيّم سائقك',
+  cash_payment: 'نقداً',
+  wallet_payment: 'محفظة',
+  trip_distance: 'المسافة',
+  trip_duration: 'المدة',
 };
 
 export type LangKey = keyof typeof en;

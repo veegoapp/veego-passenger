@@ -6,6 +6,7 @@ import {
 import {
   Users, Heart, Clock, MapPin, AlertCircle,
   Ticket, ArrowRight, Wallet, ChevronRight, AlertTriangle,
+  Minus, Plus,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -154,6 +155,13 @@ function makeStyles(c: ThemeColors, gs: object) {
     errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     retryBtn: { marginTop: 4, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: c.border },
     retryBtnText: { fontSize: 13, fontWeight: '500', color: c.ink },
+    seatRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, borderRadius: 16, padding: 14 },
+    seatBtn: { width: 40, height: 40, borderRadius: 13, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border, ...S.float },
+    seatBtnDisabled: { opacity: 0.35 },
+    seatCountText: { fontSize: 20, fontWeight: '700', color: c.ink, minWidth: 36, textAlign: 'center' },
+    seatLabelWrap: { flex: 1, paddingLeft: 12 },
+    seatLabel: { fontSize: 12, color: c.inkSoft },
+    seatMax: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
   });
 }
 
@@ -161,7 +169,7 @@ export function TripSheet() {
   const {
     tripSheetOpen, closeTripSheet, selectedRoute, handleBook,
     routeLoading, tripsLoading, scheduledTrips,
-    openRoute, walletBalance,
+    openRoute, walletBalance, seatCount, setSeatCount,
   } = useBooking();
   const { getService, handleServiceTap } = useServiceControl();
   const { colors: c, glassStyle: gs, t } = useTheme();
@@ -226,10 +234,11 @@ export function TripSheet() {
   const lo = Math.min(safeFrom, safeTo);
   const hi = Math.max(safeFrom, safeTo);
 
-  // seatCount is always 1 per API contract
-  const total = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, 1) : route.price;
+  const pricePerSeat = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, 1) : route.price;
+  const total = pricePerSeat * seatCount;
   const selectedTripBookable = !selectedTrip || isTripBookable(selectedTrip);
-  const valid = hasPath && safeFrom !== safeTo && !routeLoading && scheduledTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled;
+  const seatsOk = seatCount >= 1 && seatCount <= selectedTripSeats;
+  const valid = hasPath && safeFrom !== safeTo && !routeLoading && scheduledTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled && seatsOk;
   const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
@@ -455,7 +464,34 @@ export function TripSheet() {
             )}
           </View>
 
-          {/* Price summary — always 1 passenger (API contract) */}
+          {/* Seat selector */}
+          {hasPath && scheduledTrips.length > 0 && (
+            <View style={[gs, styles.seatRow]}>
+              <TouchableOpacity
+                style={[styles.seatBtn, seatCount <= 1 && styles.seatBtnDisabled]}
+                disabled={seatCount <= 1}
+                onPress={() => { setSeatCount(Math.max(1, seatCount - 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                activeOpacity={0.7}
+              >
+                <Minus size={16} color={c.ink} />
+              </TouchableOpacity>
+              <Text style={styles.seatCountText}>{seatCount}</Text>
+              <View style={styles.seatLabelWrap}>
+                <Text style={styles.seatLabel}>{t('seat_selector_label')}</Text>
+                <Text style={styles.seatMax}>{t('seats_left').replace(/\d+/, String(selectedTripSeats))}: {selectedTripSeats}</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.seatBtn, seatCount >= selectedTripSeats && styles.seatBtnDisabled]}
+                disabled={seatCount >= selectedTripSeats}
+                onPress={() => { setSeatCount(Math.min(selectedTripSeats, seatCount + 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                activeOpacity={0.7}
+              >
+                <Plus size={16} color={c.ink} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Price summary */}
           <View style={[gs, styles.priceSummary]}>
             <View style={styles.priceIcon}>
               <Ticket size={20} color={c.isDark ? c.background : c.white} />
@@ -463,6 +499,7 @@ export function TripSheet() {
             <View style={{ flex: 1 }}>
               <Text style={styles.priceSegLabel}>
                 {route.path[safeFrom]?.name ?? route.from} → {route.path[safeTo]?.name ?? route.to}
+                {seatCount > 1 ? ` · ${seatCount} ${t('seat_count')}` : ''}
               </Text>
               <Text style={styles.priceTotal}>{total} {t('egp')}</Text>
               <View style={styles.walletRow}>
@@ -493,7 +530,7 @@ export function TripSheet() {
                 route,
                 fromIdx: safeFrom,
                 toIdx: safeTo,
-                passengers: 1, // always 1
+                passengers: seatCount,
                 date: formatTripDateUTC(trip?.departureTime ?? ''),
                 time: formatTripTimeUTC(trip?.departureTime ?? ''),
                 price: total,
