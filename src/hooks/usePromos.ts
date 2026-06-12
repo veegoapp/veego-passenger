@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import type { ComponentType } from 'react';
 import api from '../api/client';
 import { Sparkles, Wallet, Gift, Star, Tag } from 'lucide-react-native';
@@ -23,7 +23,60 @@ interface UsePromosResult {
   validatePromo: (code: string) => Promise<{ valid: boolean; discount?: string; message?: string }>;
 }
 
+const ICON_MAP: Record<string, ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
+  sparkles: Sparkles,
+  wallet: Wallet,
+  gift: Gift,
+  star: Star,
+  tag: Tag,
+};
+
+function mapIcon(raw: string | undefined): ComponentType<{ size?: number; color?: string; strokeWidth?: number }> {
+  if (!raw) return Tag;
+  const key = raw.toLowerCase();
+  return ICON_MAP[key] ?? Tag;
+}
+
+function mapPromoCard(item: any): PromoCard {
+  return {
+    code: item.code ?? item.promoCode ?? '',
+    titleEn: item.titleEn ?? item.title ?? item.name ?? '',
+    titleAr: item.titleAr ?? item.titleEn ?? item.title ?? '',
+    subtitleEn: item.subtitleEn ?? item.description ?? '',
+    subtitleAr: item.subtitleAr ?? item.subtitleEn ?? item.description ?? '',
+    discount: item.discount ?? item.discountValue ?? '',
+    expiresEn: item.expiresEn ?? item.expiresAt ?? item.expiry ?? '',
+    expiresAr: item.expiresAr ?? item.expiresEn ?? item.expiresAt ?? '',
+    color: item.color ?? '#55c49a',
+    icon: mapIcon(item.icon),
+  };
+}
+
 export function usePromos(): UsePromosResult {
+  const [promos, setPromos] = useState<PromoCard[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api.get('/promo')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+        setPromos(raw.map(mapPromoCard));
+      })
+      .catch((e: any) => {
+        const status = e?.response?.status;
+        if (status === 403 || status === 404) {
+          // admin-only or not found — silently return empty
+        } else {
+          console.warn('[usePromos] GET /promo error:', e?.message ?? e);
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
   const validateCode = useCallback(async (code: string, _orderAmount?: number) => {
     try {
       const { data } = await api.post('/promo/validate', { code });
@@ -48,5 +101,5 @@ export function usePromos(): UsePromosResult {
 
   const validatePromo = useCallback((code: string) => validateCode(code), [validateCode]);
 
-  return { promos: [], loading: false, validateCode, validatePromo };
+  return { promos, loading, validateCode, validatePromo };
 }

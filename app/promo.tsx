@@ -6,7 +6,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ArrowLeft, Check, Tag, XCircle, Clock } from 'lucide-react-native';
+import { ArrowLeft, Check, Tag, XCircle, Clock, Inbox } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -90,6 +90,15 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
     },
     successBtnText: { fontSize: 15, fontWeight: '700', color: c.isDark ? c.background : c.white },
+
+    emptyState: {
+      alignItems: 'center', gap: 12, paddingVertical: 40, paddingHorizontal: 32,
+    },
+    emptyIcon: {
+      width: 64, height: 64, borderRadius: 20, backgroundColor: c.mist,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    emptyText: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
   });
 }
 
@@ -214,41 +223,50 @@ export default function PromoScreen() {
 
           <Text style={styles.sectionLabel}>{t('promo_featured')}</Text>
           <View style={styles.promoList}>
-            {promos.map((promo) => (
-              <TouchableOpacity
-                key={promo.code}
-                style={styles.promoCard}
-                onPress={() => handleCardPress(promo.code)}
-                activeOpacity={0.88}
-              >
-                <LinearGradient
-                  colors={[promo.color, `${promo.color}cc`]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.promoGrad}
+            {promos.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                  <Inbox size={28} color={c.inkSoft} />
+                </View>
+                <Text style={styles.emptyText}>{t('promo_no_featured')}</Text>
+              </View>
+            ) : (
+              promos.map((promo) => (
+                <TouchableOpacity
+                  key={promo.code}
+                  style={styles.promoCard}
+                  onPress={() => handleCardPress(promo.code)}
+                  activeOpacity={0.88}
                 >
-                  <View style={styles.promoIconWrap}>
-                    {React.createElement(promo.icon as React.ComponentType<{size?:number;color?:string}>, { size: 24, color: '#ffffff' })}
-                  </View>
-                  <View style={styles.promoMeta}>
-                    <Text style={styles.promoTitle}>{isAr ? promo.titleAr : promo.titleEn}</Text>
-                    <Text style={styles.promoSub}>{isAr ? promo.subtitleAr : promo.subtitleEn}</Text>
-                    <View style={styles.promoExpiry}>
-                      <Clock size={11} color="rgba(255,255,255,0.6)" />
-                      <Text style={styles.promoExpiryText}>
-                        {t('promo_expires')} {isAr ? promo.expiresAr : promo.expiresEn}
-                      </Text>
+                  <LinearGradient
+                    colors={[promo.color, `${promo.color}cc`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.promoGrad}
+                  >
+                    <View style={styles.promoIconWrap}>
+                      {React.createElement(promo.icon as React.ComponentType<{size?:number;color?:string}>, { size: 24, color: '#ffffff' })}
                     </View>
-                  </View>
-                  <View style={styles.promoRight}>
-                    <Text style={styles.promoDiscount}>{promo.discount}</Text>
-                    <View style={styles.promoCodeBadge}>
-                      <Text style={styles.promoCodeText}>{promo.code}</Text>
+                    <View style={styles.promoMeta}>
+                      <Text style={styles.promoTitle}>{isAr ? promo.titleAr : promo.titleEn}</Text>
+                      <Text style={styles.promoSub}>{isAr ? promo.subtitleAr : promo.subtitleEn}</Text>
+                      <View style={styles.promoExpiry}>
+                        <Clock size={11} color="rgba(255,255,255,0.6)" />
+                        <Text style={styles.promoExpiryText}>
+                          {t('promo_expires')} {isAr ? promo.expiresAr : promo.expiresEn}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
+                    <View style={styles.promoRight}>
+                      <Text style={styles.promoDiscount}>{promo.discount}</Text>
+                      <View style={styles.promoCodeBadge}>
+                        <Text style={styles.promoCodeText}>{promo.code}</Text>
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </ScrollView>
       )}

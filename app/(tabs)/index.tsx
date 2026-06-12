@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, TextInput,
 } from 'react-native';
@@ -17,6 +17,7 @@ import { useTabBar } from '@/context/TabBarContext';
 import { CarMap } from '@/components/car/CarMap';
 import { BikeMap } from '@/components/bike/BikeMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
+import api from '@/src/api/client';
 
 type ServiceMode = 'shuttle' | 'car' | 'scooter';
 
@@ -27,7 +28,15 @@ const SERVICES = [
   { id: 'delivery' as const, labelKey: 'delivery' as const, icon: Package },
 ];
 
-const MOCK_LOCATIONS: { id: string; name: string; description: string; lat: number; lng: number }[] = [];
+interface SavedLocation {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  label?: string;
+  isDefault?: boolean;
+}
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -118,6 +127,25 @@ export default function HomeScreen() {
   const [activeSearchField, setActiveSearchField] = useState<'from' | 'to' | null>(null);
   const [typedText, setTypedText] = useState('');
   const [headerHeight, setHeaderHeight] = useState(220);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+
+  // Fetch saved locations on mount
+  useEffect(() => {
+    api.get('/user/locations')
+      .then(({ data }) => {
+        const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+        setSavedLocations(raw.map((item: any) => ({
+          id: String(item.id ?? item._id ?? Math.random()),
+          name: item.name ?? item.label ?? '',
+          address: item.address ?? '',
+          latitude: item.latitude ?? item.lat ?? 0,
+          longitude: item.longitude ?? item.lng ?? 0,
+          label: item.label,
+          isDefault: item.isDefault ?? false,
+        })));
+      })
+      .catch(() => {});
+  }, []);
 
   // تحديث لـ 5 خطوط في الـ Most Booked
   const mostBookedRoutes = useMemo(() => {
@@ -141,11 +169,14 @@ export default function HomeScreen() {
   };
 
   const filteredSuggestions = useMemo(() => {
-    if (!typedText) return MOCK_LOCATIONS;
-    return MOCK_LOCATIONS.filter(loc => loc.name.toLowerCase().includes(typedText.toLowerCase()));
-  }, [typedText]);
+    if (!typedText) return savedLocations;
+    const lower = typedText.toLowerCase();
+    return savedLocations.filter(
+      loc => loc.name.toLowerCase().includes(lower) || loc.address.toLowerCase().includes(lower),
+    );
+  }, [typedText, savedLocations]);
 
-  const handleSelectLocation = (location: typeof MOCK_LOCATIONS[0]) => {
+  const handleSelectLocation = useCallback((location: SavedLocation) => {
     if (activeSearchField === 'from') {
       setPickupLocation(location.name);
     } else {
@@ -154,7 +185,7 @@ export default function HomeScreen() {
     }
     setActiveSearchField(null);
     setTypedText('');
-  };
+  }, [activeSearchField]);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -375,19 +406,27 @@ export default function HomeScreen() {
           ...S.float,
         }}>
           <ScrollView keyboardShouldPersistTaps="handled">
-            {filteredSuggestions.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border }}
-                onPress={() => handleSelectLocation(item)}
-              >
-                <Navigation size={15} color={c.inkSoft} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13.5, fontWeight: '500', color: c.ink }}>{item.name}</Text>
-                  <Text style={{ fontSize: 11.5, color: c.inkSoft }}>{item.description}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {filteredSuggestions.length === 0 ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', lineHeight: 19 }}>
+                  {t('no_saved_locations')}
+                </Text>
+              </View>
+            ) : (
+              filteredSuggestions.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border }}
+                  onPress={() => handleSelectLocation(item)}
+                >
+                  <Navigation size={15} color={c.inkSoft} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13.5, fontWeight: '500', color: c.ink }}>{item.name}</Text>
+                    {!!item.address && <Text style={{ fontSize: 11.5, color: c.inkSoft }}>{item.address}</Text>}
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </ScrollView>
         </View>
       )}

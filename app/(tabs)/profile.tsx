@@ -4,7 +4,7 @@ import {
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Check, CreditCard, Trash2, Plus, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -203,56 +203,26 @@ function PersonalInfoModal({ visible, onClose, onSaved }: { visible: boolean; on
   );
 }
 
-const MOCK_CARDS: { id: string; type: string; last4: string; expiry: string; isDefault: boolean }[] = [];
-
 function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const [cards, setCards] = useState(MOCK_CARDS);
-
-  const removeCard = (id: string) => {
-    Alert.alert(t('remove_card'), 'Remove this card?', [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('remove_card'), style: 'destructive', onPress: () => setCards((prev) => prev.filter((c) => c.id !== id)) },
-    ]);
-  };
-
-  const addCard = () => {
-    Alert.alert(t('add_card'), 'Card input would open here in production.');
-  };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modal}>
-        <ModalHeader title={t('payment_title')} onClose={onClose} actionLabel={t('add_card')} onAction={addCard} />
+        <ModalHeader title={t('payment_title')} onClose={onClose} />
         <ScrollView contentContainerStyle={styles.modalScroll}>
-          {cards.map((card) => (
-            <View key={card.id} style={styles.cardRow}>
-              <View style={styles.cardIconBox}>
-                <CreditCard size={20} color={c.ink} />
-              </View>
-              <View style={styles.cardLabel}>
-                <Text style={styles.cardName}>{card.type} {t('card_ending')} {card.last4}</Text>
-                <Text style={styles.cardSub}>Exp {card.expiry}</Text>
-              </View>
-              {card.isDefault ? (
-                <View style={styles.defaultBadge}>
-                  <Text style={styles.defaultBadgeText}>{t('default_card')}</Text>
-                </View>
-              ) : (
-                <TouchableOpacity onPress={() => removeCard(card.id)} activeOpacity={0.8}>
-                  <Trash2 size={18} color={c.badge} />
-                </TouchableOpacity>
-              )}
+          <View style={styles.cardRow}>
+            <View style={styles.cardIconBox}>
+              <CreditCard size={20} color={c.ink} />
             </View>
-          ))}
-          <View style={[styles.cardRow, { borderStyle: 'dashed', borderWidth: 1.5, borderColor: c.border, backgroundColor: 'transparent' }]}>
-            <TouchableOpacity style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 }} onPress={addCard} activeOpacity={0.8}>
-              <View style={[styles.cardIconBox, { backgroundColor: c.mist }]}>
-                <Plus size={22} color={c.ink} />
-              </View>
-              <Text style={[styles.cardName, { color: c.inkSoft }]}>{t('add_card')}</Text>
-            </TouchableOpacity>
+            <View style={styles.cardLabel}>
+              <Text style={styles.cardName}>{t('payment_methods_cash')}</Text>
+              <Text style={styles.cardSub}>{t('payment_cards_soon')}</Text>
+            </View>
+            <View style={styles.defaultBadge}>
+              <Text style={styles.defaultBadgeText}>{t('active')}</Text>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -613,7 +583,7 @@ export default function ProfileScreen() {
           <View style={[gs, styles.groupCard]}>
             {[
               { icon: User, label: t('personal_info'), value: heroName, screen: 'personal_info' as ProfileScreen },
-              { icon: CreditCard, label: t('payment_methods'), value: '2 cards', screen: 'payment_methods' as ProfileScreen },
+              { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash'), screen: 'payment_methods' as ProfileScreen },
               { icon: Lock, label: t('security_title'), value: undefined, screen: 'security' as ProfileScreen },
               { icon: Shield, label: t('privacy'), value: undefined, screen: 'privacy' as ProfileScreen },
             ].map((item, i) => (

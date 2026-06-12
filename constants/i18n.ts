@@ -368,6 +368,15 @@ const en = {
   wallet_payment: 'Wallet',
   trip_distance: 'Distance',
   trip_duration: 'Duration',
+
+  payment_cards_soon: 'Card payments coming soon',
+  profile_payment_info: 'Payment: Cash only (cards coming soon)',
+  promo_no_featured: 'No featured promos right now. Enter a code manually.',
+  no_saved_locations: 'No saved locations found. You can save locations from your profile.',
+  saved_locations: 'Saved Locations',
+  save_location_btn: 'Save this location',
+  service_unavailable: 'Unavailable',
+  payment_methods_cash: 'Cash',
 };
 
 const ar: typeof en = {
@@ -740,6 +749,15 @@ const ar: typeof en = {
   wallet_payment: 'محفظة',
   trip_distance: 'المسافة',
   trip_duration: 'المدة',
+
+  payment_cards_soon: 'الدفع بالبطاقة قريباً',
+  profile_payment_info: 'الدفع: نقداً فقط (البطاقات قريباً)',
+  promo_no_featured: 'لا توجد عروض مميزة حالياً. أدخل الكود يدوياً.',
+  no_saved_locations: 'لا توجد مواقع محفوظة. يمكنك حفظ المواقع من ملفك الشخصي.',
+  saved_locations: 'المواقع المحفوظة',
+  save_location_btn: 'حفظ هذا الموقع',
+  service_unavailable: 'غير متاح',
+  payment_methods_cash: 'نقداً',
 };
 
 export type LangKey = keyof typeof en;

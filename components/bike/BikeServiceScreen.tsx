@@ -14,6 +14,8 @@ import { useRide } from '@/src/hooks/useRide';
 import { usePromos } from '@/src/hooks/usePromos';
 import { ChatModal } from '@/components/car/ChatModal';
 import { BikeMap } from '@/components/bike/BikeMap';
+import { useServiceControl } from '@/context/ServiceControlContext';
+import api from '@/src/api/client';
 
 function fmtSecs(s: number): string {
   if (s <= 0) return '0:00';
@@ -27,8 +29,28 @@ interface BikeServiceScreenProps {
   embedded?: boolean;
 }
 
-const WADI_LOCS_AR: string[] = [];
-const WADI_LOCS_EN: string[] = [];
+interface SavedLoc { id: string; name: string; address: string; nameAr?: string; }
+
+function useSavedBikeLocations() {
+  const [locs, setLocs] = useState<SavedLoc[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/user/locations')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+        setLocs(raw.map((item: any) => ({
+          id: String(item.id ?? item._id ?? Math.random()),
+          name: item.name ?? item.label ?? '',
+          address: item.address ?? '',
+          nameAr: item.nameAr ?? item.name ?? item.label ?? '',
+        })));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return locs;
+}
 
 const MOCK_RIDER = {
   name: '',
@@ -214,6 +236,9 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
   const insetTop = Platform.OS === 'web' ? 60 : insets.top;
   const styles = useMemo(() => makeStyles(c, insetTop), [c, insetTop]);
 
+  const { getService } = useServiceControl();
+  const bikeService = getService('scooter');
+
   const [phase, setPhase] = useState<BikePhase>('idle');
   const [destination, setDestination] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -225,6 +250,7 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
   const { recents, addRecent, clearRecents } = useRecentSearches('bike');
   const { requestRide, rideState } = useRide();
   const { validateCode } = usePromos();
+  const savedLocs = useSavedBikeLocations();
   const [promoInput, setPromoInput] = useState<string>('');
   const [promoStatus, setPromoStatus] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle');
   const [promoDiscount, setPromoDiscount] = useState('');
@@ -272,7 +298,7 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
   const driverPanY = useRef(new Animated.Value(0)).current;
   const bikeDotPulse = useRef(new Animated.Value(1)).current;
 
-  const WADI_LOCS = isAr ? WADI_LOCS_AR : WADI_LOCS_EN;
+  const WADI_LOCS = savedLocs.map(l => isAr ? (l.nameAr ?? l.name) : l.name);
   const filteredLocs = searchQuery.trim()
     ? WADI_LOCS.filter(l => l.toLowerCase().includes(searchQuery.toLowerCase()))
     : WADI_LOCS;
@@ -372,6 +398,7 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
     if (searchTimer.current) clearTimeout(searchTimer.current);
     requestRide({
       type: 'bike',
+      vehicleType: 'motorcycle',
       pickup: { latitude: 25.4449, longitude: 30.5597, address: CURRENT_LOCATION_EN },
       dropoff: { latitude: 25.4449, longitude: 30.5597, address: destination ?? '' },
       ...(appliedPromoCode ? { promoCode: appliedPromoCode } : {}),
@@ -440,6 +467,27 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
   const borderCol = c.isDark ? 'rgba(90,95,160,0.25)' : 'rgba(255,255,255,0.8)';
   const riderName = isAr ? MOCK_RIDER.name : MOCK_RIDER.nameEn;
   const riderInitials = isAr ? MOCK_RIDER.initials : MOCK_RIDER.initialsEn;
+
+  // Service control: show coming_soon or unavailable screen before normal UI
+  if (bikeService && !bikeService.isEnabled) {
+    const msg = bikeService.unavailableMessage ?? (bikeService.displayMode === 'coming_soon' ? t('soon_msg') : t('service_unavailable'));
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
+        {!embedded && (
+          <TouchableOpacity style={[styles.backBtn, { position: 'absolute', top: insetTop + 8, left: 16 }]} onPress={onBack} activeOpacity={0.85}>
+            {isRTL ? <ArrowRight size={18} color="#ffffff" /> : <ArrowLeft size={18} color="#ffffff" />}
+          </TouchableOpacity>
+        )}
+        <Bike size={56} color="#55c49a" />
+        <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '700', marginTop: 16, textAlign: 'center' }}>
+          {bikeService.displayMode === 'coming_soon' ? t('soon') : t('service_unavailable')}
+        </Text>
+        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, marginTop: 10, textAlign: 'center', lineHeight: 22 }}>
+          {msg}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>

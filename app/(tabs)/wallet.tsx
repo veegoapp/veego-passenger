@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle } from 'lucide-react-native';
+import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -48,6 +48,14 @@ function makeStyles(c: ThemeColors) {
     txSub: { fontSize: 11.5, color: c.inkSoft },
     txDate: { fontSize: 10.5, color: c.silver, marginTop: 2 },
     txAmount: { fontSize: 15, fontWeight: '700' },
+    pmSection: { marginBottom: 20 },
+    pmCard: { borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.white },
+    pmIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
+    pmMeta: { flex: 1, gap: 2 },
+    pmName: { fontSize: 14, fontWeight: '600', color: c.ink },
+    pmSub: { fontSize: 12, color: c.inkSoft },
+    pmBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: 'rgba(85,196,154,0.15)' },
+    pmBadgeText: { fontSize: 11, fontWeight: '600', color: '#55c49a' },
     debtBanner: {
       marginHorizontal: 20, marginBottom: 16, borderRadius: 18,
       backgroundColor: '#fff3cd', borderWidth: 1.5, borderColor: '#f59e0b',
@@ -225,6 +233,24 @@ export default function WalletScreen() {
               </Text>
             </TouchableOpacity>
           )}
+        </View>
+
+        <View style={styles.pmSection}>
+          <Text style={styles.sectionLabel}>{t('payment_title')}</Text>
+          <View style={{ paddingHorizontal: 20, gap: 10 }}>
+            <View style={[styles.pmCard]}>
+              <View style={styles.pmIconBox}>
+                <Banknote size={20} color={c.ink} />
+              </View>
+              <View style={styles.pmMeta}>
+                <Text style={styles.pmName}>{t('payment_methods_cash')}</Text>
+                <Text style={styles.pmSub}>{t('payment_cards_soon')}</Text>
+              </View>
+              <View style={styles.pmBadge}>
+                <Text style={styles.pmBadgeText}>{t('active')}</Text>
+              </View>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
