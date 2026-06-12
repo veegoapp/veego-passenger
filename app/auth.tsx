@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
@@ -334,73 +334,310 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
 function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
   const { t } = useTheme();
+  type ForgotStep = 'phone' | 'otp' | 'reset';
+  const [step, setStep] = useState<ForgotStep>('phone');
   const [phone, setPhone] = useState('');
+  const [otpToken, setOtpToken] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
 
+  // ── Step A: Phone submission ──────────────────────────────────────────────
   const handleSend = async () => {
     if (!phone.trim()) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
+    setError('');
     try {
       await api.post('/auth/forgot-password', { phone: phone.trim() });
     } catch {
-      // Always show success to prevent enumeration
+      // Always advance to OTP step to prevent phone enumeration
     } finally {
       setLoading(false);
     }
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setSent(true);
+    setStep('otp');
   };
 
-  if (sent) {
+  if (step === 'phone') {
     return (
-      <View style={[styles.form, { alignItems: 'center', gap: 16 }]}>
-        <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', ...S.float }}>
-          <Check size={28} color={C.white} />
+      <View style={styles.form}>
+        <View style={styles.formHeader}>
+          <Text style={styles.formTitle}>{t('forgot_title')}</Text>
+          <Text style={styles.formSubtitle}>{t('forgot_subtitle')}</Text>
         </View>
-        <Text style={[styles.formTitle, { textAlign: 'center' }]}>{t('otp_title')}</Text>
-        <Text style={[styles.formSubtitle, { textAlign: 'center' }]}>{t('otp_subtitle')} {phone}</Text>
-        <TouchableOpacity style={styles.primaryBtn} onPress={onSuccess} activeOpacity={0.9}>
-          <Text style={styles.primaryBtnText}>{t('back')}</Text>
+
+        <View style={styles.inputWrap}>
+          <View style={styles.inputIcon}>
+            <Phone size={16} color={C.inkSoft} />
+          </View>
+          <TextInput
+            style={styles.inputField}
+            placeholder={t('phone_placeholder')}
+            placeholderTextColor={C.silver}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            autoCapitalize="none"
+          />
+        </View>
+
+        {!!error && <Text style={styles.fieldError}>{error}</Text>}
+
+        <TouchableOpacity
+          style={[styles.primaryBtn, (!phone.trim() || loading) && { opacity: 0.6 }]}
+          activeOpacity={0.9}
+          onPress={handleSend}
+          disabled={!phone.trim() || loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={C.white} size="small" />
+          ) : (
+            <>
+              <Text style={styles.primaryBtnText}>{t('send_code')}</Text>
+              <ArrowRight size={16} color={C.white} />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     );
   }
 
+  if (step === 'otp') {
+    return (
+      <OtpStep
+        phone={phone}
+        onVerified={(token) => { setOtpToken(token); setStep('reset'); }}
+        onResend={handleSend}
+        t={t}
+      />
+    );
+  }
+
+  return (
+    <ResetStep
+      token={otpToken}
+      onSuccess={() => {
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onSuccess();
+      }}
+      t={t}
+    />
+  );
+}
+
+function OtpStep({
+  phone, onVerified, onResend, t,
+}: {
+  phone: string;
+  onVerified: (token: string) => void;
+  onResend: () => void;
+  t: (k: string) => string;
+}) {
+  const OTP_LENGTH = 6;
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [countdown, setCountdown] = useState(60);
+  const inputRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [countdown]);
+
+  const handleVerify = async () => {
+    if (otp.length < OTP_LENGTH) return;
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await api.post('/auth/verify-otp', { phone, otp });
+      const token = data?.token ?? data?.resetToken ?? data?.data?.token ?? '';
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onVerified(token);
+    } catch {
+      setError(t('invalid_otp'));
+      setOtp('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = () => {
+    setCountdown(60);
+    setError('');
+    onResend();
+  };
+
+  // Render digit boxes backed by a hidden TextInput
+  const digits = otp.split('');
+  while (digits.length < OTP_LENGTH) digits.push('');
+
   return (
     <View style={styles.form}>
       <View style={styles.formHeader}>
-        <Text style={styles.formTitle}>{t('forgot_title')}</Text>
-        <Text style={styles.formSubtitle}>{t('forgot_subtitle')}</Text>
+        <Text style={styles.formTitle}>{t('otp_title')}</Text>
+        <Text style={styles.formSubtitle}>{t('otp_subtitle')} {phone}</Text>
       </View>
 
-      <View style={styles.inputWrap}>
-        <View style={styles.inputIcon}>
-          <Phone size={16} color={C.inkSoft} />
-        </View>
-        <TextInput
-          style={styles.inputField}
-          placeholder={t('phone_placeholder')}
-          placeholderTextColor={C.silver}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          autoCapitalize="none"
-        />
+      {/* Hidden real input */}
+      <TextInput
+        ref={inputRef}
+        style={styles.otpHiddenInput}
+        value={otp}
+        onChangeText={(v) => {
+          const cleaned = v.replace(/\D/g, '').slice(0, OTP_LENGTH);
+          setOtp(cleaned);
+          setError('');
+        }}
+        keyboardType="number-pad"
+        maxLength={OTP_LENGTH}
+        autoFocus
+        caretHidden
+      />
+
+      {/* Visual digit boxes */}
+      <View style={styles.otpRow}>
+        {digits.map((d, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[styles.otpBox, otp.length === i && styles.otpBoxActive, !!d && styles.otpBoxFilled]}
+            activeOpacity={0.85}
+            onPress={() => inputRef.current?.focus()}
+          >
+            <Text style={styles.otpDigit}>{d}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
+
+      {!!error && <Text style={styles.fieldError}>{error}</Text>}
 
       <TouchableOpacity
-        style={[styles.primaryBtn, (!phone.trim() || loading) && { opacity: 0.6 }]}
+        style={[styles.primaryBtn, (otp.length < OTP_LENGTH || loading) && { opacity: 0.6 }]}
         activeOpacity={0.9}
-        onPress={handleSend}
-        disabled={!phone.trim() || loading}
+        onPress={handleVerify}
+        disabled={otp.length < OTP_LENGTH || loading}
       >
         {loading ? (
           <ActivityIndicator color={C.white} size="small" />
         ) : (
           <>
-            <Text style={styles.primaryBtnText}>{t('send_code')}</Text>
+            <Text style={styles.primaryBtnText}>{t('verify')}</Text>
+            <ArrowRight size={16} color={C.white} />
+          </>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.resendBtn, countdown > 0 && { opacity: 0.4 }]}
+        onPress={handleResend}
+        disabled={countdown > 0}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.resendBtnText}>
+          {countdown > 0
+            ? t('resend_in').replace('{s}', String(countdown))
+            : t('resend_otp')}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function ResetStep({
+  token, onSuccess, t,
+}: {
+  token: string;
+  onSuccess: () => void;
+  t: (k: string) => string;
+}) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleReset = async () => {
+    if (!password.trim() || !confirm.trim()) return;
+    if (password !== confirm) {
+      setError(t('passwords_no_match'));
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/reset-password', { token, password });
+      Alert.alert(t('verify'), t('password_reset_success'));
+      onSuccess();
+    } catch (e: any) {
+      const msg = e?.response?.data?.message ?? e?.response?.data?.error ?? 'Reset failed. Please try again.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.form}>
+      <View style={styles.formHeader}>
+        <Text style={styles.formTitle}>{t('reset_password')}</Text>
+        <Text style={styles.formSubtitle}>{t('forgot_subtitle')}</Text>
+      </View>
+
+      <View style={styles.inputWrap}>
+        <View style={styles.inputIcon}>
+          <Lock size={16} color={C.inkSoft} />
+        </View>
+        <TextInput
+          style={[styles.inputField, { flex: 1 }]}
+          placeholder={t('new_password')}
+          placeholderTextColor={C.silver}
+          value={password}
+          onChangeText={(v) => { setPassword(v); setError(''); }}
+          secureTextEntry={!showPass}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
+          {showPass ? <EyeOff size={16} color={C.inkSoft} /> : <Eye size={16} color={C.inkSoft} />}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.inputWrap}>
+        <View style={styles.inputIcon}>
+          <Lock size={16} color={C.inkSoft} />
+        </View>
+        <TextInput
+          style={[styles.inputField, { flex: 1 }]}
+          placeholder={t('confirm_password')}
+          placeholderTextColor={C.silver}
+          value={confirm}
+          onChangeText={(v) => { setConfirm(v); setError(''); }}
+          secureTextEntry={!showPass}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
+
+      {!!error && <Text style={styles.fieldError}>{error}</Text>}
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, (!password.trim() || !confirm.trim() || loading) && { opacity: 0.6 }]}
+        activeOpacity={0.9}
+        onPress={handleReset}
+        disabled={!password.trim() || !confirm.trim() || loading}
+      >
+        {loading ? (
+          <ActivityIndicator color={C.white} size="small" />
+        ) : (
+          <>
+            <Text style={styles.primaryBtnText}>{t('reset_password')}</Text>
             <ArrowRight size={16} color={C.white} />
           </>
         )}
@@ -445,4 +682,60 @@ const styles = StyleSheet.create({
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 4 },
   termsText: { fontSize: 11, color: C.inkSoft, flex: 1 },
   termsLink: { color: C.ink, fontWeight: '600' },
+
+  fieldError: {
+    fontSize: 12.5,
+    color: '#dc2626',
+    marginTop: -4,
+    paddingHorizontal: 4,
+  },
+
+  otpHiddenInput: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
+  otpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginVertical: 8,
+  },
+  otpBox: {
+    width: 44,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    backgroundColor: C.mist,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpBoxActive: {
+    borderColor: C.ink,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  otpBoxFilled: {
+    borderColor: C.accentMint,
+    backgroundColor: 'rgba(85,196,154,0.06)',
+  },
+  otpDigit: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: C.ink,
+    letterSpacing: -0.5,
+  },
+
+  resendBtn: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  resendBtnText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: C.inkSoft,
+  },
 });

@@ -3,14 +3,15 @@ set -e
 
 # ── Check required env ───────────────────────────────────────────
 if [ -z "$BACKEND_URL" ]; then
-  echo "❌ ERROR: BACKEND_URL is not set in Replit Secrets."
-  echo "👉 Please add BACKEND_URL to connect the app to backend."
-  exit 1
+  echo "⚠️  WARNING: BACKEND_URL is not set in Replit Secrets."
+  echo "👉  Add BACKEND_URL to connect the app to a real backend."
+  echo "    The app will start but API calls will not work until it is set."
+  printf 'EXPO_PUBLIC_API_URL=\n' > .env
+else
+  # ── Create env file safely ─────────────────────────────────────
+  printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
+  echo "=== API URL set: $BACKEND_URL ==="
 fi
-
-# ── Create env file safely ───────────────────────────────────────
-printf 'EXPO_PUBLIC_API_URL=%s\n' "$BACKEND_URL" > .env
-echo "=== API URL set: $BACKEND_URL ==="
 
 # ── Install deps ─────────────────────────────────────────────────
 echo "=== Installing dependencies ==="

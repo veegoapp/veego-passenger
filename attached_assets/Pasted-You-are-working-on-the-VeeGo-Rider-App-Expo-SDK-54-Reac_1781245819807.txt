@@ -1,0 +1,72 @@
+You are working on the VeeGo Rider App (Expo SDK 54 / React Native / Expo Router). Backend base URL is EXPO_PUBLIC_API_URL. Auth token sent as Bearer. Complete all 4 tasks in order. After finishing, output a report titled "## What was done".
+
+---
+
+TASK 1 — Fix FALLBACK_BOOKING_ID in ticket screen
+
+Location: app/ticket.tsx
+
+What to fix:
+- Currently if navigation params are missing, the screen renders FALLBACK_BOOKING_ID = 'VEEGO-0000' which looks like a real booking reference
+- Add a hard guard at the top of the screen: if bookingId param is missing or undefined → do NOT render the ticket UI at all
+- Instead show a full-screen error state: icon + message "Could not load your ticket. Please go back and try again." + a Back button that calls router.back()
+- Remove the FALLBACK_BOOKING_ID constant entirely
+- Add i18n keys for the error message and button (EN + AR)
+
+---
+
+TASK 2 — Multi-seat shuttle booking
+
+Location: context/BookingContext.tsx and components/shared/TripSheet.tsx
+
+What to fix:
+- seatCount is hardcoded to 1 in BookingContext
+- Add a seat selector to TripSheet.tsx: a simple +/- counter (min 1, max available seats from the trip's availableSeats field)
+- The selected seatCount must be passed through BookingContext and sent in POST /bookings as { tripId, seatCount, stationId }
+- Show the total price = seatCount × ticketPrice below the seat selector, updating live as seatCount changes
+- Disable the confirm button if seatCount > availableSeats
+- Add i18n keys for seat selector labels (EN + AR)
+
+---
+
+TASK 3 — 10-hour cancellation warning
+
+Location: app/(tabs)/trips.tsx and app/trip-detail.tsx
+
+What to build:
+- When the user taps "Cancel booking" for a shuttle trip, before showing the confirmation:
+  1. Check if the trip departure time is within 10 hours from now (client-side date comparison)
+  2. If within 10 hours → show a warning bottom sheet or Alert: "Cancelling within 10 hours means the full ticket price will be charged. Are you sure?" with Cancel and Confirm buttons
+  3. If more than 10 hours away → show a simple confirmation: "Cancel this booking?" with Cancel and Confirm buttons
+- On confirm → call PATCH /bookings/:id/cancel
+- Add i18n keys for both warning variants (EN + AR)
+
+---
+
+TASK 4 — Post-trip fare receipt screen
+
+Location: create new screen app/receipt.tsx
+
+What to build:
+- After ride:completed socket event fires in useRide.ts, instead of only opening RatingSheet, first navigate to app/receipt.tsx passing the ride data
+- The receipt screen shows:
+  - Route: pickup address → dropoff address
+  - Distance (km) and duration (minutes)
+  - Base fare, waiting charge (if any), surge multiplier (if > 1), promo discount (if any)
+  - Total fare (bold, large)
+  - Payment method used (wallet / cash)
+  - Driver name and rating
+  - A "Rate your driver" button at the bottom → opens RatingSheet
+  - A "Done" button that dismisses and goes back to home
+- Fetch ride details from GET /rides/:rideId if not already in state
+- Add i18n keys for all labels (EN + AR)
+- Register the new screen in app/_layout.tsx
+
+---
+
+After completing all 4 tasks output:
+## What was done
+- Task 1: [files modified, what changed]
+- Task 2: [files modified, what changed]
+- Task 3: [files modified, what changed]
+- Task 4: [files created/modified, what changed]

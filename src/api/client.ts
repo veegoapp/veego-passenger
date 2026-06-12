@@ -5,16 +5,19 @@ import { router } from 'expo-router';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
-  throw new Error(
+  console.warn(
     '[VeeGo] EXPO_PUBLIC_API_URL is not set. ' +
-    'Create a .env file in artifacts/passenger-app/ with:\n' +
-    '  EXPO_PUBLIC_API_URL=https://<your-replit-domain>/api'
+    'Add BACKEND_URL to Replit Secrets to connect to a real backend.'
   );
 }
-const _normalizedUrl = _rawApiUrl.includes('=')
-  ? _rawApiUrl.split('=').slice(1).join('=').trim()
-  : _rawApiUrl.trim();
-const BASE_URL: string = _normalizedUrl.startsWith('http') ? _normalizedUrl : `https://${_normalizedUrl}`;
+const _normalizedUrl = (_rawApiUrl ?? '').includes('=')
+  ? (_rawApiUrl ?? '').split('=').slice(1).join('=').trim()
+  : (_rawApiUrl ?? '').trim();
+const BASE_URL: string = _normalizedUrl.startsWith('http')
+  ? _normalizedUrl
+  : _normalizedUrl
+    ? `https://${_normalizedUrl}`
+    : 'http://localhost:3000';
 
 const TOKEN_KEY = 'veego_access_token';
 const REFRESH_KEY = 'veego_refresh_token';

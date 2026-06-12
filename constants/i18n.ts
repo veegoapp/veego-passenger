@@ -312,6 +312,38 @@ const en = {
   promo_expires: 'Expires',
   promo_code_copied: 'Copied to input!',
   promo_wallet_credit: 'Wallet credit',
+
+  safety_title: 'Safety',
+  call_122: 'Call 122',
+  call_122_sub: 'Emergency services',
+  share_trip: 'Share trip on WhatsApp',
+  share_trip_sub: 'Send trip details to a contact',
+  report_emergency: 'Report emergency',
+  report_emergency_sub: 'Alert our safety team immediately',
+  emergency_notified: 'Emergency services notified',
+  sos_error: 'Could not send SOS. Please call 122 directly.',
+  safety_whatsapp_intro: 'I need help! I am currently in a VeeGo ride.',
+  safety_location: 'My current location',
+
+  deviation_warning: 'Your driver may be off-route. Stay alert.',
+  dismiss: 'Dismiss',
+
+  select_reason: 'Please select a reason',
+  reason_driver_far: 'Driver is too far away',
+  reason_wait_long: 'Wait time too long',
+  reason_wrong_vehicle: 'Wrong vehicle type',
+  reason_changed_mind: 'Changed my mind',
+  reason_other: 'Other',
+  confirm_cancel: 'Confirm cancellation',
+  cancel_error: 'Failed to cancel. Please try again.',
+
+  resend_in: 'Resend in {s}s',
+  resend_otp: 'Resend OTP',
+  new_password: 'New password',
+  confirm_password: 'Confirm password',
+  reset_password: 'Reset password',
+  passwords_no_match: 'Passwords do not match',
+  password_reset_success: 'Password reset! Please sign in with your new password.',
 };
 
 const ar: typeof en = {
@@ -628,6 +660,38 @@ const ar: typeof en = {
   promo_expires: 'ينتهي',
   promo_code_copied: 'تم النسخ!',
   promo_wallet_credit: 'رصيد المحفظة',
+
+  safety_title: 'السلامة',
+  call_122: 'اتصل بـ 122',
+  call_122_sub: 'خدمات الطوارئ',
+  share_trip: 'شارك الرحلة على واتساب',
+  share_trip_sub: 'أرسل تفاصيل الرحلة لشخص تثق به',
+  report_emergency: 'الإبلاغ عن طارئ',
+  report_emergency_sub: 'تنبيه فريق السلامة فوراً',
+  emergency_notified: 'تم إبلاغ خدمات الطوارئ',
+  sos_error: 'تعذر إرسال SOS. يرجى الاتصال بـ 122 مباشرة.',
+  safety_whatsapp_intro: 'أحتاج للمساعدة! أنا حالياً في رحلة VeeGo.',
+  safety_location: 'موقعي الحالي',
+
+  deviation_warning: 'قد يكون سائقك خارج المسار. كن يقظاً.',
+  dismiss: 'إخفاء',
+
+  select_reason: 'يرجى اختيار سبب الإلغاء',
+  reason_driver_far: 'السائق بعيد جداً',
+  reason_wait_long: 'وقت الانتظار طويل',
+  reason_wrong_vehicle: 'نوع المركبة غير مناسب',
+  reason_changed_mind: 'غيّرت رأيي',
+  reason_other: 'سبب آخر',
+  confirm_cancel: 'تأكيد الإلغاء',
+  cancel_error: 'فشل الإلغاء. يرجى المحاولة مجدداً.',
+
+  resend_in: 'إعادة الإرسال خلال {s}ث',
+  resend_otp: 'إعادة إرسال الرمز',
+  new_password: 'كلمة المرور الجديدة',
+  confirm_password: 'تأكيد كلمة المرور',
+  reset_password: 'إعادة تعيين كلمة المرور',
+  passwords_no_match: 'كلمتا المرور غير متطابقتين',
+  password_reset_success: 'تمت إعادة التعيين! سجل دخولك بكلمة المرور الجديدة.',
 };
 
 export type LangKey = keyof typeof en;

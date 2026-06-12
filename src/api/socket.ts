@@ -4,18 +4,18 @@ import { tokenStore } from './client';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
-  throw new Error(
-    '[VeeGo] EXPO_PUBLIC_API_URL is not set. ' +
-    'Create a .env file with:\n' +
-    '  EXPO_PUBLIC_API_URL=https://<your-replit-domain>/api'
-  );
+  console.warn('[VeeGo] EXPO_PUBLIC_API_URL is not set. Socket will not connect until BACKEND_URL is added to Replit Secrets.');
 }
 
 // ✅ Same KEY=VALUE normalization as client.ts
-const _normalized = _rawApiUrl.includes('=')
-  ? _rawApiUrl.split('=').slice(1).join('=').trim()
-  : _rawApiUrl.trim();
-const _apiBase: string = _normalized.startsWith('http') ? _normalized : `https://${_normalized}`;
+const _normalized = (_rawApiUrl ?? '').includes('=')
+  ? (_rawApiUrl ?? '').split('=').slice(1).join('=').trim()
+  : (_rawApiUrl ?? '').trim();
+const _apiBase: string = _normalized.startsWith('http')
+  ? _normalized
+  : _normalized
+    ? `https://${_normalized}`
+    : 'http://localhost:3000';
 const SOCKET_URL = _apiBase.replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;

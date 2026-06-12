@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated, Easing,
-  ScrollView, TextInput, Platform, Alert, Dimensions,
+  ScrollView, TextInput, Platform, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Car, ShieldCheck, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle, Tag } from 'lucide-react-native';
+import { MapPin, Car, ShieldCheck, ShieldAlert, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -16,6 +16,8 @@ import { RatingSheet } from '@/components/shared/RatingSheet';
 import { ChatModal } from '@/components/car/ChatModal';
 import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
 import { usePromos } from '@/src/hooks/usePromos';
+import { SafetySheet } from '@/components/shared/SafetySheet';
+import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 
 const haptic = {
   selection: () => { if (Platform.OS !== 'web') Haptics.selectionAsync(); },
@@ -261,10 +263,12 @@ export default function CarScreen() {
     setAppliedPromoCode('');
   }, []);
 
-  const { rideState, requesting, requestRide, cancelRide: hookCancelRide, resetRide: hookResetRide } = useRide();
+  const { rideState, requesting, requestRide, cancelRide: hookCancelRide, clearDeviationWarning, resetRide: hookResetRide } = useRide();
 
   const [ratingVisible, setRatingVisible] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [safetyVisible, setSafetyVisible] = useState(false);
+  const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
   const ratedRideIds = useRef<Set<string>>(new Set());
 
   // Auto-show rating sheet when ride completes (once per rideId)
@@ -370,9 +374,15 @@ export default function CarScreen() {
     });
   }, [pickup, dropoff, requestRide, appliedPromoCode]);
 
-  const cancelRide = useCallback(() => {
+  const openCancelSheet = useCallback(() => {
+    haptic.selection();
+    setCancelSheetVisible(true);
+  }, []);
+
+  const confirmCancelRide = useCallback(async (reason: string) => {
     haptic.notify(Haptics.NotificationFeedbackType.Warning);
-    hookCancelRide();
+    await hookCancelRide(reason);
+    setCancelSheetVisible(false);
     setPhase('request');
   }, [hookCancelRide]);
 
@@ -384,15 +394,17 @@ export default function CarScreen() {
     setPriceEstimate(null);
   }, [hookResetRide]);
 
-  const handleSOS = useCallback(async () => {
-    if (!rideState.rideId) return;
-    haptic.notify(Haptics.NotificationFeedbackType.Warning);
-    try {
-      await api.post(`/rides/${rideState.rideId}/sos`);
-    } catch {
-      // SOS attempt is best-effort; do not block the user
-    }
-  }, [rideState.rideId]);
+  const openSafety = useCallback(() => {
+    haptic.impact(Haptics.ImpactFeedbackStyle.Heavy);
+    setSafetyVisible(true);
+  }, []);
+
+  // Auto-dismiss deviation warning after 30 seconds
+  useEffect(() => {
+    if (!rideState.deviationWarning) return;
+    const timer = setTimeout(() => { clearDeviationWarning(); }, 30000);
+    return () => clearTimeout(timer);
+  }, [rideState.deviationWarning, clearDeviationWarning]);
 
   const driverInitials = rideState.driver
     ? rideState.driver.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
@@ -603,6 +615,20 @@ export default function CarScreen() {
         </ScrollView>
       )}
 
+      {rideState.deviationWarning && (phase === 'active' || phase === 'arrived' || phase === 'in_trip') && (
+        <View style={styles.deviationBanner}>
+          <AlertTriangle size={14} color="#92400e" />
+          <Text style={styles.deviationBannerText}>{t('deviation_warning')}</Text>
+          <TouchableOpacity
+            onPress={clearDeviationWarning}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.deviationDismiss}
+          >
+            <Text style={styles.deviationDismissText}>{t('dismiss')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {phase === 'finding' && (
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
@@ -624,7 +650,7 @@ export default function CarScreen() {
             <Text style={styles.tripStopText} numberOfLines={1}>{dropoff}</Text>
           </View>
 
-          <TouchableOpacity style={styles.cancelBtn} onPress={cancelRide} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={openCancelSheet} activeOpacity={0.8}>
             <Text style={styles.cancelBtnText}>{t('cancel_ride')}</Text>
           </TouchableOpacity>
         </View>
@@ -694,13 +720,13 @@ export default function CarScreen() {
             <Text style={styles.tripStopText} numberOfLines={1}>{dropoff}</Text>
           </View>
 
-          <TouchableOpacity style={styles.cancelBtn} onPress={cancelRide} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={openCancelSheet} activeOpacity={0.8}>
             <Text style={styles.cancelBtnText}>{t('cancel_ride')}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
-            <AlertTriangle size={16} color="#ffffff" />
-            <Text style={styles.sosBtnText}>SOS</Text>
+          <TouchableOpacity style={styles.sosBtn} onPress={openSafety} activeOpacity={0.85}>
+            <ShieldAlert size={16} color="#ffffff" />
+            <Text style={styles.sosBtnText}>{t('safety_title').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -749,9 +775,9 @@ export default function CarScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
-            <AlertTriangle size={16} color="#ffffff" />
-            <Text style={styles.sosBtnText}>SOS</Text>
+          <TouchableOpacity style={styles.sosBtn} onPress={openSafety} activeOpacity={0.85}>
+            <ShieldAlert size={16} color="#ffffff" />
+            <Text style={styles.sosBtnText}>{t('safety_title').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -830,12 +856,27 @@ export default function CarScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
-            <AlertTriangle size={16} color="#ffffff" />
-            <Text style={styles.sosBtnText}>SOS</Text>
+          <TouchableOpacity style={styles.sosBtn} onPress={openSafety} activeOpacity={0.85}>
+            <ShieldAlert size={16} color="#ffffff" />
+            <Text style={styles.sosBtnText}>{t('safety_title').toUpperCase()}</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      <SafetySheet
+        visible={safetyVisible}
+        onClose={() => setSafetyVisible(false)}
+        rideId={rideState.rideId}
+        driverName={rideState.driver?.name}
+        vehicle={rideState.driver?.vehicle}
+        plate={rideState.driver?.plateNumber}
+      />
+
+      <CancelReasonSheet
+        visible={cancelSheetVisible}
+        onClose={() => setCancelSheetVisible(false)}
+        onConfirm={confirmCancelRide}
+      />
     </LinearGradient>
   );
 }
@@ -1203,5 +1244,37 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: 4,
+  },
+
+  deviationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#fffbeb',
+    borderLeftWidth: 3,
+    borderLeftColor: '#f59e0b',
+  },
+  deviationBannerText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#78350f',
+    lineHeight: 17,
+  },
+  deviationDismiss: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+  },
+  deviationDismissText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#b45309',
   },
 });

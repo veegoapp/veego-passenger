@@ -6,6 +6,8 @@ export interface DriverInfo {
   name: string;
   phone: string;
   vehicle: string;
+  vehicleColor?: string;
+  plateNumber?: string;
   rating: number;
   eta: number;
 }
@@ -20,6 +22,7 @@ export interface RideState {
   waitingCharge: number | null;
   waitingChargeStatus: 'none' | 'active' | 'capped';
   surgeMultiplier: number | null;
+  deviationWarning: boolean;
 }
 
 interface UseRideResult {
@@ -32,7 +35,8 @@ interface UseRideResult {
     notes?: string;
     promoCode?: string;
   }) => Promise<{ success: boolean; rideId?: string; error?: string }>;
-  cancelRide: () => Promise<void>;
+  cancelRide: (reason?: string) => Promise<void>;
+  clearDeviationWarning: () => void;
   resetRide: () => void;
 }
 
@@ -46,6 +50,7 @@ const DEFAULT_STATE: RideState = {
   waitingCharge: null,
   waitingChargeStatus: 'none',
   surgeMultiplier: null,
+  deviationWarning: false,
 };
 
 const TERMINAL_STATUSES: RideStatus[] = ['completed', 'cancelled', 'timeout'];
@@ -82,6 +87,8 @@ export function useRide(): UseRideResult {
                 name: data.driver.name ?? prev.driver?.name ?? 'Driver',
                 phone: data.driver.phone ?? prev.driver?.phone ?? '',
                 vehicle: data.driver.vehicle ?? prev.driver?.vehicle ?? '',
+                vehicleColor: data.driver.vehicleColor ?? data.driver.vehicle_color ?? prev.driver?.vehicleColor,
+                plateNumber: data.driver.plateNumber ?? data.driver.plate_number ?? prev.driver?.plateNumber,
                 rating: data.driver.rating ?? prev.driver?.rating ?? 4.8,
                 eta: data.eta ?? data.driver.eta ?? prev.driver?.eta ?? 5,
               }
@@ -120,6 +127,7 @@ export function useRide(): UseRideResult {
         s.off('ride:waiting:charge:updated');
         s.off('ride:waiting:charge:capped');
         s.off('surge:updated');
+        s.off('ride:deviation_warning');
       }).catch(() => {});
       socketListening.current = false;
       stopPolling();
@@ -137,6 +145,8 @@ export function useRide(): UseRideResult {
             name: data.driver?.name ?? 'Driver',
             phone: data.driver?.phone ?? '',
             vehicle: data.driver?.vehicle ?? '',
+            vehicleColor: data.driver?.vehicleColor ?? data.driver?.vehicle_color ?? '',
+            plateNumber: data.driver?.plateNumber ?? data.driver?.plate_number ?? '',
             rating: data.driver?.rating ?? 4.8,
             eta: data.eta ?? 5,
           },
@@ -199,6 +209,12 @@ export function useRide(): UseRideResult {
       socket.on('surge:updated', (data: any) => {
         setRideState((prev) => ({ ...prev, surgeMultiplier: data?.multiplier ?? prev.surgeMultiplier }));
       });
+
+      // Task 2: Route deviation warning
+      socket.on('ride:deviation_warning', (data: any) => {
+        if (data.rideId && data.rideId !== rideId) return;
+        setRideState((prev) => ({ ...prev, deviationWarning: true }));
+      });
     } catch (err) {
       console.warn('[useRide] Socket setup failed:', err);
     }
@@ -215,7 +231,6 @@ export function useRide(): UseRideResult {
     setRideState(DEFAULT_STATE);
     stopPolling();
     try {
-      // FIXED: transform payload to match server's expected field names
       const { data } = await api.post('/rides/request', {
         vehicleType:        payload.type,
         pickupLatitude:     payload.pickup.latitude,
@@ -227,7 +242,6 @@ export function useRide(): UseRideResult {
         notes:              payload.notes,
         ...(payload.promoCode ? { promoCode: payload.promoCode } : {}),
       });
-      // FIXED: server wraps the ride object in { data: { id, ... } }
       const rideId = String(data?.data?.id ?? data?.rideId ?? data?.id ?? data?._id ?? Date.now());
       setRideState((prev) => ({ ...prev, rideId, status: 'searching' }));
       await setupSocketListeners(rideId);
@@ -242,16 +256,26 @@ export function useRide(): UseRideResult {
     }
   }, [setupSocketListeners, startPolling, stopPolling]);
 
-  const cancelRide = useCallback(async () => {
+  const cancelRide = useCallback(async (reason?: string) => {
     const { rideId } = rideState;
     if (rideId) {
-      try { await api.patch(`/rides/${rideId}/cancel`); } catch {}
+      try {
+        await api.patch(`/rides/${rideId}/cancel`, reason ? { reason } : {});
+      } catch {}
     }
     stopPolling();
     activeRideIdRef.current = null;
-    setRideState((prev) => ({ ...prev, status: 'cancelled', cancelReason: 'Cancelled by user' }));
+    setRideState((prev) => ({
+      ...prev,
+      status: 'cancelled',
+      cancelReason: reason ?? 'Cancelled by user',
+    }));
     socketListening.current = false;
   }, [rideState, stopPolling]);
+
+  const clearDeviationWarning = useCallback(() => {
+    setRideState((prev) => ({ ...prev, deviationWarning: false }));
+  }, []);
 
   const resetRide = useCallback(() => {
     stopPolling();
@@ -266,5 +290,5 @@ export function useRide(): UseRideResult {
     };
   }, [stopPolling]);
 
-  return { rideState, requesting, requestRide, cancelRide, resetRide };
+  return { rideState, requesting, requestRide, cancelRide, clearDeviationWarning, resetRide };
 }
