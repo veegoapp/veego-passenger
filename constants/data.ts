@@ -89,6 +89,7 @@ export type Route = {
   nextDeparture: string;
   color: string;                 // UI colour, not from API
   path: Station[];
+  departureCount?: number;       // total departures for today (from GET /shuttle/lines/:id)
   openTrips?: number;            // trips in 'scheduled' state
   activeTrips?: number;          // trips in ['waiting_driver','driver_assigned'] state
   totalTrips?: number;

@@ -4,7 +4,7 @@ import {
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Lock, ChevronRight, ChevronLeft, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Trash2, Eye, EyeOff, KeyRound } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Lock, ChevronRight, ChevronLeft, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Trash2, Eye, EyeOff, KeyRound } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -462,12 +462,23 @@ function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => v
   const [analytics, setAnalytics] = useState(true);
   const [ads, setAds] = useState(false);
 
-  // TODO: Privacy toggles are stored in local state only — no backend integration yet.
-  // Required endpoints: PATCH /users/me/privacy { locationHistory, analytics, personalizedAds }
+  useEffect(() => {
+    if (!visible) return;
+    api.get('/users/me/privacy').then(({ data }) => {
+      if (typeof data.privacyLocationHistory === 'boolean') setLocationHistory(data.privacyLocationHistory);
+      if (typeof data.privacyAnalytics === 'boolean') setAnalytics(data.privacyAnalytics);
+      if (typeof data.privacyPersonalizedAds === 'boolean') setAds(data.privacyPersonalizedAds);
+    }).catch(() => {});
+  }, [visible]);
+
+  const syncPrivacy = (field: string, value: boolean) => {
+    api.patch('/users/me/privacy', { [field]: value }).catch(() => {});
+  };
+
   const TOGGLES = [
-    { icon: MapPin, label: t('location_history'), sub: t('location_history_sub'), value: locationHistory, set: setLocationHistory },
-    { icon: BarChart2, label: t('share_analytics'), sub: t('share_analytics_sub'), value: analytics, set: setAnalytics },
-    { icon: Megaphone, label: t('personalized_ads'), sub: t('personalized_ads_sub'), value: ads, set: setAds },
+    { icon: MapPin, label: t('location_history'), sub: t('location_history_sub'), value: locationHistory, set: (v: boolean) => { setLocationHistory(v); syncPrivacy('privacyLocationHistory', v); } },
+    { icon: BarChart2, label: t('share_analytics'), sub: t('share_analytics_sub'), value: analytics, set: (v: boolean) => { setAnalytics(v); syncPrivacy('privacyAnalytics', v); } },
+    { icon: Megaphone, label: t('personalized_ads'), sub: t('personalized_ads_sub'), value: ads, set: (v: boolean) => { setAds(v); syncPrivacy('privacyPersonalizedAds', v); } },
   ];
 
   const handleDelete = () => {
@@ -528,8 +539,15 @@ function NotificationsModal({ visible, onClose }: { visible: boolean; onClose: (
   const [driver, setDriver] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(NOTIF_KEY).then((raw) => {
-      if (raw) {
+    if (!visible) return;
+    api.get('/users/me/notifications').then(({ data }) => {
+      if (typeof data.notifTrips === 'boolean') setTrips(data.notifTrips);
+      if (typeof data.notifPromos === 'boolean') setPromos(data.notifPromos);
+      if (typeof data.notifSystem === 'boolean') setSystem(data.notifSystem);
+      if (typeof data.notifDriverUpdates === 'boolean') setDriver(data.notifDriverUpdates);
+    }).catch(() => {
+      AsyncStorage.getItem(NOTIF_KEY).then((raw) => {
+        if (!raw) return;
         try {
           const d = JSON.parse(raw);
           if (typeof d.trips === 'boolean') setTrips(d.trips);
@@ -537,24 +555,23 @@ function NotificationsModal({ visible, onClose }: { visible: boolean; onClose: (
           if (typeof d.system === 'boolean') setSystem(d.system);
           if (typeof d.driver === 'boolean') setDriver(d.driver);
         } catch {}
-      }
+      });
     });
-  }, []);
+  }, [visible]);
 
-  const persist = (key: string, value: boolean) => {
+  const syncNotif = (apiField: string, localKey: string, value: boolean) => {
+    api.patch('/users/me/notifications', { [apiField]: value }).catch(() => {});
     AsyncStorage.getItem(NOTIF_KEY).then((raw) => {
       const current = raw ? JSON.parse(raw) : {};
-      AsyncStorage.setItem(NOTIF_KEY, JSON.stringify({ ...current, [key]: value }));
+      AsyncStorage.setItem(NOTIF_KEY, JSON.stringify({ ...current, [localKey]: value }));
     });
   };
 
-  // TODO: Notification preference toggles are persisted locally (AsyncStorage) only.
-  // Backend sync required: PATCH /users/me/notifications { trips, promos, system, driverUpdates }
   const ITEMS = [
-    { icon: Bus, label: t('notif_trips_label'), sub: t('notif_trips_sub'), value: trips, set: (v: boolean) => { setTrips(v); persist('trips', v); } },
-    { icon: Tag, label: t('notif_promos_label'), sub: t('notif_promos_sub'), value: promos, set: (v: boolean) => { setPromos(v); persist('promos', v); } },
-    { icon: Megaphone, label: t('notif_system_label'), sub: t('notif_system_sub'), value: system, set: (v: boolean) => { setSystem(v); persist('system', v); } },
-    { icon: Lightbulb, label: t('notif_driver_label'), sub: t('notif_driver_sub'), value: driver, set: (v: boolean) => { setDriver(v); persist('driver', v); } },
+    { icon: Bus, label: t('notif_trips_label'), sub: t('notif_trips_sub'), value: trips, set: (v: boolean) => { setTrips(v); syncNotif('notifTrips', 'trips', v); } },
+    { icon: Tag, label: t('notif_promos_label'), sub: t('notif_promos_sub'), value: promos, set: (v: boolean) => { setPromos(v); syncNotif('notifPromos', 'promos', v); } },
+    { icon: Megaphone, label: t('notif_system_label'), sub: t('notif_system_sub'), value: system, set: (v: boolean) => { setSystem(v); syncNotif('notifSystem', 'system', v); } },
+    { icon: Lightbulb, label: t('notif_driver_label'), sub: t('notif_driver_sub'), value: driver, set: (v: boolean) => { setDriver(v); syncNotif('notifDriverUpdates', 'driver', v); } },
   ];
 
   return (
@@ -706,31 +723,42 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
 }
 
 // ── Rating Details Modal ─────────────────────────────────────────────────────
-// TODO: Request Profile Rating Stats API — expected: GET /users/me/rating
-//   Response shape: { overallScore: number, totalRatings: number,
-//     distribution: { 5: number, 4: number, 3: number, 2: number, 1: number } }
-// Until the endpoint is available, placeholder data is shown below.
-const MOCK_RATING_DISTRIBUTION: Record<number, number> = { 5: 72, 4: 18, 3: 6, 2: 2, 1: 2 };
-const MOCK_OVERALL_SCORE = 4.9;
-const MOCK_TOTAL_RATINGS = 124;
 
 function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const barAnims = useRef([1, 2, 3, 4, 5].map(() => new Animated.Value(0))).current;
+  const [ratingData, setRatingData] = useState<{
+    overallScore: number | null;
+    totalRatings: number;
+    distribution: Record<number, number>;
+  } | null>(null);
 
   useEffect(() => {
     if (!visible) return;
+    api.get('/users/me/rating').then(({ data }) => {
+      setRatingData({
+        overallScore: data.overallScore ?? null,
+        totalRatings: data.totalRatings ?? 0,
+        distribution: data.distribution ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+      });
+    }).catch(() => {
+      setRatingData({ overallScore: null, totalRatings: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
+    });
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || !ratingData || ratingData.overallScore === null) return;
     barAnims.forEach((anim) => anim.setValue(0));
     const animations = [5, 4, 3, 2, 1].map((star, i) =>
       Animated.timing(barAnims[i], {
-        toValue: MOCK_RATING_DISTRIBUTION[star] / 100,
+        toValue: (ratingData.distribution[star] ?? 0) / 100,
         duration: 600 + i * 80,
         useNativeDriver: false,
       }),
     );
     Animated.stagger(60, animations).start();
-  }, [visible]);
+  }, [visible, ratingData]);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -745,63 +773,65 @@ function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: (
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           >
             <View style={styles.ratingHero}>
-              <Text style={styles.ratingScore}>{MOCK_OVERALL_SCORE.toFixed(1)}</Text>
+              <Text style={styles.ratingScore}>
+                {ratingData?.overallScore !== null && ratingData?.overallScore !== undefined
+                  ? ratingData.overallScore.toFixed(1) : '—'}
+              </Text>
               <View style={styles.ratingStars}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={18}
-                    color="#f59e0b"
-                    fill={s <= Math.round(MOCK_OVERALL_SCORE) ? '#f59e0b' : 'transparent'}
-                    strokeWidth={1.5}
-                  />
-                ))}
+                {[1, 2, 3, 4, 5].map((s) => {
+                  const score = ratingData?.overallScore ?? null;
+                  return (
+                    <Star
+                      key={s}
+                      size={18}
+                      color="#f59e0b"
+                      fill={score !== null && s <= Math.round(score) ? '#f59e0b' : 'transparent'}
+                      strokeWidth={1.5}
+                    />
+                  );
+                })}
               </View>
-              <Text style={styles.ratingSubtitle}>Based on {MOCK_TOTAL_RATINGS} ratings</Text>
+              <Text style={styles.ratingSubtitle}>
+                {ratingData?.overallScore !== null && ratingData?.overallScore !== undefined
+                  ? `Based on ${ratingData.totalRatings} rating${ratingData.totalRatings !== 1 ? 's' : ''}`
+                  : 'No ratings yet'}
+              </Text>
             </View>
           </LinearGradient>
 
           {/* Rating breakdown */}
           <View style={{ backgroundColor: c.white, borderRadius: 22, padding: 18, gap: 4, ...S.float }}>
             <Text style={[styles.inputLabel, { marginBottom: 10 }]}>Rating Breakdown</Text>
-            {[5, 4, 3, 2, 1].map((star, i) => {
-              const pct = MOCK_RATING_DISTRIBUTION[star];
-              return (
-                <View key={star} style={styles.ratingBarRow}>
-                  <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                  <Text style={styles.ratingBarLabel}>{star}</Text>
-                  <View style={styles.ratingBarTrack}>
-                    <Animated.View
-                      style={[
-                        styles.ratingBarFill,
-                        {
-                          width: barAnims[i].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0%', `${pct}%`],
-                          }),
-                          backgroundColor: star >= 4 ? '#22c55e' : star === 3 ? '#f59e0b' : '#ef4444',
-                        },
-                      ]}
-                    />
+            {!ratingData || ratingData.overallScore === null ? (
+              <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingVertical: 12 }}>
+                You have not received any ratings yet.
+              </Text>
+            ) : (
+              [5, 4, 3, 2, 1].map((star, i) => {
+                const pct = ratingData.distribution[star] ?? 0;
+                return (
+                  <View key={star} style={styles.ratingBarRow}>
+                    <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                    <Text style={styles.ratingBarLabel}>{star}</Text>
+                    <View style={styles.ratingBarTrack}>
+                      <Animated.View
+                        style={[
+                          styles.ratingBarFill,
+                          {
+                            width: barAnims[i].interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0%', `${pct}%`],
+                            }),
+                            backgroundColor: star >= 4 ? '#22c55e' : star === 3 ? '#f59e0b' : '#ef4444',
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.ratingBarPct}>{pct}%</Text>
                   </View>
-                  <Text style={styles.ratingBarPct}>{pct}%</Text>
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={{
-            borderRadius: 16, padding: 14, gap: 6,
-            backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f8f8fc',
-            borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#eeeef5',
-          }}>
-            <Text style={[styles.inputLabel, { fontSize: 10 }]}>ℹ️  DATA NOTE</Text>
-            {/* TODO: Request Profile Rating Stats API — replace mock data above with live response */}
-            <Text style={{ fontSize: 12, color: c.inkSoft, lineHeight: 17 }}>
-              Rating data shown is placeholder. Awaiting{' '}
-              <Text style={{ fontWeight: '700', color: c.ink }}>GET /users/me/rating</Text>
-              {' '}endpoint from the backend team.
-            </Text>
+                );
+              })
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -823,10 +853,17 @@ export default function ProfileScreen() {
   // Live stats — bound to real API data
   const { upcomingTrips, pastTrips } = useTrips();
   const totalTrips = upcomingTrips.length + pastTrips.length;
+  const [savedAmount, setSavedAmount] = useState<number | null>(null);
+  const [overallRating, setOverallRating] = useState<number | null>(null);
 
-  // TODO: Request Profile Stats API for saved amount — expected: GET /users/me/stats { savedAmount: number }
-  // The wallet `spent` field tracks expenditure, not promo savings.
-  // Using wallet balance as a fallback display until dedicated endpoint is available.
+  useEffect(() => {
+    api.get('/users/me/stats').then(({ data }) => {
+      if (typeof data.savedAmount === 'number') setSavedAmount(data.savedAmount);
+    }).catch(() => {});
+    api.get('/users/me/rating').then(({ data }) => {
+      if (typeof data.overallScore === 'number') setOverallRating(data.overallScore);
+    }).catch(() => {});
+  }, []);
 
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -846,10 +883,10 @@ export default function ProfileScreen() {
     setAvatarUri(asset.uri);
     setAvatarUploading(true);
     try {
-      // TODO: Provide User Avatar Upload API Endpoint — expected: POST /users/me/avatar (multipart/form-data)
       const form = new FormData();
       form.append('avatar', { uri: asset.uri, name: 'avatar.jpg', type: 'image/jpeg' } as any);
-      await api.post('/users/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { data: uploadData } = await api.post('/users/me/avatar', form);
+      if (uploadData?.avatarUrl) setAvatarUri(uploadData.avatarUrl);
     } catch {
       setAvatarUri(prevUri);
       Alert.alert('Upload failed', 'Could not update your profile photo. Please try again.');
@@ -902,16 +939,15 @@ export default function ProfileScreen() {
                     <Text style={styles.heroStatLabel}>{t('trips_stat')}</Text>
                   </View>
                   <View style={styles.heroStatDivider} />
-                  {/* Rating — tappable → RatingDetailsModal
-                      TODO: Request Profile Rating API: GET /users/me/rating */}
+                  {/* Rating — tappable → RatingDetailsModal */}
                   <TouchableOpacity style={styles.heroStat} activeOpacity={0.75} onPress={() => open('rating_details')}>
-                    <Text style={styles.heroStatNum}>—</Text>
+                    <Text style={styles.heroStatNum}>{overallRating !== null ? overallRating.toFixed(1) : '—'}</Text>
                     <Text style={styles.heroStatLabel}>{t('rating_stat')} ›</Text>
                   </TouchableOpacity>
                   <View style={styles.heroStatDivider} />
-                  {/* Saved — TODO: Request Profile Stats API: GET /users/me/stats { savedAmount } */}
+                  {/* Saved — GET /users/me/stats */}
                   <View style={styles.heroStat}>
-                    <Text style={styles.heroStatNum}>—</Text>
+                    <Text style={styles.heroStatNum}>{savedAmount !== null ? savedAmount.toFixed(0) : '—'}</Text>
                     <Text style={styles.heroStatLabel}>{t('saved_stat')}</Text>
                   </View>
                 </View>

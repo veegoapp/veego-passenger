@@ -17,6 +17,7 @@ import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { calcSegmentPrice, DATES } from '@/constants/data';
 import { SectionLabel } from '@/components/Shared';
+import api from '@/src/api/client';
 
 /**
  * §21.2: statuses that mean the trip is ahead and accepting new bookings.
@@ -400,12 +401,32 @@ export function TripSheet() {
   const safeTimeIdx = Math.min(timeIdx, Math.max(0, visibleTrips.length - 1));
   const selectedTrip = visibleTrips[safeTimeIdx] ?? null;
 
+  const [liveAvailability, setLiveAvailability] = useState<{
+    availableSeats: number; bookedSeats: number; totalSeats: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const tripId = selectedTrip?.id;
+    if (!tripId) { setLiveAvailability(null); return; }
+    api.get(`/shuttle/trips/${tripId}/availability`).then(({ data }) => {
+      setLiveAvailability({
+        availableSeats: data.availableSeats ?? 0,
+        bookedSeats: data.bookedSeats ?? 0,
+        totalSeats: data.totalSeats ?? 0,
+      });
+    }).catch(() => setLiveAvailability(null));
+  }, [selectedTrip?.id]);
+
   const selectedTripSeats: number = useMemo(() => {
+    if (liveAvailability) return liveAvailability.availableSeats;
     if (selectedTrip) return selectedTrip.availableSeats ?? 0;
     return selectedRoute?.seatsLeft ?? 0;
-  }, [selectedTrip, selectedRoute?.seatsLeft]);
+  }, [liveAvailability, selectedTrip, selectedRoute?.seatsLeft]);
 
-  const selectedTripBookable = !selectedTrip || isTripBookable(selectedTrip);
+  const selectedTripBookable = !selectedTrip || (
+    BOOKABLE_STATUSES.includes((selectedTrip?.status ?? selectedTrip?.shuttleStatus ?? '').toLowerCase()) &&
+    (liveAvailability ? liveAvailability.availableSeats : (selectedTrip?.availableSeats ?? 0)) > 0
+  );
 
   if (!visible || !selectedRoute) return null;
 
@@ -513,9 +534,6 @@ export function TripSheet() {
           </View>
 
           {/* ── Info stat cards (compact horizontal) ── */}
-          {/* TODO: Request API Endpoints from User — real-time departure count and
-              duration data should come from GET /shuttle/lines/:id response fields.
-              Currently using route.duration (static) and visibleTrips.length (live count). */}
           <View style={styles.statsRow}>
             <LinearGradient
               colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
@@ -526,7 +544,7 @@ export function TripSheet() {
                 <Bus size={13} color={c.ink} />
               </View>
               <View>
-                <Text style={styles.statValue}>{visibleTrips.length || route.stations}</Text>
+                <Text style={styles.statValue}>{(route.departureCount ?? visibleTrips.length) || route.stations}</Text>
                 <Text style={styles.statLabel}>{t('departure')}</Text>
               </View>
             </LinearGradient>
@@ -599,10 +617,6 @@ export function TripSheet() {
           )}
 
           {/* ── Trips section ── */}
-          {/* TODO: Request API Endpoints from User — real-time seat availability
-              requires a dedicated endpoint (e.g. GET /shuttle/trips/:id/availability)
-              that returns live availableSeats/bookedSeats/totalSeats counts. Currently
-              relying on the snapshot values returned in GET /shuttle/lines/:id. */}
           <View style={styles.sectionWrap}>
             <Text style={styles.sectionTitle}>
               {t('departure')}
@@ -625,7 +639,7 @@ export function TripSheet() {
                 const bookable = isTripBookable(trip);
                 const disabled = !bookable;
                 const statusColor = shuttleStatusColor(trip);
-                const statusLbl = shuttleStatusLabel(trip, t);
+                const statusLbl = shuttleStatusLabel(trip, t as (key: string) => string);
                 const time = formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
                 const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
                 const bookedSeats: number = trip.bookedSeats ?? 0;
