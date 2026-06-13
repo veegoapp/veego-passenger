@@ -84,7 +84,8 @@ function makeStyles(c: ThemeColors) {
 export default function FavoritesScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { openRoute } = useBooking();
@@ -166,8 +167,12 @@ export default function FavoritesScreen() {
                       <Text style={styles.codeText}>{route.code}</Text>
                     </View>
                     <View style={styles.cardMeta}>
-                      <Text style={styles.routeName}>{route.name}</Text>
-                      <Text style={styles.routePath}>{route.from} → {route.to}</Text>
+                      <Text style={styles.routeName}>{isAr ? (route.nameAr ?? route.name) : route.name}</Text>
+                      <Text style={styles.routePath}>
+                        {isAr ? (route.fromAr ?? route.from) : route.from}
+                        {isAr ? ' ← ' : ' → '}
+                        {isAr ? (route.toAr ?? route.to) : route.to}
+                      </Text>
                     </View>
                     <View style={styles.priceBox}>
                       <Text style={styles.priceText}>{route.price} {t('egp')}</Text>

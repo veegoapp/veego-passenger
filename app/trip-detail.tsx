@@ -26,8 +26,11 @@ interface TripDetail {
   status: string;
   departureIso: string;
   routeName: string;
+  routeNameAr: string | null;
   from: string;
+  fromAr: string | null;
   to: string;
+  toAr: string | null;
   date: string;
   time: string;
   seat: string;
@@ -56,9 +59,12 @@ function mapApiToDetail(b: any): TripDetail {
     id: trip.id ?? trip._id ?? b.id ?? b._id ?? '',
     status: (b.status ?? trip.shuttleStatus ?? trip.shuttle_status ?? trip.status ?? '').toLowerCase(),
     departureIso,
-    routeName: route.name ?? trip.name ?? '—',
-    from: route.fromLocation ?? route.from_location ?? route.from ?? b.pickupName ?? b.origin ?? '—',
-    to: route.toLocation ?? route.to_location ?? route.to ?? b.destinationName ?? b.destination ?? '—',
+    routeName:   route.name   ?? trip.name  ?? '—',
+    routeNameAr: route.nameAr ?? route.name_ar ?? null,
+    from:   route.fromLocation   ?? route.from_location   ?? route.from  ?? b.pickupName     ?? b.origin      ?? '—',
+    fromAr: route.fromLocationAr ?? route.from_location_ar ?? null,
+    to:   route.toLocation   ?? route.to_location   ?? route.to  ?? b.destinationName ?? b.destination ?? '—',
+    toAr: route.toLocationAr ?? route.to_location_ar ?? null,
     date,
     time,
     seat: b.seatNumber ?? b.seat_number ?? b.seat ?? '—',
@@ -416,8 +422,12 @@ export default function TripDetailScreen() {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         >
           <Text style={styles.sectionLabel}>{t('route_label')}</Text>
-          <Text style={styles.routeTitle}>{trip.routeName}</Text>
-          <Text style={styles.routeSub}>{trip.from} {isRTL ? '←' : '→'} {trip.to}</Text>
+          <Text style={styles.routeTitle}>{isAr ? (trip.routeNameAr ?? trip.routeName) : trip.routeName}</Text>
+          <Text style={styles.routeSub}>
+            {isAr ? (trip.fromAr ?? trip.from) : trip.from}
+            {isRTL ? ' ← ' : ' → '}
+            {isAr ? (trip.toAr ?? trip.to) : trip.to}
+          </Text>
 
           <View style={styles.statusRow}>
             <View style={[styles.statusDot, { backgroundColor: resolvedStatusColor }]} />
