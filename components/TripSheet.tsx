@@ -194,7 +194,10 @@ function makeStyles(c: ThemeColors, gs: object) {
       textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12,
     },
 
-    /* Trip cards — vertical full-width */
+    /* Trip cards — vertical full-width.
+     * Non-active card bg is always c.white (light) regardless of dark mode.
+     * All non-active text colours are hard-coded dark so they are always
+     * legible on that white surface. Active overrides then flip to white. */
     tripCard: {
       borderRadius: 20, borderWidth: 1.5, borderColor: c.border,
       padding: 16, backgroundColor: c.white, marginBottom: 10,
@@ -207,32 +210,32 @@ function makeStyles(c: ThemeColors, gs: object) {
     },
     tripCardDisabled: { opacity: 0.4 },
     tripCardTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-    tripTime: { fontSize: 28, fontWeight: '800', color: c.ink, letterSpacing: -1 },
+    tripTime: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: -1 },
     tripTimeActive: { color: c.isDark ? c.background : '#ffffff' },
     tripNumberBox: {
       borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
+      backgroundColor: 'rgba(0,0,0,0.06)',
       flexDirection: 'row', alignItems: 'center', gap: 4,
     },
     tripNumberBoxActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
-    tripNumberText: { fontSize: 12, fontWeight: '600', color: c.inkSoft },
+    tripNumberText: { fontSize: 12, fontWeight: '600', color: '#475569' },
     tripNumberTextActive: { color: 'rgba(255,255,255,0.8)' },
-    tripDateText: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
+    tripDateText: { fontSize: 11, color: '#475569', marginTop: 2 },
     tripDateTextActive: { color: 'rgba(255,255,255,0.55)' },
     tripStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
     tripStatusDot: { width: 7, height: 7, borderRadius: 4 },
     tripStatusText: { fontSize: 11, fontWeight: '600' },
     tripSeatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-    tripSeatsFraction: { fontSize: 12, fontWeight: '600', color: c.inkSoft },
+    tripSeatsFraction: { fontSize: 12, fontWeight: '600', color: '#475569' },
     tripSeatsFractionActive: { color: 'rgba(255,255,255,0.65)' },
-    tripSeatsLabel: { fontSize: 11, color: c.inkSoft },
+    tripSeatsLabel: { fontSize: 11, color: '#475569' },
     tripSeatsLabelActive: { color: 'rgba(255,255,255,0.5)' },
-    progressBarWrap: { height: 6, borderRadius: 3, backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : c.mist, overflow: 'hidden' },
+    progressBarWrap: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.08)', overflow: 'hidden' },
     progressBarFill: { height: '100%' as any, borderRadius: 3 },
     tripAvailRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
     tripAvailDot: { width: 6, height: 6, borderRadius: 3 },
     tripAvailText: { fontSize: 12, fontWeight: '600' },
-    tripMessage: { fontSize: 11, color: c.inkSoft, marginTop: 6, lineHeight: 15 },
+    tripMessage: { fontSize: 11, color: '#475569', marginTop: 6, lineHeight: 15 },
     tripMessageActive: { color: 'rgba(255,255,255,0.6)' },
 
     /* No trips */
@@ -393,9 +396,7 @@ export function TripSheet() {
       // DATES[i].date is "Jun 13, 2026" — check it starts with tripDate + ","
       return targetDate.startsWith(tripDateStr + ',');
     });
-    // Fall back to all trips if none match selected date (avoids empty screen
-    // when real-time API returns trips that don't span a full 7-day window)
-    return filtered.length > 0 ? filtered : scheduledTrips;
+    return filtered;
   }, [scheduledTrips, selectedDateIdx]);
 
   const safeTimeIdx = Math.min(timeIdx, Math.max(0, visibleTrips.length - 1));
