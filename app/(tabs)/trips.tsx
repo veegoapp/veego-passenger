@@ -3,7 +3,7 @@
 // - PATCH /bookings/:id/cancel     → cancelBooking (frees seat slot, triggers re-fetch)
 // - GET  /trips/:id/capacity       → getTripLiveCapacity (passengerCount / totalSeats)
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Platform, RefreshControl, Animated,
@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Bus, Car, Bike as ScooterIcon, Ticket, User, X, ChevronDown } from 'lucide-react-native';
+import { Bus, Car, Bike as ScooterIcon, Ticket, User, X, ChevronDown, Wifi } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { type TripType, shuttleStatusLabel, isShuttleTripUpcoming } from '@/constants/data';
@@ -20,7 +20,13 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useTrips } from '@/src/hooks/useTrips';
 import api from '@/src/api/client';
+import { getSocket } from '@/src/api/socket';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
+
+interface LivePatch {
+  passengerCount?: number;
+  status?: string;
+}
 
 const ROUTE_COLORS_LIGHT: Record<string, string> = {
   L01: '#d8ecf7', L02: '#d5f0e5', L03: '#e3daf5', L04: '#f5f0d3',
@@ -91,6 +97,8 @@ function makeStyles(c: ThemeColors) {
     capacityFill: { height: 5, borderRadius: 99 },
     loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4, paddingVertical: 12 },
     loadMoreText: { fontSize: 13, fontWeight: '600', color: c.inkSoft },
+    liveIndicator: { position: 'absolute', top: -3, right: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center' },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#55c49a' },
   });
 }
 
@@ -159,11 +167,65 @@ export default function TripsScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const fadeAnims = useRef<Record<string, Animated.Value>>({}).current;
+  const [liveUpdates, setLiveUpdates] = useState<Record<string, LivePatch>>({});
 
   const getFadeAnim = useCallback((id: string) => {
     if (!fadeAnims[id]) fadeAnims[id] = new Animated.Value(1);
     return fadeAnims[id];
   }, [fadeAnims]);
+
+  // ── Real-time socket: join each upcoming trip's room, patch cards live ──────
+  useEffect(() => {
+    const tripIds = upcomingTrips
+      .filter((t) => t.type === 'shuttle' && t.tripId != null)
+      .map((t) => String(t.tripId));
+
+    if (tripIds.length === 0) return;
+
+    let cleanedUp = false;
+    let cleanupFns: Array<() => void> = [];
+
+    getSocket().then((socket) => {
+      if (cleanedUp) return;
+
+      tripIds.forEach((tid) => socket.emit('join:trip', { tripId: tid }));
+
+      const statusHandler = (payload: {
+        tripId: string | number;
+        status?: string;
+        passengerCount?: number;
+      }) => {
+        const key = String(payload.tripId);
+        if (!tripIds.includes(key)) return;
+        setLiveUpdates((prev) => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            ...(payload.status      !== undefined ? { status: payload.status.toLowerCase() }   : {}),
+            ...(payload.passengerCount !== undefined ? { passengerCount: payload.passengerCount } : {}),
+          },
+        }));
+      };
+
+      socket.on('shuttle:trip:status', statusHandler);
+
+      cleanupFns = [
+        () => socket.off('shuttle:trip:status', statusHandler),
+        () => tripIds.forEach((tid) => socket.emit('leave:trip', { tripId: tid })),
+      ];
+    }).catch(() => {});
+
+    return () => {
+      cleanedUp = true;
+      cleanupFns.forEach((fn) => fn());
+    };
+  }, [upcomingTrips]);
+
+  // ── Fallback poll every 60 s — catches any socket gap ──────────────────────
+  useEffect(() => {
+    const interval = setInterval(() => { refresh(); }, 60000);
+    return () => clearInterval(interval);
+  }, [refresh]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -286,15 +348,21 @@ export default function TripsScreen() {
         {trips.map((trip) => {
           if (!trip.routeName) return null;
 
+          const patch = trip.tripId ? (liveUpdates[String(trip.tripId)] ?? {}) : {};
+          const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status;
+          const effectivePassCount =
+            patch.passengerCount !== undefined ? patch.passengerCount : trip.passengerCount;
+          const isLive = !!patch.status || patch.passengerCount !== undefined;
+
           const TripTypeIcon = TYPE_ICONS[trip.type];
-          const isUpcoming = isShuttleTripUpcoming(trip.status) && trip.id !== 'live';
+          const isUpcoming = isShuttleTripUpcoming(effectiveStatus) && trip.id !== 'live';
           const isCancelling = cancellingId === trip.id;
           const fadeAnim = getFadeAnim(trip.id);
 
           const showCapacity =
             tab === 'upcoming' &&
             trip.type === 'shuttle' &&
-            typeof trip.passengerCount === 'number' &&
+            typeof effectivePassCount === 'number' &&
             typeof trip.totalSeats === 'number' &&
             trip.totalSeats > 0;
 
@@ -314,13 +382,18 @@ export default function TripsScreen() {
                 <View style={styles.tripTop}>
                   <View style={styles.codeBox}>
                     <TripTypeIcon size={18} color={c.isDark ? c.background : c.white} />
+                    {isLive && (
+                      <View style={styles.liveIndicator}>
+                        <View style={styles.liveDot} />
+                      </View>
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.tripName}>{trip.routeName}</Text>
                     <Text style={styles.tripDate}>{trip.date} · {trip.time}</Text>
                   </View>
                   <StatusBadge
-                    status={trip.status}
+                    status={effectiveStatus}
                     activeLabel={t('trip_status_active') + (isAr ? '' : ' / نشط')}
                     pendingLabel={t('trip_status_pending') + (isAr ? '' : ' / قيد الانتظار')}
                     c={c}
@@ -357,7 +430,7 @@ export default function TripsScreen() {
 
                 {showCapacity && (
                   <CapacityBar
-                    current={trip.passengerCount!}
+                    current={effectivePassCount!}
                     max={trip.totalSeats!}
                     c={c}
                   />
