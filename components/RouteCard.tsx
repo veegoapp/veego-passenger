@@ -25,7 +25,7 @@ function makeStyles(c: ThemeColors) {
     priceLabel: { fontSize: 10, color: c.inkSoft },
     cardStats: { flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 12 },
     statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    statRight: { marginLeft: 'auto' },
+    statRight: { marginStart: 'auto' },
     statText: { fontSize: 11, color: c.inkSoft },
     fillBar: { height: 4, borderRadius: 2, backgroundColor: c.mist, marginTop: 12, overflow: 'hidden' },
     fillBarFill: { height: '100%' as any, backgroundColor: c.ink, borderRadius: 2 },

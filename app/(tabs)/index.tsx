@@ -70,15 +70,15 @@ function makeStyles(c: ThemeColors) {
     avatarText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
 
     serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 12, zIndex: 20 },
-    serviceBtn: { width: '48%', borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, gap: 10, flex: 1 },
+    serviceBtn: { flexBasis: '48%', flexGrow: 1, flexShrink: 1, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, gap: 8 },
     serviceBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     serviceBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     serviceBtnSoon: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist, borderColor: c.border, opacity: 0.9 },
     serviceBtnColumn: {},
     serviceIconBox: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
     serviceIconBoxActive: { backgroundColor: 'rgba(255,255,255,0.18)' },
-    serviceTextCol: { flex: 1 },
-    serviceLabel: { fontSize: 13, fontWeight: '600', letterSpacing: -0.2 },
+    serviceTextCol: { flex: 1, minWidth: 0 },
+    serviceLabel: { fontSize: 13, fontWeight: '600', letterSpacing: -0.2, flexShrink: 1 },
     serviceSub: { fontSize: 10, fontWeight: '500', color: c.inkSoft },
     soonBadgeFloat: {
       position: 'absolute',
@@ -311,7 +311,12 @@ export default function HomeScreen() {
                       : <svc.icon size={15} color={iconColor} />
                     }
                   </View>
-                  <Text style={[styles.serviceLabel, { color: labelColor }]} numberOfLines={1}>
+                  <Text
+                    style={[styles.serviceLabel, { color: labelColor }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
                     {t(svc.labelKey)}
                   </Text>
                 </TouchableOpacity>

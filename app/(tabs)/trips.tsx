@@ -133,14 +133,14 @@ function StatusBadge({ status, activeLabel, pendingLabel, c }: {
   );
 }
 
-function CapacityBar({ current, max, c }: { current: number; max: number; c: ThemeColors }) {
+function CapacityBar({ current, max, c, label }: { current: number; max: number; c: ThemeColors; label: string }) {
   const styles = useMemo(() => makeStyles(c), [c]);
   const pct = Math.min(100, Math.max(0, (current / max) * 100));
   const fillColor = pct >= 100 ? '#55c49a' : pct >= 50 ? '#4d9ef6' : '#f59e0b';
   return (
     <View style={styles.capacityWrap}>
       <View style={styles.capacityLabelRow}>
-        <Text style={styles.capacityLabel}>Passengers</Text>
+        <Text style={styles.capacityLabel}>{label}</Text>
         <Text style={styles.capacityCount}>{current} / {max}</Text>
       </View>
       <View style={styles.capacityTrack}>
@@ -389,7 +389,9 @@ export default function TripsScreen() {
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.tripName}>{trip.routeName}</Text>
+                    <Text style={styles.tripName}>
+                      {isAr ? (trip.routeNameAr ?? trip.routeName) : trip.routeName}
+                    </Text>
                     <Text style={styles.tripDate}>{trip.date} · {trip.time}</Text>
                   </View>
                   <StatusBadge
@@ -403,12 +405,16 @@ export default function TripsScreen() {
                 <View style={styles.tripRoute}>
                   <View style={styles.tripStation}>
                     <View style={[styles.tripDot, { backgroundColor: c.ink }]} />
-                    <Text style={styles.tripStationText} numberOfLines={1}>{trip.from}</Text>
+                    <Text style={styles.tripStationText} numberOfLines={1}>
+                      {isAr ? (trip.fromAr ?? trip.from) : trip.from}
+                    </Text>
                   </View>
                   <View style={styles.tripLine} />
                   <View style={styles.tripStation}>
                     <View style={[styles.tripDot, { backgroundColor: c.accentMint }]} />
-                    <Text style={styles.tripStationText} numberOfLines={1}>{trip.to}</Text>
+                    <Text style={styles.tripStationText} numberOfLines={1}>
+                      {isAr ? (trip.toAr ?? trip.to) : trip.to}
+                    </Text>
                   </View>
                 </View>
 
@@ -433,6 +439,7 @@ export default function TripsScreen() {
                     current={effectivePassCount!}
                     max={trip.totalSeats!}
                     c={c}
+                    label={t('passengers')}
                   />
                 )}
 

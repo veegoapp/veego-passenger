@@ -464,7 +464,7 @@ export function TripSheet() {
             </Text>
             <Text style={styles.heroRoutePath}>
               {isAr ? (route.fromAr ?? route.from) : route.from}
-              {' → '}
+              {isAr ? ' ← ' : ' → '}
               {isAr ? (route.toAr ?? route.to) : route.to}
             </Text>
 
@@ -597,7 +597,7 @@ export function TripSheet() {
             {routeLoading || tripsLoading ? (
               <View style={styles.loadingWrap}>
                 <ActivityIndicator size="small" color={c.ink} />
-                <Text style={styles.loadingText}>Loading trips…</Text>
+                <Text style={styles.loadingText}>{t('loading_trips')}</Text>
               </View>
             ) : visibleTrips.length === 0 ? (
               <View style={styles.noTripsWrap}>
@@ -713,14 +713,14 @@ export function TripSheet() {
             {routeLoading ? (
               <View style={styles.loadingWrap}>
                 <ActivityIndicator size="small" color={c.ink} />
-                <Text style={styles.loadingText}>Loading stops…</Text>
+                <Text style={styles.loadingText}>{t('loading_stops')}</Text>
               </View>
             ) : !hasPath ? (
               <View style={styles.loadingWrap}>
                 <AlertCircle size={28} color={c.silver} />
-                <Text style={styles.errorText}>Stop information not available for this route.</Text>
+                <Text style={styles.errorText}>{t('stops_unavailable')}</Text>
                 <TouchableOpacity style={styles.retryBtn} onPress={() => openRoute(route)} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>Retry</Text>
+                  <Text style={styles.retryBtnText}>{t('retry')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -827,8 +827,8 @@ export function TripSheet() {
                 <Wallet size={11} color={walletLow ? '#e53e3e' : '#38a169'} />
                 <Text style={[styles.walletText, walletLow ? styles.walletLow : styles.walletOk]}>
                   {walletBalance !== null
-                    ? `Wallet: ${walletBalance.toFixed(2)} EGP`
-                    : 'Wallet balance loading…'}
+                    ? `${isAr ? 'المحفظة' : 'Wallet'}: ${walletBalance.toFixed(2)} ${t('egp')}`
+                    : t('wallet_loading')}
                 </Text>
               </View>
             </View>

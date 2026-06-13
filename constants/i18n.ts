@@ -518,6 +518,11 @@ const en = {
   status_cancelled_trip: 'Cancelled',
   status_upcoming: 'Upcoming',
   no_upcoming_trips_route: 'No upcoming trips available for this route.',
+  loading: 'Loading…',
+  loading_trips: 'Loading trips…',
+  loading_stops: 'Loading stops…',
+  wallet_loading: 'Wallet balance loading…',
+  stops_unavailable: 'Stop information not available for this route.',
 };
 
 const ar: typeof en = {
@@ -1040,6 +1045,11 @@ const ar: typeof en = {
   status_cancelled_trip: 'ملغاة',
   status_upcoming: 'قادمة',
   no_upcoming_trips_route: 'لا توجد رحلات قادمة على هذا الخط.',
+  loading: 'جاري التحميل…',
+  loading_trips: 'جاري تحميل الرحلات…',
+  loading_stops: 'جاري تحميل المحطات…',
+  wallet_loading: 'جاري تحميل رصيد المحفظة…',
+  stops_unavailable: 'معلومات المحطات غير متاحة لهذا الخط.',
 };
 
 export type LangKey = keyof typeof en;
