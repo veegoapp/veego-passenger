@@ -27,64 +27,63 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
   const { walletFeature } = usePaymentConfig();
   const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
 
-  const tabWidths = useRef<number[]>([]);
+  const tabWidths  = useRef<number[]>([]);
   const tabOffsets = useRef<number[]>([]);
   const pillX = useRef(new Animated.Value(0)).current;
   const pillW = useRef(new Animated.Value(0)).current;
   const [pillReady, setPillReady] = useState(false);
 
+  // ── Generation counter ────────────────────────────────────────────────────
+  // Each language switch triggers an RTL/LTR reflow that changes every tab's
+  // x-offset. We increment layoutGen so handleLayout can tell whether the
+  // measurement it receives belongs to the *current* layout pass or a stale
+  // one. We never reset pillReady — the pill stays visible throughout.
+  const layoutGen     = useRef(0);
+  const tabMeasureGen = useRef<number[]>([]);   // last gen each tab reported
+
   useEffect(() => {
-    setPillReady(false);
-    tabWidths.current = [];
-    tabOffsets.current = [];
+    layoutGen.current += 1;
+    // Don't touch pillReady or the measurement arrays here — the pill stays
+    // rendered at its last known position while onLayout re-fires.
   }, [language]);
+
+  // ── Tab-navigation: animate pill whenever the active index changes ────────
+  useEffect(() => {
+    if (pillReady) animatePill(state.index);
+  }, [state.index, pillReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const animatePill = (index: number) => {
     const x = tabOffsets.current[index];
     const w = tabWidths.current[index];
-    if (x !== undefined && w > 0) {
-      Animated.spring(pillX, {
-        toValue: x,
-        useNativeDriver: false,
-        damping: 22,
-        stiffness: 220,
-        mass: 0.75,
-      }).start();
-      Animated.spring(pillW, {
-        toValue: w,
-        useNativeDriver: false,
-        damping: 22,
-        stiffness: 220,
-        mass: 0.75,
-      }).start();
-    }
+    if (x === undefined || !(w > 0)) return;
+    Animated.spring(pillX, { toValue: x, useNativeDriver: false, damping: 22, stiffness: 220, mass: 0.75 }).start();
+    Animated.spring(pillW, { toValue: w, useNativeDriver: false, damping: 22, stiffness: 220, mass: 0.75 }).start();
   };
 
-  useEffect(() => {
-    if (pillReady) {
-      animatePill(state.index);
-    }
-  }, [state.index, pillReady]);
-
   const handleLayout = (i: number, x: number, w: number) => {
-    tabWidths.current[i] = w;
+    tabWidths.current[i]  = w;
     tabOffsets.current[i] = x;
-    const allSet =
-      tabWidths.current.length === TAB_ITEMS.length &&
-      tabOffsets.current.length === TAB_ITEMS.length &&
-      tabWidths.current.every((v) => v > 0);
-    if (allSet) {
-      if (!pillReady) {
-        const initX = tabOffsets.current[state.index];
-        const initW = tabWidths.current[state.index];
-        if (initX !== undefined && initW !== undefined && initW > 0) {
-          pillX.setValue(initX);
-          pillW.setValue(initW);
-          setPillReady(true);
-        }
-      } else {
-        animatePill(state.index);
-      }
+    tabMeasureGen.current[i] = layoutGen.current;
+
+    // All 5 tabs must have reported measurements for the *current* generation
+    // before we reposition — this prevents landing on stale mixed values after
+    // an RTL/LTR reflow.
+    const currentGen = layoutGen.current;
+    const allFresh   = TAB_ITEMS.every((_, idx) => tabMeasureGen.current[idx] === currentGen);
+    if (!allFresh) return;
+
+    const tx = tabOffsets.current[state.index];
+    const tw = tabWidths.current[state.index];
+    if (tx === undefined || !(tw > 0)) return;
+
+    if (!pillReady) {
+      // First mount: jump instantly, no animation
+      pillX.setValue(tx);
+      pillW.setValue(tw);
+      setPillReady(true);
+    } else {
+      // Language reflow: animate smoothly to re-measured position
+      animatePill(state.index);
     }
   };
 
