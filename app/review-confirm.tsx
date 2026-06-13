@@ -319,12 +319,12 @@ export default function ReviewConfirmScreen() {
 
     /* ── Error banner ── */
     errorBanner: {
-      backgroundColor: '#fff2f2',
+      backgroundColor: c.isDark ? 'rgba(220,38,38,0.10)' : '#fff2f2',
       borderRadius: 16, padding: 14, marginBottom: 16,
       flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-      borderWidth: 1, borderColor: '#fecaca',
+      borderWidth: 1, borderColor: c.isDark ? 'rgba(220,38,38,0.28)' : '#fecaca',
     },
-    errorText: { flex: 1, fontSize: 13, color: '#b91c1c', lineHeight: 18 },
+    errorText: { flex: 1, fontSize: 13, color: c.isDark ? '#f87171' : '#b91c1c', lineHeight: 18 },
 
     /* ── CTA ── */
     cta: {

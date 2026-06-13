@@ -12,7 +12,8 @@ import type { Route } from '@/constants/data';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    card: { backgroundColor: c.white, borderRadius: 24, padding: 16, overflow: 'hidden', ...S.luxe },
+    card: { backgroundColor: c.white, borderRadius: 24, overflow: 'hidden', ...S.luxe },
+    cardGrad: { padding: 16 },
     cardAccent: { position: 'absolute', top: -48, right: -48, width: 160, height: 160, borderRadius: 80, opacity: 0.7 },
     cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     codeBox: { width: 44, height: 44, borderRadius: 16, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
@@ -31,16 +32,29 @@ function makeStyles(c: ThemeColors) {
     fillBarFill: { height: '100%' as any, backgroundColor: c.ink, borderRadius: 2 },
     offersScroll: { gap: 12, paddingRight: 4 },
     offerCard: { width: 230, height: 120, borderRadius: 24, padding: 16, overflow: 'hidden', ...S.luxe },
-    offerGlow: { position: 'absolute', top: -40, right: -40, width: 128, height: 128, borderRadius: 64, backgroundColor: 'rgba(255,255,255,0.4)' },
+    offerGlow: {
+      position: 'absolute', top: -40, right: -40, width: 128, height: 128, borderRadius: 64,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.4)',
+    },
     offerTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    offerTag: { fontSize: 10, fontWeight: '600', color: 'rgba(30,30,40,0.7)', textTransform: 'uppercase', letterSpacing: 1.2 },
-    offerDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(30,30,40,0.3)' },
-    offerTap: { fontSize: 10, color: 'rgba(30,30,40,0.6)' },
+    offerTag: {
+      fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2,
+      color: c.isDark ? 'rgba(255,255,255,0.55)' : 'rgba(30,30,40,0.7)',
+    },
+    offerDot: {
+      width: 4, height: 4, borderRadius: 2,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(30,30,40,0.3)',
+    },
+    offerTap: { fontSize: 10, color: c.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(30,30,40,0.6)' },
     offerBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flex: 1, marginTop: 8, gap: 12 },
     offerTextBox: { flex: 1 },
-    offerTitle: { fontSize: 14, fontWeight: '600', color: '#1e1e28', lineHeight: 19 },
-    offerSubtitle: { fontSize: 11, color: '#5e5e72', marginTop: 2 },
-    offerIconBox: { width: 36, height: 36, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    offerTitle: { fontSize: 14, fontWeight: '600', color: c.ink, lineHeight: 19 },
+    offerSubtitle: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
+    offerIconBox: {
+      width: 36, height: 36, borderRadius: 14,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
   });
 }
 
@@ -57,41 +71,47 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
-      <View style={[styles.cardAccent, { backgroundColor: route.color }]} />
-      <View style={styles.cardTop}>
-        <View style={styles.codeBox}>
-          <Text style={styles.codeText}>{route.code}</Text>
+      <LinearGradient
+        colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+        style={styles.cardGrad}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      >
+        <View style={[styles.cardAccent, { backgroundColor: route.color }]} />
+        <View style={styles.cardTop}>
+          <View style={styles.codeBox}>
+            <Text style={styles.codeText}>{route.code}</Text>
+          </View>
+          <View style={styles.cardMeta}>
+            <Text style={styles.routeName}>{displayName}</Text>
+            <Text style={styles.routePath}>{displayFrom} {arrow} {displayTo}</Text>
+          </View>
+          <View style={styles.priceBox}>
+            <Text style={styles.priceText}>{route.price} {t('egp')}</Text>
+            <Text style={styles.priceLabel}>{t('full_route')}</Text>
+          </View>
         </View>
-        <View style={styles.cardMeta}>
-          <Text style={styles.routeName}>{displayName}</Text>
-          <Text style={styles.routePath}>{displayFrom} {arrow} {displayTo}</Text>
+        <View style={styles.cardStats}>
+          <View style={styles.statItem}>
+            <MapPin size={12} color={c.inkSoft} />
+            <Text style={styles.statText}>{route.stations} {t('stops')}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Clock size={12} color={c.inkSoft} />
+            <Text style={styles.statText}>{route.duration}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Users size={12} color={c.inkSoft} />
+            <Text style={styles.statText}>{route.seatsLeft} {t('seats_left')}</Text>
+          </View>
+          <View style={[styles.statItem, styles.statRight]}>
+            <Zap size={12} color={c.ink} />
+            <Text style={[styles.statText, { color: c.ink, fontWeight: '600' }]}>{route.nextDeparture}</Text>
+          </View>
         </View>
-        <View style={styles.priceBox}>
-          <Text style={styles.priceText}>{route.price} {t('egp')}</Text>
-          <Text style={styles.priceLabel}>{t('full_route')}</Text>
+        <View style={styles.fillBar}>
+          <View style={[styles.fillBarFill, { width: `${fill * 100}%` as any }]} />
         </View>
-      </View>
-      <View style={styles.cardStats}>
-        <View style={styles.statItem}>
-          <MapPin size={12} color={c.inkSoft} />
-          <Text style={styles.statText}>{route.stations} {t('stops')}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Clock size={12} color={c.inkSoft} />
-          <Text style={styles.statText}>{route.duration}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Users size={12} color={c.inkSoft} />
-          <Text style={styles.statText}>{route.seatsLeft} {t('seats_left')}</Text>
-        </View>
-        <View style={[styles.statItem, styles.statRight]}>
-          <Zap size={12} color={c.ink} />
-          <Text style={[styles.statText, { color: c.ink, fontWeight: '600' }]}>{route.nextDeparture}</Text>
-        </View>
-      </View>
-      <View style={styles.fillBar}>
-        <View style={[styles.fillBarFill, { width: `${fill * 100}%` as any }]} />
-      </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
@@ -113,6 +133,14 @@ const PASTEL_PAIRS: [string, string][] = [
   ['#fde8e8', '#f8e5e0'],
 ];
 
+const DARK_PASTEL_PAIRS: [string, string][] = [
+  ['#0d1c30', '#131830'],
+  ['#0b1f1a', '#0d1f28'],
+  ['#1f150a', '#201408'],
+  ['#140d28', '#151430'],
+  ['#251010', '#201210'],
+];
+
 export function FeaturedOffers() {
   const { colors: c, t, language } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -125,10 +153,13 @@ export function FeaturedOffers() {
         tag: isAr ? p.titleAr : p.titleEn,
         title: isAr ? p.titleAr : p.titleEn,
         subtitle: isAr ? p.subtitleAr : p.subtitleEn,
-        colors: PASTEL_PAIRS[i % PASTEL_PAIRS.length],
+        colors: (c.isDark ? DARK_PASTEL_PAIRS : PASTEL_PAIRS)[i % PASTEL_PAIRS.length],
         icon: p.icon,
       }))
-    : FALLBACK_OFFERS;
+    : FALLBACK_OFFERS.map((o, i) => ({
+        ...o,
+        colors: (c.isDark ? DARK_PASTEL_PAIRS : PASTEL_PAIRS)[i % PASTEL_PAIRS.length],
+      }));
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.offersScroll}>
@@ -147,7 +178,7 @@ export function FeaturedOffers() {
                 <Text style={styles.offerSubtitle} numberOfLines={1}>{o.subtitle}</Text>
               </View>
               <View style={styles.offerIconBox}>
-                <o.icon size={15} color="#1e1e28" />
+                <o.icon size={15} color={c.isDark ? c.ink : '#1e1e28'} />
               </View>
             </View>
           </LinearGradient>

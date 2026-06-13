@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, Platform, ActivityIndicator, Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   Users, Heart, Clock, MapPin, AlertCircle,
@@ -157,7 +158,7 @@ function makeStyles(c: ThemeColors, gs: object) {
     statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, marginTop: 10, marginBottom: 4 },
     statCard: {
       flex: 1, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8,
-      backgroundColor: c.white,
+      overflow: 'hidden',
       flexDirection: 'row', alignItems: 'center', gap: 8,
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
       shadowOpacity: c.isDark ? 0.25 : 0.06, shadowRadius: 8, elevation: 3,
@@ -294,9 +295,11 @@ function makeStyles(c: ThemeColors, gs: object) {
     /* Service banner */
     serviceBanner: {
       flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-      backgroundColor: '#fef3c7', borderRadius: 16, padding: 14, marginTop: 12,
+      backgroundColor: c.isDark ? 'rgba(245,158,11,0.12)' : '#fef3c7',
+      borderRadius: 16, padding: 14, marginTop: 12,
+      borderWidth: 1, borderColor: c.isDark ? 'rgba(245,158,11,0.22)' : 'transparent',
     },
-    serviceBannerText: { flex: 1, fontSize: 12.5, color: '#92400e', lineHeight: 18 },
+    serviceBannerText: { flex: 1, fontSize: 12.5, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 18 },
 
     /* CTA */
     cta: {
@@ -514,7 +517,11 @@ export function TripSheet() {
               duration data should come from GET /shuttle/lines/:id response fields.
               Currently using route.duration (static) and visibleTrips.length (live count). */}
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
+            <LinearGradient
+              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+              style={styles.statCard}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            >
               <View style={styles.statIconBox}>
                 <Bus size={13} color={c.ink} />
               </View>
@@ -522,8 +529,12 @@ export function TripSheet() {
                 <Text style={styles.statValue}>{visibleTrips.length || route.stations}</Text>
                 <Text style={styles.statLabel}>{t('departure')}</Text>
               </View>
-            </View>
-            <View style={styles.statCard}>
+            </LinearGradient>
+            <LinearGradient
+              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+              style={styles.statCard}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            >
               <View style={styles.statIconBox}>
                 <Clock size={13} color={c.ink} />
               </View>
@@ -531,8 +542,12 @@ export function TripSheet() {
                 <Text style={styles.statValue}>{route.duration ?? '—'}</Text>
                 <Text style={styles.statLabel}>{t('trip_duration')}</Text>
               </View>
-            </View>
-            <View style={styles.statCard}>
+            </LinearGradient>
+            <LinearGradient
+              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+              style={styles.statCard}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            >
               <View style={styles.statIconBox}>
                 <Ticket size={13} color={c.ink} />
               </View>
@@ -540,7 +555,7 @@ export function TripSheet() {
                 <Text style={styles.statValue}>{route.price}</Text>
                 <Text style={styles.statLabel}>{t('egp')}</Text>
               </View>
-            </View>
+            </LinearGradient>
           </View>
 
           {/* ── Date selector strip ── */}
@@ -578,7 +593,7 @@ export function TripSheet() {
           {/* Service disabled banner */}
           {!shuttleServiceEnabled && (
             <View style={[styles.serviceBanner, { marginHorizontal: 12 }]}>
-              <AlertTriangle size={15} color="#92400e" style={{ marginTop: 1 }} />
+              <AlertTriangle size={15} color={c.isDark ? '#fbbf24' : '#92400e'} style={{ marginTop: 1 }} />
               <Text style={styles.serviceBannerText}>{shuttleDisabledMessage}</Text>
             </View>
           )}

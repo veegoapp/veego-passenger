@@ -85,7 +85,7 @@ function makeStyles(c: ThemeColors) {
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: c.ink, letterSpacing: -0.3 },
     shareBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-    card: { marginHorizontal: 20, borderRadius: 24, backgroundColor: c.white, padding: 20, marginBottom: 16, ...S.float },
+    card: { marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', padding: 20, marginBottom: 16, ...S.float },
     sectionLabel: { fontSize: 10, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
     routeTitle: { fontSize: 18, fontWeight: '700', color: c.ink, letterSpacing: -0.4, marginBottom: 4 },
     routeSub: { fontSize: 13, color: c.inkSoft },
@@ -410,7 +410,11 @@ export default function TripDetailScreen() {
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Trip info card */}
-        <View style={styles.card}>
+        <LinearGradient
+          colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+          style={styles.card}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        >
           <Text style={styles.sectionLabel}>{t('route_label')}</Text>
           <Text style={styles.routeTitle}>{trip.routeName}</Text>
           <Text style={styles.routeSub}>{trip.from} {isRTL ? '←' : '→'} {trip.to}</Text>
@@ -443,7 +447,7 @@ export default function TripDetailScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Driver location map — only when driver_assigned/scheduled + within 20 min */}
         {showMap && (

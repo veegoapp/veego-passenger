@@ -193,10 +193,10 @@ function makeStyles(c: ThemeColors) {
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
     pendingBannerTitle: {
-      fontSize: 13, fontWeight: '700', color: '#92400e', marginBottom: 2,
+      fontSize: 13, fontWeight: '700', color: c.isDark ? '#fbbf24' : '#92400e', marginBottom: 2,
     },
     pendingBannerBody: {
-      fontSize: 12, color: '#92400e', lineHeight: 17, opacity: 0.85,
+      fontSize: 12, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 17, opacity: 0.85,
     },
 
     /* Boarded banner */

@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   Platform, ActivityIndicator, I18nManager,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { X, CircleDot, Circle } from 'lucide-react-native';
-import { C } from '@/constants/colors';
+import { C, ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 
 interface CancelReasonSheetProps {
@@ -16,8 +16,9 @@ interface CancelReasonSheetProps {
 }
 
 export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }: CancelReasonSheetProps) {
-  const { t } = useTheme();
+  const { t, colors: c } = useTheme();
   const isRTL = I18nManager.isRTL;
+  const styles = useMemo(() => makeSheetStyles(c), [c]);
 
   const rideReasons = [
     t('reason_driver_far'),
@@ -140,7 +141,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
   );
 }
 
-const styles = StyleSheet.create({
+function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: c.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : '#e0e0e0',
     marginBottom: 18,
   },
   header: {
@@ -177,20 +178,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1a1a2e',
+    color: c.ink,
     letterSpacing: -0.4,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f4f4f6',
+    backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#f4f4f6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   prompt: {
     fontSize: 13,
-    color: '#666',
+    color: c.inkSoft,
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 14,
     padding: 14,
-    backgroundColor: '#f8f8fa',
+    backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : '#f8f8fa',
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
@@ -214,16 +215,16 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     fontSize: 14,
-    color: '#333',
+    color: c.ink,
     flex: 1,
   },
   reasonTextActive: {
-    color: '#1a1a2e',
+    color: c.ink,
     fontWeight: '600',
   },
   optionalHint: {
     fontSize: 11.5,
-    color: '#aaa',
+    color: c.silver,
     textAlign: 'center',
     marginBottom: 14,
   },
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   confirmBtn: {
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: c.ink,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -247,7 +248,7 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: c.isDark ? c.background : '#fff',
   },
   backBtn: {
     height: 44,
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
   },
   backBtnText: {
     fontSize: 14,
-    color: '#888',
+    color: c.inkSoft,
     fontWeight: '500',
   },
-});
+}); }

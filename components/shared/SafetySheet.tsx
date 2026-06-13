@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   Platform, ActivityIndicator, Linking, I18nManager,
@@ -6,7 +6,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { ShieldAlert, Phone, MessageCircle, AlertTriangle, X, CheckCircle } from 'lucide-react-native';
-import { C } from '@/constants/colors';
+import { C, ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
 
@@ -20,8 +20,9 @@ interface SafetySheetProps {
 }
 
 export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, plate }: SafetySheetProps) {
-  const { t } = useTheme();
+  const { t, colors: c } = useTheme();
   const isRTL = I18nManager.isRTL;
+  const styles = useMemo(() => makeSheetStyles(c), [c]);
 
   const [sosLoading, setSosLoading] = useState(false);
   const [sosSuccess, setSosSuccess] = useState(false);
@@ -188,7 +189,7 @@ export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, pla
   );
 }
 
-const styles = StyleSheet.create({
+function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: c.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : '#e0e0e0',
     marginBottom: 18,
   },
   header: {
@@ -234,14 +235,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: '#1a1a2e',
+    color: c.ink,
     letterSpacing: -0.4,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f4f4f6',
+    backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#f4f4f6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -258,12 +259,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0,0,0,0.06)',
   },
   optionCall: {
-    backgroundColor: '#fff5f5',
-    borderColor: 'rgba(220,38,38,0.15)',
+    backgroundColor: c.isDark ? 'rgba(220,38,38,0.12)' : '#fff5f5',
+    borderColor: c.isDark ? 'rgba(220,38,38,0.22)' : 'rgba(220,38,38,0.15)',
   },
   optionWhatsApp: {
-    backgroundColor: '#f0fff4',
-    borderColor: 'rgba(37,211,102,0.2)',
+    backgroundColor: c.isDark ? 'rgba(37,211,102,0.10)' : '#f0fff4',
+    borderColor: c.isDark ? 'rgba(37,211,102,0.18)' : 'rgba(37,211,102,0.2)',
   },
   optionSOS: {
     backgroundColor: '#dc2626',
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
   },
   optionSub: {
     fontSize: 11.5,
-    color: '#888',
+    color: c.inkSoft,
     marginTop: 2,
   },
   successBlock: {
@@ -302,4 +303,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-});
+}); }
