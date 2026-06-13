@@ -4,7 +4,7 @@ import {
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
