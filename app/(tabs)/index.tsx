@@ -69,8 +69,8 @@ function makeStyles(c: ThemeColors) {
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
     avatarText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
 
-    serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 12, zIndex: 20 },
-    serviceBtn: { flexBasis: '48%', flexGrow: 1, flexShrink: 1, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, gap: 8 },
+    serviceGrid: { flexDirection: 'row', flexWrap: 'nowrap', gap: 7, paddingHorizontal: 20, marginBottom: 12, zIndex: 20 },
+    serviceBtn: { flex: 1, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6, gap: 6 },
     serviceBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     serviceBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     serviceBtnSoon: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist, borderColor: c.border, opacity: 0.9 },
