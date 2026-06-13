@@ -322,7 +322,7 @@ export default function TripsScreen() {
           >
             <ChevronDown size={16} color={c.inkSoft} />
             <Text style={styles.loadMoreText}>
-              {loadingMore ? (isAr ? 'جاري التحميل...' : 'Loading...') : (isAr ? 'تحميل المزيد' : 'Load more')}
+              {loadingMore ? t('loading') : t('load_more')}
             </Text>
           </TouchableOpacity>
         )}

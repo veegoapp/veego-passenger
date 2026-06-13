@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, CheckCheck, Navigation, Sparkles, Settings, Bell } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, CheckCheck, Navigation, Sparkles, Settings, Bell } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -20,7 +20,7 @@ function makeStyles(c: ThemeColors) {
     unreadCount: { fontSize: 11, color: c.inkSoft, marginTop: 1 },
     list: { paddingHorizontal: 20, gap: 10 },
     notifCard: { borderRadius: 22, padding: 16, backgroundColor: c.white, flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-    notifCardUnread: { borderLeftWidth: 3, borderLeftColor: c.ink },
+    notifCardUnread: { borderStartWidth: 3, borderStartColor: c.ink },
     notifIconWrap: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     notifContent: { flex: 1, gap: 4 },
     notifTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -42,7 +42,7 @@ const ICON_BG_DARK: Record<string, string> = {
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const iconBg = c.isDark ? ICON_BG_DARK : ICON_BG_LIGHT;
   const { notifications, unreadCount, loading, markAllRead } = useNotifications();
@@ -51,7 +51,7 @@ export default function NotificationsScreen() {
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={[gs, styles.backBtn]} onPress={() => router.back()} activeOpacity={0.8}>
-          <ArrowLeft size={18} color={c.ink} />
+          {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
         </TouchableOpacity>
         <View style={{ flex: 1, paddingHorizontal: 12 }}>
           <Text style={styles.title}>{t('notifications')}</Text>

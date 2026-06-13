@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Car, ShieldCheck, ShieldAlert, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle, Tag } from 'lucide-react-native';
+import { MapPin, Car, ShieldCheck, ShieldAlert, ChevronUp, ChevronDown, Search, Check, Star, Banknote, PlusCircle, AlertTriangle, Clock, Navigation, ArrowLeft, ArrowRight, CheckCircle, PhoneCall, X, MessageCircle, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -222,7 +222,7 @@ function PlacePicker({
 export default function CarScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { t } = useTheme();
+  const { t, isRTL } = useTheme();
 
   const [phase, setPhase] = useState<Phase>('request');
   const [pickup, setPickup] = useState('');
@@ -256,7 +256,7 @@ export default function CarScreen() {
       haptic.notify(Haptics.NotificationFeedbackType.Success);
     } else {
       setPromoStatus('invalid');
-      setPromoError(result.message ?? 'Invalid promo code');
+      setPromoError(result.message ?? t('invalid_promo_code'));
       haptic.notify(Haptics.NotificationFeedbackType.Error);
     }
   }, [promoInput, priceEstimate, validateCode]);
@@ -375,13 +375,13 @@ export default function CarScreen() {
 
   const startFinding = useCallback(async () => {
     if (!pickup || !dropoff) {
-      Alert.alert('Select locations', 'Please select both pickup and drop-off.');
+      Alert.alert(t('select_locations'), t('select_both'));
       return;
     }
     const pickupCoords = WG_COORDS[pickup];
     const dropoffCoords = WG_COORDS[dropoff];
     if (!pickupCoords || !dropoffCoords) {
-      Alert.alert('Location error', 'Could not determine coordinates for selected location.');
+      Alert.alert(t('location_error'), t('location_error_msg'));
       return;
     }
     haptic.impact();
@@ -480,7 +480,7 @@ export default function CarScreen() {
 
           <RatingSheet
             visible={ratingVisible}
-            driverName={rideState.driver?.name ?? 'Your Driver'}
+            driverName={rideState.driver?.name ?? t('your_driver')}
             driverInitials={driverInitials}
             driverColor="#3A7BD5"
             onSubmit={handleRatingSubmit}
@@ -498,15 +498,15 @@ export default function CarScreen() {
           <View style={[styles.successCircle, { backgroundColor: C.badge }]}>
             <X size={38} color={C.white} />
           </View>
-          <Text style={styles.arrivedTitle}>Ride Cancelled</Text>
+          <Text style={styles.arrivedTitle}>{t('ride_cancelled_title')}</Text>
           <Text style={styles.arrivedSub}>
             {rideState.cancelReason === 'timeout'
-              ? 'No drivers were available. Please try again.'
-              : rideState.cancelReason ?? 'Your ride was cancelled.'}
+              ? t('no_drivers_msg')
+              : rideState.cancelReason ?? t('ride_cancelled_msg')}
           </Text>
           <TouchableOpacity style={[styles.primaryBtn, { marginTop: 28 }]} onPress={resetRide} activeOpacity={0.85}>
             <Navigation size={15} color={C.white} />
-            <Text style={styles.primaryBtnText}>Try Again</Text>
+            <Text style={styles.primaryBtnText}>{t('try_again')}</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -588,7 +588,7 @@ export default function CarScreen() {
               <Tag size={15} color={C.inkSoft} />
               <TextInput
                 style={styles.promoInput}
-                placeholder="Enter promo code"
+                placeholder={t('enter_promo')}
                 placeholderTextColor={C.inkSoft}
                 value={promoInput}
                 onChangeText={(v) => { setPromoInput(v); if (promoStatus === 'invalid') setPromoStatus('idle'); }}
@@ -603,12 +603,12 @@ export default function CarScreen() {
                 disabled={promoInput.trim().length === 0 || promoStatus === 'loading' || promoStatus === 'valid'}
                 activeOpacity={0.8}
               >
-                <Text style={styles.promoApplyText}>{promoStatus === 'loading' ? '...' : 'Apply'}</Text>
+                <Text style={styles.promoApplyText}>{promoStatus === 'loading' ? '...' : t('promo_apply')}</Text>
               </TouchableOpacity>
             </View>
             {promoStatus === 'valid' && (
               <View style={styles.promoSuccess}>
-                <Text style={styles.promoSuccessText}>Discount applied: -{promoDiscount}</Text>
+                <Text style={styles.promoSuccessText}>{t('discount_applied').replace('{amount}', String(promoDiscount))}</Text>
                 <TouchableOpacity onPress={clearPromo} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <X size={14} color="#22a06b" />
                 </TouchableOpacity>
@@ -627,7 +627,7 @@ export default function CarScreen() {
           >
             <Navigation size={15} color={C.white} />
             <Text style={styles.primaryBtnText}>
-              {requesting ? 'Requesting…' : 'Confirm ride'}
+              {requesting ? t('requesting') : t('confirm_ride')}
             </Text>
           </TouchableOpacity>
 
@@ -665,7 +665,7 @@ export default function CarScreen() {
           <View style={[glassStyle, styles.tripSummaryRow, S.luxe, { marginTop: 16 }]}>
             <View style={[styles.tripDot, { backgroundColor: C.ink }]} />
             <Text style={styles.tripStopText} numberOfLines={1}>{pickup}</Text>
-            <ArrowRight size={11} color={C.inkSoft} style={{ marginHorizontal: 6 }} />
+            {isRTL ? <ArrowLeft size={11} color={C.inkSoft} style={{ marginHorizontal: 6 }} /> : <ArrowRight size={11} color={C.inkSoft} style={{ marginHorizontal: 6 }} />}
             <View style={[styles.tripDot, { backgroundColor: C.accentMint }]} />
             <Text style={styles.tripStopText} numberOfLines={1}>{dropoff}</Text>
           </View>
@@ -700,7 +700,7 @@ export default function CarScreen() {
               <Text style={styles.driverAvatarText}>{driverInitials}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.driverName}>{rideState.driver?.name ?? 'Driver'}</Text>
+              <Text style={styles.driverName}>{rideState.driver?.name ?? t('driver_label')}</Text>
               <Text style={styles.driverCarText}>{rideState.driver?.vehicle ?? ''}</Text>
               <View style={styles.ratingRow}>
                 <Star size={11} color="#f5a623" fill="#f5a623" />
@@ -735,7 +735,7 @@ export default function CarScreen() {
           <View style={styles.tripSummaryRow}>
             <View style={[styles.tripDot, { backgroundColor: C.ink }]} />
             <Text style={styles.tripStopText} numberOfLines={1}>{pickup}</Text>
-            <ArrowRight size={11} color={C.inkSoft} style={{ marginHorizontal: 6 }} />
+            {isRTL ? <ArrowLeft size={11} color={C.inkSoft} style={{ marginHorizontal: 6 }} /> : <ArrowRight size={11} color={C.inkSoft} style={{ marginHorizontal: 6 }} />}
             <View style={[styles.tripDot, { backgroundColor: C.accentMint }]} />
             <Text style={styles.tripStopText} numberOfLines={1}>{dropoff}</Text>
           </View>
@@ -778,7 +778,7 @@ export default function CarScreen() {
               <Text style={styles.driverAvatarText}>{driverInitials}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.driverName}>{rideState.driver?.name ?? 'Driver'}</Text>
+              <Text style={styles.driverName}>{rideState.driver?.name ?? t('driver_label')}</Text>
               <Text style={styles.driverCarText}>{rideState.driver?.vehicle ?? ''}</Text>
             </View>
             {rideState.driver?.phone ? (
@@ -827,7 +827,7 @@ export default function CarScreen() {
               <Text style={styles.driverAvatarText}>{driverInitials}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.driverName}>{rideState.driver?.name ?? 'Driver'}</Text>
+              <Text style={styles.driverName}>{rideState.driver?.name ?? t('driver_label')}</Text>
               <Text style={styles.driverCarText}>{rideState.driver?.vehicle ?? ''}</Text>
             </View>
             <TouchableOpacity
@@ -870,8 +870,8 @@ export default function CarScreen() {
               <Banknote size={12} color={C.inkSoft} />
               <Text style={styles.routePayText}>
                 {priceEstimate != null
-                  ? `Wallet · EGP ${priceEstimate.toFixed(2)}`
-                  : 'Calculating fare…'}
+                  ? t('wallet_fare').replace('{p}', priceEstimate.toFixed(2))
+                  : t('calculating_fare')}
               </Text>
             </View>
           </View>
@@ -1184,12 +1184,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     backgroundColor: '#fef3c7',
-    borderLeftWidth: 3,
-    borderLeftColor: '#f59e0b',
+    borderStartWidth: 3,
+    borderStartColor: '#f59e0b',
   },
   waitingBannerCapped: {
     backgroundColor: '#fff7ed',
-    borderLeftColor: '#ea580c',
+    borderStartColor: '#ea580c',
   },
   waitingBannerText: {
     flex: 1,
@@ -1276,8 +1276,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     backgroundColor: '#fffbeb',
-    borderLeftWidth: 3,
-    borderLeftColor: '#f59e0b',
+    borderStartWidth: 3,
+    borderStartColor: '#f59e0b',
   },
   deviationBannerText: {
     flex: 1,

@@ -124,9 +124,9 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       onSuccess();
     } catch (e: any) {
       const status = e?.response?.status;
-      const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? 'Sign in failed. Please try again.';
+      const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? t('sign_in_failed');
       if (status === 403) {
-        Alert.alert(t('error'), 'Your account has been blocked. Please contact support.');
+        Alert.alert(t('error'), t('account_blocked'));
       } else {
         Alert.alert(t('error'), msg);
       }
@@ -208,7 +208,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSignUp = async () => {
     if (!name.trim() || !phone.trim() || !email.trim() || !password.trim()) return;
     if (password.length < 8) {
-      Alert.alert(t('error'), 'Password must be at least 8 characters.');
+      Alert.alert(t('error'), t('password_min'));
       return;
     }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -226,7 +226,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (e: any) {
-      const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? 'Registration failed. Please try again.';
+      const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? t('register_failed');
       Alert.alert(t('error'), msg);
     } finally {
       setLoading(false);
@@ -565,7 +565,7 @@ function ResetStep({
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(t('password_min'));
       return;
     }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -576,7 +576,7 @@ function ResetStep({
       Alert.alert(t('verify'), t('password_reset_success'));
       onSuccess();
     } catch (e: any) {
-      const msg = e?.response?.data?.message ?? e?.response?.data?.error ?? 'Reset failed. Please try again.';
+      const msg = e?.response?.data?.message ?? e?.response?.data?.error ?? t('reset_failed');
       setError(msg);
     } finally {
       setLoading(false);

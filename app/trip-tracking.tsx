@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Navigation, Phone, Star } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, Star } from 'lucide-react-native';
+import { useTheme } from '@/context/ThemeContext';
 import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
 import { getSocket } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
@@ -32,6 +33,7 @@ type TripStatus = keyof typeof STATUS_LABELS;
 export default function TripTrackingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { isRTL } = useTheme();
   const params = useLocalSearchParams<{
     rideId: string;
     pickupLat: string;
@@ -127,7 +129,7 @@ export default function TripTrackingScreen() {
       {/* Top bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.85}>
-          <ArrowLeft size={20} color="#fff" />
+          {isRTL ? <ArrowRight size={20} color="#fff" /> : <ArrowLeft size={20} color="#fff" />}
         </TouchableOpacity>
         <View style={[styles.statusPill, { backgroundColor: statusColor + '22', borderColor: statusColor }]}>
           {status === 'searching' && (

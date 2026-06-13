@@ -233,7 +233,7 @@ export default function FavoritesScreen() {
                 <Car size={22} color={c.silver} />
               </View>
               <Text style={styles.emptyTitle}>{t('fav_empty_shuttle')}</Text>
-              <Text style={styles.emptySub}>Your frequent car destinations will appear here after your first ride.</Text>
+              <Text style={styles.emptySub}>{t('car_dest_empty_sub')}</Text>
             </View>
           ) : (
             <View style={{ gap: 10 }}>
@@ -250,9 +250,9 @@ export default function FavoritesScreen() {
                   </View>
                   <View style={styles.destMeta}>
                     <Text style={styles.destFrom} numberOfLines={1}>{dest.from}</Text>
-                    <Text style={styles.destTo} numberOfLines={1}>→ {dest.to}</Text>
+                    <Text style={styles.destTo} numberOfLines={1}>{t('dest_to_arrow')} {dest.to}</Text>
                     {dest.lastUsed && (
-                      <Text style={styles.destDetail}>Last used {dest.lastUsed} · {dest.count}×</Text>
+                      <Text style={styles.destDetail}>{t('last_used_label')} {dest.lastUsed} · {dest.count}×</Text>
                     )}
                   </View>
                   <View style={styles.destRight}>
@@ -293,7 +293,7 @@ export default function FavoritesScreen() {
                 <Bike size={22} color={c.silver} />
               </View>
               <Text style={styles.emptyTitle}>{t('fav_empty_shuttle')}</Text>
-              <Text style={styles.emptySub}>Your frequent scooter routes will appear here after your first ride.</Text>
+              <Text style={styles.emptySub}>{t('scooter_dest_empty_sub')}</Text>
             </View>
           ) : (
             <View style={{ gap: 10 }}>
@@ -310,9 +310,9 @@ export default function FavoritesScreen() {
                   </View>
                   <View style={styles.destMeta}>
                     <Text style={styles.destFrom} numberOfLines={1}>{dest.from}</Text>
-                    <Text style={styles.destTo} numberOfLines={1}>→ {dest.to}</Text>
+                    <Text style={styles.destTo} numberOfLines={1}>{t('dest_to_arrow')} {dest.to}</Text>
                     {dest.lastUsed && (
-                      <Text style={styles.destDetail}>Last used {dest.lastUsed} · {dest.count}×</Text>
+                      <Text style={styles.destDetail}>{t('last_used_label')} {dest.lastUsed} · {dest.count}×</Text>
                     )}
                   </View>
                   <View style={styles.destRight}>

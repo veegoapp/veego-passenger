@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowRight, Ticket, QrCode, MapPin, Calendar, Clock, User, Tag } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, QrCode, MapPin, Calendar, Clock, User, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import QRCode from 'react-native-qrcode-svg';
@@ -247,7 +247,7 @@ export default function TicketScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
   const { activeBooking, confirmedBookingId, confirmedTripId, confirmedBookingStatus, shuttleInfo } = useBooking();
-  const { colors: c, t, language } = useTheme();
+  const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -416,7 +416,7 @@ export default function TicketScreen() {
         {boarded && (
           <Animated.View style={[styles.boardedBanner, { transform: [{ scale: boardedAnim }] }]}>
             <CheckCircle size={24} color="#ffffff" />
-            <Text style={styles.boardedBannerText}>You've been boarded! Have a great trip.</Text>
+            <Text style={styles.boardedBannerText}>{t('boarded_msg')}</Text>
           </Animated.View>
         )}
 
@@ -477,7 +477,9 @@ export default function TicketScreen() {
                     : booking.route.path[booking.fromIdx]?.name}
                 </Text>
               </View>
-              <ArrowRight size={12} color="rgba(255,255,255,0.45)" />
+              {isRTL
+                ? <ArrowLeft size={12} color="rgba(255,255,255,0.45)" />
+                : <ArrowRight size={12} color="rgba(255,255,255,0.45)" />}
               <View style={styles.ticketStation}>
                 <View style={[styles.ticketStationDot, { backgroundColor: c.accentMint }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>

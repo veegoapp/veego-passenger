@@ -94,8 +94,8 @@ export default function WalletScreen() {
     const result = await recharge(selectedCharge);
     setSelectedCharge(null);
     Alert.alert(
-      isAr ? 'تم الشحن' : 'Recharged',
-      isAr ? `تم إضافة ${selectedCharge} جنيه إلى رصيدك` : `${selectedCharge} EGP added to your balance`,
+      t('recharged_title'),
+      t('recharged_body').replace('{amount}', String(selectedCharge)),
     );
     if (!result.success) {
       console.warn('[Wallet] Recharge API error:', result.error);
@@ -104,10 +104,7 @@ export default function WalletScreen() {
 
   const handleTransfer = () => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
-    Alert.alert(
-      isAr ? 'تحويل رصيد' : 'Transfer',
-      isAr ? 'خاصية التحويل ستكون متاحة قريبًا.' : 'Transfer feature coming soon.',
-    );
+    Alert.alert(t('transfer_title'), t('transfer_soon_msg'));
   };
 
   return (
@@ -142,18 +139,14 @@ export default function WalletScreen() {
             </View>
             <View style={styles.debtBannerText}>
               <Text style={[styles.debtBannerTitle, c.isDark && styles.debtBannerTitleDark]}>
-                {isAr ? 'دين نقدي' : 'Cash Debt'}
+                {t('cash_debt')}
               </Text>
               <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark]}>
-                {isAr
-                  ? `عليك مبلغ ${debt.amount} جنيه، ادفعه للسائق في رحلتك القادمة.`
-                  : `You owe ${debt.amount} EGP — pay the driver on your next trip.`}
+                {t('debt_owe_msg').replace('{amount}', String(debt.amount))}
               </Text>
               {debt.offenceCount > 1 && (
                 <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark, { marginTop: 4 }]}>
-                  {isAr
-                    ? `لديك ${debt.offenceCount} مخالفات غياب.`
-                    : `You have ${debt.offenceCount} no-show offences.`}
+                  {t('no_show_offences').replace('{count}', String(debt.offenceCount))}
                 </Text>
               )}
             </View>
@@ -167,10 +160,7 @@ export default function WalletScreen() {
             onPress={() => {
               if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               if (!selectedCharge) {
-                Alert.alert(
-                  isAr ? 'اختر مبلغًا' : 'Select Amount',
-                  isAr ? 'اختر مبلغ الشحن أولًا من القائمة أدناه.' : 'Please pick a recharge amount below first.',
-                );
+                Alert.alert(t('select_amount_title'), t('select_amount_body'));
               } else {
                 handleConfirmCharge();
               }
@@ -229,7 +219,7 @@ export default function WalletScreen() {
             >
               <CheckCircle size={18} color="#ffffff" />
               <Text style={[styles.confirmChargeBtnText, { color: '#ffffff' }]}>
-                {isAr ? `تأكيد شحن ${selectedCharge} جنيه` : `Confirm recharge ${selectedCharge} EGP`}
+                {t('confirm_recharge_btn').replace('{amount}', String(selectedCharge))}
               </Text>
             </TouchableOpacity>
           )}

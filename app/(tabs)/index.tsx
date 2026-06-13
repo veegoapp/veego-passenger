@@ -275,13 +275,13 @@ export default function HomeScreen() {
                       {isMaintenance && (
                         <View style={styles.soonBadge}>
                           <Text style={styles.soonBadgeText}>
-                            {ctrl?.maintenanceEta ? `Back ${ctrl.maintenanceEta}` : 'Maintenance'}
+                            {ctrl?.maintenanceEta ? `${t('back_label')} ${ctrl.maintenanceEta}` : t('maintenance_badge')}
                           </Text>
                         </View>
                       )}
                       {isUnavailable && (
                         <View style={styles.soonBadge}>
-                          <Text style={styles.soonBadgeText}>Unavailable</Text>
+                          <Text style={styles.soonBadgeText}>{t('service_unavailable')}</Text>
                         </View>
                       )}
                     </>
@@ -322,7 +322,7 @@ export default function HomeScreen() {
             <View style={styles.stickySearch}>
               <TouchableOpacity style={[gs, styles.searchBar]} onPress={() => router.push('/routes')} activeOpacity={0.85}>
                 <Search size={16} color={c.inkSoft} />
-                <Text style={styles.searchPlaceholder}>Search for route or station</Text>
+                <Text style={styles.searchPlaceholder}>{t('search_route_station')}</Text>
                 <View style={styles.searchDivider} />
                 <MapPin size={16} color={c.ink} />
               </TouchableOpacity>
@@ -332,9 +332,9 @@ export default function HomeScreen() {
           {/* ═══ تم نقل السيكشن الأصلي والكلمة هنا بالظبط بنفس ستايلها القديم ═══ */}
           {mode === 'shuttle' && (
             <View style={styles.routesSectionHeader}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: c.ink }}>Shuttle Routes</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: c.ink }}>{t('shuttle_routes_heading')}</Text>
               <TouchableOpacity onPress={() => router.push('/routes')}>
-                <Text style={styles.viewAllBtn}>View all routes</Text>
+                <Text style={styles.viewAllBtn}>{t('view_all_routes')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -355,8 +355,8 @@ export default function HomeScreen() {
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#f59e0b', marginTop: 5 }} />
                 <Text style={{ flex: 1, fontSize: 11.5, color: c.isDark ? '#f59e0b' : '#92400e', lineHeight: 16 }}>
                   {hiddenCount === 1
-                    ? '1 service is not available in your area'
-                    : `${hiddenCount} services are not available in your area`}
+                    ? t('service_not_available_1')
+                    : t('services_not_available_n').replace('{n}', String(hiddenCount))}
                 </Text>
               </View>
             );
@@ -376,7 +376,7 @@ export default function HomeScreen() {
                     style={styles.mapInputText}
                     value={typedText}
                     onChangeText={setTypedText}
-                    placeholder="Enter pickup location..."
+                    placeholder={t('enter_pickup')}
                     placeholderTextColor={c.inkSoft}
                     autoFocus
                   />
@@ -398,7 +398,7 @@ export default function HomeScreen() {
                     style={styles.mapInputText}
                     value={typedText}
                     onChangeText={setTypedText}
-                    placeholder="Where are you going?"
+                    placeholder={t('where_to')}
                     placeholderTextColor={c.inkSoft}
                     autoFocus
                   />
@@ -407,7 +407,7 @@ export default function HomeScreen() {
                     style={[styles.mapInputText, !destinationLocation && styles.mapInputPlaceholder]}
                     numberOfLines={1}
                   >
-                    {destinationLocation || 'Where are you going?'}
+                    {destinationLocation || t('where_to')}
                   </Text>
                 )}
                 <Search size={14} color={c.inkSoft} />

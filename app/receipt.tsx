@@ -140,7 +140,7 @@ export default function ReceiptScreen() {
         {/* Driver info */}
         {!!params.driverName && (
           <View style={[styles.card, { borderColor: c.border }]}>
-            <Text style={[styles.sectionLabel, { color: c.inkSoft }]}>Driver</Text>
+            <Text style={[styles.sectionLabel, { color: c.inkSoft }]}>{t('driver_label')}</Text>
             <View style={styles.driverRow}>
               <View style={[styles.driverAvatar, { backgroundColor: '#3A7BD5' }]}>
                 <Text style={styles.driverInitials}>{driverInitials}</Text>

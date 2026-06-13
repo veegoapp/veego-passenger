@@ -11,31 +11,31 @@ import { useTheme } from '@/context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
-const STEPS = [
-  {
-    tag: 'Book smarter',
-    title: 'Your route,\nyour way',
-    body: 'Pick your stops, choose your seat, and ride in comfort — every day.',
-    Illust: IllustRoute,
-  },
-  {
-    tag: 'Pick your seat',
-    title: 'Always know\nwhere you sit',
-    body: 'See availability in real-time and choose the seat that fits your journey.',
-    Illust: IllustSeat,
-  },
-  {
-    tag: 'City-wide',
-    title: 'The whole city,\none pass',
-    body: 'Connect across all lines with a single account. Simple, sustainable travel.',
-    Illust: IllustCity,
-  },
-];
-
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const { t } = useTheme();
+
+  const STEPS = [
+    {
+      tag: t('onboarding_tag1'),
+      title: t('onboarding_title1'),
+      body: t('onboarding_body1'),
+      Illust: IllustRoute,
+    },
+    {
+      tag: t('onboarding_tag2'),
+      title: t('onboarding_title2'),
+      body: t('onboarding_body2'),
+      Illust: IllustSeat,
+    },
+    {
+      tag: t('onboarding_tag3'),
+      title: t('onboarding_title3'),
+      body: t('onboarding_body3'),
+      Illust: IllustCity,
+    },
+  ];
 
   const next = () => {
     Haptics.selectionAsync();

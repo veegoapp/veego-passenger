@@ -4,7 +4,7 @@ import {
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -111,12 +111,12 @@ function makeStyles(c: ThemeColors) {
 }
 
 function ModalHeader({ title, onClose, actionLabel, onAction }: { title: string; onClose: () => void; actionLabel?: string; onAction?: () => void }) {
-  const { colors: c } = useTheme();
+  const { colors: c, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.modalHeader}>
       <TouchableOpacity style={styles.modalBackBtn} onPress={onClose} activeOpacity={0.8}>
-        <ArrowLeft size={18} color={c.ink} />
+        {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
       </TouchableOpacity>
       <Text style={styles.modalTitle}>{title}</Text>
       {actionLabel && onAction && (

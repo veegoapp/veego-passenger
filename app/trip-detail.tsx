@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, MapPin, Share2, Navigation, X } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -127,7 +127,7 @@ export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, t, language } = useTheme();
+  const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -142,7 +142,7 @@ export default function TripDetailScreen() {
   const tripIdRef = useRef<string | number | null>(null);
 
   const fetchTrip = useCallback(async () => {
-    if (!id) { setError('رقم الرحلة مفقود'); setLoading(false); return; }
+    if (!id) { setError(t('trip_id_missing')); setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
@@ -175,10 +175,10 @@ export default function TripDetailScreen() {
         setTrip(detail);
         tripIdRef.current = detail.id;
       } else {
-        setError('تعذر تحميل بيانات الرحلة');
+        setError(t('trip_load_error'));
       }
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? 'تعذر تحميل بيانات الرحلة');
+      setError(e?.response?.data?.message ?? e?.message ?? t('trip_load_error'));
     } finally {
       setLoading(false);
     }
@@ -315,7 +315,7 @@ export default function TripDetailScreen() {
       const result = await cancelBooking(id);
       if (result?.refunded === false) {
         Alert.alert(
-          isAr ? 'تم الإلغاء' : 'Booking Cancelled',
+          t('booking_cancelled_title'),
           t('cancel_no_refund'),
           [{ text: t('confirm'), onPress: () => router.back() }],
         );
@@ -325,7 +325,7 @@ export default function TripDetailScreen() {
     } catch (e: any) {
       Alert.alert(
         t('error'),
-        e?.response?.data?.message ?? e?.message ?? (isAr ? 'تعذر إلغاء الحجز' : 'Could not cancel booking'),
+        e?.response?.data?.message ?? e?.message ?? t('cancel_booking_failed'),
       );
     } finally {
       setCancellingId(null);
@@ -339,9 +339,9 @@ export default function TripDetailScreen() {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
-        message: isAr
-          ? `انضم إليّ في رحلة ${trip?.routeName ?? ''} عبر VeeGo! ${deepLink}`
-          : `Join me on a ${trip?.routeName ?? ''} trip via VeeGo! ${deepLink}`,
+        message: t('join_trip_msg')
+          .replace('{route}', trip?.routeName ?? '')
+          .replace('{link}', deepLink),
         url: deepLink,
       });
     } catch {}
@@ -352,14 +352,14 @@ export default function TripDetailScreen() {
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: top + 12 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            <ArrowLeft size={18} color={c.ink} />
+            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isAr ? 'تفاصيل الرحلة' : 'Trip Detail'}</Text>
+          <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
           <View style={styles.shareBtn} />
         </View>
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={c.ink} />
-          <Text style={styles.loadingText}>{isAr ? 'جاري التحميل...' : 'Loading...'}</Text>
+          <Text style={styles.loadingText}>{t('loading')}</Text>
         </View>
       </LinearGradient>
     );
@@ -370,15 +370,15 @@ export default function TripDetailScreen() {
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: top + 12 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            <ArrowLeft size={18} color={c.ink} />
+            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isAr ? 'تفاصيل الرحلة' : 'Trip Detail'}</Text>
+          <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
           <View style={styles.shareBtn} />
         </View>
         <View style={[styles.loadingBox]}>
-          <Text style={styles.errorText}>{error ?? (isAr ? 'الرحلة غير موجودة' : 'Trip not found')}</Text>
+          <Text style={styles.errorText}>{error ?? t('trip_not_found')}</Text>
           <TouchableOpacity style={styles.goBack} onPress={() => router.back()}>
-            <Text style={styles.goBackText}>{isAr ? 'رجوع' : 'Go Back'}</Text>
+            <Text style={styles.goBackText}>{t('go_back')}</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -400,9 +400,9 @@ export default function TripDetailScreen() {
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          <ArrowLeft size={18} color={c.ink} />
+          {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isAr ? 'تفاصيل الرحلة' : 'Trip Detail'}</Text>
+        <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
         <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.8}>
           <Share2 size={16} color={c.ink} />
         </TouchableOpacity>
@@ -411,9 +411,9 @@ export default function TripDetailScreen() {
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Trip info card */}
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>{isAr ? 'الخط' : 'Route'}</Text>
+          <Text style={styles.sectionLabel}>{t('route_label')}</Text>
           <Text style={styles.routeTitle}>{trip.routeName}</Text>
-          <Text style={styles.routeSub}>{trip.from} → {trip.to}</Text>
+          <Text style={styles.routeSub}>{trip.from} {isRTL ? '←' : '→'} {trip.to}</Text>
 
           <View style={styles.statusRow}>
             <View style={[styles.statusDot, { backgroundColor: resolvedStatusColor }]} />
@@ -424,7 +424,7 @@ export default function TripDetailScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginStart: 6 }}>
                 <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#55c49a' }} />
                 <Text style={{ fontSize: 10, color: '#55c49a', fontWeight: '600' }}>
-                  {isAr ? 'مباشر' : 'live'}
+                  {t('live_badge')}
                 </Text>
               </View>
             )}
@@ -432,10 +432,10 @@ export default function TripDetailScreen() {
 
           <View style={styles.gridRow}>
             {[
-              { label: isAr ? 'التاريخ' : 'Date', value: trip.date },
-              { label: isAr ? 'الوقت' : 'Time', value: trip.time },
-              { label: isAr ? 'المقعد' : 'Seat', value: trip.seat },
-              { label: isAr ? 'السعر' : 'Price', value: `${trip.price} ${isAr ? 'جنيه' : 'EGP'}` },
+              { label: t('date_label'), value: trip.date },
+              { label: t('time_label'), value: trip.time },
+              { label: t('seat_label'), value: trip.seat },
+              { label: t('price_label'), value: `${trip.price} ${t('egp')}` },
             ].map((item) => (
               <View key={item.label} style={styles.gridItem}>
                 <Text style={styles.gridLabel}>{item.label}</Text>
@@ -452,7 +452,7 @@ export default function TripDetailScreen() {
               <View style={styles.mapPulse} />
               <Navigation size={11} color="#fff" />
               <Text style={styles.mapLabelText}>
-                {isAr ? 'السائق في الطريق' : 'Driver en route'}
+                {t('driver_en_route')}
               </Text>
             </View>
             <PassengerTrackingMap
@@ -488,17 +488,15 @@ export default function TripDetailScreen() {
             <MapPin size={22} color={c.accentMint} style={{ flexShrink: 0 }} />
             <View style={styles.shareCardText}>
               <Text style={styles.shareCardTitle}>
-                {isAr ? 'ادعُ أصدقاءك' : 'Invite friends'}
+                {t('invite_friends_title')}
               </Text>
               <Text style={styles.shareCardBody}>
-                {isAr
-                  ? `هذه الرحلة تحتاج مزيدًا من الركاب. شارك الرابط وادعُ أصدقاءك.`
-                  : `This trip needs more passengers. Share the link and invite friends.`}
+                {t('invite_friends_body')}
               </Text>
             </View>
             <TouchableOpacity style={styles.shareCardBtn} onPress={handleShare} activeOpacity={0.85}>
               <Share2 size={14} color="#fff" />
-              <Text style={styles.shareCardBtnText}>{isAr ? 'مشاركة' : 'Share'}</Text>
+              <Text style={styles.shareCardBtnText}>{t('share_action')}</Text>
             </TouchableOpacity>
           </View>
         )}

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Check, MessageCircle, Phone } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, MessageCircle, Phone } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -89,7 +89,7 @@ function makeStyles(c: ThemeColors) {
 export default function SupportScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
@@ -99,7 +99,7 @@ export default function SupportScreen() {
 
   const handleSend = async () => {
     if (!selectedIssue || !message.trim()) {
-      Alert.alert(t('error'), 'Please select an issue type and describe your problem.');
+      Alert.alert(t('error'), t('support_missing_fields'));
       return;
     }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -114,8 +114,8 @@ export default function SupportScreen() {
     } catch (e: any) {
       const status = e?.response?.status;
       if (status && status !== 404 && status !== 501 && status >= 400 && status < 500) {
-        const msg = e?.response?.data?.message ?? 'Failed to send message. Please try again.';
-        Alert.alert('Error', msg);
+        const msg = e?.response?.data?.message ?? t('send_failed');
+        Alert.alert(t('error'), msg);
         setSending(false);
         return;
       }
@@ -130,7 +130,7 @@ export default function SupportScreen() {
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={[gs, styles.backBtn]} onPress={() => router.back()} activeOpacity={0.8}>
-          <ArrowLeft size={18} color={c.ink} />
+          {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('contact_title')}</Text>
@@ -159,8 +159,8 @@ export default function SupportScreen() {
           >
             <View style={styles.contactRow}>
               {[
-                { icon: MessageCircle, label: 'Live Chat', sub: 'Avg. 2 min wait', color: '#55c49a', bg: 'rgba(85,196,154,0.1)' },
-                { icon: Phone, label: 'Phone', sub: '+20 100 000 0000', color: '#4d9ef6', bg: 'rgba(77,158,246,0.1)' },
+                { icon: MessageCircle, label: t('live_chat'), sub: t('live_chat_wait'), color: '#55c49a', bg: 'rgba(85,196,154,0.1)' },
+                { icon: Phone, label: t('phone_label'), sub: t('phone_number'), color: '#4d9ef6', bg: 'rgba(77,158,246,0.1)' },
               ].map((item) => (
                 <TouchableOpacity
                   key={item.label}

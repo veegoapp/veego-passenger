@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, MapPin, RefreshCw, WifiOff } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, RefreshCw, WifiOff } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -76,7 +76,7 @@ function makeStyles(c: ThemeColors) {
 export default function StationsScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routeId } = useLocalSearchParams<{ routeId?: string }>();
@@ -106,7 +106,7 @@ export default function StationsScreen() {
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={[gs, styles.backBtn]} onPress={() => router.back()} activeOpacity={0.8}>
-          <ArrowLeft size={18} color={c.ink} />
+          {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
         </TouchableOpacity>
         <Text style={styles.title}>{t('stations_title')}</Text>
         <TouchableOpacity style={[gs, styles.backBtn]} onPress={fetchStations} activeOpacity={0.8}>

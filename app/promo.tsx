@@ -6,7 +6,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ArrowLeft, Check, Tag, XCircle, Clock, Inbox } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Check, Tag, XCircle, Clock, Inbox } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -105,7 +105,7 @@ function makeStyles(c: ThemeColors) {
 export default function PromoScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const isAr = language === 'ar';
 
@@ -161,7 +161,7 @@ export default function PromoScreen() {
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={[gs, styles.backBtn]} onPress={() => router.back()} activeOpacity={0.8}>
-          <ArrowLeft size={18} color={c.ink} />
+          {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('promo_title')}</Text>

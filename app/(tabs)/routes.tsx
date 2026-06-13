@@ -101,7 +101,7 @@ export default function RoutesScreen() {
           <Search size={18} color={c.inkSoft} />
           <TextInput
             style={[styles.searchInput, { color: c.ink }]}
-            placeholder="Search for route or station"
+            placeholder={t('search_route_station')}
             placeholderTextColor={c.inkSoft}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -151,7 +151,7 @@ export default function RoutesScreen() {
             <Bus size={30} color={c.silver} />
           </View>
           <Text style={styles.emptyTitle}>{error ? t('error') : t('no_routes')}</Text>
-          <Text style={styles.emptySub}>{error ?? (searchQuery ? "No lines or stations match your search query." : t('routes_empty_msg'))}</Text>
+          <Text style={styles.emptySub}>{error ?? (searchQuery ? t('search_no_match') : t('routes_empty_msg'))}</Text>
           <TouchableOpacity onPress={refresh} activeOpacity={0.85}>
             <Text style={{ color: c.ink, fontWeight: '600', fontSize: 14 }}>{t('retry')}</Text>
           </TouchableOpacity>
