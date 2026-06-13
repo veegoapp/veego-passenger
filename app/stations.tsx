@@ -138,6 +138,7 @@ export default function StationsScreen() {
           placeholderTextColor={c.inkSoft}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          textAlign={isAr ? 'right' : 'left'}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (

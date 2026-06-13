@@ -216,6 +216,7 @@ export default function SupportScreen() {
                 onChangeText={setMessage}
                 placeholder={t('issue_placeholder')}
                 placeholderTextColor={c.silver}
+                textAlign={isRTL ? 'right' : 'left'}
                 multiline
               />
             </View>

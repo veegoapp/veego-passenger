@@ -61,6 +61,7 @@ function SearchRing({ anim }: { anim: Animated.Value }) {
 }
 
 function RideMap({ phase }: { phase: Phase }) {
+  const { t } = useTheme();
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const ring1 = useRef(new Animated.Value(0)).current;
   const ring2 = useRef(new Animated.Value(0)).current;
@@ -156,7 +157,7 @@ function RideMap({ phase }: { phase: Phase }) {
 
       <View style={styles.geofenceBadge}>
         <ShieldCheck size={10} color={C.accentMint} />
-        <Text style={styles.geofenceText}>Wadi El Gedid only</Text>
+        <Text style={styles.geofenceText}>{t('wadi_only')}</Text>
       </View>
     </View>
   );
@@ -165,7 +166,7 @@ function RideMap({ phase }: { phase: Phase }) {
 function PlacePicker({
   label, value, onSelect,
 }: { label: string; value: string; onSelect: (p: string) => void }) {
-  const { t } = useTheme();
+  const { t, isRTL } = useTheme();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const filtered = WG_PLACES.filter((p) =>
@@ -195,6 +196,7 @@ function PlacePicker({
               placeholderTextColor={C.inkSoft}
               value={query}
               onChangeText={setQuery}
+              textAlign={isRTL ? 'right' : 'left'}
               autoFocus
             />
           </View>
@@ -538,8 +540,8 @@ export default function CarScreen() {
   return (
     <LinearGradient colors={C.luxeSoftGrad} style={{ flex: 1 }}>
       <View style={{ paddingTop: top + 8, paddingHorizontal: 20, paddingBottom: 8 }}>
-        <Text style={styles.screenTitle}>Car</Text>
-        <Text style={styles.screenSub}>Ride-hailing · Wadi El Gedid</Text>
+        <Text style={styles.screenTitle}>{t('car')}</Text>
+        <Text style={styles.screenSub}>{t('car_subtitle')}</Text>
       </View>
 
       {rideState.driverLocation && (phase === 'active' || phase === 'arrived' || phase === 'in_trip')
@@ -558,9 +560,7 @@ export default function CarScreen() {
       {outsideZone && phase === 'request' && (
         <View style={styles.zoneBanner}>
           <AlertTriangle size={13} color={C.badge} />
-          <Text style={styles.zoneBannerText}>
-            Outside service area — rides available in Wadi El Gedid only.
-          </Text>
+          <Text style={styles.zoneBannerText}>{t('outside_zone')}</Text>
         </View>
       )}
 
@@ -572,11 +572,11 @@ export default function CarScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>Book a ride</Text>
+          <Text style={styles.sheetTitle}>{t('book_a_ride')}</Text>
 
           <View style={{ gap: 10, marginTop: 16 }}>
-            <PlacePicker label="📍  Pickup location" value={pickup} onSelect={setPickup} />
-            <PlacePicker label="🏁  Where to?" value={dropoff} onSelect={setDropoff} />
+            <PlacePicker label={t('pickup_label')} value={pickup} onSelect={setPickup} />
+            <PlacePicker label={t('dropoff_label')} value={dropoff} onSelect={setDropoff} />
           </View>
 
           {(priceEstimate !== null || loadingEstimate || estimateUnavailable) && (
@@ -584,7 +584,7 @@ export default function CarScreen() {
               {estimateSurge && (
                 <View style={styles.surgeBanner}>
                   <AlertTriangle size={12} color="#92400e" />
-                  <Text style={styles.surgeBannerText}>Prices are higher than usual due to demand</Text>
+                  <Text style={styles.surgeBannerText}>{t('surge_pricing')}</Text>
                 </View>
               )}
               <View style={styles.priceRow}>
@@ -592,13 +592,13 @@ export default function CarScreen() {
                   <Car size={17} color={C.ink} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.priceLabel}>Economy ride</Text>
-                  <Text style={styles.priceSub}>1–4 passengers</Text>
+                  <Text style={styles.priceLabel}>{t('economy_ride')}</Text>
+                  <Text style={styles.priceSub}>{t('passengers_hint')}</Text>
                 </View>
                 {loadingEstimate ? (
                   <ActivityIndicator size="small" color={C.ink} />
                 ) : estimateUnavailable ? (
-                  <Text style={[styles.priceAmount, { color: C.inkSoft, fontSize: 13 }]}>Price unavailable</Text>
+                  <Text style={[styles.priceAmount, { color: C.inkSoft, fontSize: 13 }]}>{t('price_unavailable')}</Text>
                 ) : (
                   <Text style={styles.priceAmount}>{`EGP ${priceEstimate?.toFixed(2)}`}</Text>
                 )}
@@ -620,7 +620,7 @@ export default function CarScreen() {
                     </>
                   )}
                   <Banknote size={11} color={C.inkSoft} />
-                  <Text style={styles.priceMetaText}>Wallet payment</Text>
+                  <Text style={styles.priceMetaText}>{t('wallet_payment_label')}</Text>
                 </View>
               )}
             </View>
@@ -635,6 +635,7 @@ export default function CarScreen() {
                 placeholderTextColor={C.inkSoft}
                 value={promoInput}
                 onChangeText={(v) => { setPromoInput(v); if (promoStatus === 'invalid') setPromoStatus('idle'); }}
+                textAlign={isRTL ? 'right' : 'left'}
                 autoCapitalize="characters"
                 editable={promoStatus !== 'valid' && promoStatus !== 'loading'}
                 returnKeyType="done"

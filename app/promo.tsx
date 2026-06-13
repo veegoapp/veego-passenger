@@ -198,6 +198,7 @@ export default function PromoScreen() {
                   autoCapitalize="characters"
                   returnKeyType="done"
                   onSubmitEditing={() => handleApply(code)}
+                  textAlign={isRTL ? 'right' : 'left'}
                 />
                 {code.length > 0 && (
                   <TouchableOpacity onPress={() => setCode('')}>

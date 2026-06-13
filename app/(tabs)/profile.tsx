@@ -233,7 +233,7 @@ function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: 
 }
 
 function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors: c, t } = useTheme();
+  const { colors: c, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { profile, saveProfile } = useProfile();
   const [biometric, setBiometric] = useState(false);

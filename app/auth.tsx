@@ -155,6 +155,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
         />
       </View>
 
@@ -171,6 +172,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           secureTextEntry={!showPass}
           autoCapitalize="none"
           autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
         />
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
           {showPass ? <EyeOff size={16} color={C.inkSoft} /> : <Eye size={16} color={C.inkSoft} />}
@@ -252,6 +254,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
           onChangeText={setName}
           autoCapitalize="words"
           autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
         />
       </View>
 
@@ -267,6 +270,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
           onChangeText={setPhone}
           keyboardType="phone-pad"
           autoCapitalize="none"
+          textAlign={isRTL ? 'right' : 'left'}
         />
       </View>
 
@@ -283,6 +287,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
         />
       </View>
 
@@ -299,6 +304,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
           secureTextEntry={!showPass}
           autoCapitalize="none"
           autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
         />
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
           {showPass ? <EyeOff size={16} color={C.inkSoft} /> : <Eye size={16} color={C.inkSoft} />}
@@ -378,6 +384,7 @@ function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
             onChangeText={setPhone}
             keyboardType="phone-pad"
             autoCapitalize="none"
+            textAlign={isRTL ? 'right' : 'left'}
           />
         </View>
 
@@ -605,6 +612,7 @@ function ResetStep({
           secureTextEntry={!showPass}
           autoCapitalize="none"
           autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
         />
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
           {showPass ? <EyeOff size={16} color={C.inkSoft} /> : <Eye size={16} color={C.inkSoft} />}
@@ -624,6 +632,7 @@ function ResetStep({
           secureTextEntry={!showPass}
           autoCapitalize="none"
           autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
         />
       </View>
 

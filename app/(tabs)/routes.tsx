@@ -51,7 +51,7 @@ export default function RoutesScreen() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState(''); // ستيت البحث الجديد
   const { openRoute } = useBooking();
-  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -112,6 +112,7 @@ export default function RoutesScreen() {
             placeholderTextColor={c.inkSoft}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            textAlign={isRTL ? 'right' : 'left'}
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (

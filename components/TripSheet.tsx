@@ -28,18 +28,18 @@ function isTripBookable(trip: any): boolean {
   return BOOKABLE_STATUSES.includes(status) && (trip?.availableSeats ?? 0) > 0;
 }
 
-function shuttleStatusLabel(trip: any): string {
+function shuttleStatusLabel(trip: any, t: (key: string) => string): string {
   const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
   switch (status) {
-    case 'scheduled':       return 'Confirmed';
-    case 'waiting_driver':  return 'Searching driver';
-    case 'driver_assigned': return 'Driver assigned';
-    case 'open':            return 'Open';
-    case 'active':          return 'Active';
-    case 'boarding':        return 'Boarding';
-    case 'completed':       return 'Completed';
-    case 'cancelled':       return 'Cancelled';
-    default:                return status || 'Upcoming';
+    case 'scheduled':       return t('status_confirmed');
+    case 'waiting_driver':  return t('status_searching');
+    case 'driver_assigned': return t('status_driver_assigned');
+    case 'open':            return t('status_open');
+    case 'active':          return t('status_active_trip');
+    case 'boarding':        return t('status_boarding');
+    case 'completed':       return t('status_completed');
+    case 'cancelled':       return t('status_cancelled_trip');
+    default:                return status || t('status_upcoming');
   }
 }
 
@@ -525,7 +525,7 @@ export function TripSheet() {
             ) : scheduledTrips.length === 0 ? (
               <View style={styles.noTripsWrap}>
                 <AlertCircle size={24} color={c.silver} />
-                <Text style={styles.noTripsText}>No upcoming trips available for this route.</Text>
+                <Text style={styles.noTripsText}>{t('no_upcoming_trips_route')}</Text>
               </View>
             ) : (
               scheduledTrips.map((trip: any, i: number) => {
@@ -533,7 +533,7 @@ export function TripSheet() {
                 const bookable = isTripBookable(trip);
                 const disabled = !bookable;
                 const statusColor = shuttleStatusColor(trip);
-                const statusLbl = shuttleStatusLabel(trip);
+                const statusLbl = shuttleStatusLabel(trip, t);
                 const time = formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
                 const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
                 const bookedSeats: number = trip.bookedSeats ?? 0;

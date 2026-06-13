@@ -379,6 +379,7 @@ export default function HomeScreen() {
                     onChangeText={setTypedText}
                     placeholder={t('enter_pickup')}
                     placeholderTextColor={c.inkSoft}
+                    textAlign={isRTL ? 'right' : 'left'}
                     autoFocus
                   />
                 ) : (
@@ -401,6 +402,7 @@ export default function HomeScreen() {
                     onChangeText={setTypedText}
                     placeholder={t('where_to')}
                     placeholderTextColor={c.inkSoft}
+                    textAlign={isRTL ? 'right' : 'left'}
                     autoFocus
                   />
                 ) : (

@@ -480,6 +480,21 @@ const en = {
   discount_applied: 'Discount applied: -{amount}',
   confirm_ride_btn_requesting: 'Requesting…',
   try_again: 'Try Again',
+
+  car_subtitle: 'Ride-hailing · Wadi El Gedid',
+  surge_pricing: 'Prices are higher than usual due to demand',
+  price_unavailable: 'Price unavailable',
+  wallet_payment_label: 'Wallet payment',
+  status_confirmed: 'Confirmed',
+  status_searching: 'Searching driver',
+  status_driver_assigned: 'Driver assigned',
+  status_open: 'Open',
+  status_active_trip: 'Active',
+  status_boarding: 'Boarding',
+  status_completed: 'Completed',
+  status_cancelled_trip: 'Cancelled',
+  status_upcoming: 'Upcoming',
+  no_upcoming_trips_route: 'No upcoming trips available for this route.',
 };
 
 const ar: typeof en = {
@@ -964,6 +979,21 @@ const ar: typeof en = {
   discount_applied: 'تم تطبيق الخصم: -{amount}',
   confirm_ride_btn_requesting: 'جاري الطلب…',
   try_again: 'حاول مرة أخرى',
+
+  car_subtitle: 'توصيل رحلات · وادي الجديد',
+  surge_pricing: 'الأسعار مرتفعة بسبب الطلب',
+  price_unavailable: 'السعر غير متاح',
+  wallet_payment_label: 'دفع بالمحفظة',
+  status_confirmed: 'مؤكد',
+  status_searching: 'جاري البحث عن سائق',
+  status_driver_assigned: 'تم تعيين السائق',
+  status_open: 'مفتوح',
+  status_active_trip: 'نشطة',
+  status_boarding: 'الصعود',
+  status_completed: 'مكتملة',
+  status_cancelled_trip: 'ملغاة',
+  status_upcoming: 'قادمة',
+  no_upcoming_trips_route: 'لا توجد رحلات قادمة على هذا الخط.',
 };
 
 export type LangKey = keyof typeof en;
