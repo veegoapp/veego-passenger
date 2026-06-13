@@ -3,17 +3,18 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, Platform, ActivityIndicator, Alert,
 } from 'react-native';
+import { router } from 'expo-router';
 import {
   Users, Heart, Clock, MapPin, AlertCircle,
   Ticket, ArrowRight, ArrowLeft, Wallet, ChevronRight, ChevronLeft, AlertTriangle,
-  Minus, Plus, Bus, Calendar,
+  Minus, Plus, Bus,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
-import { calcSegmentPrice } from '@/constants/data';
+import { calcSegmentPrice, DATES } from '@/constants/data';
 import { SectionLabel } from '@/components/Shared';
 
 /**
@@ -138,47 +139,51 @@ function makeStyles(c: ThemeColors, gs: object) {
     },
     heroRoutePath: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 20 },
 
-    /* Journey track */
+    /* Journey track — pin-marker style */
     journeyWrap: { paddingBottom: 20 },
     journeyScroll: { paddingRight: 24 },
-    journeyRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 8 },
+    journeyRow: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
     journeyStop: { alignItems: 'center', width: 70 },
-    journeyNodeOuter: {
-      width: 28, height: 28, borderRadius: 14,
-      borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
-      alignItems: 'center', justifyContent: 'center',
-      backgroundColor: 'rgba(255,255,255,0.08)',
-    },
-    journeyNodeOuterActive: {
-      borderColor: '#ffffff',
-      backgroundColor: 'rgba(255,255,255,0.25)',
-    },
-    journeyNodeInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.45)' },
-    journeyNodeInnerActive: { backgroundColor: '#ffffff' },
+    journeyPin: { height: 28, alignItems: 'center', justifyContent: 'center' },
     journeyLabel: {
       fontSize: 10, color: 'rgba(255,255,255,0.55)',
-      textAlign: 'center', marginTop: 8, lineHeight: 13,
+      textAlign: 'center', marginTop: 5, lineHeight: 13,
     },
     journeyLabelActive: { color: '#ffffff', fontWeight: '600' },
-    journeyConnector: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 20 },
-    journeyConnectorActive: { backgroundColor: 'rgba(255,255,255,0.55)' },
+    journeyConnector: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 12 },
+    journeyConnectorActive: { backgroundColor: 'rgba(255,255,255,0.65)' },
 
-    /* Stat cards row */
-    statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 12, marginTop: 12, marginBottom: 4 },
+    /* Stat cards row — compact horizontal */
+    statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, marginTop: 10, marginBottom: 4 },
     statCard: {
-      flex: 1, borderRadius: 18, padding: 14,
+      flex: 1, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8,
       backgroundColor: c.white,
-      alignItems: 'center', gap: 6,
+      flexDirection: 'row', alignItems: 'center', gap: 8,
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
       shadowOpacity: c.isDark ? 0.25 : 0.06, shadowRadius: 8, elevation: 3,
     },
     statIconBox: {
-      width: 36, height: 36, borderRadius: 12,
+      width: 26, height: 26, borderRadius: 8,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
       alignItems: 'center', justifyContent: 'center',
     },
-    statValue: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.3 },
-    statLabel: { fontSize: 9.5, color: c.inkSoft, textAlign: 'center', lineHeight: 13, letterSpacing: 0.2 },
+    statValue: { fontSize: 12, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
+    statLabel: { fontSize: 9, color: c.inkSoft, lineHeight: 12, letterSpacing: 0.1 },
+
+    /* Date selector strip */
+    dateSelectorWrap: { paddingHorizontal: 12, marginTop: 12 },
+    dateItem: {
+      alignItems: 'center', paddingHorizontal: 11, paddingVertical: 7,
+      borderRadius: 14, marginEnd: 8, borderWidth: 1.5, minWidth: 60,
+    },
+    dateItemActive: { backgroundColor: c.ink, borderColor: c.ink },
+    dateItemInactive: { backgroundColor: c.white, borderColor: c.border },
+    dateDayLabel: { fontSize: 9, fontWeight: '600', textTransform: 'uppercase' as any, letterSpacing: 0.4, marginBottom: 1 },
+    dateDayLabelActive: { color: c.isDark ? c.background : '#ffffff' },
+    dateDayLabelInactive: { color: c.inkSoft },
+    dateDayNum: { fontSize: 17, fontWeight: '800', letterSpacing: -0.5 },
+    dateDayNumActive: { color: c.isDark ? c.background : '#ffffff' },
+    dateDayNumInactive: { color: c.ink },
 
     /* Section wrapper */
     sectionWrap: { paddingHorizontal: 12, marginTop: 18 },
@@ -316,7 +321,7 @@ function makeStyles(c: ThemeColors, gs: object) {
 
 export function TripSheet() {
   const {
-    tripSheetOpen, closeTripSheet, selectedRoute, handleBook,
+    tripSheetOpen, closeTripSheet, selectedRoute, handleBook, prepareBooking,
     routeLoading, tripsLoading, scheduledTrips,
     openRoute, walletBalance, seatCount, setSeatCount,
   } = useBooking();
@@ -340,12 +345,14 @@ export function TripSheet() {
   const [toIdx, setToIdx] = useState(1);
   const [timeIdx, setTimeIdx] = useState(0);
   const [pick, setPick] = useState<'from' | 'to'>('from');
+  const [selectedDateIdx, setSelectedDateIdx] = useState(0);
 
   useEffect(() => {
     if (selectedRoute && selectedRoute.path.length >= 2) {
       setFromIdx(0);
       setToIdx(selectedRoute.path.length - 1);
       setTimeIdx(0);
+      setSelectedDateIdx(0);
       setPick('from');
       setSeatCount(1);
     }
@@ -368,13 +375,34 @@ export function TripSheet() {
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [900, 0] });
 
-  const safeTimeIdx = Math.min(timeIdx, Math.max(0, scheduledTrips.length - 1));
-  const selectedTrip = scheduledTrips[safeTimeIdx] ?? null;
+  // ── Date-filtered trips ───────────────────────────────────────────────────
+  // Trips are loaded from /shuttle/lines/:id (activeTrips). We filter client-side
+  // by the date selected in the date strip, matching Africa/Cairo timezone display.
+  const visibleTrips = useMemo(() => {
+    if (scheduledTrips.length === 0) return scheduledTrips;
+    const targetDate = DATES[selectedDateIdx]?.date ?? '';
+    if (!targetDate) return scheduledTrips;
+    const filtered = scheduledTrips.filter((trip: any) => {
+      const raw = trip.departureTime ?? trip.departure_time ?? '';
+      if (!raw) return false;
+      const tripDateStr = formatTripDateUTC(raw); // e.g. "Jun 13"
+      // DATES[i].date is "Jun 13, 2026" — check it starts with tripDate + ","
+      return targetDate.startsWith(tripDateStr + ',');
+    });
+    // Fall back to all trips if none match selected date (avoids empty screen
+    // when real-time API returns trips that don't span a full 7-day window)
+    return filtered.length > 0 ? filtered : scheduledTrips;
+  }, [scheduledTrips, selectedDateIdx]);
+
+  const safeTimeIdx = Math.min(timeIdx, Math.max(0, visibleTrips.length - 1));
+  const selectedTrip = visibleTrips[safeTimeIdx] ?? null;
 
   const selectedTripSeats: number = useMemo(() => {
     if (selectedTrip) return selectedTrip.availableSeats ?? 0;
     return selectedRoute?.seatsLeft ?? 0;
   }, [selectedTrip, selectedRoute?.seatsLeft]);
+
+  const selectedTripBookable = !selectedTrip || isTripBookable(selectedTrip);
 
   if (!visible || !selectedRoute) return null;
 
@@ -387,9 +415,8 @@ export function TripSheet() {
 
   const pricePerSeat = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, 1) : route.price;
   const total = pricePerSeat * seatCount;
-  const selectedTripBookable = !selectedTrip || isTripBookable(selectedTrip);
   const seatsOk = seatCount >= 1 && seatCount <= selectedTripSeats;
-  const valid = hasPath && safeFrom !== safeTo && !routeLoading && scheduledTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled && seatsOk;
+  const valid = hasPath && safeFrom !== safeTo && !routeLoading && visibleTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled && seatsOk;
   const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
@@ -456,8 +483,13 @@ export function TripSheet() {
                     return (
                       <React.Fragment key={s.id}>
                         <TouchableOpacity style={styles.journeyStop} onPress={() => pickStation(i)} activeOpacity={0.7}>
-                          <View style={[styles.journeyNodeOuter, isActive && styles.journeyNodeOuterActive]}>
-                            <View style={[styles.journeyNodeInner, isActive && styles.journeyNodeInnerActive]} />
+                          <View style={styles.journeyPin}>
+                            <MapPin
+                              size={isFirst || isLast ? 22 : 18}
+                              color={isActive ? '#ffffff' : 'rgba(255,255,255,0.35)'}
+                              strokeWidth={isActive ? 2.5 : 1.5}
+                              fill={isActive ? 'rgba(255,255,255,0.15)' : 'transparent'}
+                            />
                           </View>
                           <Text style={[styles.journeyLabel, isActive && styles.journeyLabelActive]} numberOfLines={2}>
                             {isAr ? (s.nameAr ?? s.name) : s.name}
@@ -477,29 +509,70 @@ export function TripSheet() {
             </View>
           </View>
 
-          {/* ── Info stat cards ── */}
+          {/* ── Info stat cards (compact horizontal) ── */}
+          {/* TODO: Request API Endpoints from User — real-time departure count and
+              duration data should come from GET /shuttle/lines/:id response fields.
+              Currently using route.duration (static) and visibleTrips.length (live count). */}
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <View style={styles.statIconBox}>
-                <Bus size={16} color={c.ink} />
+                <Bus size={13} color={c.ink} />
               </View>
-              <Text style={styles.statValue}>{scheduledTrips.length || route.stations}</Text>
-              <Text style={styles.statLabel}>{t('departure')}</Text>
+              <View>
+                <Text style={styles.statValue}>{visibleTrips.length || route.stations}</Text>
+                <Text style={styles.statLabel}>{t('departure')}</Text>
+              </View>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statIconBox}>
-                <Clock size={16} color={c.ink} />
+                <Clock size={13} color={c.ink} />
               </View>
-              <Text style={styles.statValue}>{route.duration}</Text>
-              <Text style={styles.statLabel}>{t('trip_duration')}</Text>
+              <View>
+                <Text style={styles.statValue}>{route.duration ?? '—'}</Text>
+                <Text style={styles.statLabel}>{t('trip_duration')}</Text>
+              </View>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statIconBox}>
-                <Ticket size={16} color={c.ink} />
+                <Ticket size={13} color={c.ink} />
               </View>
-              <Text style={styles.statValue}>{route.price}</Text>
-              <Text style={styles.statLabel}>{t('egp')}</Text>
+              <View>
+                <Text style={styles.statValue}>{route.price}</Text>
+                <Text style={styles.statLabel}>{t('egp')}</Text>
+              </View>
             </View>
+          </View>
+
+          {/* ── Date selector strip ── */}
+          <View style={styles.dateSelectorWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingEnd: 12 }}
+            >
+              {DATES.map((d, i) => {
+                const active = i === selectedDateIdx;
+                return (
+                  <TouchableOpacity
+                    key={d.id}
+                    style={[styles.dateItem, active ? styles.dateItemActive : styles.dateItemInactive]}
+                    onPress={() => {
+                      setSelectedDateIdx(i);
+                      setTimeIdx(0);
+                      if (Platform.OS !== 'web') Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.dateDayLabel, active ? styles.dateDayLabelActive : styles.dateDayLabelInactive]}>
+                      {d.label}
+                    </Text>
+                    <Text style={[styles.dateDayNum, active ? styles.dateDayNumActive : styles.dateDayNumInactive]}>
+                      {d.day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
 
           {/* Service disabled banner */}
@@ -511,10 +584,14 @@ export function TripSheet() {
           )}
 
           {/* ── Trips section ── */}
+          {/* TODO: Request API Endpoints from User — real-time seat availability
+              requires a dedicated endpoint (e.g. GET /shuttle/trips/:id/availability)
+              that returns live availableSeats/bookedSeats/totalSeats counts. Currently
+              relying on the snapshot values returned in GET /shuttle/lines/:id. */}
           <View style={styles.sectionWrap}>
             <Text style={styles.sectionTitle}>
               {t('departure')}
-              {scheduledTrips.length > 0 ? ` · ${scheduledTrips.length}` : ''}
+              {visibleTrips.length > 0 ? ` · ${visibleTrips.length}` : ''}
             </Text>
 
             {routeLoading || tripsLoading ? (
@@ -522,13 +599,13 @@ export function TripSheet() {
                 <ActivityIndicator size="small" color={c.ink} />
                 <Text style={styles.loadingText}>Loading trips…</Text>
               </View>
-            ) : scheduledTrips.length === 0 ? (
+            ) : visibleTrips.length === 0 ? (
               <View style={styles.noTripsWrap}>
                 <AlertCircle size={24} color={c.silver} />
                 <Text style={styles.noTripsText}>{t('no_upcoming_trips_route')}</Text>
               </View>
             ) : (
-              scheduledTrips.map((trip: any, i: number) => {
+              visibleTrips.map((trip: any, i: number) => {
                 const active = i === safeTimeIdx;
                 const bookable = isTripBookable(trip);
                 const disabled = !bookable;
@@ -769,17 +846,42 @@ export function TripSheet() {
             onPress={() => {
               if (!valid) return;
               if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const trip = scheduledTrips[safeTimeIdx];
-              handleBook({
+              const trip = visibleTrips[safeTimeIdx];
+              const tripDate = formatTripDateUTC(trip?.departureTime ?? '');
+              const tripTime = formatTripTimeUTC(trip?.departureTime ?? '');
+              const boardingStation = isAr
+                ? (route.path[safeFrom]?.nameAr ?? route.path[safeFrom]?.name ?? '')
+                : (route.path[safeFrom]?.name ?? '');
+              const dropOffStation = isAr
+                ? (route.path[safeTo]?.nameAr ?? route.path[safeTo]?.name ?? '')
+                : (route.path[safeTo]?.name ?? '');
+              prepareBooking({
                 route,
                 fromIdx: safeFrom,
                 toIdx: safeTo,
                 passengers: seatCount,
-                date: formatTripDateUTC(trip?.departureTime ?? ''),
-                time: formatTripTimeUTC(trip?.departureTime ?? ''),
+                date: tripDate,
+                time: tripTime,
                 price: total,
                 tripId: trip?.id ?? null,
+                seatCount,
               });
+              closeTripSheet();
+              router.push({
+                pathname: '/review-confirm',
+                params: {
+                  routeId: route.id,
+                  routeName: isAr ? (route.nameAr ?? route.name) : route.name,
+                  routeCode: route.code,
+                  tripId: String(trip?.id ?? ''),
+                  date: tripDate,
+                  time: tripTime,
+                  boardingStation,
+                  dropOffStation,
+                  price: String(total),
+                  seatCount: String(seatCount),
+                },
+              } as any);
             }}
           >
             <Text style={styles.ctaBtnText}>
@@ -789,7 +891,7 @@ export function TripSheet() {
                 ? t('select_trip')
                 : walletLow
                 ? 'Insufficient Balance'
-                : `${t('book_now')} · ${total} ${t('egp')}`}
+                : t('continue_btn')}
             </Text>
             {valid && !walletLow && shuttleServiceEnabled && (isRTL ? <ArrowLeft size={18} color={c.isDark ? c.background : c.white} /> : <ArrowRight size={18} color={c.isDark ? c.background : c.white} />)}
           </TouchableOpacity>

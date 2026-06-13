@@ -1,0 +1,26 @@
+Phase3 : RouteDetails Refactoring & Stations Selector]
+
+Component Target: RouteDetailsScreen (The screen showing specific line info)
+
+Tasks to execute:
+
+1. Stations Timeline UI Upgrade (Top Black Card):
+   * Inside the top dark card, replace the current generic circular radio-button icons for stations (Mazlaqan Ain Shams, New Al Easr Mall, etc.) with Location Pin/Marker icons connected by a smooth line, matching the visual style shown in 134592.jpg.
+   * Ensure proper horizontal spacing and scaling so station names don't overlap.
+
+2. Compact Info Cards & Backend Integration:
+   * UI Shrink: Significantly reduce the height and vertical padding of the three white info cards (Departure, Duration, EGP). Make them compact to save vertical screen real estate.
+   * Data Binding: Bind these cards to real backend data fields. If the matching API endpoints for these stats are missing in the current repository, add a `// TODO: Request API Endpoints from User` comment directly above the fetch functions to alert the user.
+
+3. Date Selector Implementation (Calendar/Date Strip):
+   * Below the compact info cards, implement a horizontal date selector (Date Strip/Icons) so users can switch between different days (e.g., Today, Tomorrow, Jun 15, etc.).
+   * Backend Filter: When a date is selected, filter the available trips listed below based on that specific date.
+
+4. Dynamic Trip Availability Card (The 13:00 Time Card):
+   * Real-time Capacity: The passenger counter (e.g., 0 / 14 left, 14 available) inside the trip card must dynamically render real data fetched from the backend. 
+   * API Guard: If the real-time capacity/booking API is not implemented on the frontend, flag it clearly with a comment for the user to provide the endpoints.
+
+5. Transition to Review/Confirm Screen:
+   * Keep the Boarding & Drop-off station selectors (From/To dropdowns or lists) on this screen or in a quick-selection state.
+   * Once the user selects the trip time, date, boarding station, and drop-off station, change the bottom action button to "Continue".
+   * On pressing "Continue", navigate to the `ReviewConfirmScreen`, passing all selected data (RouteId, TripId, Date, Time, BoardingStation, DropOffStation) as route parameters.

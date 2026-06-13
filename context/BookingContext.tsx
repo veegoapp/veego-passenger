@@ -37,6 +37,7 @@ type BookingContextType = {
   loadMoreTrips: () => Promise<void>;
   clearBookingError: () => void;
   refreshLineTrips: (routeId: string) => Promise<void>;
+  prepareBooking: (booking: Booking) => void;
 };
 
 const BookingContext = createContext<BookingContextType>({
@@ -68,6 +69,7 @@ const BookingContext = createContext<BookingContextType>({
   loadMoreTrips: async () => {},
   clearBookingError: () => {},
   refreshLineTrips: async () => {},
+  prepareBooking: () => {},
 });
 
 function mapStations(rawStations: any[]): Route['path'] {
@@ -228,6 +230,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const clearBookingError = useCallback(() => {
     setBookingError(null);
+  }, []);
+
+  const prepareBooking = useCallback((booking: Booking) => {
+    setPendingBooking(booking);
   }, []);
 
   const handleBook = useCallback((booking: Booking) => {
@@ -397,6 +403,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         loadMoreTrips,
         clearBookingError,
         refreshLineTrips,
+        prepareBooking,
       }}
     >
       {children}
