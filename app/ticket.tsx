@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowRight, Ticket, QrCode, MapPin } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowRight, Ticket, QrCode, MapPin, Calendar, Clock, User, Tag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import QRCode from 'react-native-qrcode-svg';
@@ -15,7 +15,7 @@ import { ThemeColors, S } from '@/constants/colors';
 import { getSocket } from '@/src/api/socket';
 
 
-function SparkleParticle({ deg, delay, color }: { deg: number; delay: number; color: string }) {
+function SparkleParticle({ deg, delay, color, size = 8 }: { deg: number; delay: number; color: string; size?: number }) {
   const opacity = useRef(new Animated.Value(0)).current;
   const distance = useRef(new Animated.Value(0)).current;
 
@@ -24,31 +24,46 @@ function SparkleParticle({ deg, delay, color }: { deg: number; delay: number; co
       Animated.delay(delay * 1000),
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 1, duration: 350, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0, duration: 700, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: 800, useNativeDriver: true }),
         ]),
-        Animated.timing(distance, { toValue: 1, duration: 900, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.timing(distance, { toValue: 1, duration: 1100, easing: Easing.out(Easing.ease), useNativeDriver: true }),
       ]),
     ]).start();
   }, []);
 
   const radians = ((deg - 90) * Math.PI) / 180;
-  const radius = 54;
+  const radius = 72;
   const translateX = distance.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(radians) * radius] });
   const translateY = distance.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(radians) * radius] });
+  const r = Math.floor(size / 2);
 
   return (
     <Animated.View
       style={[
-        { position: 'absolute', width: 7, height: 7, borderRadius: 3.5, backgroundColor: color },
+        { position: 'absolute', width: size, height: size, borderRadius: r, backgroundColor: color },
         { opacity, transform: [{ translateX }, { translateY }] },
       ]}
     />
   );
 }
 
-const SPARKLE_DEGREES = [0, 60, 120, 180, 240, 300];
-const SPARKLE_DELAYS = [0.1, 0.15, 0.2, 0.1, 0.18, 0.12];
+const SPARKLE_CONFIG = [
+  { deg: 0,   delay: 0.08, size: 9 },
+  { deg: 30,  delay: 0.15, size: 6 },
+  { deg: 60,  delay: 0.12, size: 11 },
+  { deg: 90,  delay: 0.20, size: 7 },
+  { deg: 120, delay: 0.10, size: 8 },
+  { deg: 150, delay: 0.18, size: 5 },
+  { deg: 180, delay: 0.07, size: 10 },
+  { deg: 210, delay: 0.22, size: 6 },
+  { deg: 240, delay: 0.14, size: 9 },
+  { deg: 270, delay: 0.09, size: 7 },
+  { deg: 300, delay: 0.17, size: 11 },
+  { deg: 330, delay: 0.11, size: 5 },
+];
+
+const SPARKLE_COLORS = ['#fbbf24', '#f59e0b', '#34d399', '#6ee7b7', '#93c5fd', '#fff'];
 
 interface QRDisplayProps {
   value: string;
@@ -59,16 +74,16 @@ interface QRDisplayProps {
 function QRDisplay({ value, bg, fg }: QRDisplayProps) {
   if (Platform.OS === 'web') {
     return (
-      <View style={{ backgroundColor: bg, borderRadius: 16, padding: 10, alignItems: 'center', justifyContent: 'center', width: 100, height: 100 }}>
-        <QrCode size={64} color={fg} />
+      <View style={{ backgroundColor: bg, borderRadius: 20, padding: 16, alignItems: 'center', justifyContent: 'center', width: 160, height: 160 }}>
+        <QrCode size={112} color={fg} />
       </View>
     );
   }
   return (
-    <View style={{ backgroundColor: bg, borderRadius: 16, padding: 10, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ backgroundColor: bg, borderRadius: 20, padding: 14, alignItems: 'center', justifyContent: 'center' }}>
       <QRCode
         value={value || 'VEEGO'}
-        size={80}
+        size={140}
         color={fg}
         backgroundColor={bg}
         quietZone={0}
@@ -88,59 +103,143 @@ interface TrackingUpdate {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
-    headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)', borderRadius: 20, borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)' },
+    headerBtn: {
+      width: 42, height: 42, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
+      borderRadius: 21, borderWidth: 1,
+      borderColor: c.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.35)',
+    },
     headerTitle: { fontSize: 15, fontWeight: '600', color: c.ink, letterSpacing: -0.2 },
     scrollContent: { paddingHorizontal: 20, gap: 20, paddingTop: 4 },
-    confirmBlock: { alignItems: 'center', gap: 10 },
-    sparkleHost: { width: 80, height: 80, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-    checkCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center', shadowColor: c.ink, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.25, shadowRadius: 28, elevation: 10 },
-    confirmedLabel: { fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.5 },
-    bookingId: { fontSize: 12, color: c.inkSoft },
-    ticketCard: { borderRadius: 32, overflow: 'hidden', backgroundColor: c.white, ...S.float },
-    ticketHeader: { padding: 20, borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden' },
-    ticketHeaderGlow: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
-    ticketHeaderContent: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-    ticketCodeLabel: { fontSize: 9, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1 },
-    ticketCode: { fontSize: 20, fontWeight: '700', color: '#ffffff' },
-    ticketHeaderMid: { flex: 1 },
-    ticketRouteName: { fontSize: 13, fontWeight: '600', color: '#ffffff', marginBottom: 6 },
-    ticketRouteRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    ticketStation: { flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1, minWidth: 0 },
-    ticketStationText: { fontSize: 11, color: 'rgba(255,255,255,0.8)', flex: 1 },
-    ticketTimeBox: { alignItems: 'flex-end' },
-    ticketTimeLabel: { fontSize: 9, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1 },
-    ticketTime: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
-    ticketTimeTz: { fontSize: 9, color: 'rgba(255,255,255,0.5)', textAlign: 'auto', marginTop: 1 },
-    perforationRow: { flexDirection: 'row', alignItems: 'center', height: 24, position: 'relative' },
-    punchLeft: { width: 24, height: 24, borderRadius: 12, backgroundColor: c.isDark ? c.background : c.snow, marginStart: -12 },
-    perforationLine: { flex: 1, height: 1, borderTopWidth: 1.5, borderColor: c.border, borderStyle: 'dashed' },
-    punchRight: { width: 24, height: 24, borderRadius: 12, backgroundColor: c.isDark ? c.background : c.snow, marginEnd: -12 },
-    ticketBody: { padding: 20, gap: 20, backgroundColor: c.white },
-    ticketGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0 },
-    ticketGridItem: { width: '50%', paddingVertical: 8, paddingEnd: 8 },
-    ticketItemLabel: { fontSize: 10, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.9 },
-    ticketItemValue: { fontSize: 14.5, fontWeight: '600', color: c.ink, marginTop: 2 },
-    qrSection: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border },
-    qrRight: { flex: 1, gap: 4 },
-    qrText: { fontSize: 13.5, fontWeight: '600', color: c.ink },
-    qrSub: { fontSize: 11, color: c.inkSoft },
-    qrLiveBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+
+    /* ── Celebration block ── */
+    celebrationBlock: { alignItems: 'center', paddingTop: 8, paddingBottom: 4, gap: 14 },
+    sparkleHost: { width: 112, height: 112, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    checkRing: {
+      width: 96, height: 96, borderRadius: 48,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkCircle: {
+      width: 80, height: 80, borderRadius: 40,
+      backgroundColor: '#22c55e',
+      alignItems: 'center', justifyContent: 'center',
+      shadowColor: '#22c55e', shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.5, shadowRadius: 24, elevation: 14,
+    },
+    confirmedLabel: { fontSize: 24, fontWeight: '800', color: c.ink, letterSpacing: -0.6, textAlign: 'center' },
+    bookingId: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
+
+    /* ── Ticket card ── */
+    ticketCard: {
+      borderRadius: 28, overflow: 'hidden', backgroundColor: c.white,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: c.isDark ? 0.35 : 0.10, shadowRadius: 24, elevation: 10,
+    },
+    ticketHeader: {
+      paddingHorizontal: 22, paddingTop: 22, paddingBottom: 18,
+      borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden',
+    },
+    ticketHeaderGlow: {
+      position: 'absolute', top: -50, right: -50,
+      width: 180, height: 180, borderRadius: 90,
+      backgroundColor: 'rgba(255,255,255,0.07)',
+    },
+    ticketHeaderGlow2: {
+      position: 'absolute', bottom: -30, left: -30,
+      width: 120, height: 120, borderRadius: 60,
+      backgroundColor: 'rgba(255,255,255,0.04)',
+    },
+    ticketTripBadge: {
+      alignSelf: 'flex-end', marginBottom: 14,
+      borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    },
+    ticketTripBadgeText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+    ticketRouteName: {
+      fontSize: 22, fontWeight: '800', color: '#ffffff',
+      letterSpacing: -0.5, marginBottom: 8, textAlign: 'center',
+    },
+    ticketRouteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 },
+    ticketStation: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    ticketStationDot: { width: 8, height: 8, borderRadius: 4 },
+    ticketStationText: { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
+    ticketTimeRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8, marginTop: 12 },
+    ticketTime: { fontSize: 36, fontWeight: '800', color: '#ffffff', letterSpacing: -1 },
+    ticketTimeTz: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+
+    /* Perforation */
+    perforationRow: { flexDirection: 'row', alignItems: 'center', height: 32, position: 'relative' },
+    punchLeft: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginStart: -16 },
+    perforationLine: {
+      flex: 1, height: 0,
+      borderTopWidth: 2, borderColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#e2e2ea',
+      borderStyle: 'dashed',
+    },
+    punchRight: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginEnd: -16 },
+
+    /* Ticket body */
+    ticketBody: { paddingHorizontal: 22, paddingBottom: 24, paddingTop: 8, backgroundColor: c.white, gap: 0 },
+    infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0, marginBottom: 20 },
+    infoRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5',
+    },
+    infoIcon: {
+      width: 36, height: 36, borderRadius: 12,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f5f5fa',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    infoLabel: { fontSize: 10, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
+    infoValue: { fontSize: 14, fontWeight: '600', color: c.ink, marginTop: 1 },
+
+    /* QR section */
+    qrSection: { alignItems: 'center', paddingTop: 20, gap: 16 },
+    qrContainer: {
+      padding: 4,
+      borderRadius: 24,
+      borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.1)' : '#e8e8f0',
+      backgroundColor: c.isDark ? c.mist : c.snow,
+    },
+    qrChevron: { alignItems: 'center', gap: 6 },
+    qrInstruction: {
+      fontSize: 12, color: c.inkSoft, textAlign: 'center',
+      lineHeight: 18, paddingHorizontal: 20,
+    },
+    qrLiveBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     qrLiveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: c.accentMint },
     qrLiveText: { fontSize: 11, fontWeight: '600', color: c.accentMint },
-    boardedBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#55c49a', borderRadius: 16, padding: 14, marginTop: 8 },
+
+    /* Boarded banner */
+    boardedBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: '#22c55e', borderRadius: 20, padding: 16,
+    },
     boardedBannerText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#ffffff' },
+
+    /* Tracking card */
     trackingCard: { borderRadius: 20, backgroundColor: c.mist, padding: 14, gap: 8 },
     trackingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     trackingTitle: { fontSize: 13, fontWeight: '600', color: c.ink },
     trackingStation: { fontSize: 13, color: c.ink, fontWeight: '500' },
     trackingSub: { fontSize: 11, color: c.inkSoft },
+
+    /* Actions */
     actions: { gap: 10 },
-    primaryBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...S.float },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600' },
+    primaryBtn: {
+      height: 58, borderRadius: 22, backgroundColor: c.ink,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+      shadowColor: c.ink, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 20, elevation: 10,
+    },
+    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: '700' },
     secondaryBtn: { height: 48, alignItems: 'center', justifyContent: 'center' },
     secondaryBtnText: { fontSize: 14, color: c.inkSoft },
-    goHomeBtn: { marginTop: 20, height: 48, paddingHorizontal: 24, borderRadius: 16, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    goHomeBtnText: { color: c.isDark ? c.background : c.white, fontSize: 14, fontWeight: '600' },
+    goHomeBtn: {
+      marginTop: 20, height: 52, paddingHorizontal: 28, borderRadius: 18,
+      backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
+    },
+    goHomeBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600' },
   });
 }
 
@@ -155,10 +254,10 @@ export default function TicketScreen() {
   const [latestTracking, setLatestTracking] = useState<TrackingUpdate | null>(null);
   const boardedAnim = useRef(new Animated.Value(0)).current;
 
-  const checkScale = useRef(new Animated.Value(0.6)).current;
+  const checkScale = useRef(new Animated.Value(0.5)).current;
   const checkOpacity = useRef(new Animated.Value(0)).current;
   const checkRotate = useRef(new Animated.Value(-20)).current;
-  const cardY = useRef(new Animated.Value(30)).current;
+  const cardY = useRef(new Animated.Value(40)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
 
   const bookingId = confirmedBookingId ?? '';
@@ -167,21 +266,20 @@ export default function TicketScreen() {
   useEffect(() => {
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Animated.parallel([
-      Animated.spring(checkScale, { toValue: 1, damping: 12, stiffness: 140, useNativeDriver: true }),
-      Animated.timing(checkOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+      Animated.spring(checkScale, { toValue: 1, damping: 10, stiffness: 150, useNativeDriver: true }),
+      Animated.timing(checkOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.spring(checkRotate, { toValue: 0, damping: 16, useNativeDriver: true }),
       Animated.sequence([
-        Animated.delay(200),
-        Animated.spring(cardY, { toValue: 0, damping: 22, stiffness: 130, useNativeDriver: true }),
+        Animated.delay(250),
+        Animated.spring(cardY, { toValue: 0, damping: 20, stiffness: 120, useNativeDriver: true }),
       ]),
       Animated.sequence([
-        Animated.delay(200),
-        Animated.timing(cardOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+        Animated.delay(250),
+        Animated.timing(cardOpacity, { toValue: 1, duration: 380, useNativeDriver: true }),
       ]),
     ]).start();
   }, []);
 
-  // Subscribe to real-time trip events via Socket.IO
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
@@ -191,12 +289,10 @@ export default function TicketScreen() {
     getSocket().then((socket) => {
       if (cleanedUp) return;
 
-      // Join this specific trip's room for real-time tracking updates
       if (confirmedTripId) {
         socket.emit('passenger:join:trip', confirmedTripId);
       }
 
-      // Listen: boarding confirmation
       const boardedHandler = (data: { bookingId: string; userId?: number; tripId?: number }) => {
         const id = bookingId.replace(/^#/, '');
         if (data.bookingId === id || data.bookingId === bookingId) {
@@ -206,7 +302,6 @@ export default function TicketScreen() {
         }
       };
 
-      // Listen: live trip progress (bus reached a stop)
       const trackingHandler = (data: TrackingUpdate) => {
         if (!confirmedTripId || data.tripId === confirmedTripId) {
           setLatestTracking(data);
@@ -229,6 +324,7 @@ export default function TicketScreen() {
   }, [bookingId, confirmedTripId]);
 
   const rotateDeg = checkRotate.interpolate({ inputRange: [-20, 0], outputRange: ['-20deg', '0deg'] });
+
   if (!confirmedBookingId) {
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -267,12 +363,24 @@ export default function TicketScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: 48 }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.confirmBlock}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: 52 }]} showsVerticalScrollIndicator={false}>
+
+        {/* ── Celebration section ── */}
+        <View style={styles.celebrationBlock}>
           <View style={styles.sparkleHost}>
-            {SPARKLE_DEGREES.map((deg, i) => <SparkleParticle key={deg} deg={deg} delay={SPARKLE_DELAYS[i]} color={c.ink} />)}
-            <Animated.View style={[styles.checkCircle, { opacity: checkOpacity, transform: [{ scale: checkScale }, { rotate: rotateDeg }] }]}>
-              <Check size={28} color={c.isDark ? c.background : '#ffffff'} />
+            {SPARKLE_CONFIG.map((sp, i) => (
+              <SparkleParticle
+                key={sp.deg}
+                deg={sp.deg}
+                delay={sp.delay}
+                size={sp.size}
+                color={SPARKLE_COLORS[i % SPARKLE_COLORS.length]}
+              />
+            ))}
+            <Animated.View style={[styles.checkRing, { opacity: checkOpacity, transform: [{ scale: checkScale }, { rotate: rotateDeg }] }]}>
+              <View style={styles.checkCircle}>
+                <Check size={36} color="#ffffff" strokeWidth={3} />
+              </View>
             </Animated.View>
           </View>
           <Text style={styles.confirmedLabel}>{t('booking_confirmed')}</Text>
@@ -304,78 +412,117 @@ export default function TicketScreen() {
           </View>
         )}
 
+        {/* ── Ticket card ── */}
         <Animated.View style={[styles.ticketCard, { opacity: cardOpacity, transform: [{ translateY: cardY }] }]}>
-          <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3e']} style={styles.ticketHeader} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+
+          {/* Header — dark gradient with route info */}
+          <LinearGradient
+            colors={[c.ink, c.isDark ? '#1e1e3a' : '#1a1a32']}
+            style={styles.ticketHeader}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          >
             <View style={styles.ticketHeaderGlow} />
-            <View style={styles.ticketHeaderContent}>
-              <View>
-                <Text style={styles.ticketCodeLabel}>{t('line')}</Text>
-                <Text style={styles.ticketCode}>{booking.route.code}</Text>
+            <View style={styles.ticketHeaderGlow2} />
+
+            {/* Trip badge top-right */}
+            <View style={styles.ticketTripBadge}>
+              <Text style={styles.ticketTripBadgeText}>{t('line')} {booking.route.code}</Text>
+            </View>
+
+            {/* Route name */}
+            <Text style={styles.ticketRouteName}>{booking.route.name}</Text>
+
+            {/* From → To */}
+            <View style={styles.ticketRouteRow}>
+              <View style={styles.ticketStation}>
+                <View style={[styles.ticketStationDot, { backgroundColor: '#ffffff' }]} />
+                <Text style={styles.ticketStationText} numberOfLines={1}>
+                  {booking.route.path[booking.fromIdx]?.name}
+                </Text>
               </View>
-              <View style={styles.ticketHeaderMid}>
-                <Text style={styles.ticketRouteName}>{booking.route.name}</Text>
-                <View style={styles.ticketRouteRow}>
-                  <View style={styles.ticketStation}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff', flexShrink: 0 }} />
-                    <Text style={styles.ticketStationText} numberOfLines={1}>{booking.route.path[booking.fromIdx]?.name}</Text>
-                  </View>
-                  <ArrowRight size={10} color="rgba(255,255,255,0.5)" />
-                  <View style={styles.ticketStation}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.accentMint, flexShrink: 0 }} />
-                    <Text style={styles.ticketStationText} numberOfLines={1}>{booking.route.path[booking.toIdx]?.name}</Text>
-                  </View>
-                </View>
+              <ArrowRight size={12} color="rgba(255,255,255,0.45)" />
+              <View style={styles.ticketStation}>
+                <View style={[styles.ticketStationDot, { backgroundColor: c.accentMint }]} />
+                <Text style={styles.ticketStationText} numberOfLines={1}>
+                  {booking.route.path[booking.toIdx]?.name}
+                </Text>
               </View>
-              <View style={styles.ticketTimeBox}>
-                <Text style={styles.ticketTimeLabel}>{t('dep')}</Text>
-                <Text style={styles.ticketTime}>{booking.time}</Text>
-                <Text style={styles.ticketTimeTz}>UTC</Text>
-              </View>
+            </View>
+
+            {/* Departure time — prominent */}
+            <View style={styles.ticketTimeRow}>
+              <Text style={styles.ticketTime}>{booking.time}</Text>
+              <Text style={styles.ticketTimeTz}>UTC</Text>
             </View>
           </LinearGradient>
 
+          {/* Perforated divider */}
           <View style={styles.perforationRow}>
             <View style={styles.punchLeft} />
             <View style={styles.perforationLine} />
             <View style={styles.punchRight} />
           </View>
 
+          {/* Ticket body */}
           <View style={styles.ticketBody}>
-            <View style={styles.ticketGrid}>
-              {[
-                { label: t('date'), value: booking.date },
-                { label: t('passengers'), value: booking.passengers.toString() },
-                { label: t('total'), value: `${booking.price} ${t('egp')}` },
-              ].map((item) => (
-                <View key={item.label} style={styles.ticketGridItem}>
-                  <Text style={styles.ticketItemLabel}>{item.label}</Text>
-                  <Text style={styles.ticketItemValue}>{item.value}</Text>
+
+            {/* Info rows with icons */}
+            <View style={{ gap: 0 }}>
+              <View style={styles.infoRow}>
+                <View style={styles.infoIcon}>
+                  <Calendar size={16} color={c.ink} />
                 </View>
-              ))}
+                <View>
+                  <Text style={styles.infoLabel}>{t('date')}</Text>
+                  <Text style={styles.infoValue}>{booking.date}</Text>
+                </View>
+              </View>
+              <View style={styles.infoRow}>
+                <View style={styles.infoIcon}>
+                  <User size={16} color={c.ink} />
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>{t('passengers')}</Text>
+                  <Text style={styles.infoValue}>{booking.passengers}</Text>
+                </View>
+              </View>
+              <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                <View style={styles.infoIcon}>
+                  <Tag size={16} color={c.ink} />
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>{t('total')}</Text>
+                  <Text style={styles.infoValue}>{booking.price} {t('egp')}</Text>
+                </View>
+              </View>
             </View>
 
+            {/* QR code — centered and prominent */}
             <View style={styles.qrSection}>
-              <QRDisplay
-                value={qrValue}
-                bg={c.isDark ? c.mist : c.snow}
-                fg={c.isDark ? c.ink : '#1e1e28'}
-              />
-              <View style={styles.qrRight}>
-                <Text style={styles.qrText}>{t('scan_boarding')}</Text>
-                <Text style={styles.qrSub}>{t('show_driver')}</Text>
+              <View style={styles.qrContainer}>
+                <QRDisplay
+                  value={qrValue}
+                  bg={c.isDark ? c.mist : c.snow}
+                  fg={c.isDark ? c.ink : '#1e1e28'}
+                />
+              </View>
+              <View style={styles.qrChevron}>
                 <View style={styles.qrLiveBadge}>
                   <View style={styles.qrLiveDot} />
                   <Text style={styles.qrLiveText}>{boarded ? 'Boarded' : t('active')}</Text>
                 </View>
+                <Text style={styles.qrInstruction}>{t('show_driver')}</Text>
               </View>
             </View>
+
           </View>
         </Animated.View>
 
+        {/* ── Action buttons ── */}
         <View style={styles.actions}>
           <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.9} onPress={() => router.replace('/(tabs)/trips')}>
             <Text style={styles.primaryBtnText}>{t('view_all_trips')}</Text>
-            <Ticket size={16} color={c.isDark ? c.background : '#ffffff'} />
+            <Ticket size={18} color={c.isDark ? c.background : '#ffffff'} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8} onPress={() => router.replace('/(tabs)')}>

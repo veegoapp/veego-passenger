@@ -6,7 +6,7 @@ import {
 import {
   Users, Heart, Clock, MapPin, AlertCircle,
   Ticket, ArrowRight, Wallet, ChevronRight, AlertTriangle,
-  Minus, Plus,
+  Minus, Plus, Bus, Calendar,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -16,7 +16,6 @@ import { useServiceControl } from '@/context/ServiceControlContext';
 import { calcSegmentPrice } from '@/constants/data';
 import { SectionLabel } from '@/components/Shared';
 
-// shuttleStatus values per API contract
 type ShuttleStatus = 'open' | 'active' | 'cancelled';
 
 function isTripBookable(trip: any): boolean {
@@ -37,9 +36,9 @@ function shuttleStatusLabel(trip: any): string {
 function shuttleStatusColor(trip: any): string {
   const status: ShuttleStatus = trip?.shuttleStatus ?? trip?.status ?? '';
   switch (status) {
-    case 'open':      return '#d97706'; // amber
-    case 'active':    return '#16a34a'; // green
-    case 'cancelled': return '#dc2626'; // red
+    case 'open':      return '#d97706';
+    case 'active':    return '#16a34a';
+    case 'cancelled': return '#dc2626';
     default:          return '#6b7280';
   }
 }
@@ -71,52 +70,151 @@ function makeStyles(c: ThemeColors, gs: object) {
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 9999, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-    sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '88%', backgroundColor: c.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, ...S.float },
-    handle: { width: 48, height: 6, borderRadius: 3, backgroundColor: c.isDark ? 'rgba(120,120,160,0.4)' : 'rgba(195,195,204,0.7)', alignSelf: 'center', marginTop: 12 },
+    sheet: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, height: '92%',
+      backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
+      borderTopLeftRadius: 36, borderTopRightRadius: 36, ...S.float,
+    },
+    handle: {
+      width: 44, height: 5, borderRadius: 2.5,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
+      alignSelf: 'center', marginTop: 14,
+    },
     scroll: { flex: 1 },
-    scrollContent: { padding: 24, paddingBottom: 8, gap: 0 },
-    routeHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
-    routeCodeBox: { width: 48, height: 48, borderRadius: 16, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    routeCodeText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
-    routeNameText: { fontSize: 18, fontWeight: '600', color: c.ink, letterSpacing: -0.3 },
-    routePathText: { fontSize: 12, color: c.inkSoft, marginTop: 1 },
-    seatsTag: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-    seatsTagText: { fontSize: 11, color: c.inkSoft },
-    section: { marginTop: 20, gap: 8 },
-    hScroll: { marginTop: 8 },
+    scrollContent: { paddingBottom: 8 },
 
-    // Trip card (replaces simple time button)
+    /* ── Route hero ─────────────────────────────────────── */
+    routeHero: {
+      backgroundColor: c.ink,
+      paddingHorizontal: 24, paddingTop: 22, paddingBottom: 0,
+      borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      marginHorizontal: 12, marginTop: 16,
+      borderRadius: 28, overflow: 'hidden',
+    },
+    heroGlow: {
+      position: 'absolute', top: -60, right: -60,
+      width: 200, height: 200, borderRadius: 100,
+      backgroundColor: 'rgba(255,255,255,0.04)',
+    },
+    heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
+    heroCodeBox: {
+      width: 42, height: 42, borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    heroCodeText: { color: '#ffffff', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+    heroFavBtn: {
+      width: 38, height: 38, borderRadius: 19,
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    heroRouteName: {
+      fontSize: 22, fontWeight: '700', color: '#ffffff',
+      letterSpacing: -0.5, marginBottom: 4,
+    },
+    heroRoutePath: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 20 },
+
+    /* Journey track */
+    journeyWrap: { paddingBottom: 20 },
+    journeyScroll: { paddingRight: 24 },
+    journeyRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 8 },
+    journeyStop: { alignItems: 'center', width: 70 },
+    journeyNodeOuter: {
+      width: 28, height: 28, borderRadius: 14,
+      borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    journeyNodeOuterActive: {
+      borderColor: '#ffffff',
+      backgroundColor: 'rgba(255,255,255,0.25)',
+    },
+    journeyNodeInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.45)' },
+    journeyNodeInnerActive: { backgroundColor: '#ffffff' },
+    journeyLabel: {
+      fontSize: 10, color: 'rgba(255,255,255,0.55)',
+      textAlign: 'center', marginTop: 8, lineHeight: 13,
+    },
+    journeyLabelActive: { color: '#ffffff', fontWeight: '600' },
+    journeyConnector: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 20 },
+    journeyConnectorActive: { backgroundColor: 'rgba(255,255,255,0.55)' },
+
+    /* Stat cards row */
+    statsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 12, marginTop: 12, marginBottom: 4 },
+    statCard: {
+      flex: 1, borderRadius: 18, padding: 14,
+      backgroundColor: c.white,
+      alignItems: 'center', gap: 6,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: c.isDark ? 0.25 : 0.06, shadowRadius: 8, elevation: 3,
+    },
+    statIconBox: {
+      width: 36, height: 36, borderRadius: 12,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    statValue: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.3 },
+    statLabel: { fontSize: 9.5, color: c.inkSoft, textAlign: 'center', lineHeight: 13, letterSpacing: 0.2 },
+
+    /* Section wrapper */
+    sectionWrap: { paddingHorizontal: 12, marginTop: 18 },
+    sectionTitle: {
+      fontSize: 11, fontWeight: '600', color: c.inkSoft,
+      textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12,
+    },
+
+    /* Trip cards — vertical full-width */
     tripCard: {
-      borderRadius: 16, borderWidth: 1, borderColor: c.border,
-      padding: 12, minWidth: 180, backgroundColor: c.white,
+      borderRadius: 20, borderWidth: 1.5, borderColor: c.border,
+      padding: 16, backgroundColor: c.white, marginBottom: 10,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: c.isDark ? 0.18 : 0.04, shadowRadius: 6, elevation: 2,
     },
-    tripCardActive: { backgroundColor: c.ink, borderColor: c.ink },
-    tripCardDisabled: { opacity: 0.45 },
-    tripCardTime: { fontSize: 15, fontWeight: '600', color: c.ink },
-    tripCardTimeActive: { color: c.isDark ? c.background : c.white },
-    tripCardDate: { fontSize: 10, color: c.inkSoft, marginTop: 1 },
-    tripCardDateActive: { color: c.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.7)' },
-    tripStatusBadge: {
+    tripCardActive: {
+      backgroundColor: c.ink, borderColor: c.ink,
+      shadowOpacity: 0.22, shadowRadius: 14, elevation: 8,
+    },
+    tripCardDisabled: { opacity: 0.4 },
+    tripCardTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
+    tripTime: { fontSize: 28, fontWeight: '800', color: c.ink, letterSpacing: -1 },
+    tripTimeActive: { color: c.isDark ? c.background : '#ffffff' },
+    tripNumberBox: {
+      borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
       flexDirection: 'row', alignItems: 'center', gap: 4,
-      borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3,
-      marginTop: 6, alignSelf: 'flex-start',
     },
-    tripStatusDot: { width: 5, height: 5, borderRadius: 3 },
-    tripStatusText: { fontSize: 10, fontWeight: '600' },
-    tripSeatText: { fontSize: 10, color: c.inkSoft, marginTop: 4 },
-    tripSeatTextActive: { color: c.isDark ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.75)' },
-    tripMessage: { fontSize: 10, color: c.inkSoft, marginTop: 3, lineHeight: 14 },
-    tripMessageActive: { color: c.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.7)' },
+    tripNumberBoxActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
+    tripNumberText: { fontSize: 12, fontWeight: '600', color: c.inkSoft },
+    tripNumberTextActive: { color: 'rgba(255,255,255,0.8)' },
+    tripDateText: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
+    tripDateTextActive: { color: 'rgba(255,255,255,0.55)' },
+    tripStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+    tripStatusDot: { width: 7, height: 7, borderRadius: 4 },
+    tripStatusText: { fontSize: 11, fontWeight: '600' },
+    tripSeatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+    tripSeatsFraction: { fontSize: 12, fontWeight: '600', color: c.inkSoft },
+    tripSeatsFractionActive: { color: 'rgba(255,255,255,0.65)' },
+    tripSeatsLabel: { fontSize: 11, color: c.inkSoft },
+    tripSeatsLabelActive: { color: 'rgba(255,255,255,0.5)' },
+    progressBarWrap: { height: 6, borderRadius: 3, backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : c.mist, overflow: 'hidden' },
+    progressBarFill: { height: '100%' as any, borderRadius: 3 },
+    tripAvailRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
+    tripAvailDot: { width: 6, height: 6, borderRadius: 3 },
+    tripAvailText: { fontSize: 12, fontWeight: '600' },
+    tripMessage: { fontSize: 11, color: c.inkSoft, marginTop: 6, lineHeight: 15 },
+    tripMessageActive: { color: 'rgba(255,255,255,0.6)' },
 
-    // Seat progress bar
-    progressBarWrap: { height: 4, borderRadius: 2, backgroundColor: c.mist, marginTop: 6, overflow: 'hidden' },
-    progressBarFill: { height: '100%' as any, borderRadius: 2 },
+    /* No trips */
+    noTripsWrap: { paddingVertical: 28, alignItems: 'center', gap: 8, borderRadius: 20, backgroundColor: c.white, borderWidth: 1, borderColor: c.border },
+    noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingHorizontal: 24 },
 
-    pickTabWrap: { flexDirection: 'row', padding: 4, borderRadius: 16, marginTop: 8, gap: 2 },
-    pickTab: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-    pickTabActive: { backgroundColor: c.ink },
+    /* Station picker */
+    pickTabWrap: { flexDirection: 'row', padding: 4, borderRadius: 18, gap: 2, backgroundColor: c.mist },
+    pickTab: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+    pickTabActive: { backgroundColor: c.ink, shadowColor: c.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
     pickTabText: { fontSize: 12.5, fontWeight: '500' },
-    timeline: { marginTop: 12, backgroundColor: c.mist, borderRadius: 24, padding: 16, gap: 0 },
+
+    timeline: { marginTop: 12, backgroundColor: c.white, borderRadius: 20, padding: 16, gap: 0, borderWidth: 1, borderColor: c.border },
     timelineRow: { flexDirection: 'row', gap: 12, paddingBottom: 12 },
     timelineLeft: { alignItems: 'center', width: 16 },
     tlDot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2 },
@@ -125,43 +223,70 @@ function makeStyles(c: ThemeColors, gs: object) {
     tlDotInactive: { borderColor: c.silver, backgroundColor: c.white },
     tlLine: { width: 2, flex: 1, marginTop: 2, minHeight: 16 },
     tlLineActive: { backgroundColor: c.ink },
-    tlLineInactive: { backgroundColor: 'rgba(195,195,204,0.5)' },
+    tlLineInactive: { backgroundColor: 'rgba(195,195,204,0.4)' },
     timelineRight: { flex: 1, paddingBottom: 4 },
     timelineTextRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
     tlName: { fontSize: 13.5, fontWeight: '500' },
     tlBadge: { backgroundColor: c.ink, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
     tlBadgeText: { fontSize: 10, fontWeight: '600', color: c.isDark ? c.background : c.white, textTransform: 'uppercase', letterSpacing: 0.8 },
     tlArea: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
-    priceSummary: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, padding: 16, marginTop: 20, gap: 16 },
-    priceIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    priceSegLabel: { fontSize: 12, color: c.inkSoft },
-    priceTotal: { fontSize: 20, fontWeight: '600', color: c.ink, letterSpacing: -0.5 },
+
+    /* Seat selector */
+    seatRow: {
+      flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 16, marginTop: 12,
+      backgroundColor: c.white, borderWidth: 1, borderColor: c.border,
+    },
+    seatBtn: {
+      width: 44, height: 44, borderRadius: 14, backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
+      alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border,
+    },
+    seatBtnDisabled: { opacity: 0.3 },
+    seatCountText: { fontSize: 24, fontWeight: '800', color: c.ink, minWidth: 42, textAlign: 'center' },
+    seatLabelWrap: { flex: 1, paddingStart: 12 },
+    seatLabel: { fontSize: 13, color: c.ink, fontWeight: '600' },
+    seatMax: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
+
+    /* Price card */
+    priceSummary: {
+      flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 16, marginTop: 12,
+      backgroundColor: c.white, borderWidth: 1, borderColor: c.border, gap: 16,
+    },
+    priceIcon: {
+      width: 52, height: 52, borderRadius: 16, backgroundColor: c.ink,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    priceSegLabel: { fontSize: 12, color: c.inkSoft, lineHeight: 17 },
+    priceTotal: { fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.5, marginTop: 2 },
     walletRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
     walletText: { fontSize: 11, color: c.inkSoft },
     walletLow: { color: '#e53e3e' },
     walletOk: { color: '#38a169' },
-    noTripsWrap: { paddingVertical: 20, alignItems: 'center', gap: 6 },
-    noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
+
+    /* Service banner */
     serviceBanner: {
       flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-      backgroundColor: '#fef3c7', borderRadius: 14, padding: 12, marginTop: 16,
+      backgroundColor: '#fef3c7', borderRadius: 16, padding: 14, marginTop: 12,
     },
     serviceBannerText: { flex: 1, fontSize: 12.5, color: '#92400e', lineHeight: 18 },
-    cta: { padding: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.white },
-    ctaBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...S.float },
-    ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600' },
+
+    /* CTA */
+    cta: {
+      padding: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border,
+      backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
+    },
+    ctaBtn: {
+      height: 58, borderRadius: 22, backgroundColor: c.ink,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+      shadowColor: c.ink, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
+    },
+    ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2 },
+
+    /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
     loadingText: { fontSize: 13, color: c.inkSoft },
     errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     retryBtn: { marginTop: 4, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: c.border },
     retryBtnText: { fontSize: 13, fontWeight: '500', color: c.ink },
-    seatRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, borderRadius: 16, padding: 14 },
-    seatBtn: { width: 40, height: 40, borderRadius: 13, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border, ...S.float },
-    seatBtnDisabled: { opacity: 0.35 },
-    seatCountText: { fontSize: 20, fontWeight: '700', color: c.ink, minWidth: 36, textAlign: 'center' },
-    seatLabelWrap: { flex: 1, paddingLeft: 12 },
-    seatLabel: { fontSize: 12, color: c.inkSoft },
-    seatMax: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
   });
 }
 
@@ -175,7 +300,6 @@ export function TripSheet() {
   const { colors: c, glassStyle: gs, t } = useTheme();
   const styles = useMemo(() => makeStyles(c, gs), [c]);
 
-  // ── Service-level gate: is the shuttle service enabled? ──────────────────────
   const shuttleSvc = getService('shuttle');
   const shuttleServiceEnabled: boolean = !shuttleSvc || (shuttleSvc.isEnabled && shuttleSvc.displayMode === 'live');
   const shuttleDisabledMessage: string =
@@ -183,6 +307,7 @@ export function TripSheet() {
     (shuttleSvc?.displayMode === 'maintenance' ? 'Shuttle service is under maintenance.' :
      shuttleSvc?.displayMode === 'coming_soon' ? 'Shuttle service coming soon.' :
      'Shuttle service is currently unavailable.');
+
   const slideAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [visible, setVisible] = useState(false);
@@ -258,148 +383,216 @@ export function TripSheet() {
       <Animated.View style={[styles.overlay, { opacity: overlayAnim }]}>
         <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={closeTripSheet} activeOpacity={1} />
       </Animated.View>
+
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
         <View style={styles.handle} />
+
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Route header */}
-          <View style={styles.routeHeader}>
-            <View style={styles.routeCodeBox}>
-              <Text style={styles.routeCodeText}>{route.code}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.routeNameText}>{route.name}</Text>
-              <Text style={styles.routePathText}>{route.from} → {route.to}</Text>
-              <View style={styles.seatsTag}>
-                <Users size={11} color={c.inkSoft} />
-                <Text style={styles.seatsTagText}>
-                  {selectedTripSeats} {t('seats_left')} · {route.price} {t('egp')}
-                </Text>
+
+          {/* ── Route Hero ── */}
+          <View style={styles.routeHero}>
+            <View style={styles.heroGlow} />
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroCodeBox}>
+                <Text style={styles.heroCodeText}>{route.code}</Text>
               </View>
+              <TouchableOpacity style={styles.heroFavBtn} activeOpacity={0.7}>
+                <Heart size={16} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' }}
-              activeOpacity={0.7}
-            >
-              <Heart size={16} color={c.ink} />
-            </TouchableOpacity>
+            <Text style={styles.heroRouteName}>{route.name}</Text>
+            <Text style={styles.heroRoutePath}>{route.from} → {route.to}</Text>
+
+            {/* Journey track visualization */}
+            <View style={styles.journeyWrap}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.journeyScroll}
+              >
+                <View style={styles.journeyRow}>
+                  {route.path.map((s, i) => {
+                    const isActive = i >= lo && i <= hi;
+                    const isFirst = i === 0;
+                    const isLast = i === route.path.length - 1;
+                    return (
+                      <React.Fragment key={s.id}>
+                        <TouchableOpacity style={styles.journeyStop} onPress={() => pickStation(i)} activeOpacity={0.7}>
+                          <View style={[styles.journeyNodeOuter, isActive && styles.journeyNodeOuterActive]}>
+                            <View style={[styles.journeyNodeInner, isActive && styles.journeyNodeInnerActive]} />
+                          </View>
+                          <Text style={[styles.journeyLabel, isActive && styles.journeyLabelActive]} numberOfLines={2}>
+                            {s.name}
+                          </Text>
+                        </TouchableOpacity>
+                        {!isLast && (
+                          <View style={[
+                            styles.journeyConnector,
+                            (i >= lo && i < hi) && styles.journeyConnectorActive,
+                          ]} />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
           </View>
 
-          {/* Service disabled banner — shown when admin disables shuttle */}
+          {/* ── Info stat cards ── */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconBox}>
+                <Bus size={16} color={c.ink} />
+              </View>
+              <Text style={styles.statValue}>{scheduledTrips.length || route.stations}</Text>
+              <Text style={styles.statLabel}>{t('departure')}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIconBox}>
+                <Clock size={16} color={c.ink} />
+              </View>
+              <Text style={styles.statValue}>{route.duration}</Text>
+              <Text style={styles.statLabel}>{t('trip_duration')}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIconBox}>
+                <Ticket size={16} color={c.ink} />
+              </View>
+              <Text style={styles.statValue}>{route.price}</Text>
+              <Text style={styles.statLabel}>{t('egp')}</Text>
+            </View>
+          </View>
+
+          {/* Service disabled banner */}
           {!shuttleServiceEnabled && (
-            <View style={styles.serviceBanner}>
+            <View style={[styles.serviceBanner, { marginHorizontal: 12 }]}>
               <AlertTriangle size={15} color="#92400e" style={{ marginTop: 1 }} />
               <Text style={styles.serviceBannerText}>{shuttleDisabledMessage}</Text>
             </View>
           )}
 
-          {/* Trip selector */}
-          <View style={styles.section}>
-            <SectionLabel icon={<Clock size={14} color={c.inkSoft} />}>
+          {/* ── Trips section ── */}
+          <View style={styles.sectionWrap}>
+            <Text style={styles.sectionTitle}>
               {t('departure')}
-              {scheduledTrips.length > 0 && (
-                <Text style={{ fontSize: 11, color: c.inkSoft, fontWeight: '400' }}>
-                  {' '}· {scheduledTrips.length} trip{scheduledTrips.length !== 1 ? 's' : ''}
-                </Text>
-              )}
-            </SectionLabel>
+              {scheduledTrips.length > 0 ? ` · ${scheduledTrips.length}` : ''}
+            </Text>
 
             {routeLoading || tripsLoading ? (
-              <View style={{ paddingVertical: 12, alignItems: 'flex-start' }}>
+              <View style={styles.loadingWrap}>
                 <ActivityIndicator size="small" color={c.ink} />
+                <Text style={styles.loadingText}>Loading trips…</Text>
               </View>
             ) : scheduledTrips.length === 0 ? (
               <View style={styles.noTripsWrap}>
-                <AlertCircle size={22} color={c.silver} />
+                <AlertCircle size={24} color={c.silver} />
                 <Text style={styles.noTripsText}>No upcoming trips available for this route.</Text>
               </View>
             ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.hScroll}
-                contentContainerStyle={{ gap: 8, paddingRight: 4 }}
-              >
-                {scheduledTrips.map((trip: any, i: number) => {
-                  const active = i === safeTimeIdx;
-                  const bookable = isTripBookable(trip);
-                  const disabled = !bookable;
-                  const statusColor = shuttleStatusColor(trip);
-                  const statusLbl = shuttleStatusLabel(trip);
-                  const time = formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
-                  const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
-                  const bookedSeats: number = trip.bookedSeats ?? 0;
-                  const totalSeats: number = trip.totalSeats ?? 14;
-                  const availableSeats: number = trip.availableSeats ?? 0;
-                  const minRequired: number = trip.minRequired ?? 7;
-                  const message: string = trip.message ?? '';
+              scheduledTrips.map((trip: any, i: number) => {
+                const active = i === safeTimeIdx;
+                const bookable = isTripBookable(trip);
+                const disabled = !bookable;
+                const statusColor = shuttleStatusColor(trip);
+                const statusLbl = shuttleStatusLabel(trip);
+                const time = formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
+                const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
+                const bookedSeats: number = trip.bookedSeats ?? 0;
+                const totalSeats: number = trip.totalSeats ?? 14;
+                const availableSeats: number = trip.availableSeats ?? 0;
+                const minRequired: number = trip.minRequired ?? 7;
+                const message: string = trip.message ?? '';
+                const tripNum = String(i + 1).padStart(2, '0');
 
-                  // Progress fill: total seats taken
-                  const fillPct = totalSeats > 0 ? (bookedSeats / totalSeats) * 100 : 0;
-                  // Activation fill for open trips
-                  const activationPct = minRequired > 0 ? Math.min(100, (bookedSeats / minRequired) * 100) : 100;
+                const fillPct = totalSeats > 0 ? (bookedSeats / totalSeats) * 100 : 0;
+                const activationPct = minRequired > 0 ? Math.min(100, (bookedSeats / minRequired) * 100) : 100;
 
-                  const barColor = trip.shuttleStatus === 'active'
-                    ? '#16a34a'
-                    : trip.shuttleStatus === 'cancelled'
-                    ? '#dc2626'
-                    : '#d97706';
+                const barColor = trip.shuttleStatus === 'active'
+                  ? '#16a34a'
+                  : trip.shuttleStatus === 'cancelled'
+                  ? '#dc2626'
+                  : '#d97706';
 
-                  return (
-                    <TouchableOpacity
-                      key={`${trip.id ?? i}`}
-                      onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                      disabled={disabled}
-                      style={[
-                        styles.tripCard,
-                        active && styles.tripCardActive,
-                        disabled && styles.tripCardDisabled,
-                      ]}
-                    >
-                      <Text style={[styles.tripCardTime, active && styles.tripCardTimeActive]}>{time}</Text>
-                      <Text style={[styles.tripCardDate, active && styles.tripCardDateActive]}>{date}</Text>
-
-                      {/* Status badge */}
-                      <View style={[styles.tripStatusBadge, { backgroundColor: `${statusColor}18` }]}>
-                        <View style={[styles.tripStatusDot, { backgroundColor: statusColor }]} />
-                        <Text style={[styles.tripStatusText, { color: statusColor }]}>{statusLbl}</Text>
+                return (
+                  <TouchableOpacity
+                    key={`${trip.id ?? i}`}
+                    onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                    disabled={disabled}
+                    style={[
+                      styles.tripCard,
+                      active && styles.tripCardActive,
+                      disabled && styles.tripCardDisabled,
+                    ]}
+                    activeOpacity={0.85}
+                  >
+                    {/* Top row: time + trip number */}
+                    <View style={styles.tripCardTopRow}>
+                      <View>
+                        <Text style={[styles.tripTime, active && styles.tripTimeActive]}>{time}</Text>
+                        <Text style={[styles.tripDateText, active && styles.tripDateTextActive]}>{date}</Text>
                       </View>
-
-                      {/* Seat count */}
-                      <Text style={[styles.tripSeatText, active && styles.tripSeatTextActive]}>
-                        {bookedSeats}/{totalSeats} seats · {availableSeats} left
-                      </Text>
-
-                      {/* Progress bar */}
-                      <View style={styles.progressBarWrap}>
-                        <View
-                          style={[
-                            styles.progressBarFill,
-                            {
-                              width: `${trip.shuttleStatus === 'open' ? activationPct : fillPct}%` as any,
-                              backgroundColor: active ? (c.isDark ? c.background : '#fff') : barColor,
-                            },
-                          ]}
-                        />
-                      </View>
-
-                      {/* Message from API */}
-                      {!!message && (
-                        <Text style={[styles.tripMessage, active && styles.tripMessageActive]} numberOfLines={2}>
-                          {message}
+                      <View style={[styles.tripNumberBox, active && styles.tripNumberBoxActive]}>
+                        <Text style={[styles.tripNumberText, active && styles.tripNumberTextActive]}>
+                          #{tripNum}
                         </Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                      </View>
+                    </View>
+
+                    {/* Status badge */}
+                    <View style={styles.tripStatusRow}>
+                      <View style={[styles.tripStatusDot, { backgroundColor: active ? '#fff' : statusColor }]} />
+                      <Text style={[styles.tripStatusText, { color: active ? 'rgba(255,255,255,0.8)' : statusColor }]}>
+                        {statusLbl}
+                      </Text>
+                    </View>
+
+                    {/* Seat bar */}
+                    <View style={styles.tripSeatsRow}>
+                      <Text style={[styles.tripSeatsFraction, active && styles.tripSeatsFractionActive]}>
+                        {bookedSeats} / {totalSeats}
+                      </Text>
+                      <Text style={[styles.tripSeatsLabel, active && styles.tripSeatsLabelActive]}>
+                        {t('seats_left').replace(/\d+/, String(availableSeats))}
+                      </Text>
+                    </View>
+                    <View style={styles.progressBarWrap}>
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          {
+                            width: `${trip.shuttleStatus === 'open' ? activationPct : fillPct}%` as any,
+                            backgroundColor: active ? (c.isDark ? c.background : '#fff') : barColor,
+                          },
+                        ]}
+                      />
+                    </View>
+
+                    {/* Available seats pill */}
+                    <View style={styles.tripAvailRow}>
+                      <View style={[styles.tripAvailDot, { backgroundColor: active ? 'rgba(255,255,255,0.7)' : (availableSeats <= 3 ? '#dc2626' : '#16a34a') }]} />
+                      <Text style={[
+                        styles.tripAvailText,
+                        { color: active ? 'rgba(255,255,255,0.75)' : (availableSeats <= 3 ? '#dc2626' : '#16a34a') },
+                      ]}>
+                        {availableSeats} available
+                      </Text>
+                    </View>
+
+                    {!!message && (
+                      <Text style={[styles.tripMessage, active && styles.tripMessageActive]} numberOfLines={2}>
+                        {message}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })
             )}
           </View>
 
-          {/* Station picker */}
-          <View style={styles.section}>
-            <SectionLabel icon={<MapPin size={14} color={c.inkSoft} />}>
-              {t('boarding_dropoff')}
-            </SectionLabel>
+          {/* ── Station picker ── */}
+          <View style={styles.sectionWrap}>
+            <Text style={styles.sectionTitle}>{t('boarding_dropoff')}</Text>
 
             {routeLoading ? (
               <View style={styles.loadingWrap}>
@@ -464,9 +657,9 @@ export function TripSheet() {
             )}
           </View>
 
-          {/* Seat selector */}
+          {/* ── Seat selector ── */}
           {hasPath && scheduledTrips.length > 0 && (
-            <View style={[gs, styles.seatRow]}>
+            <View style={[styles.seatRow, { marginHorizontal: 12 }]}>
               <TouchableOpacity
                 style={[styles.seatBtn, seatCount <= 1 && styles.seatBtnDisabled]}
                 disabled={seatCount <= 1}
@@ -491,10 +684,10 @@ export function TripSheet() {
             </View>
           )}
 
-          {/* Price summary */}
-          <View style={[gs, styles.priceSummary]}>
+          {/* ── Price summary ── */}
+          <View style={[styles.priceSummary, { marginHorizontal: 12, marginTop: 12 }]}>
             <View style={styles.priceIcon}>
-              <Ticket size={20} color={c.isDark ? c.background : c.white} />
+              <Ticket size={22} color={c.isDark ? c.background : c.white} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.priceSegLabel}>
@@ -547,7 +740,7 @@ export function TripSheet() {
                 ? 'Insufficient Balance'
                 : `${t('book_now')} · ${total} ${t('egp')}`}
             </Text>
-            {valid && !walletLow && shuttleServiceEnabled && <ArrowRight size={16} color={c.isDark ? c.background : c.white} />}
+            {valid && !walletLow && shuttleServiceEnabled && <ArrowRight size={18} color={c.isDark ? c.background : c.white} />}
           </TouchableOpacity>
         </View>
       </Animated.View>
