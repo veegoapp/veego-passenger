@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Check, Star, Wallet, X } from 'lucide-react-native';
+import { Check, Star, Wallet, X, Banknote } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -52,6 +52,11 @@ function makeStyles(c: ThemeColors) {
     rateBtnText: { fontSize: 15, fontWeight: '700' },
     doneBtn: { alignItems: 'center', paddingVertical: 10 },
     doneBtnText: { fontSize: 14 },
+    cashBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      borderRadius: 16, borderWidth: 1.5, padding: 14,
+    },
+    cashBannerText: { flex: 1, fontSize: 14, fontWeight: '600', lineHeight: 20 },
   });
 }
 
@@ -179,6 +184,16 @@ export default function ReceiptScreen() {
             <Text style={[styles.payValue, { color: c.ink }]}>{t('cash_payment')}</Text>
           </View>
         </View>
+
+        {/* Cash payment instruction */}
+        {parsedFare > 0 && (
+          <View style={[styles.cashBanner, { backgroundColor: 'rgba(85,196,154,0.12)', borderColor: '#55c49a' }]}>
+            <Banknote size={18} color="#55c49a" />
+            <Text style={[styles.cashBannerText, { color: c.ink }]}>
+              {t('pay_driver_cash').replace('{amount}', parsedFare.toFixed(2))}
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {/* Bottom CTAs */}

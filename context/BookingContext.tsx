@@ -259,28 +259,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     setActiveBooking(pendingBooking);
     setBookingError(null);
 
-    // Step 1: Check wallet balance
-    const balance = await fetchWalletBalance();
-    setWalletBalance(balance);
-
-    if (balance !== null && balance < pendingBooking.price * seatCount) {
-      Alert.alert(
-        'Insufficient Balance',
-        `Your wallet balance is ${balance.toFixed(2)} EGP but this trip costs ${pendingBooking.price} EGP. Please top up your wallet to continue.`,
-        [
-          { text: 'Cancel', style: 'cancel', onPress: () => setActiveBooking(null) },
-          {
-            text: 'Top Up',
-            onPress: () => {
-              setActiveBooking(null);
-              router.push('/wallet' as any);
-            },
-          },
-        ],
-      );
-      return;
-    }
-
     const tripId = pendingBooking.tripId ?? null;
 
     if (!tripId) {
@@ -295,6 +273,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const body: Record<string, any> = {
         tripId,
         seatCount,
+        paymentMethod: 'cash',
       };
       if (promoCode) body.promoCode = promoCode;
 
@@ -342,20 +321,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
             'Sorry, those seats were just taken. Please check for another trip.',
           );
         }
-      } else if (
-        status === 400 &&
-        (msg.toLowerCase().includes('wallet') ||
-          msg.toLowerCase().includes('balance') ||
-          msg.toLowerCase().includes('insufficient'))
-      ) {
-        Alert.alert(
-          'Insufficient Balance',
-          `${msg}\n\nWould you like to top up your wallet?`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Top Up', onPress: () => router.push('/wallet' as any) },
-          ],
-        );
       } else {
         Alert.alert('Booking Failed', msg);
       }

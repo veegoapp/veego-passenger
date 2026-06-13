@@ -620,7 +620,7 @@ export default function CarScreen() {
                     </>
                   )}
                   <Banknote size={11} color={C.inkSoft} />
-                  <Text style={styles.priceMetaText}>{t('wallet_payment_label')}</Text>
+                  <Text style={styles.priceMetaText}>{t('cash_payment_label')}</Text>
                 </View>
               )}
             </View>
@@ -914,7 +914,7 @@ export default function CarScreen() {
               <Banknote size={12} color={C.inkSoft} />
               <Text style={styles.routePayText}>
                 {priceEstimate != null
-                  ? t('wallet_fare').replace('{p}', priceEstimate.toFixed(2))
+                  ? t('cash_fare').replace('{p}', priceEstimate.toFixed(2))
                   : t('calculating_fare')}
               </Text>
             </View>

@@ -316,6 +316,7 @@ export function useRide(): UseRideResult {
         dropoffLongitude:   payload.dropoff.longitude,
         dropoffAddress:     payload.dropoff.address ?? '',
         notes:              payload.notes,
+        paymentMethod:      'cash',
         ...(payload.promoCode ? { promoCode: payload.promoCode } : {}),
       });
       const rideId = String(data?.data?.id ?? data?.rideId ?? data?.id ?? data?._id ?? Date.now());

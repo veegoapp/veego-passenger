@@ -20,6 +20,7 @@ import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { TabBarProvider } from '@/context/TabBarContext';
 import { ServiceControlProvider } from '@/context/ServiceControlContext';
+import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
 import { TripSheet } from '@/components/TripSheet';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { usePushToken } from '@/src/hooks/usePushToken';
@@ -194,11 +195,13 @@ export default function RootLayout() {
         <ThemeProvider>
           <TabBarProvider>
             <ServiceControlProvider>
-              <BookingProvider>
-                <FavoritesProvider>
-                  <AppShell />
-                </FavoritesProvider>
-              </BookingProvider>
+              <PaymentConfigProvider>
+                <BookingProvider>
+                  <FavoritesProvider>
+                    <AppShell />
+                  </FavoritesProvider>
+                </BookingProvider>
+              </PaymentConfigProvider>
             </ServiceControlProvider>
           </TabBarProvider>
         </ThemeProvider>

@@ -1,12 +1,13 @@
 import { useRef, useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, Alert } from 'react-native';
 import { Home, Ticket, Heart, Wallet, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
 import { S } from '@/constants/colors';
 import { useTabBar } from '@/context/TabBarContext';
+import { usePaymentConfig } from '@/context/PaymentConfigContext';
 
 // استيراد ضروري لمنع الـ Gesture Crash
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,6 +24,8 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottom = Platform.OS === 'web' ? 24 : insets.bottom + 8;
   const { colors: c, t, language } = useTheme();
+  const { walletFeature } = usePaymentConfig();
+  const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
 
   const tabWidths = useRef<number[]>([]);
   const tabOffsets = useRef<number[]>([]);
@@ -113,31 +116,55 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
         )}
         {TAB_ITEMS.map((item, i) => {
           const active = state.index === i;
+          const isWallet = item.name === 'wallet';
+          const isDisabledWallet = isWallet && walletUnavailable;
+          const iconColor = isDisabledWallet
+            ? c.silver
+            : active
+              ? (c.isDark ? c.background : c.white)
+              : c.inkSoft;
+          const labelColor = isDisabledWallet
+            ? c.silver
+            : active
+              ? (c.isDark ? c.background : c.white)
+              : c.inkSoft;
           return (
             <TouchableOpacity
               key={item.name}
               style={styles.navItem}
               activeOpacity={0.8}
-              onPress={() => navigation.navigate(item.name)}
+              onPress={() => {
+                if (isDisabledWallet) {
+                  Alert.alert(
+                    t('wallet_title'),
+                    walletFeature.unavailableMessage || t('wallet_coming_soon_msg'),
+                  );
+                  return;
+                }
+                navigation.navigate(item.name);
+              }}
               onLayout={(e) => {
                 const { x, width } = e.nativeEvent.layout;
                 handleLayout(i, x, width);
               }}
             >
-              <item.icon
-                size={17}
-                color={active ? (c.isDark ? c.background : c.white) : c.inkSoft}
-                style={{ zIndex: 2 }}
-              />
+              <View style={{ position: 'relative' }}>
+                <item.icon size={17} color={iconColor} style={{ zIndex: 2 }} />
+                {isDisabledWallet && (
+                  <View style={styles.comingSoonDot} />
+                )}
+              </View>
               <Text
-                style={[
-                  styles.navLabel,
-                  { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft, zIndex: 2 },
-                ]}
+                style={[styles.navLabel, { color: labelColor, zIndex: 2 }]}
                 numberOfLines={1}
               >
                 {t(item.labelKey)}
               </Text>
+              {isDisabledWallet && (
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonBadgeText}>{t('soon')}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           );
         })}
@@ -189,4 +216,15 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 6, bottom: 6, borderRadius: 24, zIndex: 1,
   },
   navLabel: { fontSize: 10, fontWeight: '650', lineHeight: 13 },
+  comingSoonDot: {
+    position: 'absolute', top: -2, right: -4,
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: '#f59e0b',
+  },
+  comingSoonBadge: {
+    position: 'absolute', top: -6, right: -8,
+    backgroundColor: '#f59e0b', borderRadius: 6,
+    paddingHorizontal: 4, paddingVertical: 1,
+  },
+  comingSoonBadgeText: { fontSize: 7, fontWeight: '700', color: '#ffffff' },
 });

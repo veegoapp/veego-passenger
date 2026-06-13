@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard } from 'lucide-react-native';
+import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +9,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useWallet } from '@/src/hooks/useWallet';
 import { useMyDebt } from '@/src/hooks/useMyDebt';
+import { usePaymentConfig } from '@/context/PaymentConfigContext';
 
 const CHARGE_OPTIONS = [50, 100, 200, 500];
 
@@ -87,6 +88,8 @@ export default function WalletScreen() {
 
   const { balance, spent, transactions, recharge } = useWallet();
   const { debt } = useMyDebt();
+  const { walletFeature } = usePaymentConfig();
+  const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
 
   const handleConfirmCharge = async () => {
     if (!selectedCharge) return;
@@ -106,6 +109,42 @@ export default function WalletScreen() {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
     Alert.alert(t('transfer_title'), t('transfer_soon_msg'));
   };
+
+  if (walletUnavailable) {
+    return (
+      <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+        <View style={[styles.header, { paddingTop: top + 12 }]}>
+          <Text style={styles.headerTitle}>{t('wallet_title')}</Text>
+          <Text style={styles.headerSub}>{t('wallet_subtitle')}</Text>
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16 }}>
+          <View style={{
+            width: 80, height: 80, borderRadius: 24,
+            backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Clock size={36} color={c.silver} />
+          </View>
+          <View style={{ alignItems: 'center', gap: 8 }}>
+            <View style={{
+              paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99,
+              backgroundColor: '#f59e0b',
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#ffffff', letterSpacing: 0.5 }}>
+                {t('soon')}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.5, textAlign: 'center' }}>
+              {t('wallet_title')}
+            </Text>
+            <Text style={{ fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 20 }}>
+              {walletFeature.unavailableMessage || t('wallet_coming_soon_msg')}
+            </Text>
+          </View>
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
