@@ -73,6 +73,7 @@ export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, pla
   const handleReportEmergency = useCallback(async () => {
     if (!rideId) return;
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Linking.openURL('tel:123');
 
     setSosLoading(true);
     setSosError('');

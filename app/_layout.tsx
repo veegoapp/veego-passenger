@@ -54,6 +54,24 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
     }
   }
 
+  // Task 6: veego://ride/{id} → trip tracking screen
+  if (deepLink.startsWith('veego://ride/')) {
+    const rideId = deepLink.replace('veego://ride/', '').split('?')[0];
+    if (rideId) {
+      router.push(`/trip-tracking?id=${rideId}` as any);
+      return;
+    }
+  }
+
+  // Task 6: veego://promo/{code} → promo screen with code pre-filled
+  if (deepLink.startsWith('veego://promo/')) {
+    const promoCode = deepLink.replace('veego://promo/', '').split('?')[0];
+    if (promoCode) {
+      router.push(`/promo?code=${encodeURIComponent(promoCode)}` as any);
+      return;
+    }
+  }
+
   // Fix 6: Booking confirmation notification — navigate to trip detail
   if (category === 'booking' || category === 'trip') {
     const tripId = data.tripId ?? data.trip_id ?? data.bookingId ?? data.booking_id ?? null;

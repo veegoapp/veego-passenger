@@ -169,14 +169,17 @@ export default function WalletScreen() {
             <Plus size={20} color={c.isDark ? c.background : c.white} />
             <Text style={[styles.actionBtnText, { color: c.isDark ? c.background : c.white }]}>{t('recharge')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border }]}
-            activeOpacity={0.85}
-            onPress={handleTransfer}
-          >
-            <ArrowUp size={20} color={c.ink} />
-            <Text style={[styles.actionBtnText, { color: c.ink }]}>{t('transfer')}</Text>
-          </TouchableOpacity>
+          <View style={{ flex: 1, gap: 4 }}>
+            <TouchableOpacity
+              style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border, opacity: 0.45 }]}
+              activeOpacity={1}
+              disabled
+            >
+              <ArrowUp size={20} color={c.ink} />
+              <Text style={[styles.actionBtnText, { color: c.ink }]}>{t('transfer')}</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 10, color: c.inkSoft, textAlign: 'center', fontWeight: '600' }}>Coming Soon</Text>
+          </View>
           <TouchableOpacity
             style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border }]}
             activeOpacity={0.85}

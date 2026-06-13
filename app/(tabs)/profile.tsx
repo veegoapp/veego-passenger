@@ -1,17 +1,18 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert,
+  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert,
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
 import { useProfile } from '@/src/hooks/useProfile';
-import { tokenStore } from '@/src/api/client';
+import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { ThemeColors, S } from '@/constants/colors';
 
@@ -363,7 +364,20 @@ function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => v
   const handleDelete = () => {
     Alert.alert(t('delete_account'), t('delete_account_confirm'), [
       { text: t('cancel'), style: 'cancel' },
-      { text: t('delete_account'), style: 'destructive', onPress: () => Alert.alert('Deleted', 'Account deletion would happen here.') },
+      {
+        text: t('delete_account'), style: 'destructive', onPress: async () => {
+          try {
+            await api.delete('/users/me');
+            try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {}
+            try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); } catch {}
+            try { await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {}
+            emitAuthEvent('auth:logout');
+            router.replace('/auth');
+          } catch {
+            Alert.alert(t('error'), 'Could not delete your account. Please try again later.');
+          }
+        },
+      },
     ]);
   };
 
@@ -588,6 +602,37 @@ export default function ProfileScreen() {
   const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
   const { name: profileName, email: profileEmail } = useProfileInfo();
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handlePickAvatar = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your photo library to update your profile photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    const prevUri = avatarUri;
+    setAvatarUri(asset.uri);
+    setAvatarUploading(true);
+    try {
+      const form = new FormData();
+      form.append('avatar', { uri: asset.uri, name: 'avatar.jpg', type: 'image/jpeg' } as any);
+      await api.post('/users/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    } catch {
+      setAvatarUri(prevUri);
+      Alert.alert('Upload failed', 'Could not update your profile photo. Please try again.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  }, [avatarUri]);
 
   const heroName = displayName ?? profileName;
   const heroInitials = heroName
@@ -614,8 +659,14 @@ export default function ProfileScreen() {
           <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3a']} style={styles.heroGrad}>
             <View style={styles.heroGlow} />
             <View style={styles.heroContent}>
-              <TouchableOpacity style={styles.avatarLg} onPress={() => open('personal_info')} activeOpacity={0.85}>
-                <Text style={styles.avatarLgText}>{heroInitials}</Text>
+              <TouchableOpacity style={[styles.avatarLg, { overflow: 'hidden' }]} onPress={handlePickAvatar} activeOpacity={0.85}>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                ) : avatarUploading ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.avatarLgText}>{heroInitials}</Text>
+                )}
               </TouchableOpacity>
               <View style={styles.heroText}>
                 <Text style={styles.heroName}>{heroName}</Text>
