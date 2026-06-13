@@ -67,7 +67,7 @@ function makeStyles(c: ThemeColors) {
     emptySub: { fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingHorizontal: 32, lineHeight: 20 },
     emptyBtn: { marginTop: 4, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 16, backgroundColor: c.ink },
     emptyBtnText: { color: c.isDark ? c.background : c.white, fontSize: 13, fontWeight: '600' },
-    tripCard: { borderRadius: 24, padding: 16, overflow: 'hidden', backgroundColor: c.white },
+    tripCard: { borderRadius: 24, padding: 16, overflow: 'hidden', backgroundColor: c.isDark ? c.surface ?? '#1c1c1e' : c.white },
     cardAccent: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60 },
     tripTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
     codeBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
@@ -240,20 +240,21 @@ export default function TripsScreen() {
     setLoadingMore(false);
   }, [loadMore]);
 
-  const handleCancelPress = (tripId: string) => {
+  // cancelSheetId holds the bookingId (not tripId) so the API call is correct
+  const handleCancelPress = (bookingId: string) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setCancelSheetId(tripId);
+    setCancelSheetId(bookingId);
   };
 
   const doCancel = async (reason: string) => {
-    const tripId = cancelSheetId;
-    if (!tripId) return;
-    setCancellingId(tripId);
+    const bookingId = cancelSheetId;
+    if (!bookingId) return;
+    setCancellingId(bookingId);
     setCancelSheetId(null);
 
-    const anim = getFadeAnim(tripId);
+    const anim = getFadeAnim(bookingId);
     try {
-      await api.patch(`/bookings/${tripId}/cancel`, reason ? { reason } : undefined);
+      await api.patch(`/bookings/${bookingId}/cancel`, reason ? { reason } : undefined);
       Animated.timing(anim, {
         toValue: 0,
         duration: 320,
@@ -268,6 +269,14 @@ export default function TripsScreen() {
     }
   };
 
+  // ── Dynamic date filter: drop upcoming entries whose departure has already passed ──
+  const now = Date.now();
+  const filteredUpcoming = upcomingTrips.filter((t) => {
+    if (!t.departureIso) return true; // no ISO → keep (unknown future)
+    const ms = new Date(t.departureIso).getTime();
+    return isNaN(ms) || ms >= now - 60 * 60 * 1000; // keep if future or within 1 h grace
+  });
+
   const upcoming = activeBooking
     ? [{
         id: 'live',
@@ -281,8 +290,8 @@ export default function TripsScreen() {
         seat: 'B4',
         status: 'upcoming' as const, price: activeBooking.price,
         tripId: null,
-      }, ...upcomingTrips]
-    : upcomingTrips;
+      }, ...filteredUpcoming]
+    : filteredUpcoming;
 
   const trips = tab === 'upcoming' ? upcoming : pastTrips;
 
@@ -346,7 +355,14 @@ export default function TripsScreen() {
           </View>
         )}
         {trips.map((trip) => {
-          if (!trip.routeName) return null;
+          // ── Strict ghost-trip guard ─────────────────────────────────────────
+          // A valid trip must have a non-empty, non-placeholder route name AND
+          // at least one real station name — anything else is a corrupted object.
+          const hasValidRoute =
+            (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
+          const hasValidStations =
+            (trip.from && trip.from !== '—') || !!trip.fromAr;
+          if (!trip || !hasValidRoute || !hasValidStations) return null;
 
           const patch = trip.tripId ? (liveUpdates[String(trip.tripId)] ?? {}) : {};
           const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status;
@@ -355,9 +371,23 @@ export default function TripsScreen() {
           const isLive = !!patch.status || patch.passengerCount !== undefined;
 
           const TripTypeIcon = TYPE_ICONS[trip.type];
-          const isUpcoming = isShuttleTripUpcoming(effectiveStatus) && trip.id !== 'live';
-          const isCancelling = cancellingId === trip.id;
-          const fadeAnim = getFadeAnim(trip.id);
+
+          // ── Cancel button: only on valid upcoming/pending trips with a booking ID ──
+          const isCancellableStatus =
+            effectiveStatus === 'scheduled' ||
+            effectiveStatus === 'upcoming'  ||
+            effectiveStatus === 'pending'   ||
+            isPendingStatus(effectiveStatus);
+          const isUpcoming =
+            trip.id !== 'live' &&
+            isCancellableStatus &&
+            hasValidRoute &&
+            !!(trip.bookingId || trip.id);
+
+          // Use bookingId as the stable key for cancel state and fade animation
+          const bookingKey = trip.bookingId || trip.id;
+          const isCancelling = cancellingId === bookingKey;
+          const fadeAnim = getFadeAnim(bookingKey);
 
           const showCapacity =
             tab === 'upcoming' &&
@@ -446,7 +476,7 @@ export default function TripsScreen() {
                 {isUpcoming && (
                   <TouchableOpacity
                     style={[styles.cancelBtn, { borderColor: c.badge, opacity: isCancelling ? 0.5 : 1 }]}
-                    onPress={(e) => { (e as any).stopPropagation?.(); handleCancelPress(trip.id); }}
+                    onPress={(e) => { (e as any).stopPropagation?.(); handleCancelPress(bookingKey); }}
                     disabled={isCancelling}
                     activeOpacity={0.7}
                   >
