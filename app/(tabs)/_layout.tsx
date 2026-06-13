@@ -22,13 +22,19 @@ const TAB_ITEMS = [
 function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottom = Platform.OS === 'web' ? 24 : insets.bottom + 8;
-  const { colors: c, t } = useTheme();
+  const { colors: c, t, language } = useTheme();
 
   const tabWidths = useRef<number[]>([]);
   const tabOffsets = useRef<number[]>([]);
   const pillX = useRef(new Animated.Value(0)).current;
   const pillW = useRef(new Animated.Value(0)).current;
   const [pillReady, setPillReady] = useState(false);
+
+  useEffect(() => {
+    setPillReady(false);
+    tabWidths.current = [];
+    tabOffsets.current = [];
+  }, [language]);
 
   const animatePill = (index: number) => {
     const x = tabOffsets.current[index];

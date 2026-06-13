@@ -51,13 +51,17 @@ function makeStyles(c: ThemeColors) {
     avatarText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
 
     serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 12, zIndex: 20 },
-    serviceBtn: { width: '48%', height: 52, borderRadius: 16, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, flex: 1 },
+    serviceBtn: { width: '48%', borderRadius: 16, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, gap: 10, flex: 1 },
     serviceBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     serviceBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     serviceBtnSoon: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist, borderColor: c.border, opacity: 0.9 },
-    serviceBtnColumn: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 72, gap: 2 },
-    serviceLabel: { fontSize: 12.5, fontWeight: '500' },
-    soonBadge: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
+    serviceBtnColumn: {},
+    serviceIconBox: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
+    serviceIconBoxActive: { backgroundColor: 'rgba(255,255,255,0.18)' },
+    serviceTextCol: { flex: 1, gap: 2 },
+    serviceLabel: { fontSize: 13, fontWeight: '600', letterSpacing: -0.2 },
+    serviceSub: { fontSize: 10, fontWeight: '500', color: c.inkSoft },
+    soonBadge: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, alignSelf: 'flex-start' },
     soonBadgeText: { fontSize: 8.5, fontWeight: '600', color: c.inkSoft, letterSpacing: 0.3 },
 
     stickySearch: { paddingHorizontal: 20, marginBottom: 10 },
@@ -247,46 +251,39 @@ export default function HomeScreen() {
                 ? (c.isDark ? c.background : c.white)
                 : c.inkSoft;
 
+              const badgeText = isComingSoon
+                ? t('soon')
+                : isMaintenance
+                ? (ctrl?.maintenanceEta ? `${t('back_label')} ${ctrl.maintenanceEta}` : t('maintenance_badge'))
+                : isUnavailable
+                ? t('service_unavailable')
+                : null;
+
+              const labelColor = active ? (c.isDark ? c.background : c.white) : c.ink;
+
               return (
                 <TouchableOpacity
                   key={svc.id}
-                  style={[styles.serviceBtn, btnStyle, isComingSoon && styles.serviceBtnColumn]}
+                  style={[styles.serviceBtn, btnStyle]}
                   onPress={() => !isDisabled && handleServicePress(svc.id)}
                   activeOpacity={isDisabled ? 1 : 0.8}
                 >
-                  {isComingSoon ? (
-                    <>
-                      <svc.icon size={15} color={c.inkSoft} />
-                      <Text style={[styles.serviceLabel, { color: c.inkSoft }]}>
-                        {t(svc.labelKey)}
-                      </Text>
+                  <View style={[styles.serviceIconBox, active && styles.serviceIconBoxActive]}>
+                    {isMaintenance
+                      ? <Wrench size={15} color={c.inkSoft} />
+                      : <svc.icon size={15} color={iconColor} />
+                    }
+                  </View>
+                  <View style={styles.serviceTextCol}>
+                    <Text style={[styles.serviceLabel, { color: labelColor }]}>
+                      {t(svc.labelKey)}
+                    </Text>
+                    {badgeText ? (
                       <View style={styles.soonBadge}>
-                        <Text style={styles.soonBadgeText}>{t('soon')}</Text>
+                        <Text style={styles.soonBadgeText}>{badgeText}</Text>
                       </View>
-                    </>
-                  ) : (
-                    <>
-                      {isMaintenance
-                        ? <Wrench size={15} color={c.inkSoft} />
-                        : <svc.icon size={15} color={iconColor} />
-                      }
-                      <Text style={[styles.serviceLabel, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>
-                        {t(svc.labelKey)}
-                      </Text>
-                      {isMaintenance && (
-                        <View style={styles.soonBadge}>
-                          <Text style={styles.soonBadgeText}>
-                            {ctrl?.maintenanceEta ? `${t('back_label')} ${ctrl.maintenanceEta}` : t('maintenance_badge')}
-                          </Text>
-                        </View>
-                      )}
-                      {isUnavailable && (
-                        <View style={styles.soonBadge}>
-                          <Text style={styles.soonBadgeText}>{t('service_unavailable')}</Text>
-                        </View>
-                      )}
-                    </>
-                  )}
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
               );
             })}

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert,
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
@@ -240,20 +240,24 @@ function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => 
   const [twoFa, setTwoFa] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+
   useEffect(() => {
     if (!visible) return;
+    let cancelled = false;
     const load = async () => {
-      const bioApi = profile.biometricEnabled;
-      const twoApi = profile.twoFactorEnabled;
       const [bioStored, twoStored] = await Promise.all([
         AsyncStorage.getItem('veego_biometric'),
         AsyncStorage.getItem('veego_2fa'),
       ]);
-      setBiometric(bioApi || bioStored === 'true');
-      setTwoFa(twoApi || twoStored === 'true');
+      if (cancelled) return;
+      setBiometric(profileRef.current.biometricEnabled || bioStored === 'true');
+      setTwoFa(profileRef.current.twoFactorEnabled || twoStored === 'true');
     };
     load().catch(() => {});
-  }, [visible, profile.biometricEnabled, profile.twoFactorEnabled]);
+    return () => { cancelled = true; };
+  }, [visible]);
 
   const persistToggle = async (newBio: boolean, newTwoFa: boolean) => {
     setSaving(true);
@@ -300,10 +304,10 @@ function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => 
     await persistToggle(biometric, v);
   };
 
-  const ACTIONS = [
+  const ACTIONS = useMemo(() => [
     { icon: Smartphone, label: t('change_phone'), sub: t('change_phone_sub'), onPress: () => Alert.alert(t('change_phone'), 'Phone change flow would open here.') },
     { icon: Lock, label: t('change_pin'), sub: t('change_pin_sub'), onPress: () => Alert.alert(t('change_pin'), 'PIN change flow would open here.') },
-  ];
+  ], [t]);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
