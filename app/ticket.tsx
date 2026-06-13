@@ -253,6 +253,7 @@ export default function TicketScreen() {
 
   const [boarded, setBoarded] = useState(false);
   const [latestTracking, setLatestTracking] = useState<TrackingUpdate | null>(null);
+  const [shuttleDriverLocation, setShuttleDriverLocation] = useState<{ lat: number; lng: number; heading?: number } | null>(null);
   const boardedAnim = useRef(new Animated.Value(0)).current;
 
   const checkScale = useRef(new Animated.Value(0.5)).current;
@@ -309,12 +310,21 @@ export default function TicketScreen() {
         }
       };
 
+      // Task 3: listen for pre-departure and in-trip driver location updates
+      const driverLocationHandler = (payload: { tripId: number | string; lat: number; lng: number; heading?: number }) => {
+        if (!confirmedTripId || String(payload.tripId) === String(confirmedTripId)) {
+          setShuttleDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
+        }
+      };
+
       socket.on('booking:boarded', boardedHandler);
       socket.on('passenger:trip:tracking', trackingHandler);
+      socket.on('shuttle:driver:location', driverLocationHandler);
 
       handlers.push(
         () => socket.off('booking:boarded', boardedHandler),
         () => socket.off('passenger:trip:tracking', trackingHandler),
+        () => socket.off('shuttle:driver:location', driverLocationHandler),
       );
     }).catch(() => {});
 

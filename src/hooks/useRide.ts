@@ -21,6 +21,7 @@ export interface RideState {
   cancelReason: string | null;
   waitingCharge: number | null;
   waitingChargeStatus: 'none' | 'active' | 'capped';
+  waitingRatePerMinute: number | null;
   surgeMultiplier: number | null;
   deviationWarning: boolean;
 }
@@ -49,6 +50,7 @@ const DEFAULT_STATE: RideState = {
   cancelReason: null,
   waitingCharge: null,
   waitingChargeStatus: 'none',
+  waitingRatePerMinute: null,
   surgeMultiplier: null,
   deviationWarning: false,
 };
@@ -125,6 +127,7 @@ export function useRide(): UseRideResult {
         s.off('ride:no_show_cancelled');
         s.off('ride:timeout');
         s.off('ride:status_update');
+        s.off('ride:status:changed');
         s.off('ride:waiting:charge:started');
         s.off('ride:waiting:charge:updated');
         s.off('ride:waiting:charge:capped');
@@ -216,16 +219,67 @@ export function useRide(): UseRideResult {
         if (TERMINAL_STATUSES.includes(status)) cleanup();
       });
 
-      socket.on('ride:waiting:charge:started', () => {
-        setRideState((prev) => ({ ...prev, waitingChargeStatus: 'active', waitingCharge: 0 }));
+      // Task 5: ride:status:changed — authoritative status transitions with meta
+      socket.on('ride:status:changed', (data: any) => {
+        if (data.rideId !== rideId) return;
+        const status: RideStatus = data.status;
+        if (!status) return;
+        setRideState((prev) => {
+          const updates: Partial<RideState> = { status };
+          if (status === 'driver_assigned' && data.meta) {
+            updates.driver = {
+              name: data.meta.driverName ?? prev.driver?.name ?? 'Driver',
+              phone: data.meta.driverPhone ?? prev.driver?.phone ?? '',
+              vehicle: data.meta.vehicle ?? prev.driver?.vehicle ?? '',
+              vehicleColor: data.meta.vehicleColor ?? prev.driver?.vehicleColor,
+              plateNumber: data.meta.plateNumber ?? prev.driver?.plateNumber,
+              rating: data.meta.rating ?? prev.driver?.rating ?? 4.8,
+              eta: data.meta.eta ?? prev.driver?.eta ?? 5,
+            };
+          }
+          if (status === 'completed') {
+            updates.fare = data.meta?.finalPrice ?? prev.fare;
+          }
+          if (status === 'cancelled') {
+            const cancelledBy = data.meta?.cancelledBy ?? '';
+            const msg = data.meta?.message ?? '';
+            updates.cancelReason = msg || (cancelledBy ? `Cancelled by ${cancelledBy}` : null);
+          }
+          if (status === 'active') {
+            updates.waitingChargeStatus = 'none';
+            updates.waitingRatePerMinute = null;
+          }
+          return { ...prev, ...updates };
+        });
+        if (TERMINAL_STATUSES.includes(status)) cleanup();
+      });
+
+      // Task 2: waiting charge events with rideId guard and ratePerMinute
+      socket.on('ride:waiting:charge:started', (data: any) => {
+        if (data.rideId && data.rideId !== rideId) return;
+        setRideState((prev) => ({
+          ...prev,
+          waitingChargeStatus: 'active',
+          waitingCharge: 0,
+          waitingRatePerMinute: data?.ratePerMinute ?? prev.waitingRatePerMinute,
+        }));
       });
 
       socket.on('ride:waiting:charge:updated', (data: any) => {
-        setRideState((prev) => ({ ...prev, waitingCharge: data?.charge ?? prev.waitingCharge }));
+        if (data.rideId && data.rideId !== rideId) return;
+        setRideState((prev) => ({
+          ...prev,
+          waitingCharge: data?.currentCharge ?? data?.charge ?? prev.waitingCharge,
+        }));
       });
 
       socket.on('ride:waiting:charge:capped', (data: any) => {
-        setRideState((prev) => ({ ...prev, waitingChargeStatus: 'capped', waitingCharge: data?.charge ?? prev.waitingCharge }));
+        if (data.rideId && data.rideId !== rideId) return;
+        setRideState((prev) => ({
+          ...prev,
+          waitingChargeStatus: 'capped',
+          waitingCharge: data?.finalCharge ?? data?.charge ?? prev.waitingCharge,
+        }));
       });
 
       socket.on('surge:updated', (data: any) => {

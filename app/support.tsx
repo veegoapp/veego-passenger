@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import api from '@/src/api/client';
+import { getErrorMessage } from '@/src/utils/errorMessages';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 
@@ -114,7 +115,7 @@ export default function SupportScreen() {
     } catch (e: any) {
       const status = e?.response?.status;
       if (status && status !== 404 && status !== 501 && status >= 400 && status < 500) {
-        const msg = e?.response?.data?.message ?? t('send_failed');
+        const msg = getErrorMessage(e?.response?.data?.code, e?.response?.data?.message ?? t('send_failed'));
         Alert.alert(t('error'), msg);
         setSending(false);
         return;

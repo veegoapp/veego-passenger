@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated, Easing,
-  ScrollView, TextInput, Platform, Dimensions,
+  ScrollView, TextInput, Platform, Dimensions, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +19,7 @@ import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
 import { usePromos } from '@/src/hooks/usePromos';
 import { SafetySheet } from '@/components/shared/SafetySheet';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
+import { getErrorMessage } from '@/src/utils/errorMessages';
 
 const haptic = {
   selection: () => { if (Platform.OS !== 'web') Haptics.selectionAsync(); },
@@ -234,6 +235,10 @@ export default function CarScreen() {
   dropoffRef.current = dropoff;
   const [outsideZone, setOutsideZone] = useState(false);
   const [priceEstimate, setPriceEstimate] = useState<number | null>(null);
+  const [estimateDistance, setEstimateDistance] = useState<number | null>(null);
+  const [estimateDuration, setEstimateDuration] = useState<number | null>(null);
+  const [estimateSurge, setEstimateSurge] = useState(false);
+  const [estimateUnavailable, setEstimateUnavailable] = useState(false);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
 
   const { validateCode } = usePromos();
@@ -334,27 +339,44 @@ export default function CarScreen() {
     }
   }, [rideState.status]);
 
-  // Fetch price estimate from the real API when both locations are set
+  // Task 1: Fetch price estimate via GET when both locations are set
   useEffect(() => {
-    if (!pickup || !dropoff) { setPriceEstimate(null); return; }
+    if (!pickup || !dropoff) {
+      setPriceEstimate(null);
+      setEstimateDistance(null);
+      setEstimateDuration(null);
+      setEstimateSurge(false);
+      setEstimateUnavailable(false);
+      return;
+    }
     const pickupCoords = WG_COORDS[pickup];
     const dropoffCoords = WG_COORDS[dropoff];
     if (!pickupCoords || !dropoffCoords) return;
 
     let cancelled = false;
     setLoadingEstimate(true);
-    api.post('/rides/estimate', {
-      vehicleType:       'car',
-      pickupLatitude:    pickupCoords.latitude,
-      pickupLongitude:   pickupCoords.longitude,
-      dropoffLatitude:   dropoffCoords.latitude,
-      dropoffLongitude:  dropoffCoords.longitude,
+    setEstimateUnavailable(false);
+    api.get('/rides/estimate', {
+      params: {
+        pickupLat:   pickupCoords.latitude,
+        pickupLng:   pickupCoords.longitude,
+        dropoffLat:  dropoffCoords.latitude,
+        dropoffLng:  dropoffCoords.longitude,
+        serviceType: 'car',
+      },
     }).then((res) => {
       if (!cancelled) {
-        setPriceEstimate(res.data?.data?.estimatedPrice ?? res.data?.estimatedPrice ?? null);
+        const d = res.data?.data ?? res.data;
+        setPriceEstimate(d?.estimatedPrice ?? d?.price ?? null);
+        setEstimateDistance(d?.distance ?? d?.distanceKm ?? null);
+        setEstimateDuration(d?.duration ?? d?.durationMin ?? d?.durationMinutes ?? null);
+        setEstimateSurge(!!(d?.surgeMultiplier && d.surgeMultiplier > 1));
       }
     }).catch(() => {
-      if (!cancelled) setPriceEstimate(null);
+      if (!cancelled) {
+        setPriceEstimate(null);
+        setEstimateUnavailable(true);
+      }
     }).finally(() => {
       if (!cancelled) setLoadingEstimate(false);
     });
@@ -557,8 +579,14 @@ export default function CarScreen() {
             <PlacePicker label="🏁  Where to?" value={dropoff} onSelect={setDropoff} />
           </View>
 
-          {(priceEstimate !== null || loadingEstimate) && (
+          {(priceEstimate !== null || loadingEstimate || estimateUnavailable) && (
             <View style={[glassStyle, styles.priceCard, S.luxe]}>
+              {estimateSurge && (
+                <View style={styles.surgeBanner}>
+                  <AlertTriangle size={12} color="#92400e" />
+                  <Text style={styles.surgeBannerText}>Prices are higher than usual due to demand</Text>
+                </View>
+              )}
               <View style={styles.priceRow}>
                 <View style={styles.priceIcon}>
                   <Car size={17} color={C.ink} />
@@ -567,15 +595,30 @@ export default function CarScreen() {
                   <Text style={styles.priceLabel}>Economy ride</Text>
                   <Text style={styles.priceSub}>1–4 passengers</Text>
                 </View>
-                <Text style={styles.priceAmount}>
-                  {loadingEstimate ? '…' : `EGP ${priceEstimate?.toFixed(2)}`}
-                </Text>
+                {loadingEstimate ? (
+                  <ActivityIndicator size="small" color={C.ink} />
+                ) : estimateUnavailable ? (
+                  <Text style={[styles.priceAmount, { color: C.inkSoft, fontSize: 13 }]}>Price unavailable</Text>
+                ) : (
+                  <Text style={styles.priceAmount}>{`EGP ${priceEstimate?.toFixed(2)}`}</Text>
+                )}
               </View>
-              {priceEstimate !== null && (
+              {!loadingEstimate && !estimateUnavailable && (
                 <View style={styles.priceMeta}>
-                  <Clock size={11} color={C.inkSoft} />
-                  <Text style={styles.priceMetaText}>~{Math.ceil(priceEstimate / 12)} min away</Text>
-                  <View style={styles.priceSep} />
+                  {estimateDuration != null && (
+                    <>
+                      <Clock size={11} color={C.inkSoft} />
+                      <Text style={styles.priceMetaText}>~{Math.round(estimateDuration)} min</Text>
+                      <View style={styles.priceSep} />
+                    </>
+                  )}
+                  {estimateDistance != null && (
+                    <>
+                      <Navigation size={11} color={C.inkSoft} />
+                      <Text style={styles.priceMetaText}>{estimateDistance.toFixed(1)} km</Text>
+                      <View style={styles.priceSep} />
+                    </>
+                  )}
                   <Banknote size={11} color={C.inkSoft} />
                   <Text style={styles.priceMetaText}>Wallet payment</Text>
                 </View>
@@ -726,8 +769,8 @@ export default function CarScreen() {
               <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
               <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
                 {rideState.waitingChargeStatus === 'capped'
-                  ? `Max waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
-                  : `Waiting charges active — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+                  ? `Maximum waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
+                  : `Waiting${rideState.waitingRatePerMinute != null ? ` (EGP ${rideState.waitingRatePerMinute}/min)` : ''} — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
               </Text>
             </View>
           )}
@@ -767,8 +810,8 @@ export default function CarScreen() {
               <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
               <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
                 {rideState.waitingChargeStatus === 'capped'
-                  ? `Max waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
-                  : `Waiting charges active — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+                  ? `Maximum waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
+                  : `Waiting${rideState.waitingRatePerMinute != null ? ` (EGP ${rideState.waitingRatePerMinute}/min)` : ''} — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
               </Text>
             </View>
           )}
@@ -850,8 +893,8 @@ export default function CarScreen() {
               <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
               <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
                 {rideState.waitingChargeStatus === 'capped'
-                  ? `Max waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
-                  : `Waiting charges active — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+                  ? `Maximum waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
+                  : `Waiting${rideState.waitingRatePerMinute != null ? ` (EGP ${rideState.waitingRatePerMinute}/min)` : ''} — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
               </Text>
             </View>
           )}
@@ -1057,6 +1100,19 @@ const styles = StyleSheet.create({
     padding: 14,
     marginTop: 12,
   },
+  surgeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.3)',
+  },
+  surgeBannerText: { flex: 1, fontSize: 11.5, color: '#92400e', fontWeight: '500' },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   priceIcon: {
     width: 38, height: 38, borderRadius: 12,

@@ -7,6 +7,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
 import { getSocket } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
+import api from '@/src/api/client';
+import { getErrorMessage } from '@/src/utils/errorMessages';
 
 const STATUS_LABELS: Record<string, string> = {
   searching: 'Finding your driver…',
@@ -35,11 +37,12 @@ export default function TripTrackingScreen() {
   const router = useRouter();
   const { isRTL } = useTheme();
   const params = useLocalSearchParams<{
-    rideId: string;
-    pickupLat: string;
-    pickupLng: string;
-    dropoffLat: string;
-    dropoffLng: string;
+    id?: string;
+    rideId?: string;
+    pickupLat?: string;
+    pickupLng?: string;
+    dropoffLat?: string;
+    dropoffLng?: string;
     driverLat?: string;
     driverLng?: string;
     driverName?: string;
@@ -48,13 +51,24 @@ export default function TripTrackingScreen() {
     driverPhone?: string;
   }>();
 
-  const pickup = params.pickupLat && params.pickupLng
-    ? { latitude: parseFloat(params.pickupLat), longitude: parseFloat(params.pickupLng) }
-    : null;
-
-  const dropoff = params.dropoffLat && params.dropoffLng
-    ? { latitude: parseFloat(params.dropoffLat), longitude: parseFloat(params.dropoffLng) }
-    : null;
+  const [pickup, setPickup] = useState<{ latitude: number; longitude: number } | null>(
+    params.pickupLat && params.pickupLng
+      ? { latitude: parseFloat(params.pickupLat), longitude: parseFloat(params.pickupLng) }
+      : null
+  );
+  const [dropoff, setDropoff] = useState<{ latitude: number; longitude: number } | null>(
+    params.dropoffLat && params.dropoffLng
+      ? { latitude: parseFloat(params.dropoffLat), longitude: parseFloat(params.dropoffLng) }
+      : null
+  );
+  const [driverInfo, setDriverInfo] = useState<{
+    name?: string; vehicle?: string; rating?: string; phone?: string;
+  }>({
+    name: params.driverName,
+    vehicle: params.driverVehicle,
+    rating: params.driverRating,
+    phone: params.driverPhone,
+  });
 
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(
     params.driverLat && params.driverLng
@@ -62,7 +76,57 @@ export default function TripTrackingScreen() {
       : null
   );
   const [status, setStatus] = useState<TripStatus>('driver_assigned');
+  const [deepLinkLoading, setDeepLinkLoading] = useState(false);
+  const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
   const socketListening = useRef(false);
+
+  // Task 6: Load full ride data when opened via deep link (veego://ride/{id})
+  useEffect(() => {
+    const deepId = params.id;
+    if (!deepId) return;
+
+    setDeepLinkLoading(true);
+    api.get(`/rides/${deepId}`)
+      .then((res) => {
+        const d = res.data?.data ?? res.data;
+        const rideStatus: string = d?.status ?? d?.rideStatus ?? '';
+        const normalized = rideStatus.toLowerCase();
+
+        if (normalized === 'completed' || normalized === 'cancelled') {
+          router.replace({ pathname: '/receipt', params: { id: deepId } } as any);
+          return;
+        }
+
+        if (d?.pickupLatitude != null && d?.pickupLongitude != null) {
+          setPickup({ latitude: d.pickupLatitude, longitude: d.pickupLongitude });
+        }
+        if (d?.dropoffLatitude != null && d?.dropoffLongitude != null) {
+          setDropoff({ latitude: d.dropoffLatitude, longitude: d.dropoffLongitude });
+        }
+        if (d?.driver) {
+          setDriverInfo({
+            name: d.driver.name,
+            vehicle: d.driver.vehicle,
+            rating: d.driver.rating != null ? String(d.driver.rating) : undefined,
+            phone: d.driver.phone,
+          });
+        }
+        if (d?.driverLocation) {
+          setDriverLocation(d.driverLocation);
+        }
+        if (normalized && normalized in STATUS_LABELS) {
+          setStatus(normalized as TripStatus);
+        }
+      })
+      .catch((e: any) => {
+        const code: string = e?.response?.data?.code ?? '';
+        const status = e?.response?.status;
+        if (code === 'RIDE_NOT_FOUND' || status === 403 || status === 404) {
+          setDeepLinkError(getErrorMessage(code, e?.response?.data?.message));
+        }
+      })
+      .finally(() => setDeepLinkLoading(false));
+  }, [params.id]);
 
   useEffect(() => {
     const rideId = params.rideId;
@@ -118,6 +182,31 @@ export default function TripTrackingScreen() {
   const statusLabel = STATUS_LABELS[status] ?? 'Tracking ride…';
   const isTerminal = status === 'completed' || status === 'cancelled' || status === 'timeout';
 
+  if (deepLinkLoading) {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 12, fontSize: 14 }}>Loading ride…</Text>
+      </View>
+    );
+  }
+
+  if (deepLinkError) {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
+        <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>Ride Not Found</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>{deepLinkError}</Text>
+        <TouchableOpacity
+          style={[styles.doneBtn, { paddingHorizontal: 32 }]}
+          onPress={() => router.replace('/(tabs)' as any)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.doneBtnText}>Go Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <PassengerTrackingMap
@@ -145,28 +234,28 @@ export default function TripTrackingScreen() {
       {/* Bottom card */}
       <View style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>
         {/* Driver info */}
-        {params.driverName ? (
+        {driverInfo.name ? (
           <View style={styles.driverRow}>
             <View style={styles.driverAvatar}>
               <Text style={styles.driverAvatarText}>
-                {params.driverName.charAt(0).toUpperCase()}
+                {driverInfo.name.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View style={styles.driverInfo}>
-              <Text style={styles.driverName}>{params.driverName}</Text>
+              <Text style={styles.driverName}>{driverInfo.name}</Text>
               <View style={styles.driverMeta}>
-                {params.driverRating && (
+                {driverInfo.rating && (
                   <View style={styles.ratingRow}>
                     <Star size={11} color="#f59e0b" fill="#f59e0b" />
-                    <Text style={styles.ratingText}>{parseFloat(params.driverRating).toFixed(1)}</Text>
+                    <Text style={styles.ratingText}>{parseFloat(driverInfo.rating).toFixed(1)}</Text>
                   </View>
                 )}
-                {params.driverVehicle && (
-                  <Text style={styles.vehicleText}>{params.driverVehicle}</Text>
+                {driverInfo.vehicle && (
+                  <Text style={styles.vehicleText}>{driverInfo.vehicle}</Text>
                 )}
               </View>
             </View>
-            {params.driverPhone ? (
+            {driverInfo.phone ? (
               <TouchableOpacity style={styles.callBtn} activeOpacity={0.85}>
                 <Phone size={18} color="#2563eb" />
               </TouchableOpacity>
