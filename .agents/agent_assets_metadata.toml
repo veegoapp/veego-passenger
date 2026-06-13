@@ -24,3 +24,9 @@ id = "YVfZeR3UHPWj2YuY3psTc"
 uri = "file://audit_rider_app.md"
 type = "text"
 title = "VeeGo Rider App — Comprehensive Technical Audit Report"
+
+[[outputs]]
+id = "nRibdv8JMiEhgJnIaGHS4"
+uri = "file://FULL_REACT_NATIVE_DETAILED_INTEGRATION_AUDIT.md"
+type = "text"
+title = "VeeGo Full Integration Audit Report"

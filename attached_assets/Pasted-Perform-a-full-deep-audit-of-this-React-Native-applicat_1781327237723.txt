@@ -1,0 +1,136 @@
+Perform a full deep audit of this React Native application.
+
+Your task is to generate a complete technical report that documents EVERYTHING related to backend integration and UI behavior inside the app.
+
+The report must be extremely detailed and production-grade.
+
+------------------------------------------------------------
+1. FULL UI + SCREEN INVENTORY
+------------------------------------------------------------
+
+- List ALL screens in the application
+- For each screen:
+  - Describe the screen purpose clearly
+  - List ALL UI elements in order (top to bottom):
+    - Buttons
+    - Inputs
+    - Cards
+    - Lists
+    - Modals
+    - Icons with actions
+  - For every single button:
+    - Describe what it does
+    - Show if it is connected to backend or not
+    - Show if it is working, broken, or dummy
+    - Show where it is implemented (file/component)
+
+------------------------------------------------------------
+2. FULL API INVENTORY
+------------------------------------------------------------
+
+- List every single API endpoint used anywhere in the app
+- Include:
+  - HTTP method (GET, POST, PUT, DELETE)
+  - File/component where it is used
+  - Purpose of the API call
+
+------------------------------------------------------------
+3. SCREEN → API MAPPING
+------------------------------------------------------------
+
+- Map every screen to its backend endpoints
+- Show full data flow:
+  API → State Management → UI Rendering
+
+------------------------------------------------------------
+4. WORKING STATUS ANALYSIS
+------------------------------------------------------------
+
+For every feature and API:
+- Fully working
+- Partially working
+- Broken
+- Not connected at all (dead logic)
+
+------------------------------------------------------------
+5. DEAD CODE / DEAD UI DETECTION (IMPORTANT)
+------------------------------------------------------------
+
+Identify clearly:
+- Buttons with NO function
+- Screens with no backend connection
+- APIs defined but never used
+- UI elements that trigger no real action
+- Mock or static data still in use
+
+------------------------------------------------------------
+6. MISSING INTEGRATIONS
+------------------------------------------------------------
+
+- UI features not connected to backend
+- Backend features not used in frontend
+- Missing request/response fields
+
+------------------------------------------------------------
+7. BROKEN OR INCORRECT INTEGRATIONS
+------------------------------------------------------------
+
+- Wrong endpoints
+- Missing parameters
+- Authentication/token issues
+- Incorrect response handling
+
+------------------------------------------------------------
+8. STATE MANAGEMENT ANALYSIS
+------------------------------------------------------------
+
+- React Query / Redux / Context usage
+- Identify unused or broken state logic
+- Identify duplicated logic
+
+------------------------------------------------------------
+9. AUTHENTICATION FLOW
+------------------------------------------------------------
+
+- Token handling across APIs
+- Protected routes
+- Auth failures or missing guards
+
+------------------------------------------------------------
+10. NAVIGATION + FEATURE COVERAGE
+------------------------------------------------------------
+
+- Full navigation structure
+- Orphan screens (not reachable)
+- Broken navigation flows
+
+------------------------------------------------------------
+FINAL OUTPUT
+------------------------------------------------------------
+
+Generate a single Markdown file named:
+
+FULL_REACT_NATIVE_DETAILED_INTEGRATION_AUDIT.md
+
+Must include:
+
+- Full screen-by-screen breakdown
+- Full button-by-button breakdown
+- Full API list
+- Screen → API mapping table
+- Dead UI / dead code report
+- Missing integrations list
+- Broken integrations list
+- Backend connection health score (0–100)
+- Risk assessment (Low / Medium / High)
+- Final actionable fix plan
+
+------------------------------------------------------------
+RULES
+------------------------------------------------------------
+
+- Do NOT modify code
+- Do NOT assume anything not found in code
+- Be extremely detailed and systematic
+- Every button must be accounted for (no exceptions)
+- Treat this as a production-critical audit
