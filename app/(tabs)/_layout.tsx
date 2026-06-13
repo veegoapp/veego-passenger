@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
   },
   navItem: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'column',
     paddingVertical: 8, borderRadius: 24, gap: 2, zIndex: 2,
   },
   activePill: {

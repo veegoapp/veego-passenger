@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
+import { usePromos } from '@/src/hooks/usePromos';
 import type { Route } from '@/constants/data';
 
 // RouteCard uses t() from useTheme so it must call hook inside component
@@ -29,17 +30,17 @@ function makeStyles(c: ThemeColors) {
     fillBar: { height: 4, borderRadius: 2, backgroundColor: c.mist, marginTop: 12, overflow: 'hidden' },
     fillBarFill: { height: '100%' as any, backgroundColor: c.ink, borderRadius: 2 },
     offersScroll: { gap: 12, paddingRight: 4 },
-    offerCard: { width: 230, borderRadius: 24, padding: 16, overflow: 'hidden', ...S.luxe },
+    offerCard: { width: 230, height: 120, borderRadius: 24, padding: 16, overflow: 'hidden', ...S.luxe },
     offerGlow: { position: 'absolute', top: -40, right: -40, width: 128, height: 128, borderRadius: 64, backgroundColor: 'rgba(255,255,255,0.4)' },
     offerTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     offerTag: { fontSize: 10, fontWeight: '600', color: 'rgba(30,30,40,0.7)', textTransform: 'uppercase', letterSpacing: 1.2 },
     offerDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(30,30,40,0.3)' },
     offerTap: { fontSize: 10, color: 'rgba(30,30,40,0.6)' },
-    offerBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 10, gap: 12 },
+    offerBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flex: 1, marginTop: 8, gap: 12 },
     offerTextBox: { flex: 1 },
-    offerTitle: { fontSize: 15, fontWeight: '600', color: '#1e1e28', lineHeight: 20 },
-    offerSubtitle: { fontSize: 11, color: '#5e5e72', marginTop: 4 },
-    offerIconBox: { width: 40, height: 40, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
+    offerTitle: { fontSize: 14, fontWeight: '600', color: '#1e1e28', lineHeight: 19 },
+    offerSubtitle: { fontSize: 11, color: '#5e5e72', marginTop: 2 },
+    offerIconBox: { width: 36, height: 36, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   });
 }
 
@@ -97,34 +98,56 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
 
 type Offer = { id: string; tag: string; title: string; subtitle: string; colors: [string, string]; icon: React.ComponentType<{size?:number;color?:string}> };
 
-const OFFERS: Offer[] = [
+const FALLBACK_OFFERS: Offer[] = [
   { id: 'o1', tag: 'New rider', title: '50% off your first ride', subtitle: 'Auto-applied at checkout', colors: ['#ddeef8', '#ece5f8'], icon: Sparkles },
   { id: 'o2', tag: 'Weekly pass', title: 'Unlimited rides for 7 days', subtitle: 'Save up to 35%', colors: ['#d6f3e8', '#e0eef8'], icon: Ticket },
   { id: 'o3', tag: 'Student', title: '20% off with student ID', subtitle: 'Verify in profile', colors: ['#f8f0d5', '#f8e8d5'], icon: GraduationCap },
   { id: 'o4', tag: 'Limited', title: 'Night Owl — 45 EGP', subtitle: 'After 9pm, all lines', colors: ['#e8e0f5', '#e5eaf8'], icon: Moon },
 ];
 
+const PASTEL_PAIRS: [string, string][] = [
+  ['#ddeef8', '#ece5f8'],
+  ['#d6f3e8', '#e0eef8'],
+  ['#f8f0d5', '#f8e8d5'],
+  ['#e8e0f5', '#e5eaf8'],
+  ['#fde8e8', '#f8e5e0'],
+];
+
 export function FeaturedOffers() {
-  const { colors: c } = useTheme();
+  const { colors: c, t, language } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const { promos } = usePromos();
+  const isAr = language === 'ar';
+
+  const offers: Offer[] = promos.length > 0
+    ? promos.map((p, i) => ({
+        id: p.code || String(i),
+        tag: isAr ? p.titleAr : p.titleEn,
+        title: isAr ? p.titleAr : p.titleEn,
+        subtitle: isAr ? p.subtitleAr : p.subtitleEn,
+        colors: PASTEL_PAIRS[i % PASTEL_PAIRS.length],
+        icon: p.icon,
+      }))
+    : FALLBACK_OFFERS;
+
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.offersScroll}>
-      {OFFERS.map((o) => (
+      {offers.map((o) => (
         <TouchableOpacity key={o.id} activeOpacity={0.9} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); Alert.alert(o.title, o.subtitle); }}>
           <LinearGradient colors={o.colors} style={styles.offerCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={styles.offerGlow} />
             <View style={styles.offerTop}>
-              <Text style={styles.offerTag}>{o.tag}</Text>
+              <Text style={styles.offerTag} numberOfLines={1}>{o.tag}</Text>
               <View style={styles.offerDot} />
-              <Text style={styles.offerTap}>Tap to apply</Text>
+              <Text style={styles.offerTap}>{t('tap_to_apply')}</Text>
             </View>
             <View style={styles.offerBottom}>
               <View style={styles.offerTextBox}>
-                <Text style={styles.offerTitle}>{o.title}</Text>
-                <Text style={styles.offerSubtitle}>{o.subtitle}</Text>
+                <Text style={styles.offerTitle} numberOfLines={2}>{o.title}</Text>
+                <Text style={styles.offerSubtitle} numberOfLines={1}>{o.subtitle}</Text>
               </View>
               <View style={styles.offerIconBox}>
-                <o.icon size={16} color="#1e1e28" />
+                <o.icon size={15} color="#1e1e28" />
               </View>
             </View>
           </LinearGradient>

@@ -1,6 +1,9 @@
 const en = {
   home: 'Home', routes: 'Routes', trips: 'Trips', profile: 'Profile', wallet: 'Wallet',
   good_morning: 'Good morning',
+  good_afternoon: 'Good afternoon',
+  good_evening: 'Good evening',
+  tap_to_apply: 'Tap to apply',
   shuttle: 'Shuttle', car: 'Car', scooter: 'Scooter', delivery: 'Delivery',
   soon: 'Soon', soon_msg: 'This service will be available soon.',
   services: 'Services',
@@ -500,6 +503,9 @@ const en = {
 const ar: typeof en = {
   home: 'الرئيسية', routes: 'الخطوط', trips: 'رحلاتي', profile: 'الملف', wallet: 'المحفظة',
   good_morning: 'صباح الخير',
+  good_afternoon: 'مساء الخير',
+  good_evening: 'مساء النور',
+  tap_to_apply: 'اضغط للتطبيق',
   shuttle: 'باص', car: 'سيارة', scooter: 'سكوتر', delivery: 'توصيل',
   soon: 'قريباً', soon_msg: 'ستتوفر هذه الخدمة قريباً.',
   services: 'الخدمات',

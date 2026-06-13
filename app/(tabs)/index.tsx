@@ -18,7 +18,26 @@ import { CarMap } from '@/components/car/CarMap';
 import { BikeMap } from '@/components/bike/BikeMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 import { useMyDebt } from '@/src/hooks/useMyDebt';
+import { useProfile } from '@/src/hooks/useProfile';
 import api from '@/src/api/client';
+
+function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good_evening' {
+  if (hour >= 5 && hour < 12) return 'good_morning';
+  if (hour >= 12 && hour < 17) return 'good_afternoon';
+  return 'good_evening';
+}
+
+function getInitials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'VG';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function getFirstName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return parts.length > 0 ? parts[0] : 'VeeGo';
+}
 
 type ServiceMode = 'shuttle' | 'car' | 'scooter';
 
@@ -51,18 +70,27 @@ function makeStyles(c: ThemeColors) {
     avatarText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
 
     serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 12, zIndex: 20 },
-    serviceBtn: { width: '48%', borderRadius: 16, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11, gap: 10, flex: 1 },
+    serviceBtn: { width: '48%', borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, gap: 10, flex: 1 },
     serviceBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     serviceBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     serviceBtnSoon: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist, borderColor: c.border, opacity: 0.9 },
     serviceBtnColumn: {},
-    serviceIconBox: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
+    serviceIconBox: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
     serviceIconBoxActive: { backgroundColor: 'rgba(255,255,255,0.18)' },
-    serviceTextCol: { flex: 1, gap: 2 },
+    serviceTextCol: { flex: 1 },
     serviceLabel: { fontSize: 13, fontWeight: '600', letterSpacing: -0.2 },
     serviceSub: { fontSize: 10, fontWeight: '500', color: c.inkSoft },
-    soonBadge: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, alignSelf: 'flex-start' },
-    soonBadgeText: { fontSize: 8.5, fontWeight: '600', color: c.inkSoft, letterSpacing: 0.3 },
+    soonBadgeFloat: {
+      position: 'absolute',
+      top: 5,
+      right: 5,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.07)',
+      borderRadius: 5,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      zIndex: 5,
+    },
+    soonBadgeText: { fontSize: 8, fontWeight: '700', color: c.inkSoft, letterSpacing: 0.3 },
 
     stickySearch: { paddingHorizontal: 20, marginBottom: 10 },
     searchBar: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 20, paddingHorizontal: 16, gap: 10 },
@@ -127,8 +155,12 @@ export default function HomeScreen() {
   const { routes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
-  // §21.7: Check for outstanding debt on mount; show banner if hasDebt === true
   const { debt } = useMyDebt();
+  const { profile } = useProfile();
+
+  const greetingKey = getGreetingKey(new Date().getHours());
+  const firstName = getFirstName(profile.name);
+  const avatarInitials = getInitials(profile.name);
 
   const [pickupLocation, setPickupLocation] = useState('Current Location');
   const [destinationLocation, setDestinationLocation] = useState('');
@@ -208,8 +240,8 @@ export default function HomeScreen() {
           {/* Greeting + icons */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.greeting}>{t('good_morning')}</Text>
-              <Text style={styles.greetingName}>VeeGo</Text>
+              <Text style={styles.greeting}>{t(greetingKey)}</Text>
+              <Text style={styles.greetingName}>{firstName}</Text>
             </View>
             <View style={styles.headerRight}>
               <TouchableOpacity style={[gs, styles.iconBtn]} onPress={() => router.push('/notifications')}>
@@ -217,7 +249,7 @@ export default function HomeScreen() {
                 <View style={styles.notifDot} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.avatar} onPress={() => router.push('/(tabs)/profile')}>
-                <Text style={styles.avatarText}>VG</Text>
+                <Text style={styles.avatarText}>{avatarInitials}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -268,22 +300,20 @@ export default function HomeScreen() {
                   onPress={() => !isDisabled && handleServicePress(svc.id)}
                   activeOpacity={isDisabled ? 1 : 0.8}
                 >
+                  {badgeText ? (
+                    <View style={styles.soonBadgeFloat}>
+                      <Text style={styles.soonBadgeText}>{badgeText}</Text>
+                    </View>
+                  ) : null}
                   <View style={[styles.serviceIconBox, active && styles.serviceIconBoxActive]}>
                     {isMaintenance
                       ? <Wrench size={15} color={c.inkSoft} />
                       : <svc.icon size={15} color={iconColor} />
                     }
                   </View>
-                  <View style={styles.serviceTextCol}>
-                    <Text style={[styles.serviceLabel, { color: labelColor }]}>
-                      {t(svc.labelKey)}
-                    </Text>
-                    {badgeText ? (
-                      <View style={styles.soonBadge}>
-                        <Text style={styles.soonBadgeText}>{badgeText}</Text>
-                      </View>
-                    ) : null}
-                  </View>
+                  <Text style={[styles.serviceLabel, { color: labelColor }]} numberOfLines={1}>
+                    {t(svc.labelKey)}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
