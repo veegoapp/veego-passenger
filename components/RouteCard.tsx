@@ -44,9 +44,16 @@ function makeStyles(c: ThemeColors) {
 }
 
 export function RouteCard({ route, onPress }: { route: Route; onPress: () => void }) {
-  const { colors: c, t } = useTheme();
+  const { colors: c, t, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const fill = (route.totalSeats - route.seatsLeft) / route.totalSeats;
+
+  const displayName = isAr ? (route.nameAr ?? route.name) : route.name;
+  const displayFrom = isAr ? (route.fromAr ?? route.from) : route.from;
+  const displayTo   = isAr ? (route.toAr   ?? route.to)   : route.to;
+  const arrow = isAr ? '←' : '→';
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
       <View style={[styles.cardAccent, { backgroundColor: route.color }]} />
@@ -55,8 +62,8 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
           <Text style={styles.codeText}>{route.code}</Text>
         </View>
         <View style={styles.cardMeta}>
-          <Text style={styles.routeName}>{route.name}</Text>
-          <Text style={styles.routePath}>{route.from} → {route.to}</Text>
+          <Text style={styles.routeName}>{displayName}</Text>
+          <Text style={styles.routePath}>{displayFrom} {arrow} {displayTo}</Text>
         </View>
         <View style={styles.priceBox}>
           <Text style={styles.priceText}>{route.price} {t('egp')}</Text>

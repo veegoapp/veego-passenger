@@ -51,7 +51,8 @@ export default function RoutesScreen() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState(''); // ستيت البحث الجديد
   const { openRoute } = useBooking();
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const { routes, loading, error, refresh } = useRoutes();
@@ -67,21 +68,27 @@ export default function RoutesScreen() {
       result = result.filter((r) => r.code === activeFilter);
     }
 
-    // 2. الفلترة بمربع البحث (اسم الخط أو المحطات داخله)
+    // 2. الفلترة بمربع البحث (اسم الخط أو المحطات داخله) — بيدور في العربي والإنجليزي
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter((route) => {
-        const matchName = route.name?.toLowerCase().includes(query);
+        const matchName = route.name?.toLowerCase().includes(query)
+          || (isAr && route.nameAr?.toLowerCase().includes(query));
         const matchCode = route.code?.toLowerCase().includes(query);
-        const matchStation = route.path?.some((station: any) => 
+        const matchFrom = route.from?.toLowerCase().includes(query)
+          || (isAr && route.fromAr?.toLowerCase().includes(query));
+        const matchTo = route.to?.toLowerCase().includes(query)
+          || (isAr && route.toAr?.toLowerCase().includes(query));
+        const matchStation = route.path?.some((station: any) =>
           station.name?.toLowerCase().includes(query)
+          || (isAr && station.nameAr?.toLowerCase().includes(query))
         );
-        return matchName || matchCode || matchStation;
+        return matchName || matchCode || matchFrom || matchTo || matchStation;
       });
     }
 
     return result;
-  }, [routes, activeFilter, searchQuery]);
+  }, [routes, activeFilter, searchQuery, isAr]);
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
