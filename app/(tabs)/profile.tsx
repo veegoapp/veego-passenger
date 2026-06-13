@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert,
-  Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
+  Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Smartphone, Lock, ChevronRight, ChevronLeft, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Lock, ChevronRight, ChevronLeft, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Trash2, Eye, EyeOff, KeyRound } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,6 +12,8 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
 import { useProfile } from '@/src/hooks/useProfile';
+import { useTrips } from '@/src/hooks/useTrips';
+import { useWallet } from '@/src/hooks/useWallet';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { ThemeColors, S } from '@/constants/colors';
@@ -19,11 +21,11 @@ import { ThemeColors, S } from '@/constants/colors';
 type ProfileScreen =
   | 'personal_info'
   | 'payment_methods'
-  | 'security'
   | 'privacy'
   | 'notifications'
   | 'help_faq'
   | 'contact_support'
+  | 'rating_details'
   | null;
 
 function makeStyles(c: ThemeColors) {
@@ -108,6 +110,63 @@ function makeStyles(c: ThemeColors) {
     successIcon: { width: 80, height: 80, borderRadius: 28, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center', ...S.float },
     successTitle: { fontSize: 22, fontWeight: '700', color: c.ink, fontFamily: 'Inter_700Bold' },
     successSub: { fontSize: 14, color: c.inkSoft, textAlign: 'center', paddingHorizontal: 32, lineHeight: 20 },
+
+    readOnlyInput: {
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f5f5f8',
+      borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+      fontSize: 15, color: c.inkSoft, borderWidth: 1,
+      borderColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#ececf0',
+    },
+    readOnlyBadge: {
+      position: 'absolute', right: 14, top: '50%',
+      paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#ececf0',
+    },
+    readOnlyBadgeText: { fontSize: 10, fontWeight: '600', color: c.silver, letterSpacing: 0.4 },
+
+    avatarPickerWrap: { alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
+    avatarPickerCircle: {
+      width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f5',
+      alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: c.isDark ? 'rgba(255,255,255,0.15)' : '#e0e0ea',
+    },
+    avatarPickerInitials: { fontSize: 28, fontWeight: '700', color: c.ink },
+    avatarCameraBadge: {
+      position: 'absolute', bottom: 0, right: 0,
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: c.white,
+    },
+
+    pwSection: {
+      borderRadius: 18, overflow: 'hidden',
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f5f5fa',
+      borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#e8e8f2',
+    },
+    pwSectionHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: 16,
+    },
+    pwSectionTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: c.ink },
+    pwSectionBody: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+
+    ratingHero: { alignItems: 'center', paddingVertical: 28, gap: 6 },
+    ratingScore: { fontSize: 56, fontWeight: '800', color: '#ffffff', letterSpacing: -2 },
+    ratingStars: { flexDirection: 'row', gap: 4 },
+    ratingSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+    ratingBarRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingVertical: 6,
+    },
+    ratingBarLabel: { fontSize: 13, fontWeight: '600', color: c.ink, width: 14, textAlign: 'center' },
+    ratingBarTrack: {
+      flex: 1, height: 8, borderRadius: 4,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#ececf5',
+      overflow: 'hidden',
+    },
+    ratingBarFill: { height: 8, borderRadius: 4, backgroundColor: '#f59e0b' },
+    ratingBarPct: { fontSize: 12, color: c.inkSoft, width: 34, textAlign: 'right' },
   });
 }
 
@@ -147,54 +206,216 @@ export function useProfileInfo() {
   };
 }
 
-function PersonalInfoModal({ visible, onClose, onSaved }: { visible: boolean; onClose: () => void; onSaved?: (name: string) => void }) {
+function PersonalInfoModal({
+  visible, onClose, onSaved,
+  avatarUri, onPickAvatar, avatarUploading, heroInitials,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSaved?: (name: string) => void;
+  avatarUri: string | null;
+  onPickAvatar: () => void;
+  avatarUploading: boolean;
+  heroInitials: string;
+}) {
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { name: savedName, email: savedEmail, dob: savedDob, phone: savedPhone, saveProfile } = useProfileInfo();
-  const [name, setName] = useState(savedName);
   const [email, setEmail] = useState(savedEmail);
   const [dob, setDob] = useState(savedDob);
   const [saved, setSaved] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      setName(savedName);
       setEmail(savedEmail);
       setDob(savedDob);
       setSaved(false);
+      setPwOpen(false);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
     }
-  }, [visible, savedName, savedEmail, savedDob, savedPhone]);
+  }, [visible, savedEmail, savedDob]);
 
   const handleSave = async () => {
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await saveProfile(name, email, dob);
-    onSaved?.(name);
+    await saveProfile(savedName, email, dob);
+    onSaved?.(savedName);
     setSaved(true);
     setTimeout(() => { setSaved(false); onClose(); }, 900);
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPw || !newPw || !confirmPw) {
+      Alert.alert(t('error'), 'Please fill in all password fields.');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      Alert.alert(t('error'), 'New passwords do not match.');
+      return;
+    }
+    try {
+      // TODO: Provide Password Change API Endpoint — expected: PATCH /users/me/password { currentPassword, newPassword }
+      await api.patch('/users/me/password', { currentPassword: currentPw, newPassword: newPw });
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Success', 'Your password has been updated.');
+      setPwOpen(false);
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    } catch (e: any) {
+      Alert.alert(t('error'), e?.response?.data?.message ?? 'Password change failed. Please try again.');
+    }
   };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modal}>
-        <ModalHeader title={t('personal_info_title')} onClose={onClose} actionLabel={saved ? t('saved') : t('save_changes')} onAction={handleSave} />
+        <ModalHeader
+          title={t('personal_info_title')}
+          onClose={onClose}
+          actionLabel={saved ? t('saved') : t('save_changes')}
+          onAction={handleSave}
+        />
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.modalScroll}>
+
+            {/* ── Avatar picker ── */}
+            <View style={styles.avatarPickerWrap}>
+              <TouchableOpacity onPress={onPickAvatar} activeOpacity={0.85} style={{ position: 'relative' }}>
+                <View style={styles.avatarPickerCircle}>
+                  {avatarUri ? (
+                    <Image source={{ uri: avatarUri }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                  ) : avatarUploading ? (
+                    <ActivityIndicator size="small" color={c.ink} />
+                  ) : (
+                    <Text style={styles.avatarPickerInitials}>{heroInitials}</Text>
+                  )}
+                </View>
+                <View style={styles.avatarCameraBadge}>
+                  <Camera size={13} color={c.isDark ? c.background : '#ffffff'} />
+                </View>
+              </TouchableOpacity>
+              {/* TODO: Provide User Avatar Upload API Endpoint — expected: POST /users/me/avatar (multipart/form-data) */}
+              <Text style={{ fontSize: 12, color: c.inkSoft, marginTop: 8 }}>Tap to change photo</Text>
+            </View>
+
+            {/* Full Name — read-only */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t('full_name')}</Text>
-              <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={c.silver} />
+              <View style={{ position: 'relative' }}>
+                <Text style={styles.readOnlyInput}>{savedName || '—'}</Text>
+                <View style={styles.readOnlyBadge}>
+                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                </View>
+              </View>
             </View>
+
+            {/* Phone — read-only */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t('phone')}</Text>
-              <TextInput style={[styles.input, { color: c.inkSoft }]} value={savedPhone || '—'} editable={false} />
+              <View style={{ position: 'relative' }}>
+                <Text style={styles.readOnlyInput}>{savedPhone || '—'}</Text>
+                <View style={styles.readOnlyBadge}>
+                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                </View>
+              </View>
             </View>
+
+            {/* Email — editable */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t('email_address')}</Text>
-              <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor={c.silver} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={c.silver}
+              />
             </View>
+
+            {/* Date of birth — editable */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t('date_of_birth')}</Text>
-              <TextInput style={styles.input} value={dob} onChangeText={setDob} placeholder="DD/MM/YYYY" placeholderTextColor={c.silver} />
+              <TextInput
+                style={styles.input}
+                value={dob}
+                onChangeText={setDob}
+                placeholder="DD/MM/YYYY"
+                placeholderTextColor={c.silver}
+              />
             </View>
+
+            {/* ── Change Password section ── */}
+            <View style={styles.pwSection}>
+              <TouchableOpacity
+                style={styles.pwSectionHeader}
+                onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setPwOpen((v) => !v); }}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.toggleIcon, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5' }]}>
+                  <KeyRound size={18} color={c.ink} />
+                </View>
+                <Text style={styles.pwSectionTitle}>Change Password</Text>
+                {pwOpen ? <ChevronUp size={16} color={c.silver} /> : <ChevronDown size={16} color={c.silver} />}
+              </TouchableOpacity>
+              {pwOpen && (
+                <View style={styles.pwSectionBody}>
+                  {/* Current password */}
+                  <View style={{ position: 'relative' }}>
+                    <TextInput
+                      style={[styles.input, { paddingRight: 48 }]}
+                      placeholder="Current password"
+                      placeholderTextColor={c.silver}
+                      value={currentPw}
+                      onChangeText={setCurrentPw}
+                      secureTextEntry={!showCurrent}
+                    />
+                    <TouchableOpacity
+                      style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
+                      onPress={() => setShowCurrent((v) => !v)}
+                    >
+                      {showCurrent ? <EyeOff size={16} color={c.silver} /> : <Eye size={16} color={c.silver} />}
+                    </TouchableOpacity>
+                  </View>
+                  {/* New password */}
+                  <View style={{ position: 'relative' }}>
+                    <TextInput
+                      style={[styles.input, { paddingRight: 48 }]}
+                      placeholder="New password"
+                      placeholderTextColor={c.silver}
+                      value={newPw}
+                      onChangeText={setNewPw}
+                      secureTextEntry={!showNew}
+                    />
+                    <TouchableOpacity
+                      style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
+                      onPress={() => setShowNew((v) => !v)}
+                    >
+                      {showNew ? <EyeOff size={16} color={c.silver} /> : <Eye size={16} color={c.silver} />}
+                    </TouchableOpacity>
+                  </View>
+                  {/* Confirm password */}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Confirm new password"
+                    placeholderTextColor={c.silver}
+                    value={confirmPw}
+                    onChangeText={setConfirmPw}
+                    secureTextEntry
+                  />
+                  <TouchableOpacity style={styles.primaryBtn} onPress={handleChangePassword} activeOpacity={0.9}>
+                    <Text style={styles.primaryBtnText}>Update Password</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
             <TouchableOpacity style={styles.primaryBtn} onPress={handleSave} activeOpacity={0.9}>
               <Text style={styles.primaryBtnText}>{saved ? t('saved') : t('save_changes')}</Text>
             </TouchableOpacity>
@@ -232,125 +453,7 @@ function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: 
   );
 }
 
-function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors: c, t, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
-  const { profile, saveProfile } = useProfile();
-  const [biometric, setBiometric] = useState(false);
-  const [twoFa, setTwoFa] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const profileRef = useRef(profile);
-  profileRef.current = profile;
-
-  useEffect(() => {
-    if (!visible) return;
-    let cancelled = false;
-    const load = async () => {
-      const [bioStored, twoStored] = await Promise.all([
-        AsyncStorage.getItem('veego_biometric'),
-        AsyncStorage.getItem('veego_2fa'),
-      ]);
-      if (cancelled) return;
-      setBiometric(profileRef.current.biometricEnabled || bioStored === 'true');
-      setTwoFa(profileRef.current.twoFactorEnabled || twoStored === 'true');
-    };
-    load().catch(() => {});
-    return () => { cancelled = true; };
-  }, [visible]);
-
-  const persistToggle = async (newBio: boolean, newTwoFa: boolean) => {
-    setSaving(true);
-    try {
-      await Promise.all([
-        AsyncStorage.setItem('veego_biometric', String(newBio)),
-        AsyncStorage.setItem('veego_2fa', String(newTwoFa)),
-      ]);
-      const result = await saveProfile({ biometricEnabled: newBio, twoFactorEnabled: newTwoFa });
-      if (!result.success) {
-        setBiometric(!newBio === biometric ? biometric : !newBio);
-        setTwoFa(!newTwoFa === twoFa ? twoFa : !newTwoFa);
-        Alert.alert(t('error'), t('toggle_save_failed'));
-      }
-    } catch {
-      Alert.alert(t('error'), t('toggle_save_failed'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleBiometricToggle = async (v: boolean) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    if (v && Platform.OS !== 'web') {
-      try {
-        const LocalAuth = await import('expo-local-authentication');
-        const hasHardware = await LocalAuth.hasHardwareAsync();
-        const isEnrolled = await LocalAuth.isEnrolledAsync();
-        if (!hasHardware || !isEnrolled) {
-          Alert.alert(t('biometric'), t('biometric_not_available'));
-          return;
-        }
-        const result = await LocalAuth.authenticateAsync({ promptMessage: t('biometric_verify_prompt') });
-        if (!result.success) return;
-      } catch {}
-    }
-    setBiometric(v);
-    await persistToggle(v, twoFa);
-  };
-
-  const handleTwoFaToggle = async (v: boolean) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
-    setTwoFa(v);
-    await persistToggle(biometric, v);
-  };
-
-  const ACTIONS = useMemo(() => [
-    { icon: Smartphone, label: t('change_phone'), sub: t('change_phone_sub'), onPress: () => Alert.alert(t('change_phone'), 'Phone change flow would open here.') },
-    { icon: Lock, label: t('change_pin'), sub: t('change_pin_sub'), onPress: () => Alert.alert(t('change_pin'), 'PIN change flow would open here.') },
-  ], [t]);
-
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.modal}>
-        <ModalHeader title={t('security_title')} onClose={onClose} />
-        <ScrollView contentContainerStyle={styles.modalScroll}>
-          {ACTIONS.map((item, i) => (
-            <TouchableOpacity key={i} style={styles.toggleRow} onPress={item.onPress} activeOpacity={0.8}>
-              <View style={styles.toggleIcon}>
-                <item.icon size={20} color={c.ink} />
-              </View>
-              <View style={styles.toggleMeta}>
-                <Text style={styles.toggleLabel}>{item.label}</Text>
-                <Text style={styles.toggleSub}>{item.sub}</Text>
-              </View>
-              {isRTL ? <ChevronLeft size={16} color={c.silver} /> : <ChevronRight size={16} color={c.silver} />}
-            </TouchableOpacity>
-          ))}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleIcon}>
-              <Fingerprint size={20} color={c.ink} />
-            </View>
-            <View style={styles.toggleMeta}>
-              <Text style={styles.toggleLabel}>{t('biometric')}</Text>
-              <Text style={styles.toggleSub}>{t('biometric_sub')}</Text>
-            </View>
-            <Switch value={biometric} onValueChange={handleBiometricToggle} disabled={saving} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
-          </View>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleIcon}>
-              <ShieldCheck size={20} color={c.ink} />
-            </View>
-            <View style={styles.toggleMeta}>
-              <Text style={styles.toggleLabel}>{t('two_fa')}</Text>
-              <Text style={styles.toggleSub}>{t('two_fa_sub')}</Text>
-            </View>
-            <Switch value={twoFa} onValueChange={handleTwoFaToggle} disabled={saving} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-  );
-}
+// SecurityModal removed per Phase 7 — security settings consolidated into PersonalInfoModal (Change Password)
 
 function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t } = useTheme();
@@ -359,6 +462,8 @@ function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => v
   const [analytics, setAnalytics] = useState(true);
   const [ads, setAds] = useState(false);
 
+  // TODO: Privacy toggles are stored in local state only — no backend integration yet.
+  // Required endpoints: PATCH /users/me/privacy { locationHistory, analytics, personalizedAds }
   const TOGGLES = [
     { icon: MapPin, label: t('location_history'), sub: t('location_history_sub'), value: locationHistory, set: setLocationHistory },
     { icon: BarChart2, label: t('share_analytics'), sub: t('share_analytics_sub'), value: analytics, set: setAnalytics },
@@ -443,6 +548,8 @@ function NotificationsModal({ visible, onClose }: { visible: boolean; onClose: (
     });
   };
 
+  // TODO: Notification preference toggles are persisted locally (AsyncStorage) only.
+  // Backend sync required: PATCH /users/me/notifications { trips, promos, system, driverUpdates }
   const ITEMS = [
     { icon: Bus, label: t('notif_trips_label'), sub: t('notif_trips_sub'), value: trips, set: (v: boolean) => { setTrips(v); persist('trips', v); } },
     { icon: Tag, label: t('notif_promos_label'), sub: t('notif_promos_sub'), value: promos, set: (v: boolean) => { setPromos(v); persist('promos', v); } },
@@ -598,6 +705,110 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
   );
 }
 
+// ── Rating Details Modal ─────────────────────────────────────────────────────
+// TODO: Request Profile Rating Stats API — expected: GET /users/me/rating
+//   Response shape: { overallScore: number, totalRatings: number,
+//     distribution: { 5: number, 4: number, 3: number, 2: number, 1: number } }
+// Until the endpoint is available, placeholder data is shown below.
+const MOCK_RATING_DISTRIBUTION: Record<number, number> = { 5: 72, 4: 18, 3: 6, 2: 2, 1: 2 };
+const MOCK_OVERALL_SCORE = 4.9;
+const MOCK_TOTAL_RATINGS = 124;
+
+function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
+  const barAnims = useRef([1, 2, 3, 4, 5].map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    if (!visible) return;
+    barAnims.forEach((anim) => anim.setValue(0));
+    const animations = [5, 4, 3, 2, 1].map((star, i) =>
+      Animated.timing(barAnims[i], {
+        toValue: MOCK_RATING_DISTRIBUTION[star] / 100,
+        duration: 600 + i * 80,
+        useNativeDriver: false,
+      }),
+    );
+    Animated.stagger(60, animations).start();
+  }, [visible]);
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={styles.modal}>
+        <ModalHeader title="Rating Details" onClose={onClose} />
+        <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40 }]}>
+
+          {/* Hero score card */}
+          <LinearGradient
+            colors={[c.ink, c.isDark ? '#2a2a4a' : '#1e2040']}
+            style={{ borderRadius: 24, overflow: 'hidden' }}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.ratingHero}>
+              <Text style={styles.ratingScore}>{MOCK_OVERALL_SCORE.toFixed(1)}</Text>
+              <View style={styles.ratingStars}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={18}
+                    color="#f59e0b"
+                    fill={s <= Math.round(MOCK_OVERALL_SCORE) ? '#f59e0b' : 'transparent'}
+                    strokeWidth={1.5}
+                  />
+                ))}
+              </View>
+              <Text style={styles.ratingSubtitle}>Based on {MOCK_TOTAL_RATINGS} ratings</Text>
+            </View>
+          </LinearGradient>
+
+          {/* Rating breakdown */}
+          <View style={{ backgroundColor: c.white, borderRadius: 22, padding: 18, gap: 4, ...S.float }}>
+            <Text style={[styles.inputLabel, { marginBottom: 10 }]}>Rating Breakdown</Text>
+            {[5, 4, 3, 2, 1].map((star, i) => {
+              const pct = MOCK_RATING_DISTRIBUTION[star];
+              return (
+                <View key={star} style={styles.ratingBarRow}>
+                  <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                  <Text style={styles.ratingBarLabel}>{star}</Text>
+                  <View style={styles.ratingBarTrack}>
+                    <Animated.View
+                      style={[
+                        styles.ratingBarFill,
+                        {
+                          width: barAnims[i].interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', `${pct}%`],
+                          }),
+                          backgroundColor: star >= 4 ? '#22c55e' : star === 3 ? '#f59e0b' : '#ef4444',
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.ratingBarPct}>{pct}%</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          <View style={{
+            borderRadius: 16, padding: 14, gap: 6,
+            backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f8f8fc',
+            borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#eeeef5',
+          }}>
+            <Text style={[styles.inputLabel, { fontSize: 10 }]}>ℹ️  DATA NOTE</Text>
+            {/* TODO: Request Profile Rating Stats API — replace mock data above with live response */}
+            <Text style={{ fontSize: 12, color: c.inkSoft, lineHeight: 17 }}>
+              Rating data shown is placeholder. Awaiting{' '}
+              <Text style={{ fontWeight: '700', color: c.ink }}>GET /users/me/rating</Text>
+              {' '}endpoint from the backend team.
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
@@ -608,6 +819,14 @@ export default function ProfileScreen() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+
+  // Live stats — bound to real API data
+  const { upcomingTrips, pastTrips } = useTrips();
+  const totalTrips = upcomingTrips.length + pastTrips.length;
+
+  // TODO: Request Profile Stats API for saved amount — expected: GET /users/me/stats { savedAmount: number }
+  // The wallet `spent` field tracks expenditure, not promo savings.
+  // Using wallet balance as a fallback display until dedicated endpoint is available.
 
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -627,6 +846,7 @@ export default function ProfileScreen() {
     setAvatarUri(asset.uri);
     setAvatarUploading(true);
     try {
+      // TODO: Provide User Avatar Upload API Endpoint — expected: POST /users/me/avatar (multipart/form-data)
       const form = new FormData();
       form.append('avatar', { uri: asset.uri, name: 'avatar.jpg', type: 'image/jpeg' } as any);
       await api.post('/users/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -674,20 +894,24 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               <View style={styles.heroText}>
                 <Text style={styles.heroName}>{heroName}</Text>
-                <Text style={styles.heroEmail}>{profileEmail || '+20 100 000 0000'}</Text>
+                <Text style={styles.heroEmail}>{profileEmail || ''}</Text>
                 <View style={styles.heroStats}>
+                  {/* Trips — bound to useTrips */}
                   <View style={styles.heroStat}>
-                    <Text style={styles.heroStatNum}>24</Text>
+                    <Text style={styles.heroStatNum}>{totalTrips}</Text>
                     <Text style={styles.heroStatLabel}>{t('trips_stat')}</Text>
                   </View>
                   <View style={styles.heroStatDivider} />
-                  <View style={styles.heroStat}>
-                    <Text style={styles.heroStatNum}>4.9</Text>
-                    <Text style={styles.heroStatLabel}>{t('rating_stat')}</Text>
-                  </View>
+                  {/* Rating — tappable → RatingDetailsModal
+                      TODO: Request Profile Rating API: GET /users/me/rating */}
+                  <TouchableOpacity style={styles.heroStat} activeOpacity={0.75} onPress={() => open('rating_details')}>
+                    <Text style={styles.heroStatNum}>—</Text>
+                    <Text style={styles.heroStatLabel}>{t('rating_stat')} ›</Text>
+                  </TouchableOpacity>
                   <View style={styles.heroStatDivider} />
+                  {/* Saved — TODO: Request Profile Stats API: GET /users/me/stats { savedAmount } */}
                   <View style={styles.heroStat}>
-                    <Text style={styles.heroStatNum}>48 {t('egp')}</Text>
+                    <Text style={styles.heroStatNum}>—</Text>
                     <Text style={styles.heroStatLabel}>{t('saved_stat')}</Text>
                   </View>
                 </View>
@@ -702,7 +926,6 @@ export default function ProfileScreen() {
             {[
               { icon: User, label: t('personal_info'), value: heroName, screen: 'personal_info' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash'), screen: 'payment_methods' as ProfileScreen },
-              { icon: Lock, label: t('security_title'), value: undefined, screen: 'security' as ProfileScreen },
               { icon: Shield, label: t('privacy'), value: undefined, screen: 'privacy' as ProfileScreen },
             ].map((item, i) => (
               <View key={item.label}>
@@ -831,13 +1054,21 @@ export default function ProfileScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      <PersonalInfoModal visible={activeModal === 'personal_info'} onClose={close} onSaved={(n) => setDisplayName(n)} />
+      <PersonalInfoModal
+        visible={activeModal === 'personal_info'}
+        onClose={close}
+        onSaved={(n) => setDisplayName(n)}
+        avatarUri={avatarUri}
+        onPickAvatar={handlePickAvatar}
+        avatarUploading={avatarUploading}
+        heroInitials={heroInitials}
+      />
       <PaymentMethodsModal visible={activeModal === 'payment_methods'} onClose={close} />
-      <SecurityModal visible={activeModal === 'security'} onClose={close} />
       <PrivacyModal visible={activeModal === 'privacy'} onClose={close} />
       <NotificationsModal visible={activeModal === 'notifications'} onClose={close} />
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
+      <RatingDetailsModal visible={activeModal === 'rating_details'} onClose={close} />
     </LinearGradient>
   );
 }
