@@ -5,10 +5,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, QrCode, MapPin, Calendar, Clock, User, Tag } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import QRCode from 'react-native-qrcode-svg';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
@@ -64,33 +63,6 @@ const SPARKLE_CONFIG = [
 ];
 
 const SPARKLE_COLORS = ['#fbbf24', '#f59e0b', '#34d399', '#6ee7b7', '#93c5fd', '#fff'];
-
-interface QRDisplayProps {
-  value: string;
-  bg: string;
-  fg: string;
-}
-
-function QRDisplay({ value, bg, fg }: QRDisplayProps) {
-  if (Platform.OS === 'web') {
-    return (
-      <View style={{ backgroundColor: bg, borderRadius: 20, padding: 16, alignItems: 'center', justifyContent: 'center', width: 160, height: 160 }}>
-        <QrCode size={112} color={fg} />
-      </View>
-    );
-  }
-  return (
-    <View style={{ backgroundColor: bg, borderRadius: 20, padding: 14, alignItems: 'center', justifyContent: 'center' }}>
-      <QRCode
-        value={value || 'VEEGO'}
-        size={140}
-        color={fg}
-        backgroundColor={bg}
-        quietZone={0}
-      />
-    </View>
-  );
-}
 
 interface TrackingUpdate {
   tripId: number;
@@ -194,22 +166,38 @@ function makeStyles(c: ThemeColors) {
     infoLabel: { fontSize: 10, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
     infoValue: { fontSize: 14, fontWeight: '600', color: c.ink, marginTop: 1 },
 
-    /* QR section */
-    qrSection: { alignItems: 'center', paddingTop: 20, gap: 16 },
-    qrContainer: {
-      padding: 4,
-      borderRadius: 24,
-      borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.1)' : '#e8e8f0',
-      backgroundColor: c.isDark ? c.mist : c.snow,
+    /* Status badge in ticket header */
+    statusBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      alignSelf: 'center', marginTop: 10, marginBottom: 2,
+      borderRadius: 99, paddingHorizontal: 14, paddingVertical: 6,
     },
-    qrChevron: { alignItems: 'center', gap: 6 },
-    qrInstruction: {
-      fontSize: 12, color: c.inkSoft, textAlign: 'center',
-      lineHeight: 18, paddingHorizontal: 20,
+    statusBadgeDot: { width: 7, height: 7, borderRadius: 3.5 },
+    statusBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+
+    /* Pending notice banner — modern minimal */
+    pendingBanner: {
+      borderRadius: 18, overflow: 'hidden',
+      marginBottom: 4,
     },
-    qrLiveBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    qrLiveDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: c.accentMint },
-    qrLiveText: { fontSize: 11, fontWeight: '600', color: c.accentMint },
+    pendingBannerInner: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingHorizontal: 16, paddingVertical: 14,
+      borderRadius: 18,
+      borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+      backgroundColor: 'rgba(245,158,11,0.09)',
+    },
+    pendingBannerIcon: {
+      width: 34, height: 34, borderRadius: 10,
+      backgroundColor: 'rgba(245,158,11,0.18)',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    pendingBannerTitle: {
+      fontSize: 13, fontWeight: '700', color: '#92400e', marginBottom: 2,
+    },
+    pendingBannerBody: {
+      fontSize: 12, color: '#92400e', lineHeight: 17, opacity: 0.85,
+    },
 
     /* Boarded banner */
     boardedBanner: {
@@ -254,6 +242,8 @@ export default function TicketScreen() {
   const [boarded, setBoarded] = useState(false);
   const [latestTracking, setLatestTracking] = useState<TrackingUpdate | null>(null);
   const [shuttleDriverLocation, setShuttleDriverLocation] = useState<{ lat: number; lng: number; heading?: number } | null>(null);
+  // Local trip status — updated in real-time via trip:activated socket event
+  const [liveStatus, setLiveStatus] = useState<string | undefined>(confirmedBookingStatus);
   const boardedAnim = useRef(new Animated.Value(0)).current;
 
   const checkScale = useRef(new Animated.Value(0.5)).current;
@@ -263,7 +253,6 @@ export default function TicketScreen() {
   const cardOpacity = useRef(new Animated.Value(0)).current;
 
   const bookingId = confirmedBookingId ?? '';
-  const qrValue = JSON.stringify({ bookingId, app: 'veego', v: 1 });
 
   useEffect(() => {
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -310,21 +299,30 @@ export default function TicketScreen() {
         }
       };
 
-      // Task 3: listen for pre-departure and in-trip driver location updates
       const driverLocationHandler = (payload: { tripId: number | string; lat: number; lng: number; heading?: number }) => {
         if (!confirmedTripId || String(payload.tripId) === String(confirmedTripId)) {
           setShuttleDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
         }
       };
 
+      // trip:activated — pending trip reached minimum passengers; flip status to active
+      const tripActivatedHandler = (data: { tripId: number | string; activatedAt?: string }) => {
+        if (!confirmedTripId || String(data.tripId) === String(confirmedTripId)) {
+          setLiveStatus('active');
+          if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      };
+
       socket.on('booking:boarded', boardedHandler);
       socket.on('passenger:trip:tracking', trackingHandler);
       socket.on('shuttle:driver:location', driverLocationHandler);
+      socket.on('trip:activated', tripActivatedHandler);
 
       handlers.push(
         () => socket.off('booking:boarded', boardedHandler),
         () => socket.off('passenger:trip:tracking', trackingHandler),
         () => socket.off('shuttle:driver:location', driverLocationHandler),
+        () => socket.off('trip:activated', tripActivatedHandler),
       );
     }).catch(() => {});
 
@@ -395,30 +393,28 @@ export default function TicketScreen() {
             </Animated.View>
           </View>
           <Text style={styles.confirmedLabel}>{t('booking_confirmed')}</Text>
-          <Text style={styles.bookingId}>{bookingId}</Text>
+          {bookingId ? (
+            <Text style={styles.bookingId}>Ref {bookingId.startsWith('#') ? bookingId : `#${bookingId}`}</Text>
+          ) : null}
         </View>
 
-        {/* §21.1: Pending notice — shown when trip hasn't reached minRequired yet */}
-        {confirmedBookingStatus === 'pending' && (
-          <View style={{
-            marginHorizontal: 20,
-            marginBottom: 12,
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-            gap: 10,
-            backgroundColor: 'rgba(245,158,11,0.1)',
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: 'rgba(245,158,11,0.3)',
-            padding: 12,
-          }}>
-            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#f59e0b', marginTop: 5 }} />
-            <Text style={{ flex: 1, fontSize: 12.5, color: '#92400e', lineHeight: 18 }}>
-              {t('booking_pending_notice')}
-              {shuttleInfo?.minRequired != null && shuttleInfo.bookedSeats != null
-                ? `  (${shuttleInfo.bookedSeats}/${shuttleInfo.minRequired})`
-                : ''}
-            </Text>
+        {/* Pending notice — shown when trip hasn't reached minRequired yet */}
+        {liveStatus === 'pending' && (
+          <View style={styles.pendingBanner}>
+            <View style={styles.pendingBannerInner}>
+              <View style={styles.pendingBannerIcon}>
+                <Zap size={16} color="#f59e0b" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.pendingBannerTitle}>Waiting for passengers</Text>
+                <Text style={styles.pendingBannerBody}>
+                  {t('booking_pending_notice')}
+                  {shuttleInfo?.minRequired != null && shuttleInfo.bookedSeats != null
+                    ? `  · ${shuttleInfo.bookedSeats}/${shuttleInfo.minRequired} seats filled`
+                    : ''}
+                </Text>
+              </View>
+            </View>
           </View>
         )}
 
@@ -477,6 +473,24 @@ export default function TicketScreen() {
               {isAr ? (booking.route.nameAr ?? booking.route.name) : booking.route.name}
             </Text>
 
+            {/* Live status badge — Active or Pending, prominently shown below route name */}
+            {boarded ? (
+              <View style={[styles.statusBadge, { backgroundColor: 'rgba(34,197,94,0.2)' }]}>
+                <View style={[styles.statusBadgeDot, { backgroundColor: '#22c55e' }]} />
+                <Text style={[styles.statusBadgeText, { color: '#22c55e' }]}>Boarded</Text>
+              </View>
+            ) : liveStatus === 'active' ? (
+              <View style={[styles.statusBadge, { backgroundColor: 'rgba(34,197,94,0.2)' }]}>
+                <View style={[styles.statusBadgeDot, { backgroundColor: '#22c55e' }]} />
+                <Text style={[styles.statusBadgeText, { color: '#22c55e' }]}>{t('active')}</Text>
+              </View>
+            ) : liveStatus === 'pending' ? (
+              <View style={[styles.statusBadge, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
+                <View style={[styles.statusBadgeDot, { backgroundColor: '#f59e0b' }]} />
+                <Text style={[styles.statusBadgeText, { color: '#f59e0b' }]}>Pending</Text>
+              </View>
+            ) : null}
+
             {/* From → To */}
             <View style={styles.ticketRouteRow}>
               <View style={styles.ticketStation}>
@@ -503,7 +517,7 @@ export default function TicketScreen() {
             {/* Departure time — prominent */}
             <View style={styles.ticketTimeRow}>
               <Text style={styles.ticketTime}>{booking.time}</Text>
-              <Text style={styles.ticketTimeTz}>UTC</Text>
+              <Text style={styles.ticketTimeTz}>Cairo</Text>
             </View>
           </LinearGradient>
 
@@ -548,23 +562,8 @@ export default function TicketScreen() {
               </View>
             </View>
 
-            {/* QR code — centered and prominent */}
-            <View style={styles.qrSection}>
-              <View style={styles.qrContainer}>
-                <QRDisplay
-                  value={qrValue}
-                  bg={c.isDark ? c.mist : c.snow}
-                  fg={c.isDark ? c.ink : '#1e1e28'}
-                />
-              </View>
-              <View style={styles.qrChevron}>
-                <View style={styles.qrLiveBadge}>
-                  <View style={styles.qrLiveDot} />
-                  <Text style={styles.qrLiveText}>{boarded ? 'Boarded' : t('active')}</Text>
-                </View>
-                <Text style={styles.qrInstruction}>{t('show_driver')}</Text>
-              </View>
-            </View>
+            {/* Bottom spacer — fills space cleanly after QR removal */}
+            <View style={{ height: 8 }} />
 
           </View>
         </Animated.View>

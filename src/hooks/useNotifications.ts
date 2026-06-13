@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import api from '../api/client';
 import { getSocket } from '../api/socket';
 import type { Notification } from '@/constants/data';
@@ -95,6 +97,32 @@ export function useNotifications(): UseNotificationsResult {
           };
           setNotifications((prev) => [boardedNotif, ...prev]);
         });
+
+        // trip:activated — pending trip reached minimum passengers and is now active
+        socket.on('trip:activated', (data: any) => {
+          const activatedNotif: Notification = {
+            id: `trip-activated-${data.tripId ?? Math.random()}`,
+            type: 'trip',
+            title: '🚌 Your trip is now Active!',
+            body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
+            createdAt: data.activatedAt ?? new Date().toISOString(),
+            unread: true,
+          };
+          setNotifications((prev) => [activatedNotif, ...prev]);
+
+          // Fire a local push notification so user is alerted even when app is in background
+          if (Platform.OS !== 'web') {
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: '🚌 Your trip is now Active!',
+                body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
+                sound: true,
+                data: { tripId: data.tripId, type: 'trip_activated' },
+              },
+              trigger: null, // deliver immediately
+            }).catch(() => {});
+          }
+        });
       } catch {
         // Socket unavailable — graceful degradation
       }
@@ -104,6 +132,7 @@ export function useNotifications(): UseNotificationsResult {
       getSocket().then((socket) => {
         socket.off('notification:new');
         socket.off('booking:boarded');
+        socket.off('trip:activated');
       }).catch(() => {});
     };
   }, [fetchNotifications]);

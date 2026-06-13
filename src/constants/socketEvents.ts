@@ -17,6 +17,8 @@ export const SOCKET_EVENTS = {
   NOTIFICATION_NEW:       "notification:new",
   BOOKING_BOARDED:        "booking:boarded",
   TRIP_CHAT_MESSAGE:      "trip:chat:message",
+  /** Emitted when a pending shuttle trip reaches minRequired passengers and flips to Active */
+  TRIP_ACTIVATED:         "trip:activated",
 
   // Client → Server
   JOIN:                   "join",
