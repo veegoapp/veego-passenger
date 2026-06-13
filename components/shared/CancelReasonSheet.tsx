@@ -12,19 +12,30 @@ interface CancelReasonSheetProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: (reason: string) => Promise<void>;
+  mode?: 'shuttle' | 'ride';
 }
 
-export function CancelReasonSheet({ visible, onClose, onConfirm }: CancelReasonSheetProps) {
+export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }: CancelReasonSheetProps) {
   const { t } = useTheme();
   const isRTL = I18nManager.isRTL;
 
-  const reasons = [
+  const rideReasons = [
     t('reason_driver_far'),
     t('reason_wait_long'),
     t('reason_wrong_vehicle'),
     t('reason_changed_mind'),
     t('reason_other'),
   ];
+
+  const shuttleReasons = [
+    t('reason_change_plans'),
+    t('reason_time_change'),
+    t('reason_booked_vehicle'),
+    t('reason_other'),
+  ];
+
+  const reasons = mode === 'shuttle' ? shuttleReasons : rideReasons;
+  const isReasonRequired = mode === 'ride';
 
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,12 +48,11 @@ export function CancelReasonSheet({ visible, onClose, onConfirm }: CancelReasonS
   }, [onClose]);
 
   const handleConfirm = useCallback(async () => {
-    if (!selected) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     setError('');
     try {
-      await onConfirm(selected);
+      await onConfirm(selected ?? '');
       setSelected(null);
     } catch {
       setError(t('cancel_error'));
@@ -50,6 +60,8 @@ export function CancelReasonSheet({ visible, onClose, onConfirm }: CancelReasonS
       setLoading(false);
     }
   }, [selected, onConfirm, t]);
+
+  const canConfirm = isReasonRequired ? !!selected : true;
 
   return (
     <Modal
@@ -65,13 +77,15 @@ export function CancelReasonSheet({ visible, onClose, onConfirm }: CancelReasonS
           <View style={styles.handle} />
 
           <View style={[styles.header, isRTL && styles.rowRTL]}>
-            <Text style={styles.title}>{t('cancel_ride')}</Text>
+            <Text style={styles.title}>{t('cancel_trip')}</Text>
             <TouchableOpacity style={styles.closeBtn} onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <X size={18} color={C.inkSoft} />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.prompt}>{t('select_reason')}</Text>
+          <Text style={styles.prompt}>
+            {mode === 'shuttle' ? t('cancel_trip_q') : t('select_reason')}
+          </Text>
 
           <View style={styles.reasons}>
             {reasons.map((reason) => {
@@ -82,7 +96,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm }: CancelReasonS
                   style={[styles.reasonRow, active && styles.reasonRowActive, isRTL && styles.rowRTL]}
                   onPress={() => {
                     if (Platform.OS !== 'web') Haptics.selectionAsync();
-                    setSelected(reason);
+                    setSelected(active ? null : reason);
                     setError('');
                   }}
                   activeOpacity={0.75}
@@ -99,12 +113,16 @@ export function CancelReasonSheet({ visible, onClose, onConfirm }: CancelReasonS
             })}
           </View>
 
+          {mode === 'shuttle' && (
+            <Text style={styles.optionalHint}>{isRTL ? 'الاختيار اختياري' : 'Selection is optional'}</Text>
+          )}
+
           {!!error && <Text style={styles.errorText}>{error}</Text>}
 
           <TouchableOpacity
-            style={[styles.confirmBtn, (!selected || loading) && styles.confirmBtnDisabled]}
+            style={[styles.confirmBtn, (!canConfirm || loading) && styles.confirmBtnDisabled]}
             onPress={handleConfirm}
-            disabled={!selected || loading}
+            disabled={!canConfirm || loading}
             activeOpacity={0.85}
           >
             {loading
@@ -174,10 +192,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginBottom: 16,
+    lineHeight: 20,
   },
   reasons: {
     gap: 8,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   reasonRow: {
     flexDirection: 'row',
@@ -201,6 +220,12 @@ const styles = StyleSheet.create({
   reasonTextActive: {
     color: '#1a1a2e',
     fontWeight: '600',
+  },
+  optionalHint: {
+    fontSize: 11.5,
+    color: '#aaa',
+    textAlign: 'center',
+    marginBottom: 14,
   },
   errorText: {
     fontSize: 12.5,

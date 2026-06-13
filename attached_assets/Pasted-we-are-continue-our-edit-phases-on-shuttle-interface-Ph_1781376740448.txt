@@ -1,0 +1,26 @@
+we are continue our edit phases on shuttle interface 
+
+Phase 5 : MyTrips Refactoring & Booking Status Management]
+​Component Target: MyTripsScreen (The screen managing upcoming and past user bookings).
+​Tasks to execute:
+​Fix Ghost/Ghost-Trips Bug & UI Rendering:
+​Debug the rendering issue where a distorted or duplicate skeleton card appears (with a missing title — and an misaligned "Cancel Trip" button).
+​Ensure that the FlatList only renders active items retrieved successfully from the upcoming trips array. Add a fallback conditional check (if (!trip.routeName) return null;) to avoid rendering corrupted or incomplete trip data objects.
+​Real-time Status Sync (Active vs. Pending):
+​Map the trip status directly to the backend response field (e.g., trip.status).
+​Visual Indicator: Instead of static labels, update the status badge styling dynamically:
+​If status is active (Minimum capacity met): Display an elegant green indicator or glass badge saying "Active / نشط".
+​If status is pending (Waiting for minimum passenger count): Display a soft orange/gray badge saying "Pending / قيد الانتظار".
+​Live Passenger Capacity Bar (Visual Progress):
+​Inside each upcoming trip card, integrate a compact, premium horizontal progress bar (matching the one used in RouteDetailsScreen).
+​This bar must visually represent the current total passenger count vs. maximum shuttle capacity (e.g., 5 / 14 passengers).
+​Bind the width percentage of the progress bar to: (currentPassengers / maxCapacity) * 100.
+​Interactive Cancel Trip Flow (Confirmation Modal):
+​Convert the "Cancel Trip" button trigger. When pressed, instead of executing an immediate action, pop up a clean, minimal Confirmation Bottom Sheet or Modal.
+​Modal Content:
+​A clear prompt: "Are you sure you want to cancel this trip?".
+​A list of common cancellation reasons with radio buttons (e.g., "Change of plans", "Time doesn't suit me anymore", "Booked another vehicle", "Other"). Choosing a reason is optional.
+​Two action buttons: "Keep Trip" (Dismiss) and "Confirm Cancellation" (High emphasis).
+​Backend Integration: On confirming, trigger the cancel booking API endpoint. Ensure it completely frees up the seat slot on the backend, triggers a re-fetch of the upcoming trips list, and smoothly removes the card with a fade-out animation.
+​API Guard Cleanliness:
+​If any specific endpoint (like getUpcomingTrips, cancelBooking, or getTripLiveCapacity) is missing its exact base URL or path, add a visible // TODO: Provide Trip Action Endpoints block at the top of the component file.

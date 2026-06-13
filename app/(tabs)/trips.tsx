@@ -1,5 +1,13 @@
-import { useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, Alert, Modal, Pressable } from 'react-native';
+// TODO: Provide Trip Action Endpoints
+// - GET  /users/me/bookings        → getUpcomingTrips (paginated shuttle bookings)
+// - PATCH /bookings/:id/cancel     → cancelBooking (frees seat slot, triggers re-fetch)
+// - GET  /trips/:id/capacity       → getTripLiveCapacity (passengerCount / totalSeats)
+
+import { useState, useMemo, useCallback, useRef } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  Platform, RefreshControl, Animated,
+} from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
@@ -12,6 +20,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useTrips } from '@/src/hooks/useTrips';
 import api from '@/src/api/client';
+import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 
 const ROUTE_COLORS_LIGHT: Record<string, string> = {
   L01: '#d8ecf7', L02: '#d5f0e5', L03: '#e3daf5', L04: '#f5f0d3',
@@ -28,23 +37,12 @@ const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: 
   scooter: ScooterIcon,
 };
 
-function statusDotColor(status: string, c: ThemeColors): string {
-  switch (status) {
-    case 'waiting_driver':
-    case 'scheduled':
-      return '#f59e0b';
-    case 'driver_assigned':
-      return '#4d9ef6';
-    case 'active':
-    case 'boarding':
-    case 'upcoming':
-      return '#55c49a';
-    case 'cancelled':
-      return c.badge;
-    case 'completed':
-    default:
-      return c.silver;
-  }
+function isActiveStatus(status: string): boolean {
+  return ['active', 'boarding'].includes(status);
+}
+
+function isPendingStatus(status: string): boolean {
+  return ['scheduled', 'upcoming', 'waiting_driver', 'driver_assigned'].includes(status);
 }
 
 function makeStyles(c: ThemeColors) {
@@ -67,12 +65,11 @@ function makeStyles(c: ThemeColors) {
     cardAccent: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60 },
     tripTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
     codeBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    codeText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: '600' },
     tripName: { fontSize: 14, fontWeight: '600', color: c.ink },
     tripDate: { fontSize: 11.5, color: c.inkSoft, marginTop: 1 },
-    statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
-    statusText: { fontSize: 11, color: c.inkSoft },
+    statusText: { fontSize: 11, fontWeight: '600' },
     tripRoute: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
     tripStation: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     tripDot: { width: 8, height: 8, borderRadius: 4 },
@@ -86,16 +83,63 @@ function makeStyles(c: ThemeColors) {
     typeBadgeText: { fontSize: 10, fontWeight: '600', color: c.inkSoft },
     cancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 12, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, alignSelf: 'flex-start' },
     cancelBtnText: { fontSize: 12, fontWeight: '600' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
-    modalBox: { width: 320, borderRadius: 20, padding: 24, gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 12 },
-    modalTitle: { fontSize: 17, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-    modalBody: { fontSize: 14, lineHeight: 20 },
-    modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-    modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
-    modalBtnText: { fontSize: 14, fontWeight: '600', fontFamily: 'Inter_700Bold' },
+    capacityWrap: { marginTop: 12, gap: 5 },
+    capacityLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    capacityLabel: { fontSize: 11, color: c.inkSoft },
+    capacityCount: { fontSize: 11, fontWeight: '600', color: c.inkSoft },
+    capacityTrack: { height: 5, borderRadius: 99, backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)', overflow: 'hidden' },
+    capacityFill: { height: 5, borderRadius: 99 },
     loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4, paddingVertical: 12 },
     loadMoreText: { fontSize: 13, fontWeight: '600', color: c.inkSoft },
   });
+}
+
+function StatusBadge({ status, activeLabel, pendingLabel, c }: {
+  status: string;
+  activeLabel: string;
+  pendingLabel: string;
+  c: ThemeColors;
+}) {
+  const styles = useMemo(() => makeStyles(c), [c]);
+  if (isActiveStatus(status)) {
+    return (
+      <View style={[styles.statusBadge, { backgroundColor: 'rgba(85,196,154,0.14)' }]}>
+        <View style={[styles.statusDot, { backgroundColor: '#55c49a' }]} />
+        <Text style={[styles.statusText, { color: '#2d9e72' }]}>{activeLabel}</Text>
+      </View>
+    );
+  }
+  if (isPendingStatus(status)) {
+    return (
+      <View style={[styles.statusBadge, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+        <View style={[styles.statusDot, { backgroundColor: '#f59e0b' }]} />
+        <Text style={[styles.statusText, { color: '#b97b10' }]}>{pendingLabel}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.statusBadge, { backgroundColor: c.mist }]}>
+      <View style={[styles.statusDot, { backgroundColor: c.silver }]} />
+      <Text style={[styles.statusText, { color: c.inkSoft }]}>{shuttleStatusLabel(status, 'en')}</Text>
+    </View>
+  );
+}
+
+function CapacityBar({ current, max, c }: { current: number; max: number; c: ThemeColors }) {
+  const styles = useMemo(() => makeStyles(c), [c]);
+  const pct = Math.min(100, Math.max(0, (current / max) * 100));
+  const fillColor = pct >= 100 ? '#55c49a' : pct >= 50 ? '#4d9ef6' : '#f59e0b';
+  return (
+    <View style={styles.capacityWrap}>
+      <View style={styles.capacityLabelRow}>
+        <Text style={styles.capacityLabel}>Passengers</Text>
+        <Text style={styles.capacityCount}>{current} / {max}</Text>
+      </View>
+      <View style={styles.capacityTrack}>
+        <View style={[styles.capacityFill, { width: `${pct}%` as any, backgroundColor: fillColor }]} />
+      </View>
+    </View>
+  );
 }
 
 export default function TripsScreen() {
@@ -111,9 +155,15 @@ export default function TripsScreen() {
   const { upcomingTrips, pastTrips, loading, refresh, hasMore, loadMore } = useTrips();
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [confirmDeparture, setConfirmDeparture] = useState<string>('');
+  const [cancelSheetId, setCancelSheetId] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const fadeAnims = useRef<Record<string, Animated.Value>>({}).current;
+
+  const getFadeAnim = useCallback((id: string) => {
+    if (!fadeAnims[id]) fadeAnims[id] = new Animated.Value(1);
+    return fadeAnims[id];
+  }, [fadeAnims]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -128,40 +178,31 @@ export default function TripsScreen() {
     setLoadingMore(false);
   }, [loadMore]);
 
-  const isWithin10Hours = (departureIso: string): boolean => {
-    if (!departureIso) return false;
-    const dep = new Date(departureIso).getTime();
-    if (isNaN(dep)) return false;
-    return dep - Date.now() < 10 * 60 * 60 * 1000;
-  };
-
-  const handleCancelPress = (tripId: string, departureIso: string) => {
+  const handleCancelPress = (tripId: string) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const within10h = isWithin10Hours(departureIso);
-    if (Platform.OS !== 'web') {
-      Alert.alert(
-        t('cancel_warning_title'),
-        within10h ? t('cancel_warning_10h') : t('cancel_warning_free'),
-        [
-          { text: t('cancel_keep'), style: 'cancel' },
-          { text: t('cancel_confirm'), style: 'destructive', onPress: () => doCancel(tripId) },
-        ],
-      );
-    } else {
-      setConfirmId(tripId);
-      setConfirmDeparture(departureIso);
-    }
+    setCancelSheetId(tripId);
   };
 
-  const doCancel = async (tripId: string) => {
+  const doCancel = async (reason: string) => {
+    const tripId = cancelSheetId;
+    if (!tripId) return;
     setCancellingId(tripId);
+    setCancelSheetId(null);
+
+    const anim = getFadeAnim(tripId);
     try {
-      await api.patch(`/bookings/${tripId}/cancel`);
-      await refresh();
+      await api.patch(`/bookings/${tripId}/cancel`, reason ? { reason } : undefined);
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 320,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start(async () => {
+        await refresh();
+        anim.setValue(1);
+      });
     } catch {
     } finally {
       setCancellingId(null);
-      setConfirmId(null);
     }
   };
 
@@ -183,7 +224,8 @@ export default function TripsScreen() {
 
   const trips = tab === 'upcoming' ? upcoming : pastTrips;
 
-  const statusLabel = (status: string) => shuttleStatusLabel(status, isAr ? 'ar' : 'en');
+  const activeLabel  = isAr ? t('trip_status_active')  : `${t('trip_status_active')} / ${t('trip_status_active')}`;
+  const pendingLabel = isAr ? t('trip_status_pending') : `${t('trip_status_pending')} / قيد الانتظار`;
 
   return (
     <LinearGradient colors={c.luxeSoftGrad} style={{ flex: 1 }}>
@@ -242,74 +284,100 @@ export default function TripsScreen() {
           </View>
         )}
         {trips.map((trip) => {
+          if (!trip.routeName) return null;
+
           const TripTypeIcon = TYPE_ICONS[trip.type];
           const isUpcoming = isShuttleTripUpcoming(trip.status) && trip.id !== 'live';
           const isCancelling = cancellingId === trip.id;
+          const fadeAnim = getFadeAnim(trip.id);
+
+          const showCapacity =
+            tab === 'upcoming' &&
+            trip.type === 'shuttle' &&
+            typeof trip.passengerCount === 'number' &&
+            typeof trip.totalSeats === 'number' &&
+            trip.totalSeats > 0;
+
           return (
-          <TouchableOpacity
-            key={trip.id}
-            style={[gs, styles.tripCard]}
-            onPress={() => {
-              if (trip.id === 'live') { router.push('/ticket'); }
-              else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
-              if (Platform.OS !== 'web') Haptics.selectionAsync();
-            }}
-            activeOpacity={0.9}
-          >
-            <View style={[styles.cardAccent, { backgroundColor: routeColors[trip.routeCode] ?? c.mist }]} />
-            <View style={styles.tripTop}>
-              <View style={styles.codeBox}>
-                <TripTypeIcon size={18} color={c.isDark ? c.background : c.white} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tripName}>{trip.routeName}</Text>
-                <Text style={styles.tripDate}>{trip.date} · {trip.time}</Text>
-              </View>
-              <View style={styles.statusBadge}>
-                <View style={[styles.statusDot, { backgroundColor: statusDotColor(trip.status, c) }]} />
-                <Text style={styles.statusText}>{statusLabel(trip.status)}</Text>
-              </View>
-            </View>
-            <View style={styles.tripRoute}>
-              <View style={styles.tripStation}>
-                <View style={[styles.tripDot, { backgroundColor: c.ink }]} />
-                <Text style={styles.tripStationText} numberOfLines={1}>{trip.from}</Text>
-              </View>
-              <View style={styles.tripLine} />
-              <View style={styles.tripStation}>
-                <View style={[styles.tripDot, { backgroundColor: c.accentMint }]} />
-                <Text style={styles.tripStationText} numberOfLines={1}>{trip.to}</Text>
-              </View>
-            </View>
-            <View style={styles.tripBottom}>
-              <View style={styles.tripMeta}>
-                <View style={styles.typeBadge}>
-                  <TripTypeIcon size={10} color={c.inkSoft} />
-                  <Text style={styles.typeBadgeText}>{t(`trip_type_${trip.type}` as any)}</Text>
-                </View>
-                {trip.seat !== '—' && (
-                  <>
-                    <User size={11} color={c.inkSoft} />
-                    <Text style={styles.tripMetaText}>{t('seat')} {trip.seat}</Text>
-                  </>
-                )}
-              </View>
-              <Text style={styles.tripPrice}>{trip.price} {t('egp')}</Text>
-            </View>
-            {isUpcoming && (
+            <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
               <TouchableOpacity
-                style={[styles.cancelBtn, { borderColor: c.badge, opacity: isCancelling ? 0.5 : 1 }]}
-                onPress={(e) => { (e as any).stopPropagation?.(); handleCancelPress(trip.id, trip.departureIso); }}
-                disabled={isCancelling}
-                activeOpacity={0.7}
+                style={[gs, styles.tripCard]}
+                onPress={() => {
+                  if (trip.id === 'live') { router.push('/ticket'); }
+                  else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
+                  if (Platform.OS !== 'web') Haptics.selectionAsync();
+                }}
+                activeOpacity={0.9}
               >
-                <X size={12} color={c.badge} strokeWidth={2.5} />
-                <Text style={[styles.cancelBtnText, { color: c.badge }]}>
-                  {isCancelling ? t('cancel_trip') + '...' : t('cancel_trip')}
-                </Text>
+                <View style={[styles.cardAccent, { backgroundColor: routeColors[trip.routeCode] ?? c.mist }]} />
+
+                <View style={styles.tripTop}>
+                  <View style={styles.codeBox}>
+                    <TripTypeIcon size={18} color={c.isDark ? c.background : c.white} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tripName}>{trip.routeName}</Text>
+                    <Text style={styles.tripDate}>{trip.date} · {trip.time}</Text>
+                  </View>
+                  <StatusBadge
+                    status={trip.status}
+                    activeLabel={t('trip_status_active') + (isAr ? '' : ' / نشط')}
+                    pendingLabel={t('trip_status_pending') + (isAr ? '' : ' / قيد الانتظار')}
+                    c={c}
+                  />
+                </View>
+
+                <View style={styles.tripRoute}>
+                  <View style={styles.tripStation}>
+                    <View style={[styles.tripDot, { backgroundColor: c.ink }]} />
+                    <Text style={styles.tripStationText} numberOfLines={1}>{trip.from}</Text>
+                  </View>
+                  <View style={styles.tripLine} />
+                  <View style={styles.tripStation}>
+                    <View style={[styles.tripDot, { backgroundColor: c.accentMint }]} />
+                    <Text style={styles.tripStationText} numberOfLines={1}>{trip.to}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.tripBottom}>
+                  <View style={styles.tripMeta}>
+                    <View style={styles.typeBadge}>
+                      <TripTypeIcon size={10} color={c.inkSoft} />
+                      <Text style={styles.typeBadgeText}>{t(`trip_type_${trip.type}` as any)}</Text>
+                    </View>
+                    {trip.seat !== '—' && (
+                      <>
+                        <User size={11} color={c.inkSoft} />
+                        <Text style={styles.tripMetaText}>{t('seat')} {trip.seat}</Text>
+                      </>
+                    )}
+                  </View>
+                  <Text style={styles.tripPrice}>{trip.price} {t('egp')}</Text>
+                </View>
+
+                {showCapacity && (
+                  <CapacityBar
+                    current={trip.passengerCount!}
+                    max={trip.totalSeats!}
+                    c={c}
+                  />
+                )}
+
+                {isUpcoming && (
+                  <TouchableOpacity
+                    style={[styles.cancelBtn, { borderColor: c.badge, opacity: isCancelling ? 0.5 : 1 }]}
+                    onPress={(e) => { (e as any).stopPropagation?.(); handleCancelPress(trip.id); }}
+                    disabled={isCancelling}
+                    activeOpacity={0.7}
+                  >
+                    <X size={12} color={c.badge} strokeWidth={2.5} />
+                    <Text style={[styles.cancelBtnText, { color: c.badge }]}>
+                      {isCancelling ? t('cancel_trip') + '...' : t('cancel_trip')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
-            )}
-          </TouchableOpacity>
+            </Animated.View>
           );
         })}
 
@@ -330,35 +398,12 @@ export default function TripsScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {Platform.OS === 'web' && confirmId !== null && (
-        <Modal transparent animationType="fade" visible>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalBox, { backgroundColor: c.white }]}>
-              <Text style={[styles.modalTitle, { color: c.ink }]}>{t('cancel_warning_title')}</Text>
-              <Text style={[styles.modalBody, { color: c.inkSoft }]}>
-                {isWithin10Hours(confirmDeparture) ? t('cancel_warning_10h') : t('cancel_warning_free')}
-              </Text>
-              <View style={styles.modalActions}>
-                <Pressable
-                  style={[styles.modalBtn, { backgroundColor: c.mist }]}
-                  onPress={() => { setConfirmId(null); setConfirmDeparture(''); }}
-                >
-                  <Text style={[styles.modalBtnText, { color: c.ink }]}>{t('cancel_keep')}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.modalBtn, { backgroundColor: c.badge }]}
-                  onPress={() => doCancel(confirmId)}
-                  disabled={cancellingId !== null}
-                >
-                  <Text style={[styles.modalBtnText, { color: '#fff' }]}>
-                    {cancellingId !== null ? `${t('cancel_confirm')}…` : t('cancel_confirm')}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+      <CancelReasonSheet
+        visible={cancelSheetId !== null}
+        mode="shuttle"
+        onClose={() => setCancelSheetId(null)}
+        onConfirm={doCancel}
+      />
     </LinearGradient>
   );
 }
