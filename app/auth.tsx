@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Navigation, User, Lock, Eye, EyeOff, ArrowRight, Phone, Mail, Shield, Check } from 'lucide-react-native';
+import { Navigation, User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail, Shield, Check } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { C, S } from '@/constants/colors';
@@ -105,7 +105,7 @@ export default function AuthPage() {
 }
 
 function SignInForm({ onSuccess }: { onSuccess: () => void }) {
-  const { t } = useTheme();
+  const { t, isRTL } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -188,7 +188,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('sign_in')}</Text>
-            <ArrowRight size={16} color={C.white} />
+            {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
           </>
         )}
       </TouchableOpacity>
@@ -197,7 +197,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
-  const { t } = useTheme();
+  const { t, isRTL } = useTheme();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -316,7 +316,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('sign_up')}</Text>
-            <ArrowRight size={16} color={C.white} />
+            {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
           </>
         )}
       </TouchableOpacity>
@@ -333,7 +333,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
-  const { t } = useTheme();
+  const { t, isRTL } = useTheme();
   type ForgotStep = 'phone' | 'otp' | 'reset';
   const [step, setStep] = useState<ForgotStep>('phone');
   const [phone, setPhone] = useState('');
@@ -394,7 +394,7 @@ function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
           ) : (
             <>
               <Text style={styles.primaryBtnText}>{t('send_code')}</Text>
-              <ArrowRight size={16} color={C.white} />
+              {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
             </>
           )}
         </TouchableOpacity>
@@ -433,6 +433,7 @@ function OtpStep({
   onResend: () => void;
   t: (k: string) => string;
 }) {
+  const { isRTL } = useTheme();
   const OTP_LENGTH = 6;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -524,7 +525,7 @@ function OtpStep({
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('verify')}</Text>
-            <ArrowRight size={16} color={C.white} />
+            {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
           </>
         )}
       </TouchableOpacity>
@@ -552,6 +553,7 @@ function ResetStep({
   onSuccess: () => void;
   t: (k: string) => string;
 }) {
+  const { isRTL } = useTheme();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -638,7 +640,7 @@ function ResetStep({
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('reset_password')}</Text>
-            <ArrowRight size={16} color={C.white} />
+            {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
           </>
         )}
       </TouchableOpacity>

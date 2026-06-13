@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 
 export function SectionHeader({ title, onMore }: { title: string; onMore?: () => void }) {
-  const { colors: c, t } = useTheme();
+  const { colors: c, t, isRTL } = useTheme();
   return (
     <View style={styles.sectionHeader}>
       <Text style={[styles.sectionTitle, { color: c.ink }]}>{title}</Text>
       {onMore && (
         <TouchableOpacity style={styles.seeAllBtn} onPress={onMore} activeOpacity={0.7}>
           <Text style={[styles.seeAllText, { color: c.inkSoft }]}>{t('see_all')}</Text>
-          <ChevronRight size={12} color={c.inkSoft} />
+          {isRTL ? <ChevronLeft size={12} color={c.inkSoft} /> : <ChevronRight size={12} color={c.inkSoft} />}
         </TouchableOpacity>
       )}
     </View>

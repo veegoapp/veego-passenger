@@ -97,7 +97,7 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
 const isExpoGo = Constants.appOwnership === 'expo';
 
 function AppShell() {
-  const { darkMode } = useTheme();
+  const { darkMode, isRTL } = useTheme();
 
   if (!isExpoGo) {
     usePushToken();
@@ -127,27 +127,32 @@ function AppShell() {
     };
   }, []);
 
+  // Slide direction flips in RTL (push screen comes from left, not right)
+  const slideAnim = isRTL ? 'slide_from_left' : 'slide_from_right';
+
   return (
-    <>
+    // direction:'rtl' cascades to all children on web (CSS inheritance).
+    // On native, I18nManager.forceRTL() handles it after app reload.
+    <View style={{ flex: 1, direction: isRTL ? 'rtl' : 'ltr' }}>
       <StatusBar style={darkMode ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="lang-select" options={{ animation: 'fade' }} />
+        <Stack.Screen name="lang-select"   options={{ animation: 'fade' }} />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="auth" />
-        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-        <Stack.Screen name="stations"     options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="(tabs)"        options={{ animation: 'fade' }} />
+        <Stack.Screen name="stations"      options={{ animation: slideAnim }} />
+        <Stack.Screen name="notifications" options={{ animation: slideAnim }} />
         <Stack.Screen name="ticket"        options={{ animation: 'fade_from_bottom' }} />
-        <Stack.Screen name="trip-detail"   options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="promo"         options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="support"       options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="trip-detail"   options={{ animation: slideAnim }} />
+        <Stack.Screen name="promo"         options={{ animation: slideAnim }} />
+        <Stack.Screen name="support"       options={{ animation: slideAnim }} />
         <Stack.Screen name="suspended"     options={{ animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="receipt"       options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
       </Stack>
       <TripSheet />
       <ConfirmSheet />
-    </>
+    </View>
   );
 }
 

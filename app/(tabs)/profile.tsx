@@ -4,7 +4,7 @@ import {
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Smartphone, Lock, ChevronRight, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Smartphone, Lock, ChevronRight, ChevronLeft, Fingerprint, ShieldCheck, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, Eye, EyeOff, ChevronUp, ChevronDown, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -319,7 +319,7 @@ function SecurityModal({ visible, onClose }: { visible: boolean; onClose: () => 
                 <Text style={styles.toggleLabel}>{item.label}</Text>
                 <Text style={styles.toggleSub}>{item.sub}</Text>
               </View>
-              <ChevronRight size={16} color={c.silver} />
+              {isRTL ? <ChevronLeft size={16} color={c.silver} /> : <ChevronRight size={16} color={c.silver} />}
             </TouchableOpacity>
           ))}
           <View style={styles.toggleRow}>
@@ -597,7 +597,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, glassStyle: gs, darkMode, setDarkMode, language, setLanguage, t } = useTheme();
+  const { colors: c, glassStyle: gs, darkMode, setDarkMode, language, setLanguage, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
   const { name: profileName, email: profileEmail } = useProfileInfo();
@@ -708,7 +708,7 @@ export default function ProfileScreen() {
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {item.value && <Text style={styles.settingValue}>{item.value}</Text>}
-                    <ChevronRight size={14} color={c.silver} />
+                    {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
                   </View>
                 </TouchableOpacity>
               </View>
@@ -724,7 +724,7 @@ export default function ProfileScreen() {
               <Text style={styles.settingLabel}>{t('push_notifs')}</Text>
               <View style={styles.settingRight}>
                 <Text style={styles.settingValue}>On</Text>
-                <ChevronRight size={14} color={c.silver} />
+                {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
               </View>
             </TouchableOpacity>
 
@@ -778,7 +778,7 @@ export default function ProfileScreen() {
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open(item.screen)}>
                   <View style={styles.settingIcon}><item.icon size={16} color={c.ink} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
-                  <ChevronRight size={14} color={c.silver} />
+                  {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
                 </TouchableOpacity>
               </View>
             ))}
@@ -801,7 +801,7 @@ export default function ProfileScreen() {
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {(item as any).value && <Text style={styles.settingValue}>{(item as any).value}</Text>}
-                    <ChevronRight size={14} color={c.silver} />
+                    {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
                   </View>
                 </TouchableOpacity>
               </View>

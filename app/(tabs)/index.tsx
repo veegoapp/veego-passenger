@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bus, Car, Bike, Package, Bell, Search, MapPin, ArrowRight, Navigation, Flame, Wrench, AlertCircle } from 'lucide-react-native';
+import { Bus, Car, Bike, Package, Bell, Search, MapPin, ArrowRight, ArrowLeft, Navigation, Flame, Wrench, AlertCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -117,7 +117,8 @@ export default function HomeScreen() {
   const [mode, setMode] = useState<ServiceMode>('shuttle');
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openRoute, activeBooking } = useBooking();
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, isRTL, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
@@ -476,19 +477,23 @@ export default function HomeScreen() {
                 <View style={styles.heroTop}>
                   <View>
                     <Text style={styles.heroLabel}>{t('next_departure')}</Text>
-                    <Text style={styles.heroRouteName}>{activeBooking.route.name}</Text>
+                    <Text style={styles.heroRouteName}>{isAr ? (activeBooking.route.nameAr ?? activeBooking.route.name) : activeBooking.route.name}</Text>
                   </View>
                   <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{activeBooking.time}</Text></View>
                 </View>
                 <View style={styles.heroBottom}>
                   <View style={styles.heroStation}>
                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff' }} />
-                    <Text style={styles.heroStationName}>{activeBooking.route.path[activeBooking.fromIdx].name}</Text>
+                    <Text style={styles.heroStationName}>
+                      {isAr ? (activeBooking.route.path[activeBooking.fromIdx].nameAr ?? activeBooking.route.path[activeBooking.fromIdx].name) : activeBooking.route.path[activeBooking.fromIdx].name}
+                    </Text>
                   </View>
-                  <ArrowRight size={12} color="rgba(255,255,255,0.5)" />
+                  {isRTL ? <ArrowLeft size={12} color="rgba(255,255,255,0.5)" /> : <ArrowRight size={12} color="rgba(255,255,255,0.5)" />}
                   <View style={styles.heroStation}>
                     <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#55c49a' }} />
-                    <Text style={styles.heroStationName}>{activeBooking.route.path[activeBooking.toIdx].name}</Text>
+                    <Text style={styles.heroStationName}>
+                      {isAr ? (activeBooking.route.path[activeBooking.toIdx].nameAr ?? activeBooking.route.path[activeBooking.toIdx].name) : activeBooking.route.path[activeBooking.toIdx].name}
+                    </Text>
                   </View>
                 </View>
               </LinearGradient>

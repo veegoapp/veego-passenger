@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import {
   Users, Heart, Clock, MapPin, AlertCircle,
-  Ticket, ArrowRight, Wallet, ChevronRight, AlertTriangle,
+  Ticket, ArrowRight, ArrowLeft, Wallet, ChevronRight, ChevronLeft, AlertTriangle,
   Minus, Plus, Bus, Calendar,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -321,7 +321,7 @@ export function TripSheet() {
     openRoute, walletBalance, seatCount, setSeatCount,
   } = useBooking();
   const { getService, handleServiceTap } = useServiceControl();
-  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c, gs), [c]);
 
@@ -755,7 +755,7 @@ export function TripSheet() {
                 </Text>
               </View>
             </View>
-            <ChevronRight size={16} color={c.inkSoft} />
+            {isRTL ? <ChevronLeft size={16} color={c.inkSoft} /> : <ChevronRight size={16} color={c.inkSoft} />}
           </View>
 
           <View style={{ height: 120 }} />
@@ -791,7 +791,7 @@ export function TripSheet() {
                 ? 'Insufficient Balance'
                 : `${t('book_now')} · ${total} ${t('egp')}`}
             </Text>
-            {valid && !walletLow && shuttleServiceEnabled && <ArrowRight size={18} color={c.isDark ? c.background : c.white} />}
+            {valid && !walletLow && shuttleServiceEnabled && (isRTL ? <ArrowLeft size={18} color={c.isDark ? c.background : c.white} /> : <ArrowRight size={18} color={c.isDark ? c.background : c.white} />)}
           </TouchableOpacity>
         </View>
       </Animated.View>

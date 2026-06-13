@@ -1,8 +1,8 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, RefreshCw, WifiOff } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, RefreshCw, WifiOff, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -63,6 +63,11 @@ function makeStyles(c: ThemeColors) {
     etaTagNear: { backgroundColor: c.isDark ? 'rgba(85,196,154,0.15)' : 'rgba(85,196,154,0.15)' },
     etaText: { fontSize: 11, fontWeight: '500', color: c.inkSoft },
     etaTextNear: { color: '#2a9e6b' },
+    searchContainer: {
+      flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: 22,
+      paddingHorizontal: 14, marginHorizontal: 20, marginBottom: 12, borderWidth: 1,
+    },
+    searchInput: { flex: 1, fontSize: 13.5, fontWeight: '500', paddingVertical: 0, marginStart: 8 },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 40 },
     fullErrorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
     fullErrorCard: { width: '100%', borderRadius: 28, backgroundColor: c.white, padding: 32, alignItems: 'center', gap: 12 },
@@ -84,6 +89,7 @@ export default function StationsScreen() {
   const [stations, setStations] = useState<StationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchStations = useCallback(async () => {
     setLoading(true);
@@ -102,6 +108,16 @@ export default function StationsScreen() {
 
   useEffect(() => { fetchStations(); }, [fetchStations]);
 
+  const filteredStations = useMemo(() => {
+    if (!searchQuery.trim()) return stations;
+    const q = searchQuery.toLowerCase();
+    return stations.filter((s) =>
+      s.name?.toLowerCase().includes(q) ||
+      (isAr && s.nameAr?.toLowerCase().includes(q)) ||
+      s.area?.toLowerCase().includes(q)
+    );
+  }, [stations, searchQuery, isAr]);
+
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
@@ -112,6 +128,23 @@ export default function StationsScreen() {
         <TouchableOpacity style={[gs, styles.backBtn]} onPress={fetchStations} activeOpacity={0.8}>
           <RefreshCw size={16} color={c.ink} />
         </TouchableOpacity>
+      </View>
+
+      <View style={[styles.searchContainer, { backgroundColor: c.white, borderColor: c.border }]}>
+        <Search size={16} color={c.inkSoft} />
+        <TextInput
+          style={[styles.searchInput, { color: c.ink }]}
+          placeholder={isAr ? 'ابحث عن محطة…' : 'Search station…'}
+          placeholderTextColor={c.inkSoft}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+            <X size={14} color={c.inkSoft} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.mapWrap}>
@@ -158,7 +191,7 @@ export default function StationsScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <Text style={styles.listTitle}>{t('all_stations')}</Text>
 
-        {stations.map((s, i) => (
+        {filteredStations.map((s, i) => (
           <TouchableOpacity key={s.id} style={[gs, styles.stationCard]} activeOpacity={0.85}>
             <View style={styles.stationLeft}>
               <View style={styles.stationIndex}>
