@@ -386,6 +386,22 @@ const en = {
   biometric_verify_prompt: 'Verify your identity to enable biometric login',
   biometric_not_available: 'Biometric authentication is not available on this device',
   toggle_save_failed: 'Failed to save setting. Please try again.',
+
+  debt_banner_title: 'Outstanding balance',
+  debt_banner_body: 'You have an outstanding debt. Please clear it before booking a new trip.',
+  payment_paid: 'Paid',
+  payment_pending: 'Payment pending',
+  payment_refunded: 'Refunded',
+  cancel_refund_full: 'You will receive a full refund to your wallet.',
+  cancel_no_refund: 'Cancellation within 12 hours of departure — no refund applies.',
+  booking_pending_notice: 'Booking confirmed — trip activates when minimum passengers are reached.',
+  boarded: 'Boarded!',
+  seats_need: 'Needs more passengers to activate',
+  seats_confirmed: 'Trip confirmed — boarding guaranteed',
+  vehicle_hiace: 'Hiace (14 seats)',
+  vehicle_minibus: 'Minibus (28 seats)',
+  trip_cancelled_notice: 'This trip has been cancelled',
+  cairo_time: 'Cairo time',
 };
 
 const ar: typeof en = {
@@ -776,6 +792,22 @@ const ar: typeof en = {
   biometric_verify_prompt: 'تحقق من هويتك لتفعيل تسجيل الدخول بالبصمة',
   biometric_not_available: 'المصادقة بالبصمة غير متاحة على هذا الجهاز',
   toggle_save_failed: 'فشل حفظ الإعداد. يرجى المحاولة مجدداً.',
+
+  debt_banner_title: 'رصيد مستحق',
+  debt_banner_body: 'لديك رصيد مستحق السداد. يرجى سداده قبل حجز رحلة جديدة.',
+  payment_paid: 'مدفوع',
+  payment_pending: 'في انتظار الدفع',
+  payment_refunded: 'مُسترد',
+  cancel_refund_full: 'سيُعاد المبلغ كاملاً إلى محفظتك.',
+  cancel_no_refund: 'الإلغاء خلال 12 ساعة من موعد المغادرة — لا يوجد استرداد.',
+  booking_pending_notice: 'تم تأكيد الحجز — تنشط الرحلة عند اكتمال الحد الأدنى من الركاب.',
+  boarded: 'صعدت على المتن!',
+  seats_need: 'تحتاج مزيداً من الركاب للتفعيل',
+  seats_confirmed: 'الرحلة مؤكدة — الصعود مضمون',
+  vehicle_hiace: 'هايس (14 مقعد)',
+  vehicle_minibus: 'ميني باص (28 مقعد)',
+  trip_cancelled_notice: 'تم إلغاء هذه الرحلة',
+  cairo_time: 'توقيت القاهرة',
 };
 
 export type LangKey = keyof typeof en;

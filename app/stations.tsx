@@ -12,22 +12,26 @@ import api from '@/src/api/client';
 interface StationItem {
   id: string;
   name: string;
+  nameAr: string | null;     // Arabic name (§3, §21.5)
   area: string;
   distance: string;
   eta: string;
   latitude?: number;
   longitude?: number;
+  segmentPrice?: number | null;
 }
 
 function mapApiStation(s: any): StationItem {
   return {
-    id: String(s.id ?? s._id ?? Math.random()),
-    name: s.name ?? s.stationName ?? s.station_name ?? '',
-    area: s.area ?? s.district ?? s.zone ?? '',
-    distance: s.distance ?? '—',
-    eta: s.eta ?? '—',
-    latitude: s.latitude ?? s.lat ?? undefined,
-    longitude: s.longitude ?? s.lng ?? s.lon ?? undefined,
+    id:           String(s.id ?? s._id ?? Math.random()),
+    name:         s.name         ?? s.stationName  ?? s.station_name ?? '',
+    nameAr:       s.nameAr       ?? s.name_ar      ?? null,
+    area:         s.area         ?? s.district      ?? s.zone ?? '',
+    distance:     s.distance     ?? '—',
+    eta:          s.eta          ?? '—',
+    latitude:     s.latitude     ?? s.lat           ?? undefined,
+    longitude:    s.longitude    ?? s.lng           ?? s.lon ?? undefined,
+    segmentPrice: s.segmentPrice ?? s.segment_price ?? null,
   };
 }
 
@@ -72,7 +76,8 @@ function makeStyles(c: ThemeColors) {
 export default function StationsScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routeId } = useLocalSearchParams<{ routeId?: string }>();
 
@@ -113,7 +118,12 @@ export default function StationsScreen() {
         <MapMockView
           stationMarkers={stations
             .filter((s) => s.latitude != null && s.longitude != null)
-            .map((s) => ({ id: s.id, name: s.name, latitude: s.latitude!, longitude: s.longitude! }))}
+            .map((s) => ({
+              id: s.id,
+              name: isAr ? (s.nameAr ?? s.name) : s.name,
+              latitude: s.latitude!,
+              longitude: s.longitude!,
+            }))}
           defaultCenter={{ latitude: 25.4456, longitude: 30.5480 }}
         />
         <View style={styles.mapOverlay}>
@@ -155,7 +165,10 @@ export default function StationsScreen() {
                 <Text style={styles.stationIndexText}>{(i + 1).toString().padStart(2, '0')}</Text>
               </View>
               <View style={styles.stationInfo}>
-                <Text style={styles.stationName}>{s.name}</Text>
+                {/* Show Arabic name when Arabic locale (§3, §21.5) */}
+                <Text style={styles.stationName}>
+                  {isAr ? (s.nameAr ?? s.name) : s.name}
+                </Text>
                 <Text style={styles.stationArea}>{s.area}</Text>
               </View>
             </View>

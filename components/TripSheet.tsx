@@ -16,54 +16,78 @@ import { useServiceControl } from '@/context/ServiceControlContext';
 import { calcSegmentPrice } from '@/constants/data';
 import { SectionLabel } from '@/components/Shared';
 
-type ShuttleStatus = 'open' | 'active' | 'cancelled';
+/**
+ * §21.2: statuses that mean the trip is ahead and accepting new bookings.
+ * Expanded from the old 'open'/'active' check to include all pre-departure states.
+ */
+const BOOKABLE_STATUSES = ['scheduled', 'waiting_driver', 'driver_assigned', 'open', 'active'];
+const ACTIVE_STATUSES   = ['active', 'driver_assigned', 'boarding'];
 
 function isTripBookable(trip: any): boolean {
-  const status: ShuttleStatus = trip?.shuttleStatus ?? trip?.status ?? '';
-  return (status === 'open' || status === 'active') && (trip?.availableSeats ?? 0) > 0;
+  const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
+  return BOOKABLE_STATUSES.includes(status) && (trip?.availableSeats ?? 0) > 0;
 }
 
 function shuttleStatusLabel(trip: any): string {
-  const status: ShuttleStatus = trip?.shuttleStatus ?? trip?.status ?? '';
+  const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
   switch (status) {
-    case 'open':      return 'Open';
-    case 'active':    return 'Active';
-    case 'cancelled': return 'Cancelled';
-    default:          return '';
+    case 'scheduled':       return 'Confirmed';
+    case 'waiting_driver':  return 'Searching driver';
+    case 'driver_assigned': return 'Driver assigned';
+    case 'open':            return 'Open';
+    case 'active':          return 'Active';
+    case 'boarding':        return 'Boarding';
+    case 'completed':       return 'Completed';
+    case 'cancelled':       return 'Cancelled';
+    default:                return status || 'Upcoming';
   }
 }
 
 function shuttleStatusColor(trip: any): string {
-  const status: ShuttleStatus = trip?.shuttleStatus ?? trip?.status ?? '';
+  const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
   switch (status) {
-    case 'open':      return '#d97706';
-    case 'active':    return '#16a34a';
-    case 'cancelled': return '#dc2626';
-    default:          return '#6b7280';
+    case 'scheduled':       return '#2563eb'; // blue — confirmed, waiting min pax
+    case 'waiting_driver':  return '#d97706'; // amber — searching
+    case 'driver_assigned': return '#059669'; // green — driver found
+    case 'open':            return '#d97706'; // amber
+    case 'active':          return '#16a34a'; // green — en route
+    case 'boarding':        return '#7c3aed'; // purple — boarding now
+    case 'cancelled':       return '#dc2626'; // red
+    default:                return '#6b7280'; // gray
   }
 }
 
+/** §21.9: Display departure times in Africa/Cairo timezone, not UTC */
 function formatTripTimeUTC(raw: string): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
-  return d.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-    hour12: false,
-  });
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Africa/Cairo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(d);
+  } catch {
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false });
+  }
 }
 
+/** §21.9: Display departure dates in Africa/Cairo timezone, not UTC */
 function formatTripDateUTC(raw: string): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Africa/Cairo',
+      month: 'short',
+      day: 'numeric',
+    }).format(d);
+  } catch {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  }
 }
 
 function makeStyles(c: ThemeColors, gs: object) {
@@ -297,7 +321,8 @@ export function TripSheet() {
     openRoute, walletBalance, seatCount, setSeatCount,
   } = useBooking();
   const { getService, handleServiceTap } = useServiceControl();
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c, gs), [c]);
 
   const shuttleSvc = getService('shuttle');
@@ -400,8 +425,14 @@ export function TripSheet() {
                 <Heart size={16} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.heroRouteName}>{route.name}</Text>
-            <Text style={styles.heroRoutePath}>{route.from} → {route.to}</Text>
+            <Text style={styles.heroRouteName}>
+              {isAr ? (route.nameAr ?? route.name) : route.name}
+            </Text>
+            <Text style={styles.heroRoutePath}>
+              {isAr ? (route.fromAr ?? route.from) : route.from}
+              {' → '}
+              {isAr ? (route.toAr ?? route.to) : route.to}
+            </Text>
 
             {/* Journey track visualization */}
             <View style={styles.journeyWrap}>
@@ -422,7 +453,7 @@ export function TripSheet() {
                             <View style={[styles.journeyNodeInner, isActive && styles.journeyNodeInnerActive]} />
                           </View>
                           <Text style={[styles.journeyLabel, isActive && styles.journeyLabelActive]} numberOfLines={2}>
-                            {s.name}
+                            {isAr ? (s.nameAr ?? s.name) : s.name}
                           </Text>
                         </TouchableOpacity>
                         {!isLast && (
@@ -508,9 +539,10 @@ export function TripSheet() {
                 const fillPct = totalSeats > 0 ? (bookedSeats / totalSeats) * 100 : 0;
                 const activationPct = minRequired > 0 ? Math.min(100, (bookedSeats / minRequired) * 100) : 100;
 
-                const barColor = trip.shuttleStatus === 'active'
+                const tripStatus = (trip.status ?? trip.shuttleStatus ?? '').toLowerCase();
+                const barColor = ACTIVE_STATUSES.includes(tripStatus)
                   ? '#16a34a'
-                  : trip.shuttleStatus === 'cancelled'
+                  : tripStatus === 'cancelled'
                   ? '#dc2626'
                   : '#d97706';
 
@@ -561,7 +593,7 @@ export function TripSheet() {
                         style={[
                           styles.progressBarFill,
                           {
-                            width: `${trip.shuttleStatus === 'open' ? activationPct : fillPct}%` as any,
+                            width: `${ACTIVE_STATUSES.includes(tripStatus) ? fillPct : activationPct}%` as any,
                             backgroundColor: active ? (c.isDark ? c.background : '#fff') : barColor,
                           },
                         ]}
@@ -613,8 +645,12 @@ export function TripSheet() {
                   {(['from', 'to'] as const).map((p) => {
                     const active = pick === p;
                     const stationName = p === 'from'
-                      ? (route.path[safeFrom]?.name ?? route.from)
-                      : (route.path[safeTo]?.name ?? route.to);
+                      ? (isAr
+                          ? (route.path[safeFrom]?.nameAr ?? route.path[safeFrom]?.name ?? route.fromAr ?? route.from)
+                          : (route.path[safeFrom]?.name ?? route.from))
+                      : (isAr
+                          ? (route.path[safeTo]?.nameAr ?? route.path[safeTo]?.name ?? route.toAr ?? route.to)
+                          : (route.path[safeTo]?.name ?? route.to));
                     return (
                       <TouchableOpacity key={p} style={[styles.pickTab, active && styles.pickTabActive]} onPress={() => setPick(p)} activeOpacity={0.8}>
                         <Text style={[styles.pickTabText, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]} numberOfLines={1}>
@@ -640,7 +676,9 @@ export function TripSheet() {
                         </View>
                         <View style={styles.timelineRight}>
                           <View style={styles.timelineTextRow}>
-                            <Text style={[styles.tlName, { color: inSegment ? c.ink : c.inkSoft }]}>{s.name}</Text>
+                            <Text style={[styles.tlName, { color: inSegment ? c.ink : c.inkSoft }]}>
+                            {isAr ? (s.nameAr ?? s.name) : s.name}
+                          </Text>
                             {(isFrom || isTo) && (
                               <View style={styles.tlBadge}>
                                 <Text style={styles.tlBadgeText}>{isFrom ? t('from') : t('to')}</Text>
@@ -691,7 +729,13 @@ export function TripSheet() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.priceSegLabel}>
-                {route.path[safeFrom]?.name ?? route.from} → {route.path[safeTo]?.name ?? route.to}
+                {isAr
+                  ? (route.path[safeFrom]?.nameAr ?? route.path[safeFrom]?.name ?? route.fromAr ?? route.from)
+                  : (route.path[safeFrom]?.name ?? route.from)}
+                {' → '}
+                {isAr
+                  ? (route.path[safeTo]?.nameAr ?? route.path[safeTo]?.name ?? route.toAr ?? route.to)
+                  : (route.path[safeTo]?.name ?? route.to)}
                 {seatCount > 1 ? ` · ${seatCount} ${t('seat_count')}` : ''}
               </Text>
               <Text style={styles.priceTotal}>{total} {t('egp')}</Text>

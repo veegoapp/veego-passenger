@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bus, Car, Bike, Package, Bell, Search, MapPin, ArrowRight, Navigation, Flame, Wrench } from 'lucide-react-native';
+import { Bus, Car, Bike, Package, Bell, Search, MapPin, ArrowRight, Navigation, Flame, Wrench, AlertCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -17,6 +17,7 @@ import { useTabBar } from '@/context/TabBarContext';
 import { CarMap } from '@/components/car/CarMap';
 import { BikeMap } from '@/components/bike/BikeMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
+import { useMyDebt } from '@/src/hooks/useMyDebt';
 import api from '@/src/api/client';
 
 type ServiceMode = 'shuttle' | 'car' | 'scooter';
@@ -121,6 +122,8 @@ export default function HomeScreen() {
   const { routes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
+  // §21.7: Check for outstanding debt on mount; show banner if hasDebt === true
+  const { debt } = useMyDebt();
 
   const [pickupLocation, setPickupLocation] = useState('Current Location');
   const [destinationLocation, setDestinationLocation] = useState('');
@@ -287,6 +290,32 @@ export default function HomeScreen() {
               );
             })}
           </View>
+
+          {/* §21.7: Outstanding debt banner — shown above everything when hasDebt is true */}
+          {debt?.hasDebt && (
+            <View style={{
+              marginHorizontal: 20,
+              marginBottom: 8,
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 10,
+              backgroundColor: c.isDark ? 'rgba(220,38,38,0.15)' : 'rgba(220,38,38,0.08)',
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: c.isDark ? 'rgba(220,38,38,0.35)' : 'rgba(220,38,38,0.25)',
+              padding: 12,
+            }}>
+              <AlertCircle size={16} color="#dc2626" style={{ marginTop: 1 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#dc2626', marginBottom: 2 }}>
+                  {t('debt_banner_title')}
+                </Text>
+                <Text style={{ fontSize: 12, color: c.isDark ? 'rgba(220,38,38,0.8)' : '#7f1d1d', lineHeight: 17 }}>
+                  {t('debt_banner_body')}
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Shuttle search */}
           {mode === 'shuttle' && (

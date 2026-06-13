@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
-import type { Booking, Route } from '@/constants/data';
+import type { Booking, Route, ShuttleBookingMeta } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
@@ -14,6 +14,10 @@ type BookingContextType = {
   activeBooking: Booking | null;
   confirmedBookingId: string | null;
   confirmedTripId: number | null;
+  /** 'pending' when trip hasn't reached minRequired yet; 'confirmed' otherwise (§21.1) */
+  confirmedBookingStatus: string | undefined;
+  /** Real-time seat metadata returned by POST /bookings (§2.10) */
+  shuttleInfo: ShuttleBookingMeta | null;
   routeLoading: boolean;
   tripsLoading: boolean;
   scheduledTrips: any[];
@@ -43,6 +47,8 @@ const BookingContext = createContext<BookingContextType>({
   activeBooking: null,
   confirmedBookingId: null,
   confirmedTripId: null,
+  confirmedBookingStatus: undefined,
+  shuttleInfo: null,
   routeLoading: false,
   tripsLoading: false,
   scheduledTrips: [],
@@ -69,11 +75,17 @@ function mapStations(rawStations: any[]): Route['path'] {
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((s) => ({
-      id: String(s.id ?? s._id ?? Math.random()),
-      name: s.name ?? s.stationName ?? s.station_name ?? '',
-      area: s.area ?? s.district ?? '',
-      distance: s.distance ?? '—',
-      eta: s.eta ?? '—',
+      id:           String(s.id ?? s._id ?? Math.random()),
+      name:         s.name         ?? s.stationName  ?? s.station_name ?? '',
+      nameAr:       s.nameAr       ?? s.name_ar      ?? null,   // §3, §21.5
+      area:         s.area         ?? s.district      ?? '',
+      distance:     s.distance     ?? '—',
+      eta:          s.eta          ?? '—',
+      latitude:     s.latitude     ?? s.lat           ?? undefined,
+      longitude:    s.longitude    ?? s.lng           ?? undefined,
+      order:        s.order        ?? undefined,
+      direction:    s.direction    ?? undefined,
+      segmentPrice: s.segmentPrice ?? s.segment_price ?? null,   // §21.6
     }));
 }
 
@@ -117,6 +129,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [seatCount, setSeatCount] = useState<number>(1);
+  const [confirmedBookingStatus, setConfirmedBookingStatus] = useState<string | undefined>(undefined);
+  const [shuttleInfo, setShuttleInfo] = useState<ShuttleBookingMeta | null>(null);
 
   // Refresh trips for a line after booking/cancel
   const refreshLineTrips = useCallback(async (routeId: string) => {
@@ -284,6 +298,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (bookingId) {
         setConfirmedBookingId(String(bookingId));
         setConfirmedTripId(Number(tripId));
+        // Capture booking status (§21.1) and shuttle metadata block (§2.10)
+        setConfirmedBookingStatus(data?.status ?? undefined);
+        if (data?.shuttle && typeof data.shuttle === 'object') {
+          setShuttleInfo(data.shuttle as ShuttleBookingMeta);
+        }
         bookingSuccess = true;
 
         // Refresh trip data immediately after booking
@@ -357,6 +376,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         activeBooking,
         confirmedBookingId,
         confirmedTripId,
+        confirmedBookingStatus,
+        shuttleInfo,
         routeLoading,
         tripsLoading,
         scheduledTrips,

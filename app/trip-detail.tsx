@@ -10,7 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { shuttleStatusLabel } from '@/constants/data';
+import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
+import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
 import api from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
@@ -43,22 +44,13 @@ interface DriverLocation {
   heading?: number;
 }
 
-function formatDateTimeUTC(raw: string): { date: string; time: string } {
-  if (!raw) return { date: '—', time: '—' };
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return { date: raw, time: '—' };
-  return {
-    date: d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }),
-    time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }),
-  };
-}
-
 function mapApiToDetail(b: any): TripDetail {
   const trip = b.trip ?? {};
   const route = trip.route ?? trip.shuttleLine ?? trip.line ?? {};
   const departureIso =
     trip.departureTime ?? trip.departure_time ?? b.scheduledAt ?? b.scheduled_at ?? '';
-  const { date, time } = formatDateTimeUTC(departureIso);
+  // §21.9: display in Africa/Cairo, not UTC
+  const { date, time } = formatCairoDateTime(departureIso);
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
   return {
     id: trip.id ?? trip._id ?? b.id ?? b._id ?? '',
@@ -156,16 +148,17 @@ export default function TripDetailScreen() {
     try {
       let detail: TripDetail | null = null;
 
-      // Try dedicated endpoint first
-      const single = await api.get(`/shuttle/trips/${id}`).catch(() => null);
+      // §11.2: GET /bookings/:id — single booking with embedded trip data
+      const single = await api.get(`/bookings/${id}`).catch(() => null);
       if (single?.data) {
         const raw = single.data?.data ?? single.data;
-        detail = mapApiToDetail(Array.isArray(raw) ? raw[0] : raw);
+        const mapped = mapApiToDetail(Array.isArray(raw) ? raw[0] : raw);
+        if (mapped.routeName && mapped.routeName !== '—') detail = mapped;
       }
 
-      // Fallback: search through my-trips list
+      // Fallback: §11.5: GET /users/me/bookings — replaces deprecated /shuttle/my-trips
       if (!detail || !detail.routeName || detail.routeName === '—') {
-        const listRes = await api.get('/shuttle/my-trips', { params: { page: 1, limit: 50 } }).catch(() => null);
+        const listRes = await api.get('/users/me/bookings', { params: { page: 1, limit: 50 } }).catch(() => null);
         if (listRes?.data) {
           const d = listRes.data;
           const items: any[] = Array.isArray(d) ? d : d.trips ?? d.bookings ?? d.data ?? [];
@@ -284,20 +277,25 @@ export default function TripDetailScreen() {
     return trip.passengerCount < trip.minPassengers;
   }, [trip, effectiveStatus]);
 
-  const isWithin10Hours = (departureIso: string): boolean => {
+  /**
+   * §21.3 + §11.4: 12-hour refund window for passenger self-cancel.
+   * >12h before departure → full refund; ≤12h → no refund.
+   * Note: server is authoritative; client check is for UX pre-warning only.
+   */
+  const isWithin12Hours = (departureIso: string): boolean => {
     if (!departureIso) return false;
     const dep = new Date(departureIso).getTime();
     if (isNaN(dep)) return false;
-    return dep - Date.now() < 10 * 60 * 60 * 1000;
+    return dep - Date.now() < 12 * 60 * 60 * 1000;
   };
 
   const handleCancelPress = () => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const within10h = isWithin10Hours(trip?.departureIso ?? '');
+    const within12h = isWithin12Hours(trip?.departureIso ?? '');
     if (Platform.OS !== 'web') {
       Alert.alert(
         t('cancel_warning_title'),
-        within10h ? t('cancel_warning_10h') : t('cancel_warning_free'),
+        within12h ? t('cancel_no_refund') : t('cancel_refund_full'),
         [
           { text: t('cancel_keep'), style: 'cancel' },
           { text: t('cancel_confirm'), style: 'destructive', onPress: doCancel },
@@ -312,9 +310,23 @@ export default function TripDetailScreen() {
     if (!id) return;
     setCancellingId(String(id));
     try {
-      await api.patch(`/bookings/${id}/cancel`);
-      router.back();
-    } catch {
+      // §11.4, §21.3: DELETE /shuttle/bookings/:id — preferred self-cancel with 12h refund policy
+      // Replaces deprecated PATCH /bookings/:id/cancel
+      const result = await cancelBooking(id);
+      if (result?.refunded === false) {
+        Alert.alert(
+          isAr ? 'تم الإلغاء' : 'Booking Cancelled',
+          t('cancel_no_refund'),
+          [{ text: t('confirm'), onPress: () => router.back() }],
+        );
+      } else {
+        router.back();
+      }
+    } catch (e: any) {
+      Alert.alert(
+        t('error'),
+        e?.response?.data?.message ?? e?.message ?? (isAr ? 'تعذر إلغاء الحجز' : 'Could not cancel booking'),
+      );
     } finally {
       setCancellingId(null);
       setShowCancelModal(false);

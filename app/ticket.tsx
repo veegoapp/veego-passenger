@@ -246,8 +246,9 @@ function makeStyles(c: ThemeColors) {
 export default function TicketScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const { activeBooking, confirmedBookingId, confirmedTripId } = useBooking();
-  const { colors: c, t } = useTheme();
+  const { activeBooking, confirmedBookingId, confirmedTripId, confirmedBookingStatus, shuttleInfo } = useBooking();
+  const { colors: c, t, language } = useTheme();
+  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const [boarded, setBoarded] = useState(false);
@@ -387,6 +388,30 @@ export default function TicketScreen() {
           <Text style={styles.bookingId}>{bookingId}</Text>
         </View>
 
+        {/* §21.1: Pending notice — shown when trip hasn't reached minRequired yet */}
+        {confirmedBookingStatus === 'pending' && (
+          <View style={{
+            marginHorizontal: 20,
+            marginBottom: 12,
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 10,
+            backgroundColor: 'rgba(245,158,11,0.1)',
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: 'rgba(245,158,11,0.3)',
+            padding: 12,
+          }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#f59e0b', marginTop: 5 }} />
+            <Text style={{ flex: 1, fontSize: 12.5, color: '#92400e', lineHeight: 18 }}>
+              {t('booking_pending_notice')}
+              {shuttleInfo?.minRequired != null && shuttleInfo.bookedSeats != null
+                ? `  (${shuttleInfo.bookedSeats}/${shuttleInfo.minRequired})`
+                : ''}
+            </Text>
+          </View>
+        )}
+
         {/* Boarded banner */}
         {boarded && (
           <Animated.View style={[styles.boardedBanner, { transform: [{ scale: boardedAnim }] }]}>
@@ -400,14 +425,22 @@ export default function TicketScreen() {
           <View style={styles.trackingCard}>
             <View style={styles.trackingHeader}>
               <MapPin size={14} color={c.ink} />
-              <Text style={styles.trackingTitle}>Live Update (UTC)</Text>
+              <Text style={styles.trackingTitle}>{t('cairo_time')}</Text>
             </View>
             <Text style={styles.trackingStation}>{latestTracking.stationName}</Text>
             <Text style={styles.trackingSub}>
-              Status: {latestTracking.status} ·{' '}
-              {new Date(latestTracking.arrivedAt).toLocaleTimeString('en-US', {
-                hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false,
-              })} UTC
+              {latestTracking.status} ·{' '}
+              {(() => {
+                try {
+                  return new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false,
+                  }).format(new Date(latestTracking.arrivedAt));
+                } catch {
+                  return new Date(latestTracking.arrivedAt).toLocaleTimeString('en-US', {
+                    hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false,
+                  });
+                }
+              })()}
             </Text>
           </View>
         )}
@@ -429,22 +462,28 @@ export default function TicketScreen() {
               <Text style={styles.ticketTripBadgeText}>{t('line')} {booking.route.code}</Text>
             </View>
 
-            {/* Route name */}
-            <Text style={styles.ticketRouteName}>{booking.route.name}</Text>
+            {/* Route name — Arabic when locale is Arabic (§3) */}
+            <Text style={styles.ticketRouteName}>
+              {isAr ? (booking.route.nameAr ?? booking.route.name) : booking.route.name}
+            </Text>
 
             {/* From → To */}
             <View style={styles.ticketRouteRow}>
               <View style={styles.ticketStation}>
                 <View style={[styles.ticketStationDot, { backgroundColor: '#ffffff' }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>
-                  {booking.route.path[booking.fromIdx]?.name}
+                  {isAr
+                    ? (booking.route.path[booking.fromIdx]?.nameAr ?? booking.route.path[booking.fromIdx]?.name)
+                    : booking.route.path[booking.fromIdx]?.name}
                 </Text>
               </View>
               <ArrowRight size={12} color="rgba(255,255,255,0.45)" />
               <View style={styles.ticketStation}>
                 <View style={[styles.ticketStationDot, { backgroundColor: c.accentMint }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>
-                  {booking.route.path[booking.toIdx]?.name}
+                  {isAr
+                    ? (booking.route.path[booking.toIdx]?.nameAr ?? booking.route.path[booking.toIdx]?.name)
+                    : booking.route.path[booking.toIdx]?.name}
                 </Text>
               </View>
             </View>
