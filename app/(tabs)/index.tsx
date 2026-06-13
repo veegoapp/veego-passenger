@@ -95,7 +95,7 @@ function makeStyles(c: ThemeColors) {
     stickySearch: { paddingHorizontal: 20, marginBottom: 10 },
     searchBar: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 20, paddingHorizontal: 16, gap: 10 },
     searchPlaceholder: { flex: 1, fontSize: 13.5, color: c.inkSoft },
-    searchDivider: { width: 1, height: 16, backgroundColor: c.border },
+    searchDivider: { width: 1, height: 16, backgroundColor: c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' },
 
     mapSearchBox: {
       marginHorizontal: 20,
@@ -104,7 +104,7 @@ function makeStyles(c: ThemeColors) {
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: 16,
-      backgroundColor: c.white,
+      backgroundColor: c.isDark ? c.white : c.mist,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: c.isDark ? 0.3 : 0.08,

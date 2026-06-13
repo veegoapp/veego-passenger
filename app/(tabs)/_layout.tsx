@@ -106,7 +106,9 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
             style={[
               styles.activePill,
               {
-                backgroundColor: c.ink,
+                // Dark mode: solid ink pill with light icon
+                // Light mode: subtle tinted pill with dark icon (avoids white-on-white)
+                backgroundColor: c.isDark ? c.ink : 'rgba(15,23,42,0.09)',
                 left: pillX,
                 width: pillW,
                 pointerEvents: 'none' as any,
@@ -118,15 +120,18 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
           const active = state.index === i;
           const isWallet = item.name === 'wallet';
           const isDisabledWallet = isWallet && walletUnavailable;
+          // Light mode: always use dark ink so icon stays visible whether or not
+          // the animated pill has finished measuring (prevents white-on-white flash
+          // during RTL reset when pillReady is temporarily false).
           const iconColor = isDisabledWallet
             ? c.silver
             : active
-              ? (c.isDark ? c.background : c.white)
+              ? (c.isDark ? c.background : '#0F172A')
               : c.inkSoft;
           const labelColor = isDisabledWallet
             ? c.silver
             : active
-              ? (c.isDark ? c.background : c.white)
+              ? (c.isDark ? c.background : '#0F172A')
               : c.inkSoft;
           return (
             <TouchableOpacity
