@@ -33,6 +33,13 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
   const pillW = useRef(new Animated.Value(0)).current;
   const [pillReady, setPillReady] = useState(false);
 
+  // ── Label cross-fade on language switch ───────────────────────────────────
+  // Shared opacity for all tab icon+label pairs. On language change:
+  //   1. Fade out quickly (100 ms) — old labels disappear
+  //   2. Fade back in (180 ms) — new labels appear
+  // The pill is NOT faded; it keeps moving so the two animations feel layered.
+  const labelOpacity = useRef(new Animated.Value(1)).current;
+
   // ── Generation counter ────────────────────────────────────────────────────
   // Each language switch triggers an RTL/LTR reflow that changes every tab's
   // x-offset. We increment layoutGen so handleLayout can tell whether the
@@ -43,9 +50,12 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
 
   useEffect(() => {
     layoutGen.current += 1;
-    // Don't touch pillReady or the measurement arrays here — the pill stays
-    // rendered at its last known position while onLayout re-fires.
-  }, [language]);
+    // Fade labels out, let the RTL reflow + new text land, then fade in.
+    Animated.sequence([
+      Animated.timing(labelOpacity, { toValue: 0, duration: 100, useNativeDriver: true }),
+      Animated.timing(labelOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+    ]).start();
+  }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Tab-navigation: animate pill whenever the active index changes ────────
   useEffect(() => {
@@ -152,18 +162,22 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
                 handleLayout(i, x, width);
               }}
             >
-              <View style={{ position: 'relative' }}>
-                <item.icon size={17} color={iconColor} style={{ zIndex: 2 }} />
-                {isDisabledWallet && (
-                  <View style={styles.comingSoonDot} />
-                )}
-              </View>
-              <Text
-                style={[styles.navLabel, { color: labelColor, zIndex: 2 }]}
-                numberOfLines={1}
-              >
-                {t(item.labelKey)}
-              </Text>
+              {/* labelOpacity fades icon+label together on language switch.
+                  The pill sits outside this view so it stays fully opaque. */}
+              <Animated.View style={[styles.navItemContent, { opacity: labelOpacity }]}>
+                <View style={{ position: 'relative' }}>
+                  <item.icon size={17} color={iconColor} style={{ zIndex: 2 }} />
+                  {isDisabledWallet && (
+                    <View style={styles.comingSoonDot} />
+                  )}
+                </View>
+                <Text
+                  style={[styles.navLabel, { color: labelColor, zIndex: 2 }]}
+                  numberOfLines={1}
+                >
+                  {t(item.labelKey)}
+                </Text>
+              </Animated.View>
               {isDisabledWallet && (
                 <View style={styles.comingSoonBadge}>
                   <Text style={styles.comingSoonBadgeText}>{t('soon')}</Text>
@@ -215,6 +229,9 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: 'center', justifyContent: 'center',
     flexDirection: 'column',
     paddingVertical: 8, borderRadius: 24, gap: 2, zIndex: 2,
+  },
+  navItemContent: {
+    alignItems: 'center', justifyContent: 'center', gap: 2,
   },
   activePill: {
     position: 'absolute', top: 6, bottom: 6, borderRadius: 24, zIndex: 1,
