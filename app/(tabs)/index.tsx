@@ -211,7 +211,7 @@ export default function HomeScreen() {
                 <Bell size={18} color={c.ink} />
                 <View style={styles.notifDot} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.avatar}>
+              <TouchableOpacity style={styles.avatar} onPress={() => router.push('/(tabs)/profile')}>
                 <Text style={styles.avatarText}>VG</Text>
               </TouchableOpacity>
             </View>

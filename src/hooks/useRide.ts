@@ -121,6 +121,8 @@ export function useRide(): UseRideResult {
         s.off('ride:started');
         s.off('ride:completed');
         s.off('ride:cancelled');
+        s.off('ride:driver_cancelled');
+        s.off('ride:no_show_cancelled');
         s.off('ride:timeout');
         s.off('ride:status_update');
         s.off('ride:waiting:charge:started');
@@ -177,6 +179,26 @@ export function useRide(): UseRideResult {
       socket.on('ride:cancelled', (data: any) => {
         if (data.rideId !== rideId) return;
         setRideState((prev) => ({ ...prev, status: 'cancelled', cancelReason: data.reason ?? null }));
+        cleanup();
+      });
+
+      socket.on('ride:driver_cancelled', (data: any) => {
+        if (data.rideId && data.rideId !== rideId) return;
+        setRideState((prev) => ({
+          ...prev,
+          status: 'cancelled',
+          cancelReason: data.reason ?? 'Driver cancelled your ride',
+        }));
+        cleanup();
+      });
+
+      socket.on('ride:no_show_cancelled', (data: any) => {
+        if (data.rideId && data.rideId !== rideId) return;
+        setRideState((prev) => ({
+          ...prev,
+          status: 'cancelled',
+          cancelReason: data.reason ?? 'Ride cancelled: driver did not arrive in time',
+        }));
         cleanup();
       });
 

@@ -138,7 +138,7 @@ export function useTrips(): UseTripsResult {
 
       // Rides (car/scooter) — only on first page
       const ridesRes = pageNum === 1
-        ? await api.get('/rides').catch(() => ({ data: [] }))
+        ? await api.get('/rides/my').catch(() => ({ data: [] }))
         : { data: [] };
       const rides: any[] = Array.isArray(ridesRes.data)
         ? ridesRes.data

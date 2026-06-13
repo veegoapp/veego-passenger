@@ -347,6 +347,7 @@ export function TripSheet() {
       setToIdx(selectedRoute.path.length - 1);
       setTimeIdx(0);
       setPick('from');
+      setSeatCount(1);
     }
   }, [selectedRoute?.id, selectedRoute?.path.length]);
 
@@ -421,7 +422,13 @@ export function TripSheet() {
               <View style={styles.heroCodeBox}>
                 <Text style={styles.heroCodeText}>{route.code}</Text>
               </View>
-              <TouchableOpacity style={styles.heroFavBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.heroFavBtn}
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              >
                 <Heart size={16} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             </View>

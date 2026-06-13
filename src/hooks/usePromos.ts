@@ -59,7 +59,7 @@ export function usePromos(): UsePromosResult {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    api.get('/promo')
+    api.get('/promo/available')
       .then(({ data }) => {
         if (cancelled) return;
         const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];

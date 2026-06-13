@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useWallet } from '@/src/hooks/useWallet';
-import { useDebt } from '@/src/hooks/useDebt';
+import { useMyDebt } from '@/src/hooks/useMyDebt';
 
 const CHARGE_OPTIONS = [50, 100, 200, 500];
 
@@ -86,7 +86,7 @@ export default function WalletScreen() {
   const isAr = language === 'ar';
 
   const { balance, spent, transactions, recharge } = useWallet();
-  const { debt } = useDebt();
+  const { debt } = useMyDebt();
 
   const handleConfirmCharge = async () => {
     if (!selectedCharge) return;
@@ -120,7 +120,7 @@ export default function WalletScreen() {
             <View style={styles.balanceGlow} />
             <Text style={styles.balanceLabel}>{t('wallet_balance_label')}</Text>
             <View style={styles.balanceRow}>
-              <Text style={styles.balanceAmount}>{balance}</Text>
+              <Text style={[styles.balanceAmount, balance < 0 && { color: '#f87171' }]}>{balance}</Text>
               <Text style={styles.balanceCurrency}>{t('egp')}</Text>
             </View>
             <View style={styles.balanceStats}>

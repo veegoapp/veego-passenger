@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
-import { tokenStore } from './client';
+import { tokenStore, registerSocketReconnect } from './client';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
@@ -68,6 +68,9 @@ export async function reconnectSocket(): Promise<void> {
   await getSocket();
 }
 
+// Register reconnect hook with client.ts so it fires on every token refresh
+registerSocketReconnect(reconnectSocket);
+
 export type RideStatus =
   | 'searching'
   | 'driver_assigned'
@@ -90,6 +93,8 @@ export interface RideSocketEvents {
   'ride:started': (data: { rideId: string }) => void;
   'ride:completed': (data: { rideId: string; fare: number }) => void;
   'ride:cancelled': (data: { rideId: string; reason: string }) => void;
+  'ride:driver_cancelled': (data: { rideId?: string; reason?: string }) => void;
+  'ride:no_show_cancelled': (data: { rideId?: string; reason?: string }) => void;
   'ride:timeout': (data: { rideId: string }) => void;
   'notification:new': (data: { id: string; type: string; title: string; body: string; createdAt: string }) => void;
   'booking:boarded': (data: { bookingId: string; passengerId?: string; timestamp: string }) => void;

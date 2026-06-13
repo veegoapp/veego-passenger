@@ -47,6 +47,11 @@ async function removeToken(key: string): Promise<void> {
 
 export const tokenStore = { getToken, setToken, removeToken, TOKEN_KEY, REFRESH_KEY };
 
+let _socketReconnect: (() => Promise<void>) | null = null;
+export function registerSocketReconnect(fn: () => Promise<void>): void {
+  _socketReconnect = fn;
+}
+
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 12000,
@@ -99,6 +104,7 @@ api.interceptors.response.use(
         await setToken(TOKEN_KEY, newAccessToken);
         refreshQueue.forEach((cb) => cb(newAccessToken));
         refreshQueue = [];
+        if (_socketReconnect) { _socketReconnect().catch(() => {}); }
         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch {

@@ -47,8 +47,8 @@ export function useFavoriteDestinations(): UseFavoriteDestinationsResult {
     try {
       // Combine all booking sources to derive frequent routes
       const [bookingsRes, ridesRes] = await Promise.allSettled([
-        api.get('/bookings'),
-        api.get('/rides'),
+        api.get('/users/me/bookings'),
+        api.get('/rides/my'),
       ]);
 
       const bookings: any[] =

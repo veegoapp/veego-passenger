@@ -140,6 +140,7 @@ export function useProfileInfo() {
     name: profile.name || 'User',
     email: profile.email || '',
     dob: profile.dob || '',
+    phone: profile.phone || '',
     loaded: !loading,
     saveProfile,
   };
@@ -148,7 +149,7 @@ export function useProfileInfo() {
 function PersonalInfoModal({ visible, onClose, onSaved }: { visible: boolean; onClose: () => void; onSaved?: (name: string) => void }) {
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const { name: savedName, email: savedEmail, dob: savedDob, saveProfile } = useProfileInfo();
+  const { name: savedName, email: savedEmail, dob: savedDob, phone: savedPhone, saveProfile } = useProfileInfo();
   const [name, setName] = useState(savedName);
   const [email, setEmail] = useState(savedEmail);
   const [dob, setDob] = useState(savedDob);
@@ -161,7 +162,7 @@ function PersonalInfoModal({ visible, onClose, onSaved }: { visible: boolean; on
       setDob(savedDob);
       setSaved(false);
     }
-  }, [visible, savedName, savedEmail, savedDob]);
+  }, [visible, savedName, savedEmail, savedDob, savedPhone]);
 
   const handleSave = async () => {
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -183,7 +184,7 @@ function PersonalInfoModal({ visible, onClose, onSaved }: { visible: boolean; on
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t('phone')}</Text>
-              <TextInput style={[styles.input, { color: c.inkSoft }]} value="+20 100 000 0000" editable={false} />
+              <TextInput style={[styles.input, { color: c.inkSoft }]} value={savedPhone || '—'} editable={false} />
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t('email_address')}</Text>
