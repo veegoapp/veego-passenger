@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Activit
 import { LinearGradient } from 'expo-linear-gradient';
 import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { RouteCard } from '@/components/RouteCard';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -22,21 +21,12 @@ function makeStyles(c: ThemeColors) {
     headerSub: { fontSize: 12, color: c.inkSoft, marginTop: 2 },
     iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 
-    // ستايل بار البحث الجديد المتناسق مع الهوم
     searchContainer: {
       flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 23,
-      paddingHorizontal: 16, marginBottom: 16, borderWidth: 1
+      paddingHorizontal: 16, marginBottom: 0, borderWidth: 1
     },
     searchInput: { flex: 1, fontSize: 14, fontWeight: '500', paddingVertical: 0, marginStart: 8 },
-
-    filterScroll: { flexGrow: 0, marginBottom: 16 },
-    filterChip: { height: 38, paddingHorizontal: 16, borderRadius: 99, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-    filterChipActive: { backgroundColor: c.ink, borderColor: c.ink },
-    filterChipInactive: { backgroundColor: c.white, borderColor: c.border },
-    filterText: { fontSize: 13, fontWeight: '500' },
-    filterTextActive: { color: c.isDark ? c.background : c.white },
-    filterTextInactive: { color: c.inkSoft },
-    list: { paddingHorizontal: 20, gap: 12 },
+    list: { paddingHorizontal: 20, paddingTop: 16, gap: 12 },
     loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12, paddingTop: 40 },
     emptyIcon: { width: 72, height: 72, borderRadius: 28, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
@@ -48,8 +38,7 @@ function makeStyles(c: ThemeColors) {
 export default function RoutesScreen() {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? 60 : insets.top;
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState(''); // ستيت البحث الجديد
+  const [searchQuery, setSearchQuery] = useState('');
   const { openRoute } = useBooking();
   const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
@@ -57,38 +46,24 @@ export default function RoutesScreen() {
 
   const { routes, loading, error, refresh } = useRoutes();
 
-  const routeCodes = ['all', ...Array.from(new Set(routes.map((r) => r.code)))];
-
-  // فلترة حقيقية مركبة: بتفلتر بناءً على الكود المختار + نص البحث الحقيقي (لايف من السيرفر)
   const filtered = useMemo(() => {
-    let result = routes;
-
-    // 1. الفلترة بالـ Chip
-    if (activeFilter !== 'all') {
-      result = result.filter((r) => r.code === activeFilter);
-    }
-
-    // 2. الفلترة بمربع البحث (اسم الخط أو المحطات داخله) — بيدور في العربي والإنجليزي
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((route) => {
-        const matchName = route.name?.toLowerCase().includes(query)
-          || (isAr && route.nameAr?.toLowerCase().includes(query));
-        const matchCode = route.code?.toLowerCase().includes(query);
-        const matchFrom = route.from?.toLowerCase().includes(query)
-          || (isAr && route.fromAr?.toLowerCase().includes(query));
-        const matchTo = route.to?.toLowerCase().includes(query)
-          || (isAr && route.toAr?.toLowerCase().includes(query));
-        const matchStation = route.path?.some((station: any) =>
-          station.name?.toLowerCase().includes(query)
-          || (isAr && station.nameAr?.toLowerCase().includes(query))
-        );
-        return matchName || matchCode || matchFrom || matchTo || matchStation;
-      });
-    }
-
-    return result;
-  }, [routes, activeFilter, searchQuery, isAr]);
+    if (!searchQuery.trim()) return routes;
+    const query = searchQuery.toLowerCase();
+    return routes.filter((route) => {
+      const matchName = route.name?.toLowerCase().includes(query)
+        || (isAr && route.nameAr?.toLowerCase().includes(query));
+      const matchCode = route.code?.toLowerCase().includes(query);
+      const matchFrom = route.from?.toLowerCase().includes(query)
+        || (isAr && route.fromAr?.toLowerCase().includes(query));
+      const matchTo = route.to?.toLowerCase().includes(query)
+        || (isAr && route.toAr?.toLowerCase().includes(query));
+      const matchStation = route.path?.some((station: any) =>
+        station.name?.toLowerCase().includes(query)
+        || (isAr && station.nameAr?.toLowerCase().includes(query))
+      );
+      return matchName || matchCode || matchFrom || matchTo || matchStation;
+    });
+  }, [routes, searchQuery, isAr]);
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
@@ -122,32 +97,6 @@ export default function RoutesScreen() {
           )}
         </View>
       </View>
-
-      {routes.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
-        >
-          {routeCodes.map((code) => {
-            const active = activeFilter === code;
-            const label = code === 'all' ? t('all_lines') : code;
-            return (
-              <TouchableOpacity
-                key={code}
-                style={[styles.filterChip, active ? styles.filterChipActive : styles.filterChipInactive]}
-                onPress={() => { setActiveFilter(code); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.filterText, active ? styles.filterTextActive : styles.filterTextInactive]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
 
       {loading ? (
         <View style={styles.loadingWrap}>
