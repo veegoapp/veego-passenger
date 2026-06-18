@@ -14,6 +14,27 @@ export interface WalletFeature {
   unavailableMessage: string;
 }
 
+export interface PaymentMethod {
+  id?: number;
+  key: string;
+  name: string;
+  nameAr: string;
+  description?: string | null;
+  descriptionAr?: string | null;
+  icon?: string | null;
+  isEnabled: boolean;
+  processingTime?: string | null;
+  processingTimeAr?: string | null;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  feeType?: string | null;
+  feeValue?: number | null;
+  instructions?: string | null;
+  requiresAccountDetails?: boolean;
+  accountFields?: any | null;
+}
+
+/** @deprecated Use PaymentMethod[] from paymentMethods instead */
 export interface PaymentMethods {
   cash: boolean;
   wallet: boolean;
@@ -26,27 +47,23 @@ const DEFAULT_WALLET_FEATURE: WalletFeature = {
   unavailableMessage: 'Wallet is coming soon',
 };
 
-const DEFAULT_PAYMENT_METHODS: PaymentMethods = {
-  cash: true,
-  wallet: false,
-  card: false,
-};
+const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [];
 
 type PaymentConfigContextType = {
   walletFeature: WalletFeature;
-  paymentMethods: PaymentMethods;
+  paymentMethods: PaymentMethod[];
   isLoading: boolean;
 };
 
 const PaymentConfigContext = createContext<PaymentConfigContextType>({
   walletFeature: DEFAULT_WALLET_FEATURE,
-  paymentMethods: DEFAULT_PAYMENT_METHODS,
+  paymentMethods: [],
   isLoading: false,
 });
 
 export function PaymentConfigProvider({ children }: { children: React.ReactNode }) {
   const [walletFeature, setWalletFeature] = useState<WalletFeature>(DEFAULT_WALLET_FEATURE);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethods>(DEFAULT_PAYMENT_METHODS);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS);
   const [isLoading, setIsLoading] = useState(false);
 
   const isMounted = useRef(true);
@@ -74,12 +91,8 @@ export function PaymentConfigProvider({ children }: { children: React.ReactNode 
 
       if (pmRes.status === 'fulfilled' && isMounted.current) {
         const d = pmRes.value.data?.data ?? pmRes.value.data;
-        if (d && typeof d === 'object') {
-          setPaymentMethods({
-            cash:   typeof d.cash   === 'boolean' ? d.cash   : true,
-            wallet: typeof d.wallet === 'boolean' ? d.wallet : false,
-            card:   typeof d.card   === 'boolean' ? d.card   : false,
-          });
+        if (Array.isArray(d)) {
+          setPaymentMethods(d as PaymentMethod[]);
         }
       }
     } catch {
@@ -104,11 +117,9 @@ export function PaymentConfigProvider({ children }: { children: React.ReactNode 
 
       sock.on(SOCKET_EVENTS.PAYMENT_METHODS_CHANGED, (data: any) => {
         if (!isMounted.current) return;
-        setPaymentMethods({
-          cash:   typeof data.cash   === 'boolean' ? data.cash   : false,
-          wallet: typeof data.wallet === 'boolean' ? data.wallet : false,
-          card:   typeof data.card   === 'boolean' ? data.card   : false,
-        });
+        if (Array.isArray(data)) {
+          setPaymentMethods(data as PaymentMethod[]);
+        }
       });
     }).catch(() => {});
   }

@@ -4,7 +4,7 @@ import {
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Lock, ChevronRight, ChevronLeft, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Trash2, Eye, EyeOff, KeyRound } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Lock, ChevronRight, ChevronLeft, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Trash2, Eye, EyeOff, KeyRound, Banknote, Wallet } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +14,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useProfile } from '@/src/hooks/useProfile';
 import { useTrips } from '@/src/hooks/useTrips';
 import { useWallet } from '@/src/hooks/useWallet';
+import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { ThemeColors, S } from '@/constants/colors';
@@ -426,27 +427,47 @@ function PersonalInfoModal({
   );
 }
 
+function PaymentMethodIcon({ iconKey, color }: { iconKey?: string | null; color: string }) {
+  const size = 20;
+  switch (iconKey) {
+    case 'banknote': return <Banknote size={size} color={color} />;
+    case 'wallet':   return <Wallet size={size} color={color} />;
+    default:         return <CreditCard size={size} color={color} />;
+  }
+}
+
 function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors: c, t } = useTheme();
+  const { colors: c, t, language } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const { paymentMethods } = usePaymentConfig();
+  const isAr = language === 'ar';
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('payment_title')} onClose={onClose} />
         <ScrollView contentContainerStyle={styles.modalScroll}>
-          <View style={styles.cardRow}>
-            <View style={styles.cardIconBox}>
-              <CreditCard size={20} color={c.ink} />
+          {paymentMethods.map((method) => (
+            <View key={method.key} style={styles.cardRow}>
+              <View style={styles.cardIconBox}>
+                <PaymentMethodIcon iconKey={method.icon} color={c.ink} />
+              </View>
+              <View style={styles.cardLabel}>
+                <Text style={styles.cardName}>{isAr ? method.nameAr : method.name}</Text>
+                {(isAr ? method.descriptionAr : method.description) ? (
+                  <Text style={styles.cardSub}>{isAr ? method.descriptionAr : method.description}</Text>
+                ) : null}
+              </View>
+              <View style={styles.defaultBadge}>
+                <Text style={styles.defaultBadgeText}>{t('active')}</Text>
+              </View>
             </View>
-            <View style={styles.cardLabel}>
-              <Text style={styles.cardName}>{t('payment_methods_cash')}</Text>
-              <Text style={styles.cardSub}>{t('payment_cards_soon')}</Text>
-            </View>
-            <View style={styles.defaultBadge}>
-              <Text style={styles.defaultBadgeText}>{t('active')}</Text>
-            </View>
-          </View>
+          ))}
+          {paymentMethods.length === 0 && (
+            <Text style={[styles.cardSub, { textAlign: 'center', marginTop: 24 }]}>
+              {t('no_payment_methods')}
+            </Text>
+          )}
         </ScrollView>
       </SafeAreaView>
     </Modal>

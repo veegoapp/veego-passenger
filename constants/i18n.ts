@@ -393,6 +393,7 @@ const en = {
   trip_duration: 'Duration',
 
   payment_cards_soon: 'Card payments coming soon',
+  no_payment_methods: 'No payment methods available.',
   profile_payment_info: 'Payment: Cash only (cards coming soon)',
   promo_no_featured: 'No featured promos right now. Enter a code manually.',
   no_saved_locations: 'No saved locations found. You can save locations from your profile.',
@@ -924,6 +925,7 @@ const ar: typeof en = {
   trip_duration: 'المدة',
 
   payment_cards_soon: 'الدفع بالبطاقة قريباً',
+  no_payment_methods: 'لا توجد طرق دفع متاحة.',
   profile_payment_info: 'الدفع: نقداً فقط (البطاقات قريباً)',
   promo_no_featured: 'لا توجد عروض مميزة حالياً. أدخل الكود يدوياً.',
   no_saved_locations: 'لا توجد مواقع محفوظة. يمكنك حفظ المواقع من ملفك الشخصي.',
