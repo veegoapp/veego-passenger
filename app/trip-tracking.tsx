@@ -10,14 +10,14 @@ import type { DriverLocation } from '@/src/api/socket';
 import api from '@/src/api/client';
 import { getErrorMessage } from '@/src/utils/errorMessages';
 
-const STATUS_LABELS: Record<string, string> = {
-  searching: 'Finding your driver…',
-  driver_assigned: 'Driver is on the way',
-  arrived: 'Driver has arrived',
-  started: 'Trip in progress',
-  completed: 'Trip completed',
-  cancelled: 'Trip cancelled',
-  timeout: 'Request timed out',
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  searching: 'status_finding_driver',
+  driver_assigned: 'status_driver_on_way',
+  arrived: 'status_driver_arrived',
+  started: 'status_trip_in_progress',
+  completed: 'status_trip_completed',
+  cancelled: 'status_trip_cancelled',
+  timeout: 'status_request_timeout',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,12 +30,12 @@ const STATUS_COLORS: Record<string, string> = {
   timeout: '#ef4444',
 };
 
-type TripStatus = keyof typeof STATUS_LABELS;
+type TripStatus = keyof typeof STATUS_LABEL_KEYS;
 
 export default function TripTrackingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isRTL } = useTheme();
+  const { isRTL, t } = useTheme();
   const params = useLocalSearchParams<{
     id?: string;
     rideId?: string;
@@ -114,7 +114,7 @@ export default function TripTrackingScreen() {
         if (d?.driverLocation) {
           setDriverLocation(d.driverLocation);
         }
-        if (normalized && normalized in STATUS_LABELS) {
+        if (normalized && normalized in STATUS_LABEL_KEYS) {
           setStatus(normalized as TripStatus);
         }
       })
@@ -179,14 +179,14 @@ export default function TripTrackingScreen() {
   }, [params.rideId]);
 
   const statusColor = STATUS_COLORS[status] ?? '#2563eb';
-  const statusLabel = STATUS_LABELS[status] ?? 'Tracking ride…';
+  const statusLabel = t((STATUS_LABEL_KEYS[status] ?? 'loading') as any);
   const isTerminal = status === 'completed' || status === 'cancelled' || status === 'timeout';
 
   if (deepLinkLoading) {
     return (
       <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 12, fontSize: 14 }}>Loading ride…</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 12, fontSize: 14 }}>{t('loading_ride')}</Text>
       </View>
     );
   }
@@ -194,14 +194,14 @@ export default function TripTrackingScreen() {
   if (deepLinkError) {
     return (
       <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
-        <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>Ride Not Found</Text>
+        <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>{t('ride_not_found')}</Text>
         <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>{deepLinkError}</Text>
         <TouchableOpacity
           style={[styles.doneBtn, { paddingHorizontal: 32 }]}
           onPress={() => router.replace('/(tabs)' as any)}
           activeOpacity={0.9}
         >
-          <Text style={styles.doneBtnText}>Go Home</Text>
+          <Text style={styles.doneBtnText}>{t('go_home')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -267,8 +267,8 @@ export default function TripTrackingScreen() {
               <Navigation size={18} color="#fff" />
             </View>
             <View style={styles.driverInfo}>
-              <Text style={styles.driverName}>Your Driver</Text>
-              <Text style={styles.vehicleText}>Tracking live location…</Text>
+              <Text style={styles.driverName}>{t('your_driver')}</Text>
+              <Text style={styles.vehicleText}>{t('tracking_live')}</Text>
             </View>
           </View>
         )}
@@ -279,14 +279,14 @@ export default function TripTrackingScreen() {
             {pickup && (
               <View style={styles.routeItem}>
                 <View style={[styles.routeDot, { backgroundColor: '#22c55e' }]} />
-                <Text style={styles.routeText} numberOfLines={1}>Pickup</Text>
+                <Text style={styles.routeText} numberOfLines={1}>{t('pickup')}</Text>
               </View>
             )}
             {pickup && dropoff && <View style={styles.routeDash} />}
             {dropoff && (
               <View style={styles.routeItem}>
                 <MapPin size={10} color="#ef4444" />
-                <Text style={styles.routeText} numberOfLines={1}>Dropoff</Text>
+                <Text style={styles.routeText} numberOfLines={1}>{t('dropoff')}</Text>
               </View>
             )}
           </View>
@@ -295,7 +295,7 @@ export default function TripTrackingScreen() {
         {isTerminal && (
           <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()} activeOpacity={0.9}>
             <Text style={styles.doneBtnText}>
-              {status === 'completed' ? 'Done' : 'Go Back'}
+              {status === 'completed' ? t('done') : t('go_back')}
             </Text>
           </TouchableOpacity>
         )}

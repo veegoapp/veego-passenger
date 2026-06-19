@@ -215,7 +215,7 @@ export default function ReceiptScreen() {
 
       <RatingSheet
         visible={ratingVisible}
-        driverName={params.driverName ?? 'Your Driver'}
+        driverName={params.driverName ?? t('your_driver')}
         driverInitials={driverInitials}
         driverColor="#3A7BD5"
         onSubmit={handleRatingSubmit}

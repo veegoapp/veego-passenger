@@ -21,7 +21,7 @@ interface QRScannerProps {
 }
 
 export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProps) {
-  const { colors: c } = useTheme();
+  const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -72,9 +72,9 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
 
     if (!isValid) {
       Alert.alert(
-        'Invalid QR Code',
-        'This QR code is not a valid VeeGo boarding pass. Please scan the passenger\'s ticket QR.',
-        [{ text: 'Scan again', onPress: () => { if (mountedRef.current) setScanned(false); } }]
+        t('qr_invalid_title'),
+        t('qr_invalid_msg'),
+        [{ text: t('qr_scan_again'), onPress: () => { if (mountedRef.current) setScanned(false); } }]
       );
       return;
     }
@@ -92,10 +92,10 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
         </View>
         <View style={styles.unsupportedWrap}>
           <QrCode size={64} color="rgba(255,255,255,0.3)" />
-          <Text style={styles.unsupportedTitle}>Camera not available on web</Text>
-          <Text style={styles.unsupportedSub}>Use the Expo Go app on your phone to scan QR codes.</Text>
+          <Text style={styles.unsupportedTitle}>{t('qr_camera_web')}</Text>
+          <Text style={styles.unsupportedSub}>{t('qr_camera_web_sub')}</Text>
           <TouchableOpacity style={styles.closeFullBtn} onPress={onClose}>
-            <Text style={styles.closeFullBtnText}>Close</Text>
+            <Text style={styles.closeFullBtnText}>{t('cancel')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -122,15 +122,13 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
           <View style={styles.permissionIcon}>
             <Camera size={40} color="#55c49a" />
           </View>
-          <Text style={styles.permissionTitle}>Camera access needed</Text>
-          <Text style={styles.permissionSub}>
-            Allow camera access to scan passenger boarding QR codes.
-          </Text>
+          <Text style={styles.permissionTitle}>{t('qr_camera_permission_title')}</Text>
+          <Text style={styles.permissionSub}>{t('qr_camera_permission_msg')}</Text>
           <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission} activeOpacity={0.85}>
-            <Text style={styles.permissionBtnText}>Allow Camera</Text>
+            <Text style={styles.permissionBtnText}>{t('qr_allow_camera')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelPermBtn} onPress={onClose}>
-            <Text style={styles.cancelPermBtnText}>Cancel</Text>
+            <Text style={styles.cancelPermBtnText}>{t('cancel')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -188,7 +186,7 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
           <X size={20} color="#ffffff" />
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={styles.headerTitle}>{title ?? 'Scan Boarding QR'}</Text>
+          <Text style={styles.headerTitle}>{title ?? t('qr_scan_boarding')}</Text>
         </View>
         <View style={{ width: 36 }} />
       </View>
@@ -196,11 +194,11 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
       {/* Bottom hint */}
       <View style={[styles.bottomHint, { paddingBottom: insets.bottom + 24 }]}>
         <Text style={styles.hintText}>
-          {subtitle ?? 'Align the passenger\'s QR code within the frame'}
+          {subtitle ?? t('qr_align_hint')}
         </Text>
         {scanned && (
           <TouchableOpacity style={styles.rescanBtn} onPress={() => setScanned(false)}>
-            <Text style={styles.rescanBtnText}>Tap to scan again</Text>
+            <Text style={styles.rescanBtnText}>{t('qr_tap_scan_again')}</Text>
           </TouchableOpacity>
         )}
       </View>

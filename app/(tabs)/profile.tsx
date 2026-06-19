@@ -254,22 +254,22 @@ function PersonalInfoModal({
 
   const handleChangePassword = async () => {
     if (!currentPw || !newPw || !confirmPw) {
-      Alert.alert(t('error'), 'Please fill in all password fields.');
+      Alert.alert(t('error'), t('password_fill_all'));
       return;
     }
     if (newPw !== confirmPw) {
-      Alert.alert(t('error'), 'New passwords do not match.');
+      Alert.alert(t('error'), t('passwords_no_match'));
       return;
     }
     try {
       // TODO: Provide Password Change API Endpoint — expected: PATCH /users/me/password { currentPassword, newPassword }
       await api.patch('/users/me/password', { currentPassword: currentPw, newPassword: newPw });
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', 'Your password has been updated.');
+      Alert.alert(t('saved'), t('password_updated'));
       setPwOpen(false);
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
     } catch (e: any) {
-      Alert.alert(t('error'), e?.response?.data?.message ?? 'Password change failed. Please try again.');
+      Alert.alert(t('error'), e?.response?.data?.message ?? t('password_change_failed'));
     }
   };
 
@@ -302,7 +302,7 @@ function PersonalInfoModal({
                 </View>
               </TouchableOpacity>
               {/* TODO: Provide User Avatar Upload API Endpoint — expected: POST /users/me/avatar (multipart/form-data) */}
-              <Text style={{ fontSize: 12, color: c.inkSoft, marginTop: 8 }}>Tap to change photo</Text>
+              <Text style={{ fontSize: 12, color: c.inkSoft, marginTop: 8 }}>{t('tap_change_photo')}</Text>
             </View>
 
             {/* Full Name — read-only */}
@@ -362,7 +362,7 @@ function PersonalInfoModal({
                 <View style={[styles.toggleIcon, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5' }]}>
                   <KeyRound size={18} color={c.ink} />
                 </View>
-                <Text style={styles.pwSectionTitle}>Change Password</Text>
+                <Text style={styles.pwSectionTitle}>{t('change_password')}</Text>
                 {pwOpen ? <ChevronUp size={16} color={c.silver} /> : <ChevronDown size={16} color={c.silver} />}
               </TouchableOpacity>
               {pwOpen && (
@@ -371,7 +371,7 @@ function PersonalInfoModal({
                   <View style={{ position: 'relative' }}>
                     <TextInput
                       style={[styles.input, { paddingRight: 48 }]}
-                      placeholder="Current password"
+                      placeholder={t('current_password')}
                       placeholderTextColor={c.silver}
                       value={currentPw}
                       onChangeText={setCurrentPw}
@@ -388,7 +388,7 @@ function PersonalInfoModal({
                   <View style={{ position: 'relative' }}>
                     <TextInput
                       style={[styles.input, { paddingRight: 48 }]}
-                      placeholder="New password"
+                      placeholder={t('new_password')}
                       placeholderTextColor={c.silver}
                       value={newPw}
                       onChangeText={setNewPw}
@@ -404,14 +404,14 @@ function PersonalInfoModal({
                   {/* Confirm password */}
                   <TextInput
                     style={styles.input}
-                    placeholder="Confirm new password"
+                    placeholder={t('confirm_new_password')}
                     placeholderTextColor={c.silver}
                     value={confirmPw}
                     onChangeText={setConfirmPw}
                     secureTextEntry
                   />
                   <TouchableOpacity style={styles.primaryBtn} onPress={handleChangePassword} activeOpacity={0.9}>
-                    <Text style={styles.primaryBtnText}>Update Password</Text>
+                    <Text style={styles.primaryBtnText}>{t('update_password')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -515,7 +515,7 @@ function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => v
             emitAuthEvent('auth:logout');
             router.replace('/auth');
           } catch {
-            Alert.alert(t('error'), 'Could not delete your account. Please try again later.');
+            Alert.alert(t('error'), t('delete_account_error'));
           }
         },
       },
@@ -746,7 +746,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
 // ── Rating Details Modal ─────────────────────────────────────────────────────
 
 function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors: c } = useTheme();
+  const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const barAnims = useRef([1, 2, 3, 4, 5].map(() => new Animated.Value(0))).current;
   const [ratingData, setRatingData] = useState<{
@@ -784,7 +784,7 @@ function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: (
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modal}>
-        <ModalHeader title="Rating Details" onClose={onClose} />
+        <ModalHeader title={t('rating_details')} onClose={onClose} />
         <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40 }]}>
 
           {/* Hero score card */}
@@ -815,17 +815,17 @@ function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: (
               <Text style={styles.ratingSubtitle}>
                 {ratingData?.overallScore !== null && ratingData?.overallScore !== undefined
                   ? `Based on ${ratingData.totalRatings} rating${ratingData.totalRatings !== 1 ? 's' : ''}`
-                  : 'No ratings yet'}
+                  : t('no_ratings_yet')}
               </Text>
             </View>
           </LinearGradient>
 
           {/* Rating breakdown */}
           <View style={{ backgroundColor: c.white, borderRadius: 22, padding: 18, gap: 4, ...S.float }}>
-            <Text style={[styles.inputLabel, { marginBottom: 10 }]}>Rating Breakdown</Text>
+            <Text style={[styles.inputLabel, { marginBottom: 10 }]}>{t('rating_breakdown')}</Text>
             {!ratingData || ratingData.overallScore === null ? (
               <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingVertical: 12 }}>
-                You have not received any ratings yet.
+                {t('no_ratings_received')}
               </Text>
             ) : (
               [5, 4, 3, 2, 1].map((star, i) => {
@@ -889,7 +889,7 @@ export default function ProfileScreen() {
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow access to your photo library to update your profile photo.');
+      Alert.alert(t('photo_permission_title'), t('photo_permission_msg'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -910,7 +910,7 @@ export default function ProfileScreen() {
       if (uploadData?.avatarUrl) setAvatarUri(uploadData.avatarUrl);
     } catch {
       setAvatarUri(prevUri);
-      Alert.alert('Upload failed', 'Could not update your profile photo. Please try again.');
+      Alert.alert(t('upload_failed'), t('upload_failed_msg'));
     } finally {
       setAvatarUploading(false);
     }

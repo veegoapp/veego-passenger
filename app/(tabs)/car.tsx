@@ -770,8 +770,10 @@ export default function CarScreen() {
               <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
               <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
                 {rideState.waitingChargeStatus === 'capped'
-                  ? `Maximum waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
-                  : `Waiting${rideState.waitingRatePerMinute != null ? ` (EGP ${rideState.waitingRatePerMinute}/min)` : ''} — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+                  ? t('max_waiting_msg').replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))
+                  : rideState.waitingRatePerMinute != null
+                    ? t('waiting_msg_rate').replace('{rate}', String(rideState.waitingRatePerMinute)).replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))
+                    : t('waiting_msg').replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))}
               </Text>
             </View>
           )}
@@ -801,8 +803,8 @@ export default function CarScreen() {
           <View style={[glassStyle, styles.arrivedBanner, S.luxe]}>
             <CheckCircle size={22} color={C.accentMint} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.sheetTitle}>Driver has arrived!</Text>
-              <Text style={styles.sheetSub}>Your driver is waiting at the pickup point.</Text>
+              <Text style={styles.sheetTitle}>{t('driver_arrived_title')}</Text>
+              <Text style={styles.sheetSub}>{t('driver_waiting_msg')}</Text>
             </View>
           </View>
 
@@ -811,8 +813,10 @@ export default function CarScreen() {
               <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
               <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
                 {rideState.waitingChargeStatus === 'capped'
-                  ? `Maximum waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
-                  : `Waiting${rideState.waitingRatePerMinute != null ? ` (EGP ${rideState.waitingRatePerMinute}/min)` : ''} — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+                  ? t('max_waiting_msg').replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))
+                  : rideState.waitingRatePerMinute != null
+                    ? t('waiting_msg_rate').replace('{rate}', String(rideState.waitingRatePerMinute)).replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))
+                    : t('waiting_msg').replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))}
               </Text>
             </View>
           )}
@@ -849,7 +853,7 @@ export default function CarScreen() {
       <ChatModal
         visible={chatOpen}
         onClose={() => setChatOpen(false)}
-        driverName={rideState.driver?.name ?? 'Your Driver'}
+        driverName={rideState.driver?.name ?? t('your_driver')}
         tripId={rideState.rideId}
       />
 
@@ -894,8 +898,10 @@ export default function CarScreen() {
               <Clock size={13} color={rideState.waitingChargeStatus === 'capped' ? '#ea580c' : '#92400e'} />
               <Text style={[styles.waitingBannerText, rideState.waitingChargeStatus === 'capped' && styles.waitingBannerTextCapped]}>
                 {rideState.waitingChargeStatus === 'capped'
-                  ? `Maximum waiting charge reached — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`
-                  : `Waiting${rideState.waitingRatePerMinute != null ? ` (EGP ${rideState.waitingRatePerMinute}/min)` : ''} — EGP ${(rideState.waitingCharge ?? 0).toFixed(2)}`}
+                  ? t('max_waiting_msg').replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))
+                  : rideState.waitingRatePerMinute != null
+                    ? t('waiting_msg_rate').replace('{rate}', String(rideState.waitingRatePerMinute)).replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))
+                    : t('waiting_msg').replace('{amount}', (rideState.waitingCharge ?? 0).toFixed(2))}
               </Text>
             </View>
           )}

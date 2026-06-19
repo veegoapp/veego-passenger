@@ -206,7 +206,7 @@ export function ConfirmSheet() {
                 <Tag size={16} color={c.inkSoft} />
                 <TextInput
                   style={styles.promoInput}
-                  placeholder="Enter promo code"
+                  placeholder={t('enter_promo')}
                   placeholderTextColor={c.inkSoft}
                   value={promoInput}
                   onChangeText={(v) => { setPromoInput(v); if (promoStatus === 'invalid') setPromoStatus('idle'); }}
@@ -222,13 +222,13 @@ export function ConfirmSheet() {
                   activeOpacity={0.8}
                 >
                   <Text style={styles.promoApplyText}>
-                    {promoStatus === 'loading' ? '...' : 'Apply'}
+                    {promoStatus === 'loading' ? '...' : t('promo_apply')}
                   </Text>
                 </TouchableOpacity>
               </View>
               {promoStatus === 'valid' && (
                 <View style={styles.promoSuccess}>
-                  <Text style={styles.promoSuccessText}>Discount applied: -{promoDiscount}</Text>
+                  <Text style={styles.promoSuccessText}>{t('discount_applied').replace('{amount}', promoDiscount)}</Text>
                   <TouchableOpacity onPress={clearPromo} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                     <X size={16} color="#22a06b" />
                   </TouchableOpacity>

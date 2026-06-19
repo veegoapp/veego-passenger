@@ -134,7 +134,7 @@ export default function StationsScreen() {
         <Search size={16} color={c.inkSoft} />
         <TextInput
           style={[styles.searchInput, { color: c.ink }]}
-          placeholder={isAr ? 'ابحث عن محطة…' : 'Search station…'}
+          placeholder={t('search_station')}
           placeholderTextColor={c.inkSoft}
           value={searchQuery}
           onChangeText={setSearchQuery}

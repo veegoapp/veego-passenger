@@ -115,7 +115,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
           </View>
 
           {mode === 'shuttle' && (
-            <Text style={styles.optionalHint}>{isRTL ? 'الاختيار اختياري' : 'Selection is optional'}</Text>
+            <Text style={styles.optionalHint}>{t('selection_optional')}</Text>
           )}
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}

@@ -528,6 +528,73 @@ const en = {
   loading_stops: 'Loading stops…',
   wallet_loading: 'Wallet balance loading…',
   stops_unavailable: 'Stop information not available for this route.',
+
+  // Trip-tracking status labels
+  status_finding_driver: 'Finding your driver…',
+  status_driver_on_way: 'Driver is on the way',
+  status_driver_arrived: 'Driver has arrived',
+  status_trip_in_progress: 'Trip in progress',
+  status_trip_completed: 'Trip completed',
+  status_trip_cancelled: 'Trip cancelled',
+  status_request_timeout: 'Request timed out',
+  tracking_live: 'Tracking live location…',
+  pickup: 'Pickup',
+  dropoff: 'Dropoff',
+  loading_ride: 'Loading ride…',
+  ride_not_found: 'Ride Not Found',
+
+  // Arrived phase
+  driver_arrived_title: 'Driver has arrived!',
+  driver_waiting_msg: 'Your driver is waiting at the pickup point.',
+
+  // Waiting charge banners
+  waiting_msg: 'Waiting — EGP {amount}',
+  waiting_msg_rate: 'Waiting (EGP {rate}/min) — EGP {amount}',
+  max_waiting_msg: 'Maximum waiting charge reached — EGP {amount}',
+
+  // Stations search
+  search_station: 'Search station…',
+
+  // Profile — password section
+  change_password: 'Change Password',
+  current_password: 'Current password',
+  confirm_new_password: 'Confirm new password',
+  update_password: 'Update Password',
+  password_fill_all: 'Please fill in all password fields.',
+  password_updated: 'Your password has been updated.',
+  password_change_failed: 'Password change failed. Please try again.',
+
+  // Profile — account deletion error
+  delete_account_error: 'Could not delete your account. Please try again later.',
+
+  // Profile — rating modal
+  rating_details: 'Rating Details',
+  no_ratings_yet: 'No ratings yet',
+  no_ratings_received: 'You have not received any ratings yet.',
+  rating_breakdown: 'Rating Breakdown',
+
+  // Profile — avatar picker
+  tap_change_photo: 'Tap to change photo',
+  photo_permission_title: 'Permission needed',
+  photo_permission_msg: 'Please allow access to your photo library to update your profile photo.',
+  upload_failed: 'Upload failed',
+  upload_failed_msg: 'Could not update your profile photo. Please try again.',
+
+  // Cancel reason sheet
+  selection_optional: 'Selection is optional',
+
+  // QR Scanner
+  qr_invalid_title: 'Invalid QR Code',
+  qr_invalid_msg: "This QR code is not a valid VeeGo boarding pass. Please scan the passenger's ticket QR.",
+  qr_scan_again: 'Scan again',
+  qr_camera_web: 'Camera not available on web',
+  qr_camera_web_sub: 'Use the Expo Go app on your phone to scan QR codes.',
+  qr_camera_permission_title: 'Camera access needed',
+  qr_camera_permission_msg: 'Allow camera access to scan passenger boarding QR codes.',
+  qr_allow_camera: 'Allow Camera',
+  qr_scan_boarding: 'Scan Boarding QR',
+  qr_align_hint: "Align the passenger's QR code within the frame",
+  qr_tap_scan_again: 'Tap to scan again',
 };
 
 const ar: typeof en = {
@@ -1060,6 +1127,73 @@ const ar: typeof en = {
   loading_stops: 'جاري تحميل المحطات…',
   wallet_loading: 'جاري تحميل رصيد المحفظة…',
   stops_unavailable: 'معلومات المحطات غير متاحة لهذا الخط.',
+
+  // Trip-tracking status labels
+  status_finding_driver: 'جاري البحث عن سائقك…',
+  status_driver_on_way: 'السائق في الطريق',
+  status_driver_arrived: 'وصل السائق',
+  status_trip_in_progress: 'الرحلة جارية',
+  status_trip_completed: 'اكتملت الرحلة',
+  status_trip_cancelled: 'تم إلغاء الرحلة',
+  status_request_timeout: 'انتهت مهلة الطلب',
+  tracking_live: 'تتبع الموقع المباشر…',
+  pickup: 'نقطة الانطلاق',
+  dropoff: 'نقطة الوصول',
+  loading_ride: 'جاري تحميل الرحلة…',
+  ride_not_found: 'الرحلة غير موجودة',
+
+  // Arrived phase
+  driver_arrived_title: 'وصل السائق!',
+  driver_waiting_msg: 'سائقك ينتظرك عند نقطة الانطلاق.',
+
+  // Waiting charge banners
+  waiting_msg: 'وقت الانتظار — {amount} ج.م',
+  waiting_msg_rate: 'وقت الانتظار ({rate} ج.م/دقيقة) — {amount} ج.م',
+  max_waiting_msg: 'وصل الحد الأقصى لرسوم الانتظار — {amount} ج.م',
+
+  // Stations search
+  search_station: 'ابحث عن محطة…',
+
+  // Profile — password section
+  change_password: 'تغيير كلمة المرور',
+  current_password: 'كلمة المرور الحالية',
+  confirm_new_password: 'تأكيد كلمة المرور الجديدة',
+  update_password: 'تحديث كلمة المرور',
+  password_fill_all: 'يرجى ملء جميع حقول كلمة المرور.',
+  password_updated: 'تم تحديث كلمة مرورك.',
+  password_change_failed: 'فشل تغيير كلمة المرور. حاول مجدداً.',
+
+  // Profile — account deletion error
+  delete_account_error: 'تعذر حذف حسابك. حاول مجدداً لاحقاً.',
+
+  // Profile — rating modal
+  rating_details: 'تفاصيل التقييم',
+  no_ratings_yet: 'لا توجد تقييمات بعد',
+  no_ratings_received: 'لم تتلقَّ أي تقييمات حتى الآن.',
+  rating_breakdown: 'توزيع التقييمات',
+
+  // Profile — avatar picker
+  tap_change_photo: 'اضغط لتغيير الصورة',
+  photo_permission_title: 'إذن مطلوب',
+  photo_permission_msg: 'يرجى السماح بالوصول إلى مكتبة الصور لتحديث صورتك الشخصية.',
+  upload_failed: 'فشل الرفع',
+  upload_failed_msg: 'تعذر تحديث صورتك الشخصية. حاول مجدداً.',
+
+  // Cancel reason sheet
+  selection_optional: 'الاختيار اختياري',
+
+  // QR Scanner
+  qr_invalid_title: 'رمز QR غير صالح',
+  qr_invalid_msg: 'رمز QR هذا ليس تذكرة ركوب VeeGo صالحة. يرجى مسح رمز QR الخاص بتذكرة الراكب.',
+  qr_scan_again: 'مسح مجدداً',
+  qr_camera_web: 'الكاميرا غير متاحة على الويب',
+  qr_camera_web_sub: 'استخدم تطبيق Expo Go على هاتفك لمسح رموز QR.',
+  qr_camera_permission_title: 'يلزم الوصول إلى الكاميرا',
+  qr_camera_permission_msg: 'اسمح بالوصول إلى الكاميرا لمسح رموز QR الخاصة بتذاكر الركاب.',
+  qr_allow_camera: 'السماح بالكاميرا',
+  qr_scan_boarding: 'مسح رمز الصعود QR',
+  qr_align_hint: 'ضع رمز QR الخاص بالراكب داخل الإطار',
+  qr_tap_scan_again: 'اضغط للمسح مجدداً',
 };
 
 export type LangKey = keyof typeof en;
