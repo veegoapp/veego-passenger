@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile, AnimatedRegion, MarkerAnimated } from 'react-native-maps';
+import { useTheme } from '@/context/ThemeContext';
 
 interface LatLng {
   latitude: number;
@@ -27,6 +28,7 @@ function centroid(points: LatLng[]): LatLng {
 }
 
 export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }: TrackingMapProps) {
+  const { t } = useTheme();
   const animatedCoord = useRef(
     new AnimatedRegion({
       latitude: driverLocation?.latitude ?? pickup?.latitude ?? DEFAULT_CENTER.latitude,
@@ -78,7 +80,7 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
         <UrlTile urlTemplate={OSM_TILE} maximumZ={19} flipY={false} />
 
         {pickup && (
-          <Marker coordinate={pickup} anchor={{ x: 0.5, y: 1 }} title="Pickup">
+          <Marker coordinate={pickup} anchor={{ x: 0.5, y: 1 }} title={t('pickup')}>
             <View style={styles.pickupMarker}>
               <View style={styles.markerDot} />
             </View>
@@ -86,7 +88,7 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
         )}
 
         {dropoff && (
-          <Marker coordinate={dropoff} anchor={{ x: 0.5, y: 1 }} title="Dropoff">
+          <Marker coordinate={dropoff} anchor={{ x: 0.5, y: 1 }} title={t('dropoff')}>
             <View style={styles.dropoffMarker}>
               <View style={styles.markerDot} />
             </View>
@@ -97,7 +99,7 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
           <MarkerAnimated
             coordinate={animatedCoord}
             anchor={{ x: 0.5, y: 1 }}
-            title="Driver"
+            title={t('driver_label')}
           >
             <View style={styles.driverMarker}>
               <View style={styles.driverDot} />

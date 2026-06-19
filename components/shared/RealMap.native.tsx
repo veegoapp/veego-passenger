@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
+import { useTheme } from '@/context/ThemeContext';
 
 interface LatLng {
   latitude: number;
@@ -41,6 +42,7 @@ export function RealMap({
   stationMarkers = [],
   defaultCenter,
 }: RealMapProps) {
+  const { t } = useTheme();
   const center = useMemo(() => {
     const pts = [pickup, dropoff, driverLocation, ...stationMarkers].filter(Boolean) as LatLng[];
     if (pts.length > 0) return centroid(pts);
@@ -85,15 +87,15 @@ export function RealMap({
         ))}
 
         {pickup && (
-          <Marker coordinate={pickup} title="Pickup" pinColor="#22c55e" />
+          <Marker coordinate={pickup} title={t('pickup')} pinColor="#22c55e" />
         )}
 
         {dropoff && (
-          <Marker coordinate={dropoff} title="Dropoff" pinColor="#ef4444" />
+          <Marker coordinate={dropoff} title={t('dropoff')} pinColor="#ef4444" />
         )}
 
         {driverLocation && (
-          <Marker coordinate={driverLocation} title="Driver" pinColor="#f59e0b" />
+          <Marker coordinate={driverLocation} title={t('driver_label')} pinColor="#f59e0b" />
         )}
 
         {routeCoords.length >= 2 && (

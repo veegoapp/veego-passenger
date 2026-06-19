@@ -5,12 +5,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { C } from '@/constants/colors';
+import { useTheme } from '@/context/ThemeContext';
 
 const LANG_KEY = '@veego_lang_selected';
 const SESSION_KEY = '@veego_session_v1';
 const { width } = Dimensions.get('window');
 
 export default function SplashPage() {
+  const { t } = useTheme();
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.88)).current;
   const logoRotate = useRef(new Animated.Value(0)).current;
@@ -70,7 +72,7 @@ export default function SplashPage() {
           <View style={styles.iconGlow} />
         </Animated.View>
         <Text style={styles.wordmark}>VeeGo</Text>
-        <Text style={styles.tagline}>Your daily route, simplified</Text>
+        <Text style={styles.tagline}>{t('tagline')}</Text>
         <View style={styles.barWrap}>
           <Animated.View style={[styles.bar, { width: barWidth, opacity: barOpacity }]} />
         </View>

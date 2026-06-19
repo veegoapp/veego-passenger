@@ -347,7 +347,7 @@ function PersonalInfoModal({
                 style={styles.input}
                 value={dob}
                 onChangeText={setDob}
-                placeholder="DD/MM/YYYY"
+                placeholder={t('dob_placeholder')}
                 placeholderTextColor={c.silver}
               />
             </View>
@@ -667,7 +667,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
 
   const handleSend = () => {
     if (!selectedIssue || !message.trim()) {
-      Alert.alert(t('error'), 'Please select an issue type and describe your problem.');
+      Alert.alert(t('error'), t('support_missing_fields'));
       return;
     }
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -814,7 +814,7 @@ function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: (
               </View>
               <Text style={styles.ratingSubtitle}>
                 {ratingData?.overallScore !== null && ratingData?.overallScore !== undefined
-                  ? `Based on ${ratingData.totalRatings} rating${ratingData.totalRatings !== 1 ? 's' : ''}`
+                  ? t('based_on_ratings').replace('{count}', String(ratingData.totalRatings)).replace('{plural}', ratingData.totalRatings !== 1 ? 's' : '')
                   : t('no_ratings_yet')}
               </Text>
             </View>
@@ -1007,7 +1007,7 @@ export default function ProfileScreen() {
               <View style={styles.settingIcon}><Bell size={16} color={c.ink} /></View>
               <Text style={styles.settingLabel}>{t('push_notifs')}</Text>
               <View style={styles.settingRight}>
-                <Text style={styles.settingValue}>On</Text>
+                <Text style={styles.settingValue}>{t('notif_on')}</Text>
                 {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
               </View>
             </TouchableOpacity>
@@ -1073,10 +1073,10 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>{t('app_version_label')}</Text>
           <View style={[gs, styles.groupCard]}>
             {[
-              { icon: FileText, label: t('terms_of_service'), onPress: () => Alert.alert(t('terms_of_service'), 'Terms would open in a browser.') },
-              { icon: ShieldCheck, label: t('privacy_policy'), onPress: () => Alert.alert(t('privacy_policy'), 'Privacy policy would open in a browser.') },
+              { icon: FileText, label: t('terms_of_service'), onPress: () => Alert.alert(t('terms_of_service'), t('terms_browser_msg')) },
+              { icon: ShieldCheck, label: t('privacy_policy'), onPress: () => Alert.alert(t('privacy_policy'), t('privacy_browser_msg')) },
               { icon: Info, label: t('about_veego'), value: 'v1.0.0', onPress: () => {} },
-              { icon: Star, label: t('rate_app'), onPress: () => Alert.alert(t('rate_app'), 'App store rating would open here.') },
+              { icon: Star, label: t('rate_app'), onPress: () => Alert.alert(t('rate_app'), t('rate_app_msg')) },
             ].map((item, i) => (
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}

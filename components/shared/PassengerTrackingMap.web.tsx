@@ -2,6 +2,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
 
 const DEFAULT_CENTER: [number, number] = [30.5523, 25.4529];
 
@@ -71,6 +72,7 @@ export interface TrackingMapProps {
 }
 
 export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }: TrackingMapProps) {
+  const { t } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const driverMarkerRef = useRef<maplibregl.Marker | null>(null);
@@ -102,14 +104,14 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
       if (pickup) {
         new maplibregl.Marker({ element: makeSvgEl(PICKUP_SVG), anchor: 'bottom' })
           .setLngLat([pickup.longitude, pickup.latitude])
-          .setPopup(new maplibregl.Popup({ offset: 22, closeButton: false }).setHTML('<b>Pickup</b>'))
+          .setPopup(new maplibregl.Popup({ offset: 22, closeButton: false }).setHTML(`<b>${t('pickup')}</b>`))
           .addTo(map);
       }
 
       if (dropoff) {
         new maplibregl.Marker({ element: makeSvgEl(DROPOFF_SVG), anchor: 'bottom' })
           .setLngLat([dropoff.longitude, dropoff.latitude])
-          .setPopup(new maplibregl.Popup({ offset: 22, closeButton: false }).setHTML('<b>Dropoff</b>'))
+          .setPopup(new maplibregl.Popup({ offset: 22, closeButton: false }).setHTML(`<b>${t('dropoff')}</b>`))
           .addTo(map);
       }
 
@@ -118,7 +120,7 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
         const el = makeSvgEl(DRIVER_SVG);
         const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([driverLoc.longitude, driverLoc.latitude])
-          .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML('<b>Driver</b>'))
+          .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(`<b>${t('driver_label')}</b>`))
           .addTo(map);
         driverMarkerRef.current = marker;
       }

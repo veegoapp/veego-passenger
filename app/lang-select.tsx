@@ -11,7 +11,7 @@ import { useTheme } from '@/context/ThemeContext';
 export const LANG_SELECTED_KEY = '@veego_lang_selected';
 
 export default function LangSelectScreen() {
-  const { setLanguage } = useTheme();
+  const { setLanguage, t } = useTheme();
   const [selected, setSelected] = useState<'en' | 'ar' | null>(null);
 
   const handleSelect = async (lang: 'en' | 'ar') => {
@@ -35,7 +35,7 @@ export default function LangSelectScreen() {
         </View>
 
         <View style={styles.textBlock}>
-          <Text style={styles.titleEn}>Select Language</Text>
+          <Text style={styles.titleEn}>{t('select_language')}</Text>
           <Text style={styles.titleAr}>اختر اللغة</Text>
         </View>
 
@@ -47,7 +47,7 @@ export default function LangSelectScreen() {
           >
             <Text style={styles.langFlag}>🇬🇧</Text>
             <View style={styles.langTextBlock}>
-              <Text style={[styles.langName, selected === 'en' && styles.langNameSelected]}>English</Text>
+              <Text style={[styles.langName, selected === 'en' && styles.langNameSelected]}>{t('lang_english')}</Text>
               <Text style={styles.langNative}>English</Text>
             </View>
             {selected === 'en' && (
@@ -62,7 +62,7 @@ export default function LangSelectScreen() {
           >
             <Text style={styles.langFlag}>🇸🇦</Text>
             <View style={styles.langTextBlock}>
-              <Text style={[styles.langName, selected === 'ar' && styles.langNameSelected]}>Arabic</Text>
+              <Text style={[styles.langName, selected === 'ar' && styles.langNameSelected]}>{t('lang_arabic')}</Text>
               <Text style={styles.langNative}>العربية</Text>
             </View>
             {selected === 'ar' && (
@@ -71,7 +71,7 @@ export default function LangSelectScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.hint}>You can change this anytime in Settings</Text>
+        <Text style={styles.hint}>{t('lang_change_hint')}</Text>
         <Text style={styles.hintAr}>يمكنك تغيير هذا في الإعدادات في أي وقت</Text>
       </View>
     </LinearGradient>

@@ -599,6 +599,28 @@ const en = {
   // Phone OTP verification (register/login flow)
   otp_expired: 'Your code expired. A new one has been sent.',
   otp_code_sent: 'Code sent!',
+
+  // Splash
+  tagline: 'Your daily route, simplified',
+
+  // Language select
+  lang_english: 'English',
+  lang_arabic: 'Arabic',
+  lang_change_hint: 'You can change this anytime in Settings',
+
+  // Profile — date placeholder
+  dob_placeholder: 'DD/MM/YYYY',
+
+  // Profile — alert bodies
+  terms_browser_msg: 'Terms would open in a browser.',
+  privacy_browser_msg: 'Privacy policy would open in a browser.',
+  rate_app_msg: 'App store rating would open here.',
+
+  // Profile — rating subtitle
+  based_on_ratings: 'Based on {count} rating{plural}',
+
+  // Profile — notifications "On" value
+  notif_on: 'On',
 };
 
 const ar: typeof en = {
@@ -1202,6 +1224,28 @@ const ar: typeof en = {
   // Phone OTP verification (register/login flow)
   otp_expired: 'انتهت صلاحية الرمز. تم إرسال رمز جديد.',
   otp_code_sent: 'تم إرسال الرمز!',
+
+  // Splash
+  tagline: 'طريقك اليومي، ببساطة',
+
+  // Language select
+  lang_english: 'الإنجليزية',
+  lang_arabic: 'العربية',
+  lang_change_hint: 'يمكنك تغيير هذا في أي وقت من الإعدادات',
+
+  // Profile — date placeholder
+  dob_placeholder: 'DD/MM/YYYY',
+
+  // Profile — alert bodies
+  terms_browser_msg: 'ستُفتح الشروط في المتصفح.',
+  privacy_browser_msg: 'ستُفتح سياسة الخصوصية في المتصفح.',
+  rate_app_msg: 'سيُفتح تقييم التطبيق هنا.',
+
+  // Profile — rating subtitle
+  based_on_ratings: 'بناءً على {count} تقييم{plural}',
+
+  // Profile — notifications "On" value
+  notif_on: 'مفعّل',
 };
 
 export type LangKey = keyof typeof en;
