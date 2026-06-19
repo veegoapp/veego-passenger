@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import api from '../api/client';
-import { getSocket } from '../api/socket';
+import api from '../../api/client';
+import { getSocket } from '../../api/socket';
 import type { Notification } from '@/constants/data';
 
 interface UseNotificationsResult {

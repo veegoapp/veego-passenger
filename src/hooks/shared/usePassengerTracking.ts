@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../api/client';
+import api from '../../api/client';
 
 const TRACKING_INTERVAL_MS = 5 * 60 * 1000;
 const OFFLINE_STORE_KEY = 'veego_offline_location_snapshots';

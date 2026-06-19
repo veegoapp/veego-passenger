@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ComponentType } from 'react';
-import api from '../api/client';
+import api from '../../api/client';
 import { Bus, Car, Bike as ScooterIcon, PlusCircle, RefreshCw, ArrowUp, Tag, Ticket, CreditCard } from 'lucide-react-native';
 
 export interface Transaction {

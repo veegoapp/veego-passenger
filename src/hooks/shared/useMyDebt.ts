@@ -6,7 +6,7 @@
  * walletBalance < 0 — surfacing the debt proactively gives a clear UX reason.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { getMyDebt } from '../api/shuttleService';
+import { getMyDebt } from '../../api/shuttleService';
 import type { DebtInfo } from '@/constants/data';
 
 export interface UseMyDebtResult {

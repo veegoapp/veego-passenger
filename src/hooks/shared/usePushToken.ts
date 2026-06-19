@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import api from '../api/client';
+import api from '../../api/client';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

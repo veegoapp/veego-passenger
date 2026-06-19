@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import api from '../api/client';
-import { getSocket } from '../api/socket';
+import api from '../../api/client';
+import { getSocket } from '../../api/socket';
 
 export interface ChatMessage {
   id: string;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../api/client';
+import api from '../../api/client';
 import type { Trip, TripType, ShuttleTripStatus, BookingStatus, PaymentStatus } from '@/constants/data';
 import { isShuttleTripUpcoming, formatCairoDateTime } from '@/constants/data';
 

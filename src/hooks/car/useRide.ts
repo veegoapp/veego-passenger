@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import api from '../api/client';
-import { getSocket, type RideStatus, type DriverLocation } from '../api/socket';
+import api from '../../api/client';
+import { getSocket, type RideStatus, type DriverLocation } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
 
 export interface DriverInfo {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../api/client';
+import api from '../../api/client';
 import type { TripType } from '@/constants/data';
 
 export interface FavoriteDestination {

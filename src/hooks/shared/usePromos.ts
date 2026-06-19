@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import type { ComponentType } from 'react';
-import api from '../api/client';
+import api from '../../api/client';
 import { Sparkles, Wallet, Gift, Star, Tag } from 'lucide-react-native';
 
 export interface PromoCard {

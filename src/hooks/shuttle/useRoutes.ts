@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../api/client';
+import api from '../../api/client';
 import type { Route, TimeSlot } from '@/constants/data';
 
 interface UseRoutesResult {
