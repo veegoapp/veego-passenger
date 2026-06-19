@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import api from '../api/client';
 import { getSocket, type RideStatus, type DriverLocation } from '../api/socket';
+import { usePassengerTracking } from './usePassengerTracking';
 
 export interface DriverInfo {
   name: string;
@@ -366,6 +367,11 @@ export function useRide(): UseRideResult {
       stopPolling();
     };
   }, [stopPolling]);
+
+  usePassengerTracking({
+    isActive: rideState.status === 'started',
+    rideId: rideState.rideId,
+  });
 
   return { rideState, requesting, requestRide, cancelRide, clearDeviationWarning, resetRide };
 }

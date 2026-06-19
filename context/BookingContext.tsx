@@ -5,6 +5,7 @@ import type { Booking, Route, ShuttleBookingMeta } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
+import { usePassengerTracking } from '@/src/hooks/usePassengerTracking';
 
 type BookingContextType = {
   selectedRoute: Route | null;
@@ -336,6 +337,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const closeConfirmSheet = useCallback(() => {
     setConfirmSheetOpen(false);
   }, []);
+
+  // Track passenger location for the duration of a confirmed shuttle trip
+  usePassengerTracking({
+    isActive: confirmedTripId !== null,
+    tripId: confirmedTripId,
+  });
 
   return (
     <BookingContext.Provider
