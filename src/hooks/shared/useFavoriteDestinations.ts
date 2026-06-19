@@ -25,7 +25,7 @@ function detectType(b: any): TripType {
     b.serviceType ?? b.service_type ?? b.category ?? ''
   ).toLowerCase();
   if (raw === 'car' || raw === 'ride' || raw === 'car_ride') return 'car';
-  if (raw === 'scooter' || raw === 'scooter_ride' || raw === 'bike') return 'scooter';
+  if (raw === 'scooter' || raw === 'scooter_ride')                   return 'scooter';
   return 'shuttle';
 }
 

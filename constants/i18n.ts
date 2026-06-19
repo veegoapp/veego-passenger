@@ -402,7 +402,7 @@ const en = {
   service_unavailable: 'Unavailable',
   payment_methods_cash: 'Cash',
 
-  bike: 'Bike',
+  scooter: 'Scooter',
   no_messages_yet: 'No messages yet.\nSay hello to your driver!',
   select_trip: 'Select a trip',
   book_now: 'Book now',
@@ -934,7 +934,7 @@ const ar: typeof en = {
   service_unavailable: 'غير متاح',
   payment_methods_cash: 'نقداً',
 
-  bike: 'دراجة',
+  scooter: 'سكوتر',
   no_messages_yet: 'لا توجد رسائل بعد.\nقل مرحباً لسائقك!',
   select_trip: 'اختر رحلة',
   book_now: 'احجز الآن',

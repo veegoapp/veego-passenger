@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ComponentType } from 'react';
 import api from '../api/client';
-import { Bus, Car, Bike, PlusCircle, RefreshCw, ArrowUp, Tag, Ticket, CreditCard } from 'lucide-react-native';
+import { Bus, Car, Bike as ScooterIcon, PlusCircle, RefreshCw, ArrowUp, Tag, Ticket, CreditCard } from 'lucide-react-native';
 
 export interface Transaction {
   id: string;
@@ -19,7 +19,7 @@ export interface Transaction {
 const ICON_MAP: Record<string, ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
   shuttle: Bus,
   car: Car,
-  bike: Bike,
+  scooter: ScooterIcon,
   recharge: PlusCircle,
   top_up: PlusCircle,
   topup: PlusCircle,

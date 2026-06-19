@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Heart, Clock, GitCommit, Navigation, Ticket, Car, Bus, RefreshCw, Bike } from 'lucide-react-native';
+import { Heart, Clock, GitCommit, Navigation, Ticket, Car, Bus, RefreshCw, Bike as ScooterIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -16,7 +16,7 @@ import type { TripType } from '@/constants/data';
 const TYPE_ICON: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {
   shuttle: Bus,
   car: Car,
-  scooter: Bike,
+  scooter: ScooterIcon,
 };
 
 const TYPE_COLOR: Record<TripType, string> = {
@@ -295,7 +295,7 @@ export default function FavoritesScreen() {
           ) : scooterDest.length === 0 ? (
             <View style={styles.emptyShuttle}>
               <View style={styles.emptyIcon}>
-                <Bike size={22} color={c.silver} />
+                <ScooterIcon size={22} color={c.silver} />
               </View>
               <Text style={styles.emptyTitle}>{t('fav_empty_shuttle')}</Text>
               <Text style={styles.emptySub}>{t('scooter_dest_empty_sub')}</Text>
@@ -311,7 +311,7 @@ export default function FavoritesScreen() {
                 >
                   <View style={[styles.destAccent, { backgroundColor: TYPE_COLOR.scooter }]} />
                   <View style={[styles.destIconBox, { backgroundColor: `${TYPE_COLOR.scooter}30` }]}>
-                    <Bike size={22} color="#16a34a" />
+                    <ScooterIcon size={22} color="#16a34a" />
                   </View>
                   <View style={styles.destMeta}>
                     <Text style={styles.destFrom} numberOfLines={1}>{dest.from}</Text>

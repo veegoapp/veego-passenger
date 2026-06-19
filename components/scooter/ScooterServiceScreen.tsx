@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { ArrowLeft, ArrowRight, Bike } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Bike as ScooterIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -73,7 +73,7 @@ export function ScooterServiceScreen({ onBack, embedded }: ScooterServiceScreenP
         </TouchableOpacity>
       )}
       <View style={styles.iconWrap}>
-        <Bike size={40} color="#55c49a" />
+        <ScooterIcon size={40} color="#55c49a" />
       </View>
       <Text style={styles.title}>Coming Soon</Text>
       <Text style={styles.sub}>Scooter service is{'\n'}coming to your city soon.</Text>

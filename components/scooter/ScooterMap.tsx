@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Bike, Radio } from 'lucide-react-native';
+import { MapPin, Bike as ScooterIcon, Radio } from 'lucide-react-native';
 
 type ScooterPhase = 'idle' | 'selecting' | 'ride_options' | 'searching' | 'driver_assigned' | 'completed';
 
@@ -99,7 +99,7 @@ export function ScooterMap({ phase, destination }: ScooterMapProps) {
           alignItems: 'center', justifyContent: 'center', zIndex: 1,
         }}>
           <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center' }}>
-            <Bike size={13} color="#ffffff" />
+            <ScooterIcon size={13} color="#ffffff" />
           </View>
         </Animated.View>
       </Animated.View>

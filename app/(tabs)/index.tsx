@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bus, Car, Bike, Package, Bell, Search, MapPin, ArrowRight, ArrowLeft, Navigation, Flame, Wrench, AlertCircle } from 'lucide-react-native';
+import { Bus, Car, Bike as ScooterIcon, Package, Bell, Search, MapPin, ArrowRight, ArrowLeft, Navigation, Flame, Wrench, AlertCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -44,7 +44,7 @@ type ServiceMode = 'shuttle' | 'car' | 'scooter';
 const SERVICES = [
   { id: 'shuttle' as const, labelKey: 'shuttle' as const, icon: Bus },
   { id: 'car' as const, labelKey: 'car' as const, icon: Car },
-  { id: 'scooter' as const, labelKey: 'scooter' as const, icon: Bike },
+  { id: 'scooter' as const, labelKey: 'scooter' as const, icon: ScooterIcon },
   { id: 'delivery' as const, labelKey: 'delivery' as const, icon: Package },
 ];
 
@@ -395,7 +395,7 @@ export default function HomeScreen() {
             );
           })()}
 
-          {/* Car / Bike destination search */}
+          {/* Car / Scooter destination search */}
           {mode !== 'shuttle' && (
             <View style={styles.mapSearchBox}>
               {/* Pickup */}
