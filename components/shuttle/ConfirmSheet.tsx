@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
-import { usePromos } from '@/src/hooks/usePromos';
+import { usePromos } from '@/src/hooks/shared/usePromos';
 
 function makeStyles(c: ThemeColors, gs: object) {
   const cardBg = c.isDark ? 'rgba(30,32,54,0.9)' : 'rgba(255,255,255,0.8)';

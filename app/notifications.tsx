@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, CheckCheck, Navigation, Sparkles, Settings, Bell
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { useNotifications } from '@/src/hooks/useNotifications';
+import { useNotifications } from '@/src/hooks/shared/useNotifications';
 
 const CATEGORY_ICONS = {
   trip: Navigation, promo: Sparkles, system: Settings,

@@ -3,11 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Activit
 import { LinearGradient } from 'expo-linear-gradient';
 import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RouteCard } from '@/components/RouteCard';
+import { RouteCard } from '@/components/shuttle/RouteCard';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { useRoutes } from '@/src/hooks/useRoutes';
+import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({

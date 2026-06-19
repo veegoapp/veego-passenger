@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
+import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import { getSocket } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
 import api from '@/src/api/client';

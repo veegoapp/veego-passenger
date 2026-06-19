@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import { useRideChat } from '@/src/hooks/useRideChat';
+import { useRideChat } from '@/src/hooks/car/useRideChat';
 import { useState } from 'react';
 
 interface ChatModalProps {

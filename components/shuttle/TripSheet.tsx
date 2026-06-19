@@ -16,7 +16,7 @@ import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { calcSegmentPrice, DATES } from '@/constants/data';
-import { SectionLabel } from '@/components/Shared';
+import { SectionLabel } from '@/components/shared/Shared';
 import api from '@/src/api/client';
 
 /**

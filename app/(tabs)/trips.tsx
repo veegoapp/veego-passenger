@@ -18,7 +18,7 @@ import { type TripType, shuttleStatusLabel, isShuttleTripUpcoming } from '@/cons
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { useTrips } from '@/src/hooks/useTrips';
+import { useTrips } from '@/src/hooks/shared/useTrips';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';

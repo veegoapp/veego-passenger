@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { usePromos } from '@/src/hooks/usePromos';
+import { usePromos } from '@/src/hooks/shared/usePromos';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({

@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { C } from '@/constants/colors';
-import { IllustRoute, IllustSeat, IllustCity } from '@/components/Illustrations';
+import { IllustRoute, IllustSeat, IllustCity } from '@/components/shared/Illustrations';
 import { useTheme } from '@/context/ThemeContext';
 
 const { width } = Dimensions.get('window');

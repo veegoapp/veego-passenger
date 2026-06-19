@@ -13,7 +13,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { useBooking } from '@/context/BookingContext';
-import { usePromos } from '@/src/hooks/usePromos';
+import { usePromos } from '@/src/hooks/shared/usePromos';
 import { S, makeGlassStyle } from '@/constants/colors';
 
 /* ─────────────────────────────────────────────────────────── */

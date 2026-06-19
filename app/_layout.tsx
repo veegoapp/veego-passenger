@@ -21,9 +21,9 @@ import { FavoritesProvider } from '@/context/FavoritesContext';
 import { TabBarProvider } from '@/context/TabBarContext';
 import { ServiceControlProvider } from '@/context/ServiceControlContext';
 import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
-import { TripSheet } from '@/components/TripSheet';
-import { ConfirmSheet } from '@/components/ConfirmSheet';
-import { usePushToken } from '@/src/hooks/usePushToken';
+import { TripSheet } from '@/components/shuttle/TripSheet';
+import { ConfirmSheet } from '@/components/shuttle/ConfirmSheet';
+import { usePushToken } from '@/src/hooks/shared/usePushToken';
 
 SplashScreen.preventAutoHideAsync();
 

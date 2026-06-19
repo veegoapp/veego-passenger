@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, MapPin, RefreshCw, WifiOff, Search, X } from 'lu
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { MapMockView } from '@/components/Shared';
+import { MapMockView } from '@/components/shared/Shared';
 import api from '@/src/api/client';
 
 interface StationItem {

@@ -7,8 +7,8 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { useWallet } from '@/src/hooks/useWallet';
-import { useMyDebt } from '@/src/hooks/useMyDebt';
+import { useWallet } from '@/src/hooks/shared/useWallet';
+import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 
 const CHARGE_OPTIONS = [50, 100, 200, 500];

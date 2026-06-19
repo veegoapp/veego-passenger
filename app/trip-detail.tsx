@@ -14,7 +14,7 @@ import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
 import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
 import api from '@/src/api/client';
-import { PassengerTrackingMap } from '@/components/PassengerTrackingMap';
+import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 
 
 const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled'];

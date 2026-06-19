@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { usePromos } from '@/src/hooks/usePromos';
+import { usePromos } from '@/src/hooks/shared/usePromos';
 import type { Route } from '@/constants/data';
 
 // RouteCard uses t() from useTheme so it must call hook inside component

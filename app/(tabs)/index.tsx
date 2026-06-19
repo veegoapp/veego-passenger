@@ -9,16 +9,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { useRoutes } from '@/src/hooks/useRoutes';
-import { RouteCard, FeaturedOffers } from '@/components/RouteCard';
-import { SectionHeader } from '@/components/Shared';
+import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
+import { RouteCard, FeaturedOffers } from '@/components/shuttle/RouteCard';
+import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarMap } from '@/components/car/CarMap';
 import { BikeMap } from '@/components/bike/BikeMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
-import { useMyDebt } from '@/src/hooks/useMyDebt';
-import { useProfile } from '@/src/hooks/useProfile';
+import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
+import { useProfile } from '@/src/hooks/shared/useProfile';
 import api from '@/src/api/client';
 
 function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good_evening' {

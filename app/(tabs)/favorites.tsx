@@ -9,8 +9,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useBooking } from '@/context/BookingContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { useRoutes } from '@/src/hooks/useRoutes';
-import { useFavoriteDestinations } from '@/src/hooks/useFavoriteDestinations';
+import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
+import { useFavoriteDestinations } from '@/src/hooks/shared/useFavoriteDestinations';
 import type { TripType } from '@/constants/data';
 
 const TYPE_ICON: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {

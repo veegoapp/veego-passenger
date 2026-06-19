@@ -5,7 +5,7 @@ import type { Booking, Route, ShuttleBookingMeta } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
-import { usePassengerTracking } from '@/src/hooks/usePassengerTracking';
+import { usePassengerTracking } from '@/src/hooks/shared/usePassengerTracking';
 
 type BookingContextType = {
   selectedRoute: Route | null;
