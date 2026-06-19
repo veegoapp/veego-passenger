@@ -124,11 +124,15 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
       onSuccess();
     } catch (e: any) {
       const status = e?.response?.status;
-      const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? t('sign_in_failed');
+      const body = e?.response?.data ?? {};
+      if (status === 403 && body.requiresOtp) {
+        router.push({ pathname: '/verify-phone', params: { phone: body.phone, maskedPhone: body.maskedPhone ?? body.phone } } as any);
+        return;
+      }
       if (status === 403) {
         Alert.alert(t('error'), t('account_blocked'));
       } else {
-        Alert.alert(t('error'), msg);
+        Alert.alert(t('error'), body.error ?? body.message ?? t('sign_in_failed'));
       }
     } finally {
       setLoading(false);
@@ -222,6 +226,12 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         email: email.trim(),
         password,
       });
+      if (data.requiresOtp) {
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.push({ pathname: '/verify-phone', params: { phone: data.phone ?? phone.trim(), maskedPhone: data.maskedPhone ?? data.phone ?? phone.trim() } } as any);
+        return;
+      }
+      // Fallback: backend returned tokens directly (forward compatibility)
       await persistTokens(data);
       await saveSession(email.trim(), name.trim());
       emitAuthEvent('auth:login');

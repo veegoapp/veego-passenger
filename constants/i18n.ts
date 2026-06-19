@@ -595,6 +595,10 @@ const en = {
   qr_scan_boarding: 'Scan Boarding QR',
   qr_align_hint: "Align the passenger's QR code within the frame",
   qr_tap_scan_again: 'Tap to scan again',
+
+  // Phone OTP verification (register/login flow)
+  otp_expired: 'Your code expired. A new one has been sent.',
+  otp_code_sent: 'Code sent!',
 };
 
 const ar: typeof en = {
@@ -1194,6 +1198,10 @@ const ar: typeof en = {
   qr_scan_boarding: 'مسح رمز الصعود QR',
   qr_align_hint: 'ضع رمز QR الخاص بالراكب داخل الإطار',
   qr_tap_scan_again: 'اضغط للمسح مجدداً',
+
+  // Phone OTP verification (register/login flow)
+  otp_expired: 'انتهت صلاحية الرمز. تم إرسال رمز جديد.',
+  otp_code_sent: 'تم إرسال الرمز!',
 };
 
 export type LangKey = keyof typeof en;

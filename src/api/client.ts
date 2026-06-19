@@ -107,11 +107,17 @@ api.interceptors.response.use(
         if (_socketReconnect) { _socketReconnect().catch(() => {}); }
         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
         return api(originalRequest);
-      } catch {
+      } catch (refreshError: any) {
         refreshQueue = [];
         await removeToken(TOKEN_KEY);
         await removeToken(REFRESH_KEY);
-        router.replace('/auth');
+        const rfBody = refreshError?.response?.data ?? {};
+        if (refreshError?.response?.status === 403 && rfBody.requiresOtp) {
+          // Phone not yet verified — redirect to OTP screen silently
+          router.replace({ pathname: '/verify-phone', params: { phone: rfBody.phone, maskedPhone: rfBody.maskedPhone ?? rfBody.phone } } as any);
+        } else {
+          router.replace('/auth');
+        }
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
