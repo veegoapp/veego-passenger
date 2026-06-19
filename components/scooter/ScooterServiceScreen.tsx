@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 
-interface BikeServiceScreenProps {
+interface ScooterServiceScreenProps {
   onBack: () => void;
   embedded?: boolean;
 }
@@ -57,7 +57,7 @@ function makeStyles(c: ThemeColors, insetTop: number) {
   });
 }
 
-export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) {
+export function ScooterServiceScreen({ onBack, embedded }: ScooterServiceScreenProps) {
   const { isRTL } = useTheme();
   const insets = useSafeAreaInsets();
   const insetTop = Platform.OS === 'web' ? 60 : insets.top;
@@ -76,7 +76,7 @@ export function BikeServiceScreen({ onBack, embedded }: BikeServiceScreenProps) 
         <Bike size={40} color="#55c49a" />
       </View>
       <Text style={styles.title}>Coming Soon</Text>
-      <Text style={styles.sub}>Bike & scooter service is{'\n'}coming to your city soon.</Text>
+      <Text style={styles.sub}>Scooter service is{'\n'}coming to your city soon.</Text>
     </View>
   );
 }
