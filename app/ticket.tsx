@@ -284,9 +284,9 @@ export default function TicketScreen() {
         socket.emit('passenger:join:trip', confirmedTripId);
       }
 
-      const boardedHandler = (data: { bookingId: string; userId?: number; tripId?: number }) => {
+      const boardedHandler = (data: { bookingId: string | number; userId?: number; tripId?: number; timestamp?: string }) => {
         const id = bookingId.replace(/^#/, '');
-        if (data.bookingId === id || data.bookingId === bookingId) {
+        if (String(data.bookingId) === id || String(data.bookingId) === bookingId) {
           setBoarded(true);
           if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Animated.spring(boardedAnim, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 180 }).start();
