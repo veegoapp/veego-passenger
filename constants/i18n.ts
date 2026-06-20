@@ -612,6 +612,13 @@ const en = {
   based_on_ratings: 'Based on {count} rating{plural}',
   notif_on: 'On',
   support_form_error: 'Please select an issue type and describe your problem.',
+  terms_and_conditions: 'Terms & Conditions',
+  terms_agree_checkbox: 'I have read and agree to the',
+  terms_link_label: 'Terms & Conditions',
+  i_accept: 'I Accept',
+  terms_updated_banner: 'The terms have been updated. Please review and accept.',
+  accept: 'Accept',
+  terms_loading: 'Loading terms…',
 };
 
 const ar: typeof en = {
@@ -1228,6 +1235,13 @@ const ar: typeof en = {
   based_on_ratings: 'بناءً على {count} تقييم{plural}',
   notif_on: 'مفعّل',
   support_form_error: 'يرجى اختيار نوع المشكلة ووصف مشكلتك.',
+  terms_and_conditions: 'الشروط والأحكام',
+  terms_agree_checkbox: 'لقد قرأت الشروط والأحكام وأوافق على',
+  terms_link_label: 'الشروط والأحكام',
+  i_accept: 'أوافق',
+  terms_updated_banner: 'تم تحديث الشروط. يرجى المراجعة والموافقة.',
+  accept: 'أوافق',
+  terms_loading: 'جارٍ تحميل الشروط…',
 };
 
 export type LangKey = keyof typeof en;

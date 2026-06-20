@@ -3,6 +3,7 @@ import {
   View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert,
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView, Animated,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Lock, ChevronRight, ChevronLeft, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Trash2, Eye, EyeOff, KeyRound, Banknote, Wallet } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { ThemeColors, S } from '@/constants/colors';
+import TermsModal from '@/components/shared/TermsModal';
 
 type ProfileScreen =
   | 'personal_info'
@@ -27,6 +29,7 @@ type ProfileScreen =
   | 'help_faq'
   | 'contact_support'
   | 'rating_details'
+  | 'terms'
   | null;
 
 function makeStyles(c: ThemeColors) {
@@ -866,6 +869,13 @@ export default function ProfileScreen() {
   const { colors: c, glassStyle: gs, darkMode, setDarkMode, language, setLanguage, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
+  const { openTerms } = useLocalSearchParams<{ openTerms?: string }>();
+
+  useEffect(() => {
+    if (openTerms === '1') {
+      setActiveModal('terms');
+    }
+  }, [openTerms]);
   const { name: profileName, email: profileEmail } = useProfileInfo();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -1073,7 +1083,7 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>{t('app_version_label')}</Text>
           <View style={[gs, styles.groupCard]}>
             {[
-              { icon: FileText, label: t('terms_of_service'), onPress: () => Alert.alert(t('terms_of_service'), t('terms_browser_msg')) },
+              { icon: FileText, label: t('terms_of_service'), onPress: () => open('terms') },
               { icon: ShieldCheck, label: t('privacy_policy'), onPress: () => Alert.alert(t('privacy_policy'), t('privacy_browser_msg')) },
               { icon: Info, label: t('about_veego'), value: 'v1.0.0', onPress: () => {} },
               { icon: Star, label: t('rate_app'), onPress: () => Alert.alert(t('rate_app'), t('rate_app_msg')) },
@@ -1126,6 +1136,11 @@ export default function ProfileScreen() {
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
       <RatingDetailsModal visible={activeModal === 'rating_details'} onClose={close} />
+      <TermsModal
+        visible={activeModal === 'terms'}
+        onClose={close}
+        checkForUpdates
+      />
     </LinearGradient>
   );
 }

@@ -12,6 +12,7 @@ import { C, S } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
+import TermsModal, { fetchPassengerTerms, acceptTerms, type TermsData } from '@/components/shared/TermsModal';
 
 const SESSION_KEY = '@veego_session_v1';
 
@@ -210,9 +211,23 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsData, setTermsData] = useState<TermsData | null>(null);
+  const [termsFetching, setTermsFetching] = useState(true);
+
+  useEffect(() => {
+    setTermsFetching(true);
+    fetchPassengerTerms()
+      .then(setTermsData)
+      .catch(() => {})
+      .finally(() => setTermsFetching(false));
+  }, []);
+
+  const canSubmit = !!(name.trim() && phone.trim() && email.trim() && password.trim() && termsChecked && !loading);
 
   const handleSignUp = async () => {
-    if (!name.trim() || !phone.trim() || !email.trim() || !password.trim()) return;
+    if (!canSubmit) return;
     if (password.length < 8) {
       Alert.alert(t('error'), t('password_min'));
       return;
@@ -228,12 +243,15 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       });
       if (data.requiresOtp) {
         if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.push({ pathname: '/verify-phone', params: { phone: data.phone ?? phone.trim(), maskedPhone: data.maskedPhone ?? data.phone ?? phone.trim() } } as any);
+        router.push({ pathname: '/verify-phone', params: { phone: data.phone ?? phone.trim(), maskedPhone: data.maskedPhone ?? data.phone ?? phone.trim(), termsVersion: String(termsData?.version ?? '') } } as any);
         return;
       }
       // Fallback: backend returned tokens directly (forward compatibility)
-      await persistTokens(data);
+      const { accessToken } = await persistTokens(data);
       await saveSession(email.trim(), name.trim());
+      if (accessToken && termsData) {
+        acceptTerms(termsData.version).catch(() => {});
+      }
       emitAuthEvent('auth:login');
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
@@ -321,11 +339,35 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         </TouchableOpacity>
       </View>
 
+      {/* Terms checkbox */}
       <TouchableOpacity
-        style={[styles.primaryBtn, (!name.trim() || !phone.trim() || !email.trim() || !password.trim() || loading) && { opacity: 0.6 }]}
+        style={[styles.termsCheckRow, isRTL && { flexDirection: 'row-reverse' }]}
+        activeOpacity={0.8}
+        onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setTermsChecked((v) => !v); }}
+      >
+        <View style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>
+          {termsChecked && <Check size={12} color={C.white} strokeWidth={3} />}
+        </View>
+        <Text style={[styles.termsCheckText, isRTL && { textAlign: 'right' }]}>
+          {t('terms_agree_checkbox')}{' '}
+          {termsFetching ? (
+            <Text style={styles.termsLink}>{t('terms_link_label')}</Text>
+          ) : (
+            <Text
+              style={styles.termsLink}
+              onPress={(e) => { e.stopPropagation(); setShowTermsModal(true); }}
+            >
+              {t('terms_link_label')}
+            </Text>
+          )}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.primaryBtn, !canSubmit && { opacity: 0.4 }]}
         activeOpacity={0.9}
         onPress={handleSignUp}
-        disabled={!name.trim() || !phone.trim() || !email.trim() || !password.trim() || loading}
+        disabled={!canSubmit}
       >
         {loading ? (
           <ActivityIndicator color={C.white} size="small" />
@@ -337,13 +379,12 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         )}
       </TouchableOpacity>
 
-      <View style={styles.termsRow}>
-        <Shield size={13} color={C.inkSoft} />
-        <Text style={styles.termsText}>
-          {t('terms_agree')}{' '}
-          <Text style={styles.termsLink}>{t('terms_link')}</Text>
-        </Text>
-      </View>
+      <TermsModal
+        visible={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        termsData={termsData}
+        onAccept={() => setTermsChecked(true)}
+      />
     </View>
   );
 }
@@ -702,7 +743,15 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: C.white, fontSize: 15, fontWeight: '600' },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 4 },
   termsText: { fontSize: 11, color: C.inkSoft, flex: 1 },
-  termsLink: { color: C.ink, fontWeight: '600' },
+  termsLink: { color: C.ink, fontWeight: '600', textDecorationLine: 'underline' },
+  termsCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 2 },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: C.mist, alignItems: 'center', justifyContent: 'center',
+    marginTop: 1, flexShrink: 0,
+  },
+  checkboxChecked: { backgroundColor: C.ink, borderColor: C.ink },
+  termsCheckText: { fontSize: 12, color: C.inkSoft, flex: 1, lineHeight: 18 },
 
   fieldError: {
     fontSize: 12.5,

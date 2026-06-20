@@ -12,6 +12,7 @@ import { C, S } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
+import { acceptTerms } from '@/components/shared/TermsModal';
 
 const SESSION_KEY = '@veego_session_v1';
 const OTP_LENGTH = 6;
@@ -24,7 +25,7 @@ async function persistTokens(data: any) {
 }
 
 export default function VerifyPhoneScreen() {
-  const { phone, maskedPhone } = useLocalSearchParams<{ phone: string; maskedPhone?: string }>();
+  const { phone, maskedPhone, termsVersion } = useLocalSearchParams<{ phone: string; maskedPhone?: string; termsVersion?: string }>();
   const { t, isRTL } = useTheme();
 
   const [otp, setOtp] = useState('');
@@ -81,6 +82,10 @@ export default function VerifyPhoneScreen() {
         }));
       }
       emitAuthEvent('auth:login');
+      if (termsVersion) {
+        const v = parseInt(termsVersion, 10);
+        if (!isNaN(v)) acceptTerms(v).catch(() => {});
+      }
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');
     } catch (e: any) {

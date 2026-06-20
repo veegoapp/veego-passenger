@@ -72,11 +72,13 @@ export default function NotificationsScreen() {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
           {notifications.map((n) => {
             const NotifIcon = CATEGORY_ICONS[n.type as keyof typeof CATEGORY_ICONS] ?? Bell;
+            const isTermsNotif = n.type === 'system' && /terms/i.test(`${n.title} ${n.body}`);
             return (
             <TouchableOpacity
               key={n.id}
               style={[gs, styles.notifCard, n.unread && styles.notifCardUnread]}
               activeOpacity={0.88}
+              onPress={isTermsNotif ? () => router.push('/(tabs)/profile?openTerms=1' as any) : undefined}
             >
               <View style={[styles.notifIconWrap, { backgroundColor: iconBg[n.type] ?? c.mist }]}>
                 <NotifIcon size={16} color={c.ink} />
