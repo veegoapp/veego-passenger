@@ -207,10 +207,21 @@ export default function TripsScreen() {
         }));
       };
 
+      // Auto-navigate when driver starts sending location (comes online ~20 min before departure)
+      const autoOpenedRef = new Set<string>();
+      const locationHandler = (payload: { tripId: string | number }) => {
+        const key = String(payload.tripId);
+        if (!tripIds.includes(key) || autoOpenedRef.has(key)) return;
+        autoOpenedRef.add(key);
+        router.push(`/trip-detail?id=${key}` as any);
+      };
+
       socket.on('shuttle:trip:status', statusHandler);
+      socket.on('shuttle:driver:location', locationHandler);
 
       cleanupFns = [
         () => socket.off('shuttle:trip:status', statusHandler),
+        () => socket.off('shuttle:driver:location', locationHandler),
         () => tripIds.forEach((tid) => socket.emit('leave:trip', { tripId: tid })),
       ];
     }).catch(() => {});

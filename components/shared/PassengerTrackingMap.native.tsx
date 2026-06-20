@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Polyline, UrlTile, AnimatedRegion, MarkerAnimated } from 'react-native-maps';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -8,60 +8,109 @@ interface LatLng {
   longitude: number;
 }
 
+export interface Station {
+  id: number;
+  name: string;
+  order: number;
+  latitude: number;
+  longitude: number;
+  status: 'completed' | 'active' | 'pending';
+}
+
 export interface TrackingMapProps {
   pickup?: LatLng | null;
   dropoff?: LatLng | null;
   driverLocation?: LatLng | null;
+  stations?: Station[];
+  passengerStationId?: number | null;
   style?: object;
 }
 
-const DEFAULT_CENTER: LatLng = { latitude: 25.4529, longitude: 30.5523 };
-const DELTA = { latitudeDelta: 0.04, longitudeDelta: 0.04 };
+const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
+const DELTA = { latitudeDelta: 0.05, longitudeDelta: 0.05 };
 const OSM_TILE = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 function centroid(points: LatLng[]): LatLng {
   const n = points.length;
   return {
-    latitude: points.reduce((s, p) => s + p.latitude, 0) / n,
+    latitude:  points.reduce((s, p) => s + p.latitude,  0) / n,
     longitude: points.reduce((s, p) => s + p.longitude, 0) / n,
   };
 }
 
-export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }: TrackingMapProps) {
+function stationFill(status: Station['status']): string {
+  if (status === 'completed') return '#22c55e';
+  if (status === 'active')    return '#2563eb';
+  return '#94a3b8';
+}
+
+export function PassengerTrackingMap({
+  pickup, dropoff, driverLocation,
+  stations = [], passengerStationId, style,
+}: TrackingMapProps) {
   const { t } = useTheme();
+
+  const initLat = driverLocation?.latitude ?? pickup?.latitude ?? DEFAULT_CENTER.latitude;
+  const initLng = driverLocation?.longitude ?? pickup?.longitude ?? DEFAULT_CENTER.longitude;
+
   const animatedCoord = useRef(
-    new AnimatedRegion({
-      latitude: driverLocation?.latitude ?? pickup?.latitude ?? DEFAULT_CENTER.latitude,
-      longitude: driverLocation?.longitude ?? pickup?.longitude ?? DEFAULT_CENTER.longitude,
-      latitudeDelta: 0,
-      longitudeDelta: 0,
-    })
+    new AnimatedRegion({ latitude: initLat, longitude: initLng, latitudeDelta: 0, longitudeDelta: 0 }),
   ).current;
 
+  // Smoothly animate driver marker to new position
   useEffect(() => {
     if (!driverLocation) return;
     animatedCoord.timing({
-      latitude: driverLocation.latitude,
-      longitude: driverLocation.longitude,
-      latitudeDelta: 0,
+      latitude:       driverLocation.latitude,
+      longitude:      driverLocation.longitude,
+      latitudeDelta:  0,
       longitudeDelta: 0,
-      duration: 800,
+      duration:       800,
       useNativeDriver: false,
     }).start();
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
-  const center = useMemo(() => {
-    const pts = [driverLocation, pickup, dropoff].filter(Boolean) as LatLng[];
-    return pts.length > 0 ? centroid(pts) : DEFAULT_CENTER;
-  }, [pickup, dropoff, driverLocation]);
+  const sorted = useMemo(() => [...stations].sort((a, b) => a.order - b.order), [stations]);
 
-  const routeCoords = useMemo(() => {
+  // Map center: prefer driver + passenger's pickup station
+  const center = useMemo(() => {
     const pts: LatLng[] = [];
     if (driverLocation) pts.push(driverLocation);
-    if (pickup) pts.push(pickup);
-    if (dropoff) pts.push(dropoff);
+    if (sorted.length > 0) {
+      sorted.forEach((s) => pts.push({ latitude: s.latitude, longitude: s.longitude }));
+    } else {
+      if (pickup)  pts.push(pickup);
+      if (dropoff) pts.push(dropoff);
+    }
+    return pts.length > 0 ? centroid(pts) : DEFAULT_CENTER;
+  }, [driverLocation, sorted, pickup, dropoff]);
+
+  // Completed leg: last driver pos → all completed stations
+  const completedCoords = useMemo((): LatLng[] => {
+    const done = sorted.filter((s) => s.status === 'completed');
+    if (done.length === 0) return [];
+    return done.map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
+  }, [sorted]);
+
+  // Upcoming leg: driver → remaining stations
+  const upcomingCoords = useMemo((): LatLng[] => {
+    const ahead = sorted.filter((s) => s.status !== 'completed');
+    if (ahead.length === 0) return [];
+    const pts: LatLng[] = [];
+    if (driverLocation) pts.push(driverLocation);
+    ahead.forEach((s) => pts.push({ latitude: s.latitude, longitude: s.longitude }));
     return pts;
-  }, [pickup, dropoff, driverLocation]);
+  }, [sorted, driverLocation]);
+
+  // Fallback straight line when no stations provided
+  const fallbackCoords = useMemo((): LatLng[] => {
+    if (sorted.length > 0) return [];
+    const pts: LatLng[] = [];
+    if (driverLocation) pts.push(driverLocation);
+    if (pickup)         pts.push(pickup);
+    if (dropoff)        pts.push(dropoff);
+    return pts;
+  }, [sorted, driverLocation, pickup, dropoff]);
 
   return (
     <View style={[StyleSheet.absoluteFill, style]}>
@@ -73,46 +122,74 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
         showsCompass={false}
         toolbarEnabled={false}
         rotateEnabled={false}
-        scrollEnabled={true}
-        zoomEnabled={true}
+        scrollEnabled
+        zoomEnabled
         pitchEnabled={false}
       >
         <UrlTile urlTemplate={OSM_TILE} maximumZ={19} flipY={false} />
 
-        {pickup && (
+        {/* Completed leg — green */}
+        {completedCoords.length >= 2 && (
+          <Polyline coordinates={completedCoords} strokeColor="#22c55e" strokeWidth={4} />
+        )}
+
+        {/* Upcoming leg — blue */}
+        {upcomingCoords.length >= 2 && (
+          <Polyline coordinates={upcomingCoords} strokeColor="#2563eb" strokeWidth={4} />
+        )}
+
+        {/* Fallback line (no stations) */}
+        {fallbackCoords.length >= 2 && (
+          <Polyline coordinates={fallbackCoords} strokeColor="#2563eb" strokeWidth={3.5} />
+        )}
+
+        {/* Station markers */}
+        {sorted.map((station) => {
+          const isPassenger = passengerStationId != null && station.id === passengerStationId;
+          const fill = stationFill(station.status);
+          return (
+            <Marker
+              key={station.id}
+              coordinate={{ latitude: station.latitude, longitude: station.longitude }}
+              title={station.name}
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View
+                style={[
+                  styles.stationDot,
+                  { backgroundColor: fill },
+                  isPassenger && styles.passengerRing,
+                ]}
+              >
+                <Text style={styles.stationNum}>{station.order}</Text>
+              </View>
+            </Marker>
+          );
+        })}
+
+        {/* Fallback pickup/dropoff when no stations */}
+        {sorted.length === 0 && pickup && (
           <Marker coordinate={pickup} anchor={{ x: 0.5, y: 1 }} title={t('pickup')}>
-            <View style={styles.pickupMarker}>
-              <View style={styles.markerDot} />
-            </View>
+            <View style={styles.pickupMarker}><View style={styles.markerDot} /></View>
           </Marker>
         )}
-
-        {dropoff && (
+        {sorted.length === 0 && dropoff && (
           <Marker coordinate={dropoff} anchor={{ x: 0.5, y: 1 }} title={t('dropoff')}>
-            <View style={styles.dropoffMarker}>
-              <View style={styles.markerDot} />
-            </View>
+            <View style={styles.dropoffMarker}><View style={styles.markerDot} /></View>
           </Marker>
         )}
 
+        {/* Animated driver / bus marker */}
         {(driverLocation ?? pickup) && (
           <MarkerAnimated
             coordinate={animatedCoord}
-            anchor={{ x: 0.5, y: 1 }}
+            anchor={{ x: 0.5, y: 0.5 }}
             title={t('driver_label')}
           >
-            <View style={styles.driverMarker}>
-              <View style={styles.driverDot} />
+            <View style={styles.busMarker}>
+              <Text style={styles.busTxt}>🚌</Text>
             </View>
           </MarkerAnimated>
-        )}
-
-        {routeCoords.length >= 2 && (
-          <Polyline
-            coordinates={routeCoords}
-            strokeColor="#2563eb"
-            strokeWidth={3.5}
-          />
         )}
       </MapView>
     </View>
@@ -120,30 +197,35 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
 }
 
 const styles = StyleSheet.create({
+  stationDot: {
+    width: 26, height: 26, borderRadius: 13,
+    borderWidth: 2.5, borderColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  passengerRing: {
+    width: 32, height: 32, borderRadius: 16,
+    borderWidth: 3, borderColor: '#f59e0b',
+  },
+  stationNum: { fontSize: 10, fontWeight: '800', color: '#fff' },
+
   pickupMarker: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#22c55e',
-    borderWidth: 2.5, borderColor: '#fff',
+    backgroundColor: '#22c55e', borderWidth: 2.5, borderColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
   },
   dropoffMarker: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#ef4444',
-    borderWidth: 2.5, borderColor: '#fff',
+    backgroundColor: '#ef4444', borderWidth: 2.5, borderColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
   },
-  driverMarker: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: '#2563eb',
-    borderWidth: 2.5, borderColor: '#fff',
+  markerDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
+
+  busMarker: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#1e293b', borderWidth: 2, borderColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 8, elevation: 8,
   },
-  driverDot: {
-    width: 10, height: 10, borderRadius: 5,
-    backgroundColor: '#fff',
-  },
-  markerDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#fff',
-  },
+  busTxt: { fontSize: 18, lineHeight: 22 },
 });

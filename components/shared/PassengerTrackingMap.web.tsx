@@ -64,14 +64,25 @@ const DRIVER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="4
   <line x1="19" y1="32" x2="19" y2="44" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round"/>
 </svg>`;
 
+export interface Station {
+  id: number;
+  name: string;
+  order: number;
+  latitude: number;
+  longitude: number;
+  status: 'completed' | 'active' | 'pending';
+}
+
 export interface TrackingMapProps {
   pickup?: { latitude: number; longitude: number } | null;
   dropoff?: { latitude: number; longitude: number } | null;
   driverLocation?: { latitude: number; longitude: number } | null;
+  stations?: Station[];
+  passengerStationId?: number | null;
   style?: object;
 }
 
-export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }: TrackingMapProps) {
+export function PassengerTrackingMap({ pickup, dropoff, driverLocation, stations = [], passengerStationId, style }: TrackingMapProps) {
   const { t } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -115,6 +126,24 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
           .addTo(map);
       }
 
+      // Station markers (shuttle stops)
+      const sorted = [...stations].sort((a, b) => a.order - b.order);
+      sorted.forEach((station) => {
+        const isPassenger = passengerStationId != null && station.id === passengerStationId;
+        const color = station.status === 'completed' ? '#22c55e' : station.status === 'active' ? '#2563eb' : '#94a3b8';
+        const border = isPassenger ? '#f59e0b' : '#ffffff';
+        const size = isPassenger ? 32 : 26;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+          <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 2}" fill="${color}" stroke="${border}" stroke-width="2.5"/>
+          <text x="${size/2}" y="${size/2 + 4}" text-anchor="middle" fill="white" font-size="10" font-weight="bold" font-family="sans-serif">${station.order}</text>
+        </svg>`;
+        new maplibregl.Marker({ element: makeSvgEl(svg), anchor: 'center' })
+          .setLngLat([station.longitude, station.latitude])
+          .setPopup(new maplibregl.Popup({ offset: 16, closeButton: false }).setHTML(`<b>${station.name}</b>`))
+          .addTo(map);
+      });
+
+      // Driver / bus marker
       const driverLoc = driverLocation ?? pickup;
       if (driverLoc) {
         const el = makeSvgEl(DRIVER_SVG);
@@ -125,42 +154,39 @@ export function PassengerTrackingMap({ pickup, dropoff, driverLocation, style }:
         driverMarkerRef.current = marker;
       }
 
-      const routePoints: Array<{ latitude: number; longitude: number }> = [driverLocation, pickup, dropoff].filter(
-        Boolean
-      ) as Array<{ latitude: number; longitude: number }>;
+      // Route line — through stations if available, else driver→pickup→dropoff
+      const routePts: [number, number][] = sorted.length >= 2
+        ? [
+            ...(driverLocation ? [[driverLocation.longitude, driverLocation.latitude] as [number, number]] : []),
+            ...sorted.map((s) => [s.longitude, s.latitude] as [number, number]),
+          ]
+        : ([driverLocation, pickup, dropoff].filter(Boolean) as Array<{ latitude: number; longitude: number }>)
+            .map((p) => [p.longitude, p.latitude] as [number, number]);
 
-      if (routePoints.length >= 2) {
-        const straightCoords = routePoints.map((p) => [p.longitude, p.latitude] as [number, number]);
-        const routeCoords = (await fetchOSRMRoute(straightCoords)) ?? straightCoords;
-
+      if (routePts.length >= 2) {
+        const routeCoords = (await fetchOSRMRoute(routePts)) ?? routePts;
         map.addSource('route', {
           type: 'geojson',
-          data: {
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: routeCoords },
-            properties: {},
-          },
+          data: { type: 'Feature', geometry: { type: 'LineString', coordinates: routeCoords }, properties: {} },
         });
         map.addLayer({
-          id: 'route-casing',
-          type: 'line',
-          source: 'route',
+          id: 'route-casing', type: 'line', source: 'route',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: { 'line-color': '#fff', 'line-width': 6, 'line-opacity': 0.5 },
         });
         map.addLayer({
-          id: 'route-line',
-          type: 'line',
-          source: 'route',
+          id: 'route-line', type: 'line', source: 'route',
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: { 'line-color': '#2563eb', 'line-width': 3.5, 'line-opacity': 0.9 },
         });
       }
 
-      const allPts = [driverLocation, pickup, dropoff].filter(Boolean) as Array<{
-        latitude: number;
-        longitude: number;
-      }>;
+      const allPts: Array<{ latitude: number; longitude: number }> = [
+        ...(stations.length > 0
+          ? stations.map((s) => ({ latitude: s.latitude, longitude: s.longitude }))
+          : ([pickup, dropoff].filter(Boolean) as Array<{ latitude: number; longitude: number }>)),
+        ...(driverLocation ? [driverLocation] : []),
+      ];
       if (allPts.length > 1) {
         const bounds = new maplibregl.LngLatBounds();
         allPts.forEach((p) => bounds.extend([p.longitude, p.latitude]));

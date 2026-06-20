@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -15,12 +15,24 @@ import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
 import api from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
+import type { Station } from '@/components/shared/PassengerTrackingMap';
 import { RatingSheet } from '@/components/shared/RatingSheet';
 
 
-const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled'];
-const HIDE_MAP_STATUSES = ['boarding', 'completed', 'cancelled'];
+// Show map from 20 min before departure through the entire active trip
+const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled', 'active', 'boarding'];
+const HIDE_MAP_STATUSES = ['completed', 'cancelled'];
 const MINUTES_BEFORE_DEPARTURE = 20;
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 interface TripDetail {
   id: string | number;
@@ -40,6 +52,7 @@ interface TripDetail {
   minPassengers?: number;
   pickupLat?: number | null;
   pickupLng?: number | null;
+  pickupStationId?: number | null;
   driverName?: string | null;
   driverUserId?: number | null;
 }
@@ -76,6 +89,7 @@ function mapApiToDetail(b: any): TripDetail {
     minPassengers: trip.minPassengers ?? trip.min_passengers ?? null,
     pickupLat: pickupStation?.latitude ?? pickupStation?.lat ?? null,
     pickupLng: pickupStation?.longitude ?? pickupStation?.lng ?? null,
+    pickupStationId: pickupStation?.id ?? null,
     driverName: trip.driver?.name ?? b.driver?.name ?? null,
     driverUserId: trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
   };
@@ -126,6 +140,35 @@ function makeStyles(c: ThemeColors) {
     cancelBtnText: { fontSize: 14, fontWeight: '600', color: c.badge },
     rateBtn: { marginHorizontal: 20, marginBottom: 8, height: 54, borderRadius: 18, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     rateBtnText: { fontSize: 15, fontWeight: '700', color: c.isDark ? c.background : '#fff' },
+    sosBtn: {
+      position: 'absolute', top: 12, right: 12,
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: '#dc2626', borderRadius: 99,
+      paddingHorizontal: 12, paddingVertical: 7,
+      shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.45, shadowRadius: 8, elevation: 8,
+    },
+    sosBtnText: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+    boardedBanner: {
+      marginHorizontal: 20, marginBottom: 12,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 18,
+      padding: 14, borderWidth: 1.5, borderColor: '#22c55e',
+    },
+    boardedEmoji: { fontSize: 22 },
+    boardedTitle: { fontSize: 14, fontWeight: '700', color: '#15803d' },
+    boardedSub:   { fontSize: 12, color: '#16a34a', marginTop: 2 },
+    etaCard: {
+      marginHorizontal: 20, marginBottom: 12,
+      backgroundColor: c.isDark ? 'rgba(37,99,235,0.15)' : '#eff6ff',
+      borderRadius: 18, padding: 14, borderWidth: 1,
+      borderColor: c.isDark ? 'rgba(37,99,235,0.3)' : '#bfdbfe',
+      gap: 8,
+    },
+    etaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    etaLabel: { flex: 1, fontSize: 13, color: c.inkSoft },
+    etaValue: { fontSize: 14, fontWeight: '700', color: '#2563eb' },
+    etaDivider: { height: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : '#dbeafe' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 32 },
     modalBox: { borderRadius: 24, padding: 24, width: '100%', maxWidth: 380, gap: 12 },
     modalTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
@@ -153,6 +196,9 @@ export default function TripDetailScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [shuttleRatingVisible, setShuttleRatingVisible] = useState(false);
   const [shuttleAlreadyRated, setShuttleAlreadyRated] = useState(false);
+  const [stations, setStations] = useState<Station[]>([]);
+  const [boarded, setBoarded] = useState(false);
+  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
 
   const tripIdRef = useRef<string | number | null>(null);
 
@@ -202,6 +248,33 @@ export default function TripDetailScreen() {
   useEffect(() => {
     fetchTrip();
   }, [fetchTrip]);
+
+  // Fetch all stations for this trip — poll every 30 s during live phases
+  const fetchStations = useCallback(async (tripId: string | number) => {
+    try {
+      const res = await api.get(`/driver/trips/${tripId}/stations`);
+      const raw: any[] = res.data?.data ?? res.data ?? [];
+      setStations(raw.map((s: any) => ({
+        id:        s.id,
+        name:      s.name ?? s.stationName ?? '',
+        order:     s.order ?? s.stationOrder ?? 0,
+        latitude:  s.latitude ?? s.lat ?? 0,
+        longitude: s.longitude ?? s.lng ?? 0,
+        status:    (s.progress?.status ?? s.status ?? 'pending') as Station['status'],
+      })));
+    } catch {
+      // Station data is optional — map still works with pickup/dropoff fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    const currentStatus = (liveStatus ?? trip?.status ?? '').toLowerCase();
+    const livePhase = ['driver_assigned', 'scheduled', 'active', 'boarding'].includes(currentStatus);
+    if (!trip?.id || !livePhase) return;
+    fetchStations(trip.id);
+    const interval = setInterval(() => fetchStations(trip.id!), 30_000);
+    return () => clearInterval(interval);
+  }, [trip?.id, liveStatus, trip?.status, fetchStations]);
 
   // When trip is completed, check if passenger already rated via GET /user/ratings/given
   useEffect(() => {
@@ -264,12 +337,17 @@ export default function TripDetailScreen() {
         }
       };
 
+      // Boarding confirmation — fired on passenger:{userId} room, but also arrives on trip room
+      const boardedHandler = () => setBoarded(true);
+
       socket.on('shuttle:driver:location', locationHandler);
       socket.on('shuttle:trip:status', statusHandler);
+      socket.on('booking:boarded', boardedHandler);
 
       handlers.push(
         () => socket.off('shuttle:driver:location', locationHandler),
         () => socket.off('shuttle:trip:status', statusHandler),
+        () => socket.off('booking:boarded', boardedHandler),
       );
     }).catch(() => {});
 
@@ -281,6 +359,17 @@ export default function TripDetailScreen() {
       }).catch(() => {});
     };
   }, [id]);
+
+  // Recalculate ETA to passenger's pickup station on every driver location update
+  useEffect(() => {
+    if (!driverLocation || boarded) { setEtaMinutes(null); return; }
+    const target = trip?.pickupLat != null && trip?.pickupLng != null
+      ? { lat: trip.pickupLat, lng: trip.pickupLng }
+      : null;
+    if (!target) return;
+    const distKm = haversineKm(driverLocation.lat, driverLocation.lng, target.lat, target.lng);
+    setEtaMinutes(Math.max(1, Math.round((distKm / 30) * 60)));
+  }, [driverLocation?.lat, driverLocation?.lng, trip?.pickupLat, trip?.pickupLng, boarded]);
 
   // Fallback poll every 2 minutes — real-time socket handles instant updates;
   // polling only catches drift (e.g., socket reconnect gap)
@@ -382,6 +471,26 @@ export default function TripDetailScreen() {
       }
     }
   }, [trip?.id, trip?.driverUserId]);
+
+  const handleSOS = () => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Alert.alert(
+      '🚨 SOS',
+      'هل تحتاج إلى مساعدة طارئة؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'إرسال تنبيه', style: 'destructive',
+          onPress: () => {
+            getSocket().then((socket) => {
+              socket.emit('driver:sos', { rideId: null, latitude: 0, longitude: 0, notes: 'Passenger SOS' });
+            }).catch(() => {});
+            Alert.alert('تم الإرسال', 'تم إرسال تنبيه الطوارئ إلى فريق الدعم.');
+          },
+        },
+      ],
+    );
+  };
 
   const deepLink = `veego://shuttle/trip/${id}`;
 
@@ -503,25 +612,65 @@ export default function TripDetailScreen() {
           </View>
         </LinearGradient>
 
-        {/* Driver location map — only when driver_assigned/scheduled + within 20 min */}
+        {/* Live tracking map */}
         {showMap && (
-          <View style={styles.mapCard}>
+          <View style={[styles.mapCard, { height: boarded || ['active', 'boarding'].includes(effectiveStatus) ? 320 : 240 }]}>
+            {/* Status label */}
             <View style={styles.mapLabel}>
               <View style={styles.mapPulse} />
               <Navigation size={11} color="#fff" />
               <Text style={styles.mapLabelText}>
-                {t('driver_en_route')}
+                {boarded ? 'على متن الحافلة' : t('driver_en_route')}
               </Text>
             </View>
+
             <PassengerTrackingMap
               driverLocation={driverLocation ? { latitude: driverLocation.lat, longitude: driverLocation.lng } : null}
-              pickup={
-                trip.pickupLat != null && trip.pickupLng != null
-                  ? { latitude: trip.pickupLat, longitude: trip.pickupLng }
-                  : null
-              }
+              pickup={trip.pickupLat != null && trip.pickupLng != null
+                ? { latitude: trip.pickupLat, longitude: trip.pickupLng }
+                : null}
+              stations={stations}
+              passengerStationId={trip.pickupStationId ?? undefined}
               style={{ borderRadius: 24 }}
             />
+
+            {/* SOS floating button */}
+            <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
+              <ShieldAlert size={14} color="#fff" />
+              <Text style={styles.sosBtnText}>SOS</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Boarded confirmation banner */}
+        {boarded && (
+          <View style={styles.boardedBanner}>
+            <Text style={styles.boardedEmoji}>✅</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.boardedTitle}>أنت على متن الحافلة</Text>
+              <Text style={styles.boardedSub}>استمتع برحلتك — سنُعلمك عند الوصول</Text>
+            </View>
+          </View>
+        )}
+
+        {/* ETA card — shown when driver location known + passenger not yet boarded */}
+        {showMap && !boarded && etaMinutes != null && driverLocation && (
+          <View style={styles.etaCard}>
+            <View style={styles.etaRow}>
+              <Clock size={14} color="#2563eb" />
+              <Text style={styles.etaLabel}>وقت الوصول لمحطتك</Text>
+              <Text style={styles.etaValue}>~{etaMinutes} دقيقة</Text>
+            </View>
+            {trip.passengerCount != null && (
+              <View style={styles.etaDivider} />
+            )}
+            {trip.passengerCount != null && (
+              <View style={styles.etaRow}>
+                <Users size={14} color="#64748b" />
+                <Text style={styles.etaLabel}>الركاب حالياً</Text>
+                <Text style={[styles.etaValue, { color: '#64748b' }]}>{trip.passengerCount}</Text>
+              </View>
+            )}
           </View>
         )}
 
