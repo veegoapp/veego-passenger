@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform,
 } from 'react-native';
@@ -75,6 +75,18 @@ export default function ReceiptScreen() {
   const styles = makeStyles(c);
 
   const [ratingVisible, setRatingVisible] = useState(false);
+  const [alreadyRated, setAlreadyRated] = useState(false);
+
+  // Check passengerRating from the ride to know if rating was already submitted
+  useEffect(() => {
+    if (!params.rideId) return;
+    api.get(`/rides/${params.rideId}`)
+      .then((res) => {
+        const d = res.data?.data ?? res.data;
+        if (d?.passengerRating != null) setAlreadyRated(true);
+      })
+      .catch(() => {});
+  }, [params.rideId]);
 
   const parsedFare = parseFloat(params.fare ?? '0') || 0;
   const parsedRating = parseFloat(params.driverRating ?? '0') || 0;
@@ -92,6 +104,7 @@ export default function ReceiptScreen() {
         await api.post(`/rides/${params.rideId}/rate-driver`, { rating: stars, comment });
       } catch {}
     }
+    setAlreadyRated(true);
     setRatingVisible(false);
     router.replace('/(tabs)' as any);
   }, [params.rideId]);
@@ -198,16 +211,18 @@ export default function ReceiptScreen() {
 
       {/* Bottom CTAs */}
       <View style={[styles.cta, { paddingBottom: Platform.OS === 'web' ? 24 : insets.bottom + 12, borderTopColor: c.border }]}>
-        <TouchableOpacity
-          style={[styles.rateBtn, { backgroundColor: c.ink }]}
-          onPress={() => setRatingVisible(true)}
-          activeOpacity={0.85}
-        >
-          <Star size={16} color="#f5a623" fill="#f5a623" />
-          <Text style={[styles.rateBtnText, { color: c.isDark ? c.background : '#fff' }]}>
-            {t('rate_driver')}
-          </Text>
-        </TouchableOpacity>
+        {!alreadyRated && (
+          <TouchableOpacity
+            style={[styles.rateBtn, { backgroundColor: c.ink }]}
+            onPress={() => setRatingVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Star size={16} color="#f5a623" fill="#f5a623" />
+            <Text style={[styles.rateBtnText, { color: c.isDark ? c.background : '#fff' }]}>
+              {t('rate_driver')}
+            </Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.doneBtn} onPress={handleDone} activeOpacity={0.7}>
           <Text style={[styles.doneBtnText, { color: c.inkSoft }]}>{t('done')}</Text>
         </TouchableOpacity>

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -15,6 +15,7 @@ import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
 import api from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
+import { RatingSheet } from '@/components/shared/RatingSheet';
 
 
 const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled'];
@@ -39,6 +40,8 @@ interface TripDetail {
   minPassengers?: number;
   pickupLat?: number | null;
   pickupLng?: number | null;
+  driverName?: string | null;
+  driverUserId?: number | null;
 }
 
 interface DriverLocation {
@@ -73,6 +76,8 @@ function mapApiToDetail(b: any): TripDetail {
     minPassengers: trip.minPassengers ?? trip.min_passengers ?? null,
     pickupLat: pickupStation?.latitude ?? pickupStation?.lat ?? null,
     pickupLng: pickupStation?.longitude ?? pickupStation?.lng ?? null,
+    driverName: trip.driver?.name ?? b.driver?.name ?? null,
+    driverUserId: trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
   };
 }
 
@@ -119,6 +124,8 @@ function makeStyles(c: ThemeColors) {
     goBackText: { fontSize: 14, fontWeight: '600', color: c.isDark ? c.background : c.white },
     cancelBtn: { marginHorizontal: 20, marginBottom: 8, borderRadius: 16, borderWidth: 1.5, borderColor: c.badge, backgroundColor: 'rgba(220,38,38,0.05)', padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     cancelBtnText: { fontSize: 14, fontWeight: '600', color: c.badge },
+    rateBtn: { marginHorizontal: 20, marginBottom: 8, height: 54, borderRadius: 18, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    rateBtnText: { fontSize: 15, fontWeight: '700', color: c.isDark ? c.background : '#fff' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 32 },
     modalBox: { borderRadius: 24, padding: 24, width: '100%', maxWidth: 380, gap: 12 },
     modalTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
@@ -144,6 +151,8 @@ export default function TripDetailScreen() {
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [shuttleRatingVisible, setShuttleRatingVisible] = useState(false);
+  const [shuttleAlreadyRated, setShuttleAlreadyRated] = useState(false);
 
   const tripIdRef = useRef<string | number | null>(null);
 
@@ -193,6 +202,23 @@ export default function TripDetailScreen() {
   useEffect(() => {
     fetchTrip();
   }, [fetchTrip]);
+
+  // When trip is completed, check if passenger already rated via GET /user/ratings/given
+  useEffect(() => {
+    const status = liveStatus ?? trip?.status ?? '';
+    if (status !== 'completed' || !trip?.id) return;
+
+    api.get('/user/ratings/given')
+      .then((res) => {
+        const items: any[] = res.data?.data ?? res.data ?? [];
+        const tripIdStr = String(trip.id);
+        const alreadyRated = items.some(
+          (r: any) => r.tripId != null && String(r.tripId) === tripIdStr,
+        );
+        setShuttleAlreadyRated(alreadyRated);
+      })
+      .catch(() => {});
+  }, [liveStatus, trip?.id, trip?.status]);
 
   // Socket: join/leave trip room + listen for driver location + live status updates
   useEffect(() => {
@@ -339,6 +365,24 @@ export default function TripDetailScreen() {
     }
   };
 
+  const handleShuttleRatingSubmit = useCallback(async (stars: number) => {
+    setShuttleRatingVisible(false);
+    if (!trip?.id || !trip?.driverUserId) return;
+    try {
+      await api.post('/shuttle/ratings', {
+        tripId: Number(trip.id),
+        rateeId: trip.driverUserId,
+        stars: Math.round(stars),
+      });
+      setShuttleAlreadyRated(true);
+    } catch (e: any) {
+      const msg: string = e?.response?.data?.message ?? '';
+      if (msg.toLowerCase().includes('already rated')) {
+        setShuttleAlreadyRated(true);
+      }
+    }
+  }, [trip?.id, trip?.driverUserId]);
+
   const deepLink = `veego://shuttle/trip/${id}`;
 
   const handleShare = async () => {
@@ -481,6 +525,18 @@ export default function TripDetailScreen() {
           </View>
         )}
 
+        {/* Rate driver — only for completed trips with known driver */}
+        {effectiveStatus === 'completed' && !shuttleAlreadyRated && !!trip.driverUserId && (
+          <TouchableOpacity
+            style={styles.rateBtn}
+            onPress={() => setShuttleRatingVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Star size={16} color="#f5a623" fill="#f5a623" />
+            <Text style={styles.rateBtnText}>{t('rate_driver')}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Cancel booking — only for cancellable statuses */}
         {!['completed', 'cancelled', 'boarding', 'active'].includes(effectiveStatus) && (
           <TouchableOpacity
@@ -516,13 +572,23 @@ export default function TripDetailScreen() {
         )}
       </ScrollView>
 
+      {/* Shuttle driver rating sheet */}
+      <RatingSheet
+        visible={shuttleRatingVisible}
+        driverName={trip?.driverName ?? t('your_driver')}
+        driverInitials={(trip?.driverName ?? 'D').charAt(0).toUpperCase()}
+        driverColor="#2563eb"
+        onSubmit={(stars) => handleShuttleRatingSubmit(stars)}
+        onSkip={() => setShuttleRatingVisible(false)}
+      />
+
       {Platform.OS === 'web' && showCancelModal && (
         <Modal transparent animationType="fade" visible>
           <View style={styles.modalOverlay}>
             <View style={[styles.modalBox, { backgroundColor: c.white }]}>
               <Text style={[styles.modalTitle, { color: c.ink }]}>{t('cancel_warning_title')}</Text>
               <Text style={[styles.modalBody, { color: c.inkSoft }]}>
-                {isWithin10Hours(trip?.departureIso ?? '') ? t('cancel_warning_10h') : t('cancel_warning_free')}
+                {isWithin12Hours(trip?.departureIso ?? '') ? t('cancel_warning_10h') : t('cancel_warning_free')}
               </Text>
               <View style={styles.modalActions}>
                 <Pressable

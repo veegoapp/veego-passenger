@@ -286,12 +286,17 @@ export default function CarScreen() {
   const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
   const ratedRideIds = useRef<Set<string>>(new Set());
 
-  // Auto-show rating sheet when ride completes (once per rideId)
+  // Auto-show rating sheet when ride completes (once per rideId, skip if already rated)
   useEffect(() => {
-    if (phase === 'completed' && rideState.rideId && !ratedRideIds.current.has(rideState.rideId)) {
+    if (
+      phase === 'completed' &&
+      rideState.rideId &&
+      rideState.passengerRating === null &&
+      !ratedRideIds.current.has(rideState.rideId)
+    ) {
       setRatingVisible(true);
     }
-  }, [phase, rideState.rideId]);
+  }, [phase, rideState.rideId, rideState.passengerRating]);
 
   const handleRatingSubmit = useCallback(async (stars: number, comment: string) => {
     setRatingVisible(false);

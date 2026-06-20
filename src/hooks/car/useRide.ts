@@ -25,6 +25,7 @@ export interface RideState {
   waitingRatePerMinute: number | null;
   surgeMultiplier: number | null;
   deviationWarning: boolean;
+  passengerRating: { id: number; score: number } | null;
 }
 
 interface UseRideResult {
@@ -54,6 +55,7 @@ const DEFAULT_STATE: RideState = {
   waitingRatePerMinute: null,
   surgeMultiplier: null,
   deviationWarning: false,
+  passengerRating: null,
 };
 
 const TERMINAL_STATUSES: RideStatus[] = ['completed', 'cancelled', 'timeout'];
@@ -100,7 +102,10 @@ export function useRide(): UseRideResult {
           const updatedLocation: DriverLocation | null =
             data.driverLocation ?? data.driver_location ?? prev.driverLocation;
 
-          return { ...prev, status, driver: updatedDriver, driverLocation: updatedLocation };
+          const updatedPassengerRating =
+            data.passengerRating !== undefined ? data.passengerRating : prev.passengerRating;
+
+          return { ...prev, status, driver: updatedDriver, driverLocation: updatedLocation, passengerRating: updatedPassengerRating };
         });
 
         if (TERMINAL_STATUSES.includes(status)) {
