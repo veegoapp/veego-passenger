@@ -65,14 +65,10 @@ export function PassengerTrackingMap({
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
   // ── Camera follow ────────────────────────────────────────────────────────────
-  const mapRef        = useRef<MapView>(null);
-  const lastCamUpdate = useRef(0);
+  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     if (!driverLocation) return;
-    const now = Date.now();
-    if (now - lastCamUpdate.current < 1500) return; // throttle: max once per 1.5 s
-    lastCamUpdate.current = now;
     mapRef.current?.animateToRegion(
       { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
       800,
