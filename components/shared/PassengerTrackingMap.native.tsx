@@ -71,7 +71,7 @@ export function PassengerTrackingMap({
     if (!driverLocation) return;
     mapRef.current?.animateToRegion(
       { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-      800,
+      100,
     );
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
