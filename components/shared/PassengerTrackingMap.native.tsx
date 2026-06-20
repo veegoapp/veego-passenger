@@ -27,16 +27,8 @@ export interface TrackingMapProps {
 }
 
 const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
-const DELTA = { latitudeDelta: 0.05, longitudeDelta: 0.05 };
-const OSM_TILE = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-
-function centroid(points: LatLng[]): LatLng {
-  const n = points.length;
-  return {
-    latitude:  points.reduce((s, p) => s + p.latitude,  0) / n,
-    longitude: points.reduce((s, p) => s + p.longitude, 0) / n,
-  };
-}
+const FOLLOW_DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
+const TILE_URL = 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
 
 function stationFill(status: Station['status']): string {
   if (status === 'completed') return '#22c55e';
@@ -50,6 +42,9 @@ export function PassengerTrackingMap({
 }: TrackingMapProps) {
   const { t } = useTheme();
 
+  const sorted = useMemo(() => [...stations].sort((a, b) => a.order - b.order), [stations]);
+
+  // ── Driver marker animation ──────────────────────────────────────────────────
   const initLat = driverLocation?.latitude ?? pickup?.latitude ?? DEFAULT_CENTER.latitude;
   const initLng = driverLocation?.longitude ?? pickup?.longitude ?? DEFAULT_CENTER.longitude;
 
@@ -57,7 +52,6 @@ export function PassengerTrackingMap({
     new AnimatedRegion({ latitude: initLat, longitude: initLng, latitudeDelta: 0, longitudeDelta: 0 }),
   ).current;
 
-  // Smoothly animate driver marker to new position
   useEffect(() => {
     if (!driverLocation) return;
     animatedCoord.timing({
@@ -70,29 +64,28 @@ export function PassengerTrackingMap({
     }).start();
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
-  const sorted = useMemo(() => [...stations].sort((a, b) => a.order - b.order), [stations]);
+  // ── Camera follow ────────────────────────────────────────────────────────────
+  const mapRef        = useRef<MapView>(null);
+  const lastCamUpdate = useRef(0);
 
-  // Map center: prefer driver + passenger's pickup station
-  const center = useMemo(() => {
-    const pts: LatLng[] = [];
-    if (driverLocation) pts.push(driverLocation);
-    if (sorted.length > 0) {
-      sorted.forEach((s) => pts.push({ latitude: s.latitude, longitude: s.longitude }));
-    } else {
-      if (pickup)  pts.push(pickup);
-      if (dropoff) pts.push(dropoff);
-    }
-    return pts.length > 0 ? centroid(pts) : DEFAULT_CENTER;
-  }, [driverLocation, sorted, pickup, dropoff]);
+  useEffect(() => {
+    if (!driverLocation) return;
+    const now = Date.now();
+    if (now - lastCamUpdate.current < 1500) return; // throttle: max once per 1.5 s
+    lastCamUpdate.current = now;
+    mapRef.current?.animateToRegion(
+      { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+      800,
+    );
+  }, [driverLocation?.latitude, driverLocation?.longitude]);
 
-  // Completed leg: last driver pos → all completed stations
+  // ── Route polylines ──────────────────────────────────────────────────────────
   const completedCoords = useMemo((): LatLng[] => {
     const done = sorted.filter((s) => s.status === 'completed');
     if (done.length === 0) return [];
     return done.map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
   }, [sorted]);
 
-  // Upcoming leg: driver → remaining stations
   const upcomingCoords = useMemo((): LatLng[] => {
     const ahead = sorted.filter((s) => s.status !== 'completed');
     if (ahead.length === 0) return [];
@@ -102,7 +95,6 @@ export function PassengerTrackingMap({
     return pts;
   }, [sorted, driverLocation]);
 
-  // Fallback straight line when no stations provided
   const fallbackCoords = useMemo((): LatLng[] => {
     if (sorted.length > 0) return [];
     const pts: LatLng[] = [];
@@ -112,11 +104,18 @@ export function PassengerTrackingMap({
     return pts;
   }, [sorted, driverLocation, pickup, dropoff]);
 
+  // Initial region: start at driver position (or first station / default)
+  const initCenter = {
+    latitude:  initLat,
+    longitude: initLng,
+  };
+
   return (
     <View style={[StyleSheet.absoluteFill, style]}>
       <MapView
+        ref={mapRef}
         style={StyleSheet.absoluteFill}
-        region={{ ...center, ...DELTA }}
+        initialRegion={{ ...initCenter, ...FOLLOW_DELTA }}
         mapType="none"
         showsUserLocation={false}
         showsCompass={false}
@@ -126,7 +125,7 @@ export function PassengerTrackingMap({
         zoomEnabled
         pitchEnabled={false}
       >
-        <UrlTile urlTemplate={OSM_TILE} maximumZ={19} flipY={false} />
+        <UrlTile urlTemplate={TILE_URL} maximumZ={19} flipY={false} />
 
         {/* Completed leg — green */}
         {completedCoords.length >= 2 && (
