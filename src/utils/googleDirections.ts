@@ -1,4 +1,4 @@
-import { GOOGLE_MAPS_API_KEY } from '../constants/config';
+import api from '../api/client';
 
 export interface LatLng {
   latitude: number;
@@ -43,7 +43,9 @@ export interface DirectionsResult {
 }
 
 /**
- * Fetches a road-snapped route from Google Directions API.
+ * Fetches a road-snapped route via the backend /api/directions proxy.
+ * The API key never leaves the server — no key needed in the app bundle.
+ *
  * origin    = driver current position
  * waypoints = ordered remaining stations (first stop → last stop)
  *
@@ -54,34 +56,35 @@ export async function fetchGoogleRoute(
   origin: LatLng,
   waypoints: LatLng[],
 ): Promise<DirectionsResult | null> {
-  if (!GOOGLE_MAPS_API_KEY || waypoints.length === 0) return null;
+  if (waypoints.length === 0) return null;
 
   const destination = waypoints[waypoints.length - 1];
   const middle = waypoints.slice(0, -1);
 
   const originStr = `${origin.latitude},${origin.longitude}`;
-  const destStr = `${destination.latitude},${destination.longitude}`;
-  const waypointsParam = middle.length > 0
-    ? `&waypoints=${middle.map((p) => `${p.latitude},${p.longitude}`).join('|')}`
-    : '';
-
-  const url =
-    `https://maps.googleapis.com/maps/api/directions/json` +
-    `?origin=${originStr}` +
-    `&destination=${destStr}` +
-    waypointsParam +
-    `&key=${GOOGLE_MAPS_API_KEY}`;
+  const destStr   = `${destination.latitude},${destination.longitude}`;
+  const waypointsStr = middle.length > 0
+    ? middle.map((p) => `${p.latitude},${p.longitude}`).join('|')
+    : undefined;
 
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.status !== 'OK' || !data.routes?.length) return null;
+    const { data: raw } = await api.get('/api/directions', {
+      params: {
+        origin:      originStr,
+        destination: destStr,
+        ...(waypointsStr ? { waypoints: waypointsStr } : {}),
+      },
+      timeout: 8000,
+    });
+
+    // Unwrap envelope if backend wraps response: { data: { ... } }
+    const data = raw?.data ?? raw;
+
+    if (data?.status !== 'OK' || !data.routes?.length) return null;
 
     const route = data.routes[0];
     const coords = decodePolyline(route.overview_polyline.points);
 
-    // Sum duration across all legs
     const durationSeconds: number | null = route.legs
       ? (route.legs as any[]).reduce(
           (sum: number, leg: any) => sum + (leg.duration?.value ?? 0),

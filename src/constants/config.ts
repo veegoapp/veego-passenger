@@ -1,2 +1,3 @@
-export const GOOGLE_MAPS_API_KEY =
-  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+// Google Maps SDK key for map rendering (tiles/provider) — set in app.json.
+// Directions API calls are proxied through the backend (/api/directions),
+// so no runtime API key is needed here.
