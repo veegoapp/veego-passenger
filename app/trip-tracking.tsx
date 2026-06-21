@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, Star } from 'lucide-react-native';
@@ -157,7 +157,6 @@ export default function TripTrackingScreen() {
     if (!rideId || socketListening.current) return;
     socketListening.current = true;
 
-    // ✅ Store named handler references so socket.off removes only OUR listeners
     const onDriverLocation = (data: any) => {
       if (data.rideId !== rideId) return;
       setDriverLocation(data.location);
@@ -190,7 +189,6 @@ export default function TripTrackingScreen() {
     }).catch(() => {});
 
     return () => {
-      // Synchronous cleanup — avoids stale listener leak from async getSocket()
       const s = getSocketSync();
       if (s) {
         s.off('ride:driver_location', onDriverLocation);
@@ -281,7 +279,11 @@ export default function TripTrackingScreen() {
               </View>
             </View>
             {driverInfo.phone ? (
-              <TouchableOpacity style={styles.callBtn} activeOpacity={0.85}>
+              <TouchableOpacity
+                style={styles.callBtn}
+                activeOpacity={0.85}
+                onPress={() => Linking.openURL(`tel:${driverInfo.phone}`)}
+              >
                 <Phone size={18} color="#2563eb" />
               </TouchableOpacity>
             ) : null}

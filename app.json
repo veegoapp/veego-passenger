@@ -4,7 +4,7 @@
     "slug": "veego",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "glide",
+    "scheme": "veego",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "updates": {
@@ -12,7 +12,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.glide.shuttle",
+      "bundleIdentifier": "com.veego.app",
       "config": {
         "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
       }
@@ -21,7 +21,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#f8f8fb"
       },
-      "package": "com.glide.shuttle",
+      "package": "com.veego.app",
       "config": {
         "googleMaps": {
           "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
