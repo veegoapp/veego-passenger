@@ -6,6 +6,7 @@ import api from '../../api/client';
 const TRACKING_INTERVAL_MS = 5 * 60 * 1000;
 const OFFLINE_STORE_KEY = 'veego_offline_location_snapshots';
 const MAX_BATCH_SIZE = 500;
+const MAX_OFFLINE_SNAPSHOTS = 50;
 
 interface LocationSnapshot {
   entityType: 'passenger';
@@ -58,9 +59,8 @@ async function flushOfflineSnapshots(): Promise<void> {
   try {
     const batch = pending.slice(0, MAX_BATCH_SIZE);
     await api.post('/api/tracking/locations/batch', { locations: batch });
-    const remaining = pending.slice(MAX_BATCH_SIZE);
-    await savePendingSnapshots(remaining);
-    // If there's more than MAX_BATCH_SIZE, they'll be flushed on the next tick
+    // Purge immediately after successful upload
+    await savePendingSnapshots([]);
   } catch (err) {
     if (!isNetworkError(err)) {
       // Server rejected the batch (4xx/5xx) — discard to avoid infinite retry loops
@@ -141,10 +141,19 @@ export function usePassengerTracking({
       if (isNetworkError(err)) {
         // Device is offline — persist locally for batch upload when reconnected
         const pending = await loadPendingSnapshots();
-        pending.push({ ...snapshot, isOfflineSync: true });
-        // Cap stored snapshots to avoid unbounded storage growth
-        const trimmed = pending.length > MAX_BATCH_SIZE ? pending.slice(pending.length - MAX_BATCH_SIZE) : pending;
-        await savePendingSnapshots(trimmed);
+        if (pending.length >= MAX_OFFLINE_SNAPSHOTS) {
+          // Cap exceeded — attempt sync before appending; if offline, drop oldest
+          try { await flushOfflineSnapshots(); } catch {}
+          const after = await loadPendingSnapshots();
+          if (after.length >= MAX_OFFLINE_SNAPSHOTS) {
+            after.shift(); // drop oldest if still at cap
+          }
+          after.push({ ...snapshot, isOfflineSync: true });
+          await savePendingSnapshots(after);
+        } else {
+          pending.push({ ...snapshot, isOfflineSync: true });
+          await savePendingSnapshots(pending);
+        }
       }
       // Non-network errors (4xx/5xx) are silently dropped — tracking is best-effort
     }

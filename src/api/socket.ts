@@ -40,19 +40,15 @@ export async function getSocket(): Promise<Socket> {
     timeout: 10000,
   });
 
-  socket.on('connect', () => {
-    console.log('[Socket] connected:', socket?.id);
-  });
-
   socket.on('connect_error', (err) => {
     console.warn('[Socket] connection error:', err.message);
   });
 
-  socket.on('disconnect', (reason) => {
-    console.log('[Socket] disconnected:', reason);
-  });
-
   return socket;
+}
+
+export function getSocketSync(): Socket | null {
+  return socket && socket.connected ? socket : null;
 }
 
 export function disconnectSocket() {

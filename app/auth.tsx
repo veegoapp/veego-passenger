@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation, User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail, Shield, Check } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
 import { C, S } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
@@ -18,7 +18,7 @@ const SESSION_KEY = '@veego_session_v1';
 
 async function saveSession(identifier: string, name?: string) {
   try {
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({ identifier, name: name || '', loggedInAt: Date.now() }));
+    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ identifier, name: name || '', loggedInAt: Date.now() }));
   } catch {}
 }
 
@@ -489,14 +489,17 @@ function OtpStep({
   phone: string;
   onVerified: (token: string) => void;
   onResend: () => void;
-  t: (k: string) => string;
+  t: (k: any) => string;
 }) {
   const { isRTL } = useTheme();
   const OTP_LENGTH = 6;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [countdown, setCountdown] = useState(60);
+  const otpDeadlineRef = useRef(Date.now() + 60_000);
+  const [countdown, setCountdown] = useState(() =>
+    Math.max(0, Math.ceil((otpDeadlineRef.current - Date.now()) / 1000))
+  );
   const inputRef = useRef<any>(null);
 
   useEffect(() => {
@@ -524,6 +527,8 @@ function OtpStep({
   };
 
   const handleResend = () => {
+    if (countdown > 0) return;
+    otpDeadlineRef.current = Date.now() + 60_000;
     setCountdown(60);
     setError('');
     onResend();
@@ -609,7 +614,7 @@ function ResetStep({
 }: {
   token: string;
   onSuccess: () => void;
-  t: (k: string) => string;
+  t: (k: any) => string;
 }) {
   const { isRTL } = useTheme();
   const [password, setPassword] = useState('');

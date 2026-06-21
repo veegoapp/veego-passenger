@@ -1,15 +1,90 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Animated, Easing, AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { C } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
+import { tokenStore } from '@/src/api/client';
+import api from '@/src/api/client';
 
 const LANG_KEY = '@veego_lang_selected';
 const SESSION_KEY = '@veego_session_v1';
 const { width } = Dimensions.get('window');
+
+function decodeJwtPayload(token: string): { exp?: number } | null {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return null;
+  }
+}
+
+async function attemptTokenRefresh(): Promise<boolean> {
+  try {
+    const refreshToken = await tokenStore.getToken(tokenStore.REFRESH_KEY);
+    if (!refreshToken) return false;
+    const { data } = await api.post('/auth/refresh', { refreshToken });
+    const newToken = data.accessToken ?? data.access_token ?? data.token;
+    if (!newToken) return false;
+    await tokenStore.setToken(tokenStore.TOKEN_KEY, newToken);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function checkAuthAndNavigate() {
+  try {
+    const langSelected = await AsyncStorage.getItem(LANG_KEY);
+    if (!langSelected) { router.replace('/lang-select'); return; }
+
+    const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
+    if (!token) { router.replace('/onboarding'); return; }
+
+    const payload = decodeJwtPayload(token);
+    if (!payload) { router.replace('/onboarding'); return; }
+
+    if ((payload.exp ?? 0) <= Math.floor(Date.now() / 1000)) {
+      const refreshed = await attemptTokenRefresh();
+      if (!refreshed) {
+        await tokenStore.removeToken(tokenStore.TOKEN_KEY);
+        await tokenStore.removeToken(tokenStore.REFRESH_KEY);
+        await AsyncStorage.removeItem(SESSION_KEY);
+        router.replace('/onboarding');
+        return;
+      }
+    }
+
+    router.replace('/(tabs)');
+  } catch {
+    router.replace('/lang-select');
+  }
+}
+
+export function useAuthOnResume() {
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
+        if (!token) { router.replace('/onboarding'); return; }
+        const payload = decodeJwtPayload(token);
+        if (!payload || (payload.exp ?? 0) <= Math.floor(Date.now() / 1000)) {
+          const refreshed = await attemptTokenRefresh();
+          if (!refreshed) {
+            await tokenStore.removeToken(tokenStore.TOKEN_KEY);
+            await tokenStore.removeToken(tokenStore.REFRESH_KEY);
+            await AsyncStorage.removeItem(SESSION_KEY);
+            router.replace('/onboarding');
+          }
+        }
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+}
 
 export default function SplashPage() {
   const { t } = useTheme();
@@ -40,23 +115,7 @@ export default function SplashPage() {
       ]),
     ]).start();
 
-    const t = setTimeout(async () => {
-      try {
-        const langSelected = await AsyncStorage.getItem(LANG_KEY);
-        if (!langSelected) {
-          router.replace('/lang-select');
-          return;
-        }
-        const session = await AsyncStorage.getItem(SESSION_KEY);
-        if (session) {
-          router.replace('/(tabs)');
-        } else {
-          router.replace('/onboarding');
-        }
-      } catch {
-        router.replace('/lang-select');
-      }
-    }, 2200);
+    const t = setTimeout(() => { checkAuthAndNavigate(); }, 2200);
     return () => clearTimeout(t);
   }, []);
 

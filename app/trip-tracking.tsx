@@ -5,9 +5,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
-import { getSocket } from '@/src/api/socket';
+import { getSocket, getSocketSync } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
-import api from '@/src/api/client';
+import api, { tokenStore } from '@/src/api/client';
 import { getErrorMessage } from '@/src/utils/errorMessages';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -43,12 +43,6 @@ export default function TripTrackingScreen() {
     pickupLng?: string;
     dropoffLat?: string;
     dropoffLng?: string;
-    driverLat?: string;
-    driverLng?: string;
-    driverName?: string;
-    driverVehicle?: string;
-    driverRating?: string;
-    driverPhone?: string;
   }>();
 
   const [pickup, setPickup] = useState<{ latitude: number; longitude: number } | null>(
@@ -63,18 +57,9 @@ export default function TripTrackingScreen() {
   );
   const [driverInfo, setDriverInfo] = useState<{
     name?: string; vehicle?: string; rating?: string; phone?: string;
-  }>({
-    name: params.driverName,
-    vehicle: params.driverVehicle,
-    rating: params.driverRating,
-    phone: params.driverPhone,
-  });
+  }>({});
 
-  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(
-    params.driverLat && params.driverLng
-      ? { latitude: parseFloat(params.driverLat), longitude: parseFloat(params.driverLng) }
-      : null
-  );
+  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [status, setStatus] = useState<TripStatus>('driver_assigned');
   const [deepLinkLoading, setDeepLinkLoading] = useState(false);
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
@@ -87,10 +72,25 @@ export default function TripTrackingScreen() {
 
     setDeepLinkLoading(true);
     api.get(`/rides/${deepId}`)
-      .then((res) => {
+      .then(async (res) => {
         const d = res.data?.data ?? res.data;
         const rideStatus: string = d?.status ?? d?.rideStatus ?? '';
         const normalized = rideStatus.toLowerCase();
+
+        // Ownership check: ride must belong to authenticated user
+        try {
+          const tok = await tokenStore.getToken(tokenStore.TOKEN_KEY);
+          if (tok) {
+            const payload = JSON.parse(atob(tok.split('.')[1]));
+            const currentUserId = payload.sub ?? payload.userId ?? payload.id ?? null;
+            const ridePassengerId = d?.passengerId ?? d?.userId ?? null;
+            if (currentUserId != null && ridePassengerId != null &&
+                String(ridePassengerId) !== String(currentUserId)) {
+              router.replace('/(tabs)' as any);
+              return;
+            }
+          }
+        } catch {}
 
         if (normalized === 'completed' || normalized === 'cancelled') {
           router.replace({ pathname: '/receipt', params: { id: deepId } } as any);
@@ -127,6 +127,30 @@ export default function TripTrackingScreen() {
       })
       .finally(() => setDeepLinkLoading(false));
   }, [params.id]);
+
+  // Fetch ride/driver info from server on mount (never trust nav params for sensitive data)
+  useEffect(() => {
+    const rideId = params.rideId;
+    if (!rideId) return;
+    api.get(`/rides/${rideId}`).then((res) => {
+      const d = res.data?.data ?? res.data;
+      if (d?.driver) {
+        setDriverInfo({
+          name: d.driver.name,
+          vehicle: d.driver.vehicle,
+          rating: d.driver.rating != null ? String(d.driver.rating) : undefined,
+          phone: d.driver.phone,
+        });
+      }
+      if (d?.driverLocation) setDriverLocation(d.driverLocation);
+      if (d?.pickupLatitude != null && d?.pickupLongitude != null) {
+        setPickup({ latitude: d.pickupLatitude, longitude: d.pickupLongitude });
+      }
+      if (d?.dropoffLatitude != null && d?.dropoffLongitude != null) {
+        setDropoff({ latitude: d.dropoffLatitude, longitude: d.dropoffLongitude });
+      }
+    }).catch(() => {});
+  }, [params.rideId]);
 
   useEffect(() => {
     const rideId = params.rideId;
@@ -166,14 +190,15 @@ export default function TripTrackingScreen() {
     }).catch(() => {});
 
     return () => {
-      // ✅ Pass handler reference — removes only this component's listeners
-      getSocket().then((socket) => {
-        socket.off('ride:driver_location', onDriverLocation);
-        socket.off('ride:arrived', onArrived);
-        socket.off('ride:started', onStarted);
-        socket.off('ride:completed', onCompleted);
-        socket.off('ride:cancelled', onCancelled);
-      }).catch(() => {});
+      // Synchronous cleanup — avoids stale listener leak from async getSocket()
+      const s = getSocketSync();
+      if (s) {
+        s.off('ride:driver_location', onDriverLocation);
+        s.off('ride:arrived', onArrived);
+        s.off('ride:started', onStarted);
+        s.off('ride:completed', onCompleted);
+        s.off('ride:cancelled', onCancelled);
+      }
       socketListening.current = false;
     };
   }, [params.rideId]);

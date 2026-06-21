@@ -140,14 +140,20 @@ export default function PromoScreen() {
     }
   };
 
-  // Auto-apply when arriving via deep-link notification
+  // Confirm with user before applying deep-link promo code
   useEffect(() => {
     if (prefillCode && !autoApplied.current) {
       autoApplied.current = true;
       const trimmed = prefillCode.trim().toUpperCase();
       setCode(trimmed);
-      // Small delay to let component mount fully before calling API
-      setTimeout(() => handleApply(trimmed), 400);
+      Alert.alert(
+        t('promo_apply') || 'Apply Promo Code',
+        `Apply code "${trimmed}"?`,
+        [
+          { text: t('cancel') || 'Cancel', style: 'cancel' },
+          { text: t('promo_apply') || 'Apply', onPress: () => handleApply(trimmed) },
+        ],
+      );
     }
   }, [prefillCode]);
 

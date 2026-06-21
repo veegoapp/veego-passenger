@@ -63,8 +63,9 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
         parsedData = parsed.bookingId ?? parsed.id;
       }
     } catch {
-      // Plain string — check if it looks like a booking ID (e.g. VG-XXXXX)
-      if (/^(VG-|#VG-|VEEGO-)/i.test(data) || /^[a-f0-9]{8,}$/i.test(data)) {
+      // Plain string — only accept recognized VeeGo booking ID formats or UUIDs
+      const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (/^(VG-|#VG-|VEEGO-)/i.test(data) || UUID_PATTERN.test(data)) {
         isValid = true;
         parsedData = data.replace(/^#/, '');
       }

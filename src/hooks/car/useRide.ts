@@ -1,7 +1,85 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { z } from 'zod';
 import api from '../../api/client';
 import { getSocket, type RideStatus, type DriverLocation } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
+
+const DriverAssignedSchema = z.object({
+  rideId: z.string().or(z.number()),
+  driver: z.object({
+    name: z.string().optional(),
+    phone: z.string().optional(),
+    vehicle: z.string().optional(),
+    vehicleColor: z.string().optional(),
+    vehicle_color: z.string().optional(),
+    plateNumber: z.string().optional(),
+    plate_number: z.string().optional(),
+    rating: z.number().optional(),
+  }).optional(),
+  eta: z.number().optional(),
+});
+
+const RideIdSchema = z.object({ rideId: z.string().or(z.number()) });
+
+const WaitingChargeStartedSchema = z.object({
+  rideId: z.string().or(z.number()),
+  ratePerMinute: z.number().optional(),
+});
+
+const WaitingChargeUpdatedSchema = z.object({
+  rideId: z.string().or(z.number()),
+  currentCharge: z.number().optional(),
+  charge: z.number().optional(),
+});
+
+const WaitingChargeCappedSchema = z.object({
+  rideId: z.string().or(z.number()),
+  finalCharge: z.number().optional(),
+  charge: z.number().optional(),
+});
+
+const RideCompletedSchema = z.object({
+  rideId: z.string().or(z.number()),
+  fare: z.number().optional(),
+});
+
+const RideCancelledSchema = z.object({
+  rideId: z.string().or(z.number()),
+  reason: z.string().optional(),
+});
+
+const RideCancelledOptionalIdSchema = z.object({
+  rideId: z.string().or(z.number()).optional(),
+  reason: z.string().optional(),
+});
+
+const RideDriverLocationSchema = z.object({
+  rideId: z.string().or(z.number()),
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    heading: z.number().optional(),
+  }),
+});
+
+const RideStatusUpdateSchema = z.object({
+  rideId: z.string().or(z.number()),
+  status: z.string(),
+});
+
+const RideStatusChangedSchema = z.object({
+  rideId: z.string().or(z.number()),
+  status: z.string(),
+  meta: z.record(z.string(), z.unknown()).optional(),
+});
+
+const SurgeUpdatedSchema = z.object({
+  multiplier: z.number().optional(),
+});
+
+const DeviationWarningSchema = z.object({
+  rideId: z.string().or(z.number()),
+});
 
 export interface DriverInfo {
   name: string;
@@ -152,8 +230,11 @@ export function useRide(): UseRideResult {
       const socket = await getSocket();
       socketRef.current = socket;
 
-      socket.on('ride:driver_assigned', (data: any) => {
-        if (data.rideId !== rideId) return;
+      socket.on('ride:driver_assigned', (raw: unknown) => {
+        const parsed = DriverAssignedSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_assigned payload'); return; }
+        const data = parsed.data;
+        if (String(data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
           status: 'driver_assigned',
@@ -169,94 +250,116 @@ export function useRide(): UseRideResult {
         }));
       });
 
-      socket.on('ride:driver_location', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setRideState((prev) => ({ ...prev, driverLocation: data.location }));
+      socket.on('ride:driver_location', (raw: unknown) => {
+        const parsed = RideDriverLocationSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_location payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
+        setRideState((prev) => ({ ...prev, driverLocation: parsed.data.location }));
       });
 
-      socket.on('ride:arrived', (data: any) => {
-        if (data.rideId !== rideId) return;
+      socket.on('ride:arrived', (raw: unknown) => {
+        const parsed = RideIdSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:arrived payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'arrived' }));
       });
 
-      socket.on('ride:started', (data: any) => {
-        if (data.rideId !== rideId) return;
+      socket.on('ride:started', (raw: unknown) => {
+        const parsed = RideIdSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:started payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'started' }));
       });
 
-      socket.on('ride:completed', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setRideState((prev) => ({ ...prev, status: 'completed', fare: data.fare ?? null }));
+      socket.on('ride:completed', (raw: unknown) => {
+        const parsed = RideCompletedSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:completed payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
+        setRideState((prev) => ({ ...prev, status: 'completed', fare: parsed.data.fare ?? null }));
         cleanup();
       });
 
-      socket.on('ride:cancelled', (data: any) => {
-        if (data.rideId !== rideId) return;
-        setRideState((prev) => ({ ...prev, status: 'cancelled', cancelReason: data.reason ?? null }));
+      socket.on('ride:cancelled', (raw: unknown) => {
+        const parsed = RideCancelledSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:cancelled payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
+        setRideState((prev) => ({ ...prev, status: 'cancelled', cancelReason: parsed.data.reason ?? null }));
         cleanup();
       });
 
-      socket.on('ride:driver_cancelled', (data: any) => {
-        if (data.rideId && data.rideId !== rideId) return;
+      socket.on('ride:driver_cancelled', (raw: unknown) => {
+        const parsed = RideCancelledOptionalIdSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_cancelled payload'); return; }
+        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
           status: 'cancelled',
-          cancelReason: data.reason ?? 'Driver cancelled your ride',
+          cancelReason: parsed.data.reason ?? 'Driver cancelled your ride',
         }));
         cleanup();
       });
 
-      socket.on('ride:no_show_cancelled', (data: any) => {
-        if (data.rideId && data.rideId !== rideId) return;
+      socket.on('ride:no_show_cancelled', (raw: unknown) => {
+        const parsed = RideCancelledOptionalIdSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:no_show_cancelled payload'); return; }
+        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
           status: 'cancelled',
-          cancelReason: data.reason ?? 'Ride cancelled: driver did not arrive in time',
+          cancelReason: parsed.data.reason ?? 'Ride cancelled: driver did not arrive in time',
         }));
         cleanup();
       });
 
-      socket.on('ride:timeout', (data: any) => {
-        if (data.rideId !== rideId) return;
+      socket.on('ride:timeout', (raw: unknown) => {
+        const parsed = RideIdSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:timeout payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'timeout' }));
         cleanup();
       });
 
-      socket.on('ride:status_update', (data: any) => {
-        if (data.rideId !== rideId) return;
-        const status: RideStatus = data.status;
+      socket.on('ride:status_update', (raw: unknown) => {
+        const parsed = RideStatusUpdateSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:status_update payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
+        const status = parsed.data.status as RideStatus;
         if (!status) return;
         setRideState((prev) => ({ ...prev, status }));
         if (TERMINAL_STATUSES.includes(status)) cleanup();
       });
 
-      // Task 5: ride:status:changed — authoritative status transitions with meta
-      socket.on('ride:status:changed', (data: any) => {
-        if (data.rideId !== rideId) return;
-        const status: RideStatus = data.status;
+      socket.on('ride:status:changed', (raw: unknown) => {
+        const parsed = RideStatusChangedSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:status:changed payload'); return; }
+        const data = parsed.data;
+        if (String(data.rideId) !== String(rideId)) return;
+        const status = data.status as RideStatus;
         if (!status) return;
         setRideState((prev) => {
           const updates: Partial<RideState> = { status };
           if (status === 'driver_assigned' && data.meta) {
+            const m = data.meta as any;
             updates.driver = {
-              name: data.meta.driverName ?? prev.driver?.name ?? 'Driver',
-              phone: data.meta.driverPhone ?? prev.driver?.phone ?? '',
-              vehicle: data.meta.vehicle ?? prev.driver?.vehicle ?? '',
-              vehicleColor: data.meta.vehicleColor ?? prev.driver?.vehicleColor,
-              plateNumber: data.meta.plateNumber ?? prev.driver?.plateNumber,
-              rating: data.meta.rating ?? prev.driver?.rating ?? 4.8,
-              eta: data.meta.eta ?? prev.driver?.eta ?? 5,
+              name: m.driverName ?? prev.driver?.name ?? 'Driver',
+              phone: m.driverPhone ?? prev.driver?.phone ?? '',
+              vehicle: m.vehicle ?? prev.driver?.vehicle ?? '',
+              vehicleColor: m.vehicleColor ?? prev.driver?.vehicleColor,
+              plateNumber: m.plateNumber ?? prev.driver?.plateNumber,
+              rating: m.rating ?? prev.driver?.rating ?? 4.8,
+              eta: m.eta ?? prev.driver?.eta ?? 5,
             };
           }
           if (status === 'completed') {
-            updates.fare = data.meta?.finalPrice ?? prev.fare;
+            updates.fare = (data.meta as any)?.finalPrice ?? prev.fare;
           }
           if (status === 'cancelled') {
-            const cancelledBy = data.meta?.cancelledBy ?? '';
-            const msg = data.meta?.message ?? '';
+            const m = data.meta as any;
+            const cancelledBy = m?.cancelledBy ?? '';
+            const msg = m?.message ?? '';
             updates.cancelReason = msg || (cancelledBy ? `Cancelled by ${cancelledBy}` : null);
           }
-          if (status === 'active') {
+          if ((status as string) === 'active') {
             updates.waitingChargeStatus = 'none';
             updates.waitingRatePerMinute = null;
           }
@@ -265,41 +368,49 @@ export function useRide(): UseRideResult {
         if (TERMINAL_STATUSES.includes(status)) cleanup();
       });
 
-      // Task 2: waiting charge events with rideId guard and ratePerMinute
-      socket.on('ride:waiting:charge:started', (data: any) => {
-        if (data.rideId && data.rideId !== rideId) return;
+      socket.on('ride:waiting:charge:started', (raw: unknown) => {
+        const parsed = WaitingChargeStartedSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:waiting:charge:started payload'); return; }
+        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
           waitingChargeStatus: 'active',
           waitingCharge: 0,
-          waitingRatePerMinute: data?.ratePerMinute ?? prev.waitingRatePerMinute,
+          waitingRatePerMinute: parsed.data.ratePerMinute ?? prev.waitingRatePerMinute,
         }));
       });
 
-      socket.on('ride:waiting:charge:updated', (data: any) => {
-        if (data.rideId && data.rideId !== rideId) return;
+      socket.on('ride:waiting:charge:updated', (raw: unknown) => {
+        const parsed = WaitingChargeUpdatedSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:waiting:charge:updated payload'); return; }
+        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
-          waitingCharge: data?.currentCharge ?? data?.charge ?? prev.waitingCharge,
+          waitingCharge: parsed.data.currentCharge ?? parsed.data.charge ?? prev.waitingCharge,
         }));
       });
 
-      socket.on('ride:waiting:charge:capped', (data: any) => {
-        if (data.rideId && data.rideId !== rideId) return;
+      socket.on('ride:waiting:charge:capped', (raw: unknown) => {
+        const parsed = WaitingChargeCappedSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:waiting:charge:capped payload'); return; }
+        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
           waitingChargeStatus: 'capped',
-          waitingCharge: data?.finalCharge ?? data?.charge ?? prev.waitingCharge,
+          waitingCharge: parsed.data.finalCharge ?? parsed.data.charge ?? prev.waitingCharge,
         }));
       });
 
-      socket.on('surge:updated', (data: any) => {
-        setRideState((prev) => ({ ...prev, surgeMultiplier: data?.multiplier ?? prev.surgeMultiplier }));
+      socket.on('surge:updated', (raw: unknown) => {
+        const parsed = SurgeUpdatedSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid surge:updated payload'); return; }
+        setRideState((prev) => ({ ...prev, surgeMultiplier: parsed.data.multiplier ?? prev.surgeMultiplier }));
       });
 
-      // Task 2: Route deviation warning
-      socket.on('ride:deviation_warning', (data: any) => {
-        if (data.rideId && data.rideId !== rideId) return;
+      socket.on('ride:deviation_warning', (raw: unknown) => {
+        const parsed = DeviationWarningSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:deviation_warning payload'); return; }
+        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, deviationWarning: true }));
       });
     } catch (err) {

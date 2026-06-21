@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Share, ActivityIndicator,
   Alert, Modal, Pressable,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users } from 'lucide-react-native';
@@ -13,7 +14,7 @@ import { ThemeColors, S } from '@/constants/colors';
 import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
 import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
-import api from '@/src/api/client';
+import api, { tokenStore } from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import type { Station } from '@/components/shared/PassengerTrackingMap';
 import { RatingSheet } from '@/components/shared/RatingSheet';
@@ -210,11 +211,28 @@ export default function TripDetailScreen() {
     try {
       let detail: TripDetail | null = null;
 
+      // Decode current user ID from JWT for ownership validation
+      let currentUserId: number | string | null = null;
+      try {
+        const tok = await tokenStore.getToken(tokenStore.TOKEN_KEY);
+        if (tok) {
+          const payload = JSON.parse(atob(tok.split('.')[1]));
+          currentUserId = payload.sub ?? payload.userId ?? payload.id ?? null;
+        }
+      } catch {}
+
       // §11.2: GET /bookings/:id — single booking with embedded trip data
       const single = await api.get(`/bookings/${id}`).catch(() => null);
       if (single?.data) {
         const raw = single.data?.data ?? single.data;
-        const mapped = mapApiToDetail(Array.isArray(raw) ? raw[0] : raw);
+        const rawObj = Array.isArray(raw) ? raw[0] : raw;
+        // Ownership check: booking must belong to authenticated user
+        if (currentUserId != null && rawObj?.userId != null &&
+            String(rawObj.userId) !== String(currentUserId)) {
+          router.replace('/(tabs)');
+          return;
+        }
+        const mapped = mapApiToDetail(rawObj);
         if (mapped.routeName && mapped.routeName !== '—') detail = mapped;
       }
 
@@ -347,7 +365,11 @@ export default function TripDetailScreen() {
       };
 
       // Boarding confirmation — fired on passenger:{userId} room, but also arrives on trip room
-      const boardedHandler = () => setBoarded(true);
+      const boardedHandler = (data: { bookingId?: string | number }) => {
+        if (!data.bookingId) return;
+        if (String(data.bookingId) !== String(id)) return;
+        setBoarded(true);
+      };
 
       // Re-join trip room after socket reconnects (network recovery)
       const reconnectHandler = () => {
@@ -473,6 +495,10 @@ export default function TripDetailScreen() {
   const handleShuttleRatingSubmit = useCallback(async (stars: number) => {
     setShuttleRatingVisible(false);
     if (!trip?.id || !trip?.driverUserId) return;
+    if (typeof trip.driverUserId !== 'number') {
+      Alert.alert(t('error'), 'Cannot submit rating: driver information unavailable');
+      return;
+    }
     try {
       await api.post('/shuttle/ratings', {
         tripId: Number(trip.id),
@@ -497,10 +523,28 @@ export default function TripDetailScreen() {
         { text: 'إلغاء', style: 'cancel' },
         {
           text: 'إرسال تنبيه', style: 'destructive',
-          onPress: () => {
-            getSocket().then((socket) => {
-              socket.emit('driver:sos', { rideId: null, latitude: 0, longitude: 0, notes: 'Passenger SOS' });
-            }).catch(() => {});
+          onPress: async () => {
+            const currentRideId = tripIdRef.current;
+            try {
+              const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+              getSocket().then((socket) => {
+                socket.emit('passenger:sos', {
+                  rideId: currentRideId,
+                  latitude: loc.coords.latitude,
+                  longitude: loc.coords.longitude,
+                  notes: 'Passenger SOS',
+                });
+              }).catch(() => {});
+            } catch {
+              getSocket().then((socket) => {
+                socket.emit('passenger:sos', {
+                  rideId: currentRideId,
+                  latitude: null,
+                  longitude: null,
+                  notes: 'Passenger SOS — location unavailable',
+                });
+              }).catch(() => {});
+            }
             Alert.alert('تم الإرسال', 'تم إرسال تنبيه الطوارئ إلى فريق الدعم.');
           },
         },

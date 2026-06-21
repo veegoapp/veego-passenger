@@ -167,13 +167,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await api.get(`/shuttle/lines/${route.id}`);
 
-      // ── Diagnostic: log the full raw response so we can confirm the key names ──
-      console.log('[BookingContext] GET /shuttle/lines/:id raw response:', JSON.stringify(data));
-
       // Unwrap envelope — backend may wrap in { data: { ... } } or return flat object
       const full: any = data?.data ?? data ?? {};
-
-      console.log('[BookingContext] Unwrapped "full" keys:', Object.keys(full));
 
       // ── Stations ─────────────────────────────────────────────────────────────
       const rawStations: any[] = Array.isArray(full.stations) ? full.stations : [];
@@ -188,19 +183,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         Array.isArray(full.scheduledTrips) ? full.scheduledTrips :
         Array.isArray(full.data)           ? full.data           :
         [];
-
-      console.log(
-        `[BookingContext] Parsed ${activeTrips.length} trips from key:`,
-        full.activeTrips    != null ? 'activeTrips'    :
-        full.trips          != null ? 'trips'          :
-        full.upcomingTrips  != null ? 'upcomingTrips'  :
-        full.scheduledTrips != null ? 'scheduledTrips' :
-        full.data           != null ? 'data'           :
-        'NONE — check raw response above',
-      );
-      if (activeTrips.length > 0) {
-        console.log('[BookingContext] First trip sample:', JSON.stringify(activeTrips[0]));
-      }
 
       // Use trip with most available seats for route-level seat display
       const bestTrip = activeTrips.find((t) => (t.availableSeats ?? 0) > 0) ?? activeTrips[0];
@@ -218,9 +200,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       setScheduledTrips(activeTrips);
       setTripsTotal(activeTrips.length);
-    } catch (e: any) {
-      console.warn('[BookingContext] Failed to load route details:', e?.message ?? e);
-      console.warn('[BookingContext] Error detail:', e?.response?.status, JSON.stringify(e?.response?.data));
+    } catch {
+      // Route detail load failure is handled gracefully — TripSheet shows available data
     } finally {
       setRouteLoading(false);
     }
@@ -268,6 +249,14 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     if (!tripId) {
       setBookingError('No trip selected. Please select a departure time.');
       setActiveBooking(null);
+      return;
+    }
+
+    // Client-side guard only — server must enforce seat count limits
+    if (!seatCount || seatCount < 1 || seatCount > 10 || !Number.isInteger(seatCount)) {
+      Alert.alert('Error', 'Invalid seat count');
+      setActiveBooking(null);
+      confirmingRef.current = false;
       return;
     }
 

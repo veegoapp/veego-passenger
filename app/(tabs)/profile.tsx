@@ -667,14 +667,26 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!selectedIssue || !message.trim()) {
       Alert.alert(t('error'), t('support_missing_fields'));
       return;
     }
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setSent(true);
+    setLoading(true);
+    try {
+      await api.post('/support/tickets', {
+        issueType: selectedIssue,
+        message: message.trim(),
+      });
+      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSent(true);
+    } catch {
+      Alert.alert(t('error'), 'Failed to send your message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -734,8 +746,11 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
                     multiline
                   />
                 </View>
-                <TouchableOpacity style={styles.primaryBtn} onPress={handleSend} activeOpacity={0.9}>
-                  <Text style={styles.primaryBtnText}>{t('send_message')}</Text>
+                <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.6 }]} onPress={handleSend} activeOpacity={0.9} disabled={loading}>
+                  {loading
+                    ? <ActivityIndicator color={c.isDark ? c.background : c.white} size="small" />
+                    : <Text style={styles.primaryBtnText}>{t('send_message')}</Text>
+                  }
                 </TouchableOpacity>
               </>
             )}

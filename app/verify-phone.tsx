@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { C, S } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
@@ -75,7 +75,7 @@ export default function VerifyPhoneScreen() {
       const { data } = await api.post('/auth/verify-otp', { phone, otp });
       await persistTokens(data);
       if (data.user) {
-        await AsyncStorage.setItem(SESSION_KEY, JSON.stringify({
+        await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({
           identifier: data.user.email ?? data.user.phone ?? phone,
           name: data.user.name ?? '',
           loggedInAt: Date.now(),
