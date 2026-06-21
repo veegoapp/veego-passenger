@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation, User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail, Shield, Check } from 'lucide-react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { C, S } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
@@ -111,6 +112,37 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    Promise.all([
+      LocalAuthentication.hasHardwareAsync(),
+      LocalAuthentication.isEnrolledAsync(),
+      SecureStore.getItemAsync(tokenStore.REFRESH_KEY),
+    ]).then(([hasHardware, isEnrolled, refreshToken]) => {
+      setBiometricAvailable(hasHardware && isEnrolled && !!refreshToken);
+    }).catch(() => {});
+  }, []);
+
+  const handleBiometric = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Sign in to VeeGo',
+        fallbackLabel: 'Use Password',
+        cancelLabel: 'Cancel',
+        disableDeviceFallback: false,
+      });
+      if (result.success) {
+        emitAuthEvent('auth:login');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        onSuccess();
+      }
+    } catch {
+      // biometric unavailable — user falls back to manual entry
+    }
+  };
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -199,6 +231,17 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           </>
         )}
       </TouchableOpacity>
+
+      {biometricAvailable && (
+        <TouchableOpacity
+          style={styles.biometricBtn}
+          activeOpacity={0.9}
+          onPress={handleBiometric}
+        >
+          <Shield size={18} color={C.ink} />
+          <Text style={styles.biometricBtnText}>Sign in with Biometrics</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -398,7 +441,7 @@ function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ── Step A: Phone submission ──────────────────────────────────────────────
+  // ── Step A: Phone submission ──────────────────────────────────────────────────────
   const handleSend = async () => {
     if (!phone.trim()) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -746,6 +789,8 @@ const styles = StyleSheet.create({
   inputField: { flex: 1, fontSize: 14, color: C.ink },
   primaryBtn: { height: 56, borderRadius: 20, backgroundColor: C.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, ...S.luxe },
   primaryBtnText: { color: C.white, fontSize: 15, fontWeight: '600' },
+  biometricBtn: { height: 52, borderRadius: 20, backgroundColor: C.mist, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: C.border },
+  biometricBtnText: { color: C.ink, fontSize: 15, fontWeight: '600' },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 4 },
   termsText: { fontSize: 11, color: C.inkSoft, flex: 1 },
   termsLink: { color: C.ink, fontWeight: '600', textDecorationLine: 'underline' },
