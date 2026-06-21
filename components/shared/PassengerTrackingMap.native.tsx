@@ -1,11 +1,18 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import MapView, { Marker, Polyline, UrlTile, AnimatedRegion, MarkerAnimated } from 'react-native-maps';
+import MapView, { Marker, Polyline, AnimatedRegion, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useTheme } from '@/context/ThemeContext';
+import { fetchGoogleRoute } from '@/src/utils/googleDirections';
+import { estimateEtaMinutes } from '@/src/utils/geoHelpers';
 
 interface LatLng {
   latitude: number;
   longitude: number;
+}
+
+// Driver location extends LatLng with optional heading from socket
+interface DriverLatLng extends LatLng {
+  heading?: number;
 }
 
 export interface Station {
@@ -20,7 +27,7 @@ export interface Station {
 export interface TrackingMapProps {
   pickup?: LatLng | null;
   dropoff?: LatLng | null;
-  driverLocation?: LatLng | null;
+  driverLocation?: DriverLatLng | null;
   stations?: Station[];
   passengerStationId?: number | null;
   style?: object;
@@ -28,7 +35,6 @@ export interface TrackingMapProps {
 
 const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
 const FOLLOW_DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
-const TILE_URL = 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
 
 function stationFill(status: Station['status']): string {
   if (status === 'completed') return '#22c55e';
@@ -55,11 +61,11 @@ export function PassengerTrackingMap({
   useEffect(() => {
     if (!driverLocation) return;
     animatedCoord.timing({
-      latitude:       driverLocation.latitude,
-      longitude:      driverLocation.longitude,
-      latitudeDelta:  0,
-      longitudeDelta: 0,
-      duration:       800,
+      latitude:        driverLocation.latitude,
+      longitude:       driverLocation.longitude,
+      latitudeDelta:   0,
+      longitudeDelta:  0,
+      duration:        800,
       useNativeDriver: false,
     }).start();
   }, [driverLocation?.latitude, driverLocation?.longitude]);
@@ -75,10 +81,49 @@ export function PassengerTrackingMap({
     );
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
-  // ── Route polylines ──────────────────────────────────────────────────────────
+  // ── Google Directions route — fetched ONCE when trip initialises ─────────────
+  const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
+  const [routeDurationSeconds, setRouteDurationSeconds] = useState<number | null>(null);
+  const hasFetchedRouteRef = useRef(false);
+
+  useEffect(() => {
+    if (hasFetchedRouteRef.current) return;
+    if (!driverLocation || sorted.length === 0) return;
+
+    const remaining = sorted
+      .filter((s) => s.status !== 'completed')
+      .map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
+
+    if (remaining.length === 0) return;
+
+    hasFetchedRouteRef.current = true;
+
+    fetchGoogleRoute(driverLocation, remaining).then((result) => {
+      if (result) {
+        setRouteCoords(result.coords);
+        if (result.durationSeconds !== null) {
+          setRouteDurationSeconds(result.durationSeconds);
+        }
+      }
+    });
+  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length]);
+
+  // ── ETA ─────────────────────────────────────────────────────────────────────
+  // Prefer Google Directions duration (more accurate); fall back to distance-based
+  const etaMinutes = useMemo(() => {
+    if (routeDurationSeconds !== null) {
+      return Math.max(1, Math.ceil(routeDurationSeconds / 60));
+    }
+    if (!driverLocation) return null;
+    const nextStation = sorted.find((s) => s.status !== 'completed');
+    if (!nextStation) return null;
+    return estimateEtaMinutes(driverLocation, nextStation);
+  }, [routeDurationSeconds, driverLocation?.latitude, driverLocation?.longitude, sorted]);
+
+  // ── Straight-line fallback coords (used until Google route loads) ────────────
   const completedCoords = useMemo((): LatLng[] => {
     const done = sorted.filter((s) => s.status === 'completed');
-    if (done.length === 0) return [];
+    if (done.length < 2) return [];
     return done.map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
   }, [sorted]);
 
@@ -100,19 +145,18 @@ export function PassengerTrackingMap({
     return pts;
   }, [sorted, driverLocation, pickup, dropoff]);
 
-  // Initial region: start at driver position (or first station / default)
-  const initCenter = {
-    latitude:  initLat,
-    longitude: initLng,
-  };
+  const initCenter = { latitude: initLat, longitude: initLng };
+
+  // Heading from socket payload (degrees clockwise from north)
+  const heading = driverLocation?.heading ?? 0;
 
   return (
     <View style={[StyleSheet.absoluteFill, style]}>
       <MapView
         ref={mapRef}
+        provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFill}
         initialRegion={{ ...initCenter, ...FOLLOW_DELTA }}
-        mapType="none"
         showsUserLocation={false}
         showsCompass={false}
         toolbarEnabled={false}
@@ -121,19 +165,21 @@ export function PassengerTrackingMap({
         zoomEnabled
         pitchEnabled={false}
       >
-        <UrlTile urlTemplate={TILE_URL} maximumZ={19} flipY={false} />
-
-        {/* Completed leg — green */}
+        {/* Completed leg — straight line between visited stops (green) */}
         {completedCoords.length >= 2 && (
           <Polyline coordinates={completedCoords} strokeColor="#22c55e" strokeWidth={4} />
         )}
 
-        {/* Upcoming leg — blue */}
-        {upcomingCoords.length >= 2 && (
-          <Polyline coordinates={upcomingCoords} strokeColor="#2563eb" strokeWidth={4} />
+        {/* Upcoming leg — Google road-snapped route, straight-line until loaded */}
+        {(routeCoords.length >= 2 ? routeCoords : upcomingCoords).length >= 2 && (
+          <Polyline
+            coordinates={routeCoords.length >= 2 ? routeCoords : upcomingCoords}
+            strokeColor="#2563eb"
+            strokeWidth={4}
+          />
         )}
 
-        {/* Fallback line (no stations) */}
+        {/* Fallback line when no stations provided */}
         {fallbackCoords.length >= 2 && (
           <Polyline coordinates={fallbackCoords} strokeColor="#2563eb" strokeWidth={3.5} />
         )}
@@ -162,7 +208,7 @@ export function PassengerTrackingMap({
           );
         })}
 
-        {/* Fallback pickup/dropoff when no stations */}
+        {/* Fallback pickup/dropoff markers when no stations */}
         {sorted.length === 0 && pickup && (
           <Marker coordinate={pickup} anchor={{ x: 0.5, y: 1 }} title={t('pickup')}>
             <View style={styles.pickupMarker}><View style={styles.markerDot} /></View>
@@ -174,19 +220,32 @@ export function PassengerTrackingMap({
           </Marker>
         )}
 
-        {/* Animated driver / bus marker */}
+        {/* Animated bus marker — rotates according to socket heading */}
         {(driverLocation ?? pickup) && (
           <MarkerAnimated
             coordinate={animatedCoord}
             anchor={{ x: 0.5, y: 0.5 }}
+            rotation={heading}
             title={t('driver_label')}
           >
-            <View style={styles.busMarker}>
-              <Text style={styles.busTxt}>🚌</Text>
+            {/* Arrow + bus body: arrow tip always points in the direction of travel */}
+            <View style={styles.busWrapper}>
+              <View style={styles.busArrowHead} />
+              <View style={styles.busBody}>
+                <Text style={styles.busTxt}>🚌</Text>
+              </View>
             </View>
           </MarkerAnimated>
         )}
       </MapView>
+
+      {/* ETA overlay — rendered above the map, not inside MapView */}
+      {etaMinutes !== null && (
+        <View style={styles.etaBadge} pointerEvents="none">
+          <Text style={styles.etaLabel}>ETA</Text>
+          <Text style={styles.etaValue}>{etaMinutes} min</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -215,7 +274,15 @@ const styles = StyleSheet.create({
   },
   markerDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
 
-  busMarker: {
+  // Bus marker: arrow tip (top) + body (bottom), entire marker rotates with heading
+  busWrapper: { alignItems: 'center' },
+  busArrowHead: {
+    width: 0, height: 0,
+    borderLeftWidth: 7, borderRightWidth: 7, borderBottomWidth: 10,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+    borderBottomColor: '#1e293b',
+  },
+  busBody: {
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: '#1e293b', borderWidth: 2, borderColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
@@ -223,4 +290,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35, shadowRadius: 8, elevation: 8,
   },
   busTxt: { fontSize: 18, lineHeight: 22 },
+
+  // ETA badge — floats above the map
+  etaBadge: {
+    position: 'absolute',
+    top: 14,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(17,24,39,0.88)',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 24,
+  },
+  etaLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+  etaValue: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
 });

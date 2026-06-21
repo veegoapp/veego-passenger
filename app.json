@@ -12,13 +12,21 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.glide.shuttle"
+      "bundleIdentifier": "com.glide.shuttle",
+      "config": {
+        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#f8f8fb"
       },
-      "package": "com.glide.shuttle"
+      "package": "com.glide.shuttle",
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
       "bundler": "metro",

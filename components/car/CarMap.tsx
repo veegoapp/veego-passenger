@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import {
   View, StyleSheet, TouchableOpacity, Text, ActivityIndicator,
 } from 'react-native';
-import MapView, { Marker, UrlTile, Polyline } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Car, Navigation, CheckCircle2 } from 'lucide-react-native';
 import * as Location from 'expo-location';
 
@@ -96,6 +96,7 @@ export function CarMap({ destination, onClose }: CarMapProps) {
       {/* الخريطة */}
       <MapView
         ref={mapRef}
+        provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
         initialRegion={{
           latitude: liveLocation.latitude,
@@ -106,11 +107,6 @@ export function CarMap({ destination, onClose }: CarMapProps) {
         showsUserLocation={false}
         compassEnabled={false}
       >
-        <UrlTile
-          urlTemplate="https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-          maximumZ={19}
-          tileSize={256}
-        />
 
         {routeCoords.length > 0 && (
           <Polyline coordinates={routeCoords} strokeColor="#111827" strokeWidth={4} />

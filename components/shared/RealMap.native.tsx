@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapView, { Marker, Polyline, UrlTile } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useTheme } from '@/context/ThemeContext';
 
 interface LatLng {
@@ -24,7 +24,6 @@ interface RealMapProps {
 
 const CAIRO: LatLng = { latitude: 30.0444, longitude: 31.2357 };
 const DELTA = { latitudeDelta: 0.04, longitudeDelta: 0.04 };
-const OSM_TILE = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 function centroid(points: LatLng[]): LatLng {
   const n = points.length;
@@ -60,9 +59,9 @@ export function RealMap({
   return (
     <View style={[StyleSheet.absoluteFillObject, style]}>
       <MapView
+        provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
         initialRegion={{ ...center, ...DELTA }}
-        mapType="none"
         showsUserLocation={false}
         showsCompass={false}
         toolbarEnabled={false}
@@ -71,11 +70,6 @@ export function RealMap({
         zoomEnabled={true}
         pitchEnabled={false}
       >
-        <UrlTile
-          urlTemplate={OSM_TILE}
-          maximumZ={19}
-          flipY={false}
-        />
 
         {stationMarkers.map((s) => (
           <Marker
