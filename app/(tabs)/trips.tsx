@@ -168,6 +168,8 @@ export default function TripsScreen() {
 
   const fadeAnims = useRef<Record<string, Animated.Value>>({}).current;
   const [liveUpdates, setLiveUpdates] = useState<Record<string, LivePatch>>({});
+  // Persists across upcomingTrips re-renders so auto-nav only fires once per trip
+  const autoNavigatedTrips = useRef<Set<string>>(new Set());
 
   const getFadeAnim = useCallback((id: string) => {
     if (!fadeAnims[id]) fadeAnims[id] = new Animated.Value(1);
@@ -207,21 +209,28 @@ export default function TripsScreen() {
         }));
       };
 
-      // Auto-navigate when driver starts sending location (comes online ~20 min before departure)
-      const autoOpenedRef = new Set<string>();
+      // Auto-navigate when driver starts sending location (~20 min before departure).
+      // Uses component-level ref so the guard survives upcomingTrips re-renders.
       const locationHandler = (payload: { tripId: string | number }) => {
         const key = String(payload.tripId);
-        if (!tripIds.includes(key) || autoOpenedRef.has(key)) return;
-        autoOpenedRef.add(key);
+        if (!tripIds.includes(key) || autoNavigatedTrips.current.has(key)) return;
+        autoNavigatedTrips.current.add(key);
         router.push(`/trip-detail?id=${key}` as any);
+      };
+
+      // Re-join trip rooms after socket reconnects
+      const reconnectHandler = () => {
+        tripIds.forEach((tid) => socket.emit('join:trip', { tripId: tid }));
       };
 
       socket.on('shuttle:trip:status', statusHandler);
       socket.on('shuttle:driver:location', locationHandler);
+      socket.on('connect', reconnectHandler);
 
       cleanupFns = [
         () => socket.off('shuttle:trip:status', statusHandler),
         () => socket.off('shuttle:driver:location', locationHandler),
+        () => socket.off('connect', reconnectHandler),
         () => tripIds.forEach((tid) => socket.emit('leave:trip', { tripId: tid })),
       ];
     }).catch(() => {});

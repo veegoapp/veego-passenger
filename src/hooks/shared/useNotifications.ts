@@ -69,71 +69,87 @@ export function useNotifications(): UseNotificationsResult {
     if (socketSetup.current) return;
     socketSetup.current = true;
 
+    // Named handlers defined here so cleanup can reference them synchronously
+    const onNotificationNew = (data: any) => {
+      setNotifications((prev) => [mapApiNotif({ ...data, unread: true }), ...prev]);
+    };
+
+    const onBoarded = (data: any) => {
+      const boardedNotif: Notification = {
+        id: String(data.bookingId ?? Math.random()),
+        type: 'trip',
+        title: 'Boarding confirmed',
+        body: 'Your boarding has been scanned. Enjoy your ride!',
+        createdAt: data.timestamp ?? new Date().toISOString(),
+        unread: true,
+      };
+      setNotifications((prev) => [boardedNotif, ...prev]);
+    };
+
+    const onTripActivated = (data: any) => {
+      const activatedNotif: Notification = {
+        id: `trip-activated-${data.tripId ?? Math.random()}`,
+        type: 'trip',
+        title: '🚌 Your trip is now Active!',
+        body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
+        createdAt: data.activatedAt ?? new Date().toISOString(),
+        unread: true,
+      };
+      setNotifications((prev) => [activatedNotif, ...prev]);
+
+      if (Platform.OS !== 'web') {
+        Notifications.scheduleNotificationAsync({
+          content: {
+            title: '🚌 Your trip is now Active!',
+            body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
+            sound: true,
+            data: { tripId: data.tripId, type: 'trip_activated' },
+          },
+          trigger: null,
+        }).catch(() => {});
+      }
+    };
+
+    // Resolved socket stored so cleanup is synchronous — no async in the return fn
+    let resolvedSocket: ReturnType<typeof import('socket.io-client').io> | null = null;
+    let isMounted = true;
+    let onReconnect: (() => void) | null = null;
+
     (async () => {
       try {
         const socket = await getSocket();
+        if (!isMounted) return;
+        resolvedSocket = socket as any;
 
-        // Join the passenger-specific room for real-time shuttle events
-        // room: passenger:<userId>  (per API contract §7 Real-time Updates)
+        // Join the passenger-specific room
         const userId = await fetchUserId();
-        if (userId) {
-          socket.emit('join', `passenger:${userId}`);
-        }
+        if (!isMounted) return;
+        if (userId) socket.emit('join', `passenger:${userId}`);
 
-        // notification:new — trip cancelled (with refund) or other server push
-        socket.on('notification:new', (data: any) => {
-          setNotifications((prev) => [mapApiNotif({ ...data, unread: true }), ...prev]);
-        });
+        socket.on('notification:new', onNotificationNew);
+        socket.on('booking:boarded', onBoarded);
+        socket.on('trip:activated', onTripActivated);
 
-        // booking:boarded — passenger scanned/boarded by driver
-        socket.on('booking:boarded', (data: any) => {
-          const boardedNotif: Notification = {
-            id: String(data.bookingId ?? Math.random()),
-            type: 'trip',
-            title: 'Boarding confirmed',
-            body: 'Your boarding has been scanned. Enjoy your ride!',
-            createdAt: data.timestamp ?? new Date().toISOString(),
-            unread: true,
-          };
-          setNotifications((prev) => [boardedNotif, ...prev]);
-        });
-
-        // trip:activated — pending trip reached minimum passengers and is now active
-        socket.on('trip:activated', (data: any) => {
-          const activatedNotif: Notification = {
-            id: `trip-activated-${data.tripId ?? Math.random()}`,
-            type: 'trip',
-            title: '🚌 Your trip is now Active!',
-            body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
-            createdAt: data.activatedAt ?? new Date().toISOString(),
-            unread: true,
-          };
-          setNotifications((prev) => [activatedNotif, ...prev]);
-
-          // Fire a local push notification so user is alerted even when app is in background
-          if (Platform.OS !== 'web') {
-            Notifications.scheduleNotificationAsync({
-              content: {
-                title: '🚌 Your trip is now Active!',
-                body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
-                sound: true,
-                data: { tripId: data.tripId, type: 'trip_activated' },
-              },
-              trigger: null, // deliver immediately
-            }).catch(() => {});
-          }
-        });
+        // Re-join room after socket reconnects (e.g. network recovery)
+        onReconnect = async () => {
+          const uid = await fetchUserId();
+          if (uid && resolvedSocket) (resolvedSocket as any).emit('join', `passenger:${uid}`);
+        };
+        socket.on('connect', onReconnect as any);
       } catch {
-        // Socket unavailable — graceful degradation
+        // Socket unavailable — graceful degradation, no polling fallback needed
       }
     })();
 
     return () => {
-      getSocket().then((socket) => {
-        socket.off('notification:new');
-        socket.off('booking:boarded');
-        socket.off('trip:activated');
-      }).catch(() => {});
+      isMounted = false;
+      socketSetup.current = false; // allow re-registration on next mount
+      if (resolvedSocket) {
+        (resolvedSocket as any).off('notification:new', onNotificationNew);
+        (resolvedSocket as any).off('booking:boarded', onBoarded);
+        (resolvedSocket as any).off('trip:activated', onTripActivated);
+        if (onReconnect) (resolvedSocket as any).off('connect', onReconnect);
+      }
     };
   }, [fetchNotifications]);
 

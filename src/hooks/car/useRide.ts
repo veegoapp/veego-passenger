@@ -65,6 +65,8 @@ export function useRide(): UseRideResult {
   const [rideState, setRideState] = useState<RideState>(DEFAULT_STATE);
   const [requesting, setRequesting] = useState(false);
   const socketListening = useRef(false);
+  const socketRef = useRef<Awaited<ReturnType<typeof getSocket>> | null>(null);
+  const socketCleanupRef = useRef<(() => void) | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeRideIdRef = useRef<string | null>(null);
 
@@ -122,7 +124,8 @@ export function useRide(): UseRideResult {
     socketListening.current = true;
 
     const cleanup = () => {
-      getSocket().then((s) => {
+      const s = socketRef.current;
+      if (s) {
         s.off('ride:driver_assigned');
         s.off('ride:driver_location');
         s.off('ride:arrived');
@@ -139,13 +142,15 @@ export function useRide(): UseRideResult {
         s.off('ride:waiting:charge:capped');
         s.off('surge:updated');
         s.off('ride:deviation_warning');
-      }).catch(() => {});
+      }
       socketListening.current = false;
       stopPolling();
     };
+    socketCleanupRef.current = cleanup;
 
     try {
       const socket = await getSocket();
+      socketRef.current = socket;
 
       socket.on('ride:driver_assigned', (data: any) => {
         if (data.rideId !== rideId) return;
@@ -369,6 +374,8 @@ export function useRide(): UseRideResult {
 
   useEffect(() => {
     return () => {
+      socketCleanupRef.current?.();
+      socketCleanupRef.current = null;
       stopPolling();
     };
   }, [stopPolling]);

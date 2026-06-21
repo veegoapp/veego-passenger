@@ -64,13 +64,6 @@ const SPARKLE_CONFIG = [
 
 const SPARKLE_COLORS = ['#fbbf24', '#f59e0b', '#34d399', '#6ee7b7', '#93c5fd', '#fff'];
 
-interface TrackingUpdate {
-  tripId: number;
-  stationId: number;
-  stationName: string;
-  status: string;
-  arrivedAt: string;
-}
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -239,20 +232,24 @@ export default function TicketScreen() {
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
+  const bookingId = confirmedBookingId ?? '';
+
   const [boarded, setBoarded] = useState(false);
-  const [latestTracking, setLatestTracking] = useState<TrackingUpdate | null>(null);
   const [shuttleDriverLocation, setShuttleDriverLocation] = useState<{ lat: number; lng: number; heading?: number } | null>(null);
   // Local trip status — updated in real-time via trip:activated socket event
   const [liveStatus, setLiveStatus] = useState<string | undefined>(confirmedBookingStatus);
   const boardedAnim = useRef(new Animated.Value(0)).current;
+  // Refs so socket handlers always read latest values without stale closures
+  const bookingIdRef = useRef(bookingId);
+  const confirmedTripIdRef = useRef(confirmedTripId);
+  bookingIdRef.current = bookingId;
+  confirmedTripIdRef.current = confirmedTripId;
 
   const checkScale = useRef(new Animated.Value(0.5)).current;
   const checkOpacity = useRef(new Animated.Value(0)).current;
   const checkRotate = useRef(new Animated.Value(-20)).current;
   const cardY = useRef(new Animated.Value(40)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
-
-  const bookingId = confirmedBookingId ?? '';
 
   useEffect(() => {
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -274,63 +271,68 @@ export default function TicketScreen() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
-    let cleanedUp = false;
-    const handlers: Array<() => void> = [];
+    let resolvedSocket: Awaited<ReturnType<typeof getSocket>> | null = null;
+    let isMounted = true;
 
-    getSocket().then((socket) => {
-      if (cleanedUp) return;
-
-      if (confirmedTripId) {
-        socket.emit('passenger:join:trip', confirmedTripId);
+    const boardedHandler = (data: { bookingId: string | number; userId?: number; tripId?: number; timestamp?: string }) => {
+      const currentId = bookingIdRef.current;
+      const bare = currentId.replace(/^#/, '');
+      if (String(data.bookingId) === bare || String(data.bookingId) === currentId) {
+        setBoarded(true);
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Animated.spring(boardedAnim, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 180 }).start();
       }
+    };
 
-      const boardedHandler = (data: { bookingId: string | number; userId?: number; tripId?: number; timestamp?: string }) => {
-        const id = bookingId.replace(/^#/, '');
-        if (String(data.bookingId) === id || String(data.bookingId) === bookingId) {
-          setBoarded(true);
-          if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Animated.spring(boardedAnim, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 180 }).start();
+    const driverLocationHandler = (payload: { tripId: number | string; lat: number; lng: number; heading?: number }) => {
+      const tid = confirmedTripIdRef.current;
+      if (!tid || String(payload.tripId) === String(tid)) {
+        setShuttleDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
+      }
+    };
+
+    const tripActivatedHandler = (data: { tripId: number | string; activatedAt?: string }) => {
+      const tid = confirmedTripIdRef.current;
+      if (!tid || String(data.tripId) === String(tid)) {
+        setLiveStatus('active');
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    };
+
+    const reconnectHandler = () => {
+      const tid = confirmedTripIdRef.current;
+      if (tid && resolvedSocket) resolvedSocket.emit('passenger:join:trip', tid);
+    };
+
+    (async () => {
+      try {
+        const socket = await getSocket();
+        if (!isMounted) return;
+        resolvedSocket = socket;
+
+        if (confirmedTripIdRef.current) {
+          socket.emit('passenger:join:trip', confirmedTripIdRef.current);
         }
-      };
 
-      const trackingHandler = (data: TrackingUpdate) => {
-        if (!confirmedTripId || data.tripId === confirmedTripId) {
-          setLatestTracking(data);
-        }
-      };
-
-      const driverLocationHandler = (payload: { tripId: number | string; lat: number; lng: number; heading?: number }) => {
-        if (!confirmedTripId || String(payload.tripId) === String(confirmedTripId)) {
-          setShuttleDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
-        }
-      };
-
-      // trip:activated — pending trip reached minimum passengers; flip status to active
-      const tripActivatedHandler = (data: { tripId: number | string; activatedAt?: string }) => {
-        if (!confirmedTripId || String(data.tripId) === String(confirmedTripId)) {
-          setLiveStatus('active');
-          if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-      };
-
-      socket.on('booking:boarded', boardedHandler);
-      socket.on('passenger:trip:tracking', trackingHandler);
-      socket.on('shuttle:driver:location', driverLocationHandler);
-      socket.on('trip:activated', tripActivatedHandler);
-
-      handlers.push(
-        () => socket.off('booking:boarded', boardedHandler),
-        () => socket.off('passenger:trip:tracking', trackingHandler),
-        () => socket.off('shuttle:driver:location', driverLocationHandler),
-        () => socket.off('trip:activated', tripActivatedHandler),
-      );
-    }).catch(() => {});
+        socket.on('booking:boarded', boardedHandler);
+        socket.on('shuttle:driver:location', driverLocationHandler);
+        socket.on('trip:activated', tripActivatedHandler);
+        socket.on('connect', reconnectHandler);
+      } catch {
+        // socket unavailable — graceful degradation
+      }
+    })();
 
     return () => {
-      cleanedUp = true;
-      handlers.forEach((off) => off());
+      isMounted = false;
+      if (resolvedSocket) {
+        resolvedSocket.off('booking:boarded', boardedHandler);
+        resolvedSocket.off('shuttle:driver:location', driverLocationHandler);
+        resolvedSocket.off('trip:activated', tripActivatedHandler);
+        resolvedSocket.off('connect', reconnectHandler);
+      }
     };
-  }, [bookingId, confirmedTripId]);
+  }, []);
 
   const rotateDeg = checkRotate.interpolate({ inputRange: [-20, 0], outputRange: ['-20deg', '0deg'] });
 
@@ -424,31 +426,6 @@ export default function TicketScreen() {
             <CheckCircle size={24} color="#ffffff" />
             <Text style={styles.boardedBannerText}>{t('boarded_msg')}</Text>
           </Animated.View>
-        )}
-
-        {/* Live tracking card */}
-        {latestTracking && (
-          <View style={styles.trackingCard}>
-            <View style={styles.trackingHeader}>
-              <MapPin size={14} color={c.ink} />
-              <Text style={styles.trackingTitle}>{t('cairo_time')}</Text>
-            </View>
-            <Text style={styles.trackingStation}>{latestTracking.stationName}</Text>
-            <Text style={styles.trackingSub}>
-              {latestTracking.status} ·{' '}
-              {(() => {
-                try {
-                  return new Intl.DateTimeFormat('en-US', {
-                    timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit', hour12: false,
-                  }).format(new Date(latestTracking.arrivedAt));
-                } catch {
-                  return new Date(latestTracking.arrivedAt).toLocaleTimeString('en-US', {
-                    hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false,
-                  });
-                }
-              })()}
-            </Text>
-          </View>
         )}
 
         {/* ── Ticket card ── */}

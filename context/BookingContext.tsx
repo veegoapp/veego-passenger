@@ -117,6 +117,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   // Use a ref so handleConfirm always reads the latest value without needing it in dep arrays
   const getServiceRef = useRef(getService);
   getServiceRef.current = getService;
+  const confirmingRef = useRef(false);
 
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [tripSheetOpen, setTripSheetOpen] = useState(false);
@@ -244,8 +245,10 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleConfirm = useCallback(async (promoCode?: string) => {
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
     setConfirmSheetOpen(false);
-    if (!pendingBooking) return;
+    if (!pendingBooking) { confirmingRef.current = false; return; }
 
     // ── Service-control gate: re-check at confirmation time ──────────────────
     // This catches the case where admin disabled the service AFTER TripSheet opened
@@ -327,6 +330,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       }
 
       setActiveBooking(null);
+    } finally {
+      confirmingRef.current = false;
     }
 
     if (bookingSuccess) {

@@ -192,6 +192,7 @@ export default function TripDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const liveStatusRef = useRef<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [shuttleRatingVisible, setShuttleRatingVisible] = useState(false);
@@ -233,7 +234,14 @@ export default function TripDetailScreen() {
       }
 
       if (detail) {
-        setTrip(detail);
+        setTrip((prev) => {
+          // Preserve socket-delivered status — REST poll must not overwrite it.
+          // Use ref (not state) so we read the latest value inside this callback.
+          if (prev && liveStatusRef.current) {
+            return { ...detail, status: prev.status };
+          }
+          return detail;
+        });
         tripIdRef.current = detail.id;
       } else {
         setError(t('trip_load_error'));
@@ -327,6 +335,7 @@ export default function TripDetailScreen() {
       }) => {
         if (String(payload.tripId) === String(id)) {
           const normalized = payload.status?.toLowerCase() ?? '';
+          liveStatusRef.current = normalized;
           setLiveStatus(normalized);
           // If passenger count changed (someone else joined/left), update it too
           if (typeof payload.passengerCount === 'number') {
@@ -340,14 +349,21 @@ export default function TripDetailScreen() {
       // Boarding confirmation — fired on passenger:{userId} room, but also arrives on trip room
       const boardedHandler = () => setBoarded(true);
 
+      // Re-join trip room after socket reconnects (network recovery)
+      const reconnectHandler = () => {
+        socket.emit('join:trip', { tripId: id });
+      };
+
       socket.on('shuttle:driver:location', locationHandler);
       socket.on('shuttle:trip:status', statusHandler);
       socket.on('booking:boarded', boardedHandler);
+      socket.on('connect', reconnectHandler);
 
       handlers.push(
         () => socket.off('shuttle:driver:location', locationHandler),
         () => socket.off('shuttle:trip:status', statusHandler),
         () => socket.off('booking:boarded', boardedHandler),
+        () => socket.off('connect', reconnectHandler),
       );
     }).catch(() => {});
 
