@@ -168,6 +168,7 @@ export default function HomeScreen() {
   const [typedText, setTypedText] = useState('');
   const [headerHeight, setHeaderHeight] = useState(220);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Fetch saved locations on mount
   useEffect(() => {
@@ -183,6 +184,16 @@ export default function HomeScreen() {
           label: item.label,
           isDefault: item.isDefault ?? false,
         })));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    api.get('/notifications?limit=20')
+      .then(({ data }) => {
+        const list: any[] = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+        setUnreadCount(list.filter((n) => !n.isRead && !n.read).length);
       })
       .catch(() => {});
   }, []);
@@ -246,7 +257,7 @@ export default function HomeScreen() {
             <View style={styles.headerRight}>
               <TouchableOpacity style={[gs, styles.iconBtn]} onPress={() => router.push('/notifications')}>
                 <Bell size={18} color={c.ink} />
-                <View style={styles.notifDot} />
+                {unreadCount > 0 && <View style={styles.notifDot} />}
               </TouchableOpacity>
               <TouchableOpacity style={styles.avatar} onPress={() => router.push('/(tabs)/profile')}>
                 <Text style={styles.avatarText}>{avatarInitials}</Text>
