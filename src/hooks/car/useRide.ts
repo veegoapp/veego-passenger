@@ -201,6 +201,9 @@ export function useRide(): UseRideResult {
     if (socketListening.current) return;
     socketListening.current = true;
 
+    // Declared before cleanup so closure in cleanup can reference it
+    let reconnectHandler: (() => Promise<void>) | null = null;
+
     const cleanup = () => {
       const s = socketRef.current;
       if (s) {
@@ -220,6 +223,7 @@ export function useRide(): UseRideResult {
         s.off('ride:waiting:charge:capped');
         s.off('surge:updated');
         s.off('ride:deviation_warning');
+        if (reconnectHandler) s.io.off('reconnect', reconnectHandler);
       }
       socketListening.current = false;
       stopPolling();
@@ -413,6 +417,33 @@ export function useRide(): UseRideResult {
         if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, deviationWarning: true }));
       });
+
+      // On reconnect, re-fetch ride state to recover any events missed during the disconnect window
+      reconnectHandler = async () => {
+        if (!activeRideIdRef.current) return;
+        try {
+          const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
+          const status: RideStatus = data.status ?? data.rideStatus;
+          if (!status) return;
+          setRideState((prev) => {
+            const updatedDriver: DriverInfo | null = data.driver
+              ? {
+                  name: data.driver.name ?? prev.driver?.name ?? 'Driver',
+                  phone: data.driver.phone ?? prev.driver?.phone ?? '',
+                  vehicle: data.driver.vehicle ?? prev.driver?.vehicle ?? '',
+                  vehicleColor: data.driver.vehicleColor ?? data.driver.vehicle_color ?? prev.driver?.vehicleColor,
+                  plateNumber: data.driver.plateNumber ?? data.driver.plate_number ?? prev.driver?.plateNumber,
+                  rating: data.driver.rating ?? prev.driver?.rating ?? 4.8,
+                  eta: data.eta ?? data.driver.eta ?? prev.driver?.eta ?? 5,
+                }
+              : prev.driver;
+            const updatedFare = data.fare ?? data.finalPrice ?? prev.fare;
+            return { ...prev, status, driver: updatedDriver, fare: updatedFare };
+          });
+          if (TERMINAL_STATUSES.includes(status)) cleanup();
+        } catch {}
+      };
+      socket.io.on('reconnect', reconnectHandler);
     } catch (err) {
       console.warn('[useRide] Socket setup failed:', err);
     }
