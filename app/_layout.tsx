@@ -1,6 +1,6 @@
 import '@/src/hooks/shared/backgroundLocationTask';
-import { useEffect, useRef, useState } from 'react';
-import { View, Platform } from 'react-native';
+import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
+import { View, Platform, Text, Pressable } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -97,6 +97,46 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
 }
 
 const isExpoGo = Constants.appOwnership === 'expo';
+
+class AppErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    console.error('[ErrorBoundary] App crash:', error.message, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#fff' }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 }}>
+            Something went wrong
+          </Text>
+          <Text style={{ fontSize: 14, color: '#666', marginBottom: 24, textAlign: 'center' }}>
+            {this.state.error?.message ?? 'An unexpected error occurred.'}
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ hasError: false, error: null })}
+            style={{ backgroundColor: '#2d2d42', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Try Again</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AppShell() {
   const { darkMode, isRTL } = useTheme();
@@ -200,7 +240,9 @@ export default function RootLayout() {
               <PaymentConfigProvider>
                 <BookingProvider>
                   <FavoritesProvider>
-                    <AppShell />
+                    <AppErrorBoundary>
+                      <AppShell />
+                    </AppErrorBoundary>
                   </FavoritesProvider>
                 </BookingProvider>
               </PaymentConfigProvider>
