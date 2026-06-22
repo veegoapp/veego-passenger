@@ -1,8 +1,3 @@
-// TODO: Provide Trip Action Endpoints
-// - GET  /users/me/bookings        → getUpcomingTrips (paginated shuttle bookings)
-// - PATCH /bookings/:id/cancel     → cancelBooking (frees seat slot, triggers re-fetch)
-// - GET  /trips/:id/capacity       → getTripLiveCapacity (passengerCount / totalSeats)
-
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,

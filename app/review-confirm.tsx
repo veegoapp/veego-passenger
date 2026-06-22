@@ -87,7 +87,6 @@ export default function ReviewConfirmScreen() {
     setPromoStatus('loading');
     setPromoError('');
 
-    // TODO: Connect Promo/Pricing API — endpoint: POST /promo/validate
     const result = await validateCode(code, baseTotal);
     if (result.valid) {
       setPromoStatus('valid');
@@ -111,7 +110,6 @@ export default function ReviewConfirmScreen() {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     clearBookingError();
     setConfirming(true);
-    // TODO: Connect Promo/Pricing API — pass appliedCode to POST /bookings for server-side discount
     await handleConfirm(appliedCode || undefined);
     setConfirming(false);
   }, [confirming, appliedCode, handleConfirm, clearBookingError]);

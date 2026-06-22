@@ -265,7 +265,6 @@ function PersonalInfoModal({
       return;
     }
     try {
-      // TODO: Provide Password Change API Endpoint — expected: PATCH /users/me/password { currentPassword, newPassword }
       await api.patch('/users/me/password', { currentPassword: currentPw, newPassword: newPw });
       if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(t('saved'), t('password_updated'));
@@ -304,7 +303,6 @@ function PersonalInfoModal({
                   <Camera size={13} color={c.isDark ? c.background : '#ffffff'} />
                 </View>
               </TouchableOpacity>
-              {/* TODO: Provide User Avatar Upload API Endpoint — expected: POST /users/me/avatar (multipart/form-data) */}
               <Text style={{ fontSize: 12, color: c.inkSoft, marginTop: 8 }}>{t('tap_change_photo')}</Text>
             </View>
 
