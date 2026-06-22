@@ -1,3 +1,4 @@
+import '@/src/hooks/shared/backgroundLocationTask';
 import { useEffect, useRef, useState } from 'react';
 import { View, Platform } from 'react-native';
 import { Stack, router } from 'expo-router';

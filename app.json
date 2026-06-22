@@ -47,6 +47,14 @@
         {
           "cameraPermission": "Allow VeeGo to access your camera to scan boarding QR codes."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow VeeGo to use your location during your trip.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
       ]
     ],
     "experiments": {

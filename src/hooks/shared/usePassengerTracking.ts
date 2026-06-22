@@ -1,7 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
 import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
+import { PASSENGER_LOCATION_TASK } from './backgroundLocationTask';
 
 const TRACKING_INTERVAL_MS = 5 * 60 * 1000;
 const OFFLINE_STORE_KEY = 'veego_offline_location_snapshots';
@@ -115,7 +117,7 @@ export function usePassengerTracking({
   useEffect(() => { rideIdRef.current = rideId; }, [rideId]);
 
   const tick = useCallback(async () => {
-    // First: try to flush any offline-stored snapshots from prior connectivity gaps
+    // First: try to flush any offline-stored snapshots (including those from background task)
     await flushOfflineSnapshots();
 
     // Then: capture and send the current snapshot
@@ -176,12 +178,55 @@ export function usePassengerTracking({
       return;
     }
 
-    // Fire immediately on activation, then every 5 minutes
+    // Start background location task when active (best-effort; falls back to setInterval)
+    (async () => {
+      try {
+        const available = await TaskManager.isAvailableAsync();
+        if (available) {
+          const { status: fg } = await Location.requestForegroundPermissionsAsync();
+          if (fg === 'granted') {
+            const { status: bg } = await Location.requestBackgroundPermissionsAsync();
+            if (bg === 'granted') {
+              const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+              if (!started) {
+                await Location.startLocationUpdatesAsync(PASSENGER_LOCATION_TASK, {
+                  accuracy: Location.Accuracy.Balanced,
+                  timeInterval: TRACKING_INTERVAL_MS,
+                  distanceInterval: 200,
+                  foregroundService: {
+                    notificationTitle: 'VeeGo',
+                    notificationBody: 'Tracking your trip location.',
+                    notificationColor: '#2d2d42',
+                  },
+                  activityType: Location.ActivityType.Other,
+                  showsBackgroundLocationIndicator: true,
+                  pausesUpdatesAutomatically: false,
+                });
+              }
+            }
+          }
+        }
+      } catch {
+        // Background task start is best-effort; setInterval handles foreground coverage
+      }
+    })();
+
+    // Fire immediately on activation, then every 5 minutes (foreground coverage)
     tick();
     intervalRef.current = setInterval(tick, TRACKING_INTERVAL_MS);
 
     return () => {
       stopTracking();
+      // Stop background location task
+      TaskManager.isAvailableAsync()
+        .then((available) => {
+          if (!available) return;
+          return Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK)
+            .then((started) => {
+              if (started) Location.stopLocationUpdatesAsync(PASSENGER_LOCATION_TASK).catch(() => {});
+            });
+        })
+        .catch(() => {});
     };
   }, [isActive, tick, stopTracking]);
 }
