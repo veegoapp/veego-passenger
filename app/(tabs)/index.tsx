@@ -14,7 +14,7 @@ import { RouteCard, FeaturedOffers } from '@/components/shuttle/RouteCard';
 import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
-import { CarMap } from '@/components/car/CarMap';
+import { CarServiceScreen } from '@/components/car/CarServiceScreen';
 import { ScooterMap } from '@/components/scooter/ScooterMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
@@ -568,13 +568,10 @@ export default function HomeScreen() {
         </ScrollView>
       )}
 
-      {/* Car — تملأ المساحة من تحت الهيدر فوق التاب بار */}
+      {/* Car */}
       {mode === 'car' && (
         <View style={{ flex: 1 }}>
-          <CarMap
-            destination={destinationLocation || null}
-            onClose={() => setDestinationLocation('')}
-          />
+          <CarServiceScreen onBack={() => setDestinationLocation('')} />
         </View>
       )}
 

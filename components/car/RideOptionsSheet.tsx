@@ -1,32 +1,19 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 
-const RIDE_OPTIONS = [
-  {
-    id: 'economy' as const,
-    labelKey: 'economy' as const,
-    descKey: 'economy_desc' as const,
-    icon: 'car-outline' as const,
-    price: 25,
-    eta: 4,
-    color: '#55c49a',
-    bgColor: 'rgba(85,196,154,0.12)',
-  },
-  {
-    id: 'premium' as const,
-    labelKey: 'premium' as const,
-    descKey: 'premium_desc' as const,
-    icon: 'car-sport-outline' as const,
-    price: 45,
-    eta: 6,
-    color: '#8B6FD4',
-    bgColor: 'rgba(139,111,212,0.12)',
-  },
-];
+interface RideEstimate {
+  economy: { price: number; eta: number };
+  premium: { price: number; eta: number };
+}
+
+const RIDE_DEFAULTS = {
+  economy: { id: 'economy' as const, labelKey: 'economy' as const, descKey: 'economy_desc' as const, icon: 'car-outline' as const, color: '#55c49a', bgColor: 'rgba(85,196,154,0.12)' },
+  premium: { id: 'premium' as const, labelKey: 'premium' as const, descKey: 'premium_desc' as const, icon: 'car-sport-outline' as const, color: '#8B6FD4', bgColor: 'rgba(139,111,212,0.12)' },
+};
 
 interface RideOptionsSheetProps {
   visible: boolean;
@@ -35,10 +22,14 @@ interface RideOptionsSheetProps {
   onSelect: (id: 'economy' | 'premium') => void;
   onConfirm: () => void;
   onDismiss: () => void;
+  estimate?: RideEstimate | null;
+  estimateLoading?: boolean;
+  confirming?: boolean;
 }
 
 export function RideOptionsSheet({
   visible, destination, selected, onSelect, onConfirm, onDismiss,
+  estimate, estimateLoading, confirming,
 }: RideOptionsSheetProps) {
   const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -54,11 +45,7 @@ export function RideOptionsSheet({
     }).start();
   }, [visible]);
 
-  const translateY = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [500, 0],
-  });
-
+  const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
   const sheetBg = c.isDark ? 'rgba(16,16,32,0.98)' : 'rgba(250,250,252,0.98)';
   const borderCol = c.isDark ? 'rgba(90,95,160,0.25)' : 'rgba(255,255,255,0.8)';
 
@@ -93,34 +80,39 @@ export function RideOptionsSheet({
       </View>
 
       <View style={styles.options}>
-        {RIDE_OPTIONS.map((option) => {
-          const isSelected = selected === option.id;
+        {(['economy', 'premium'] as const).map((id) => {
+          const opt = RIDE_DEFAULTS[id];
+          const price = estimate?.[id]?.price;
+          const eta   = estimate?.[id]?.eta;
+          const isSelected = selected === id;
           return (
             <TouchableOpacity
-              key={option.id}
+              key={id}
               style={[
                 styles.option,
                 {
-                  backgroundColor: isSelected ? option.bgColor : c.isDark ? 'rgba(255,255,255,0.04)' : c.white,
-                  borderColor: isSelected ? option.color : c.border,
+                  backgroundColor: isSelected ? opt.bgColor : c.isDark ? 'rgba(255,255,255,0.04)' : c.white,
+                  borderColor: isSelected ? opt.color : c.border,
                   borderWidth: isSelected ? 2 : 1,
                 },
               ]}
               onPress={() => {
                 if (Platform.OS !== 'web') Haptics.selectionAsync();
-                onSelect(option.id);
+                onSelect(id);
               }}
               activeOpacity={0.85}
             >
-              <View style={[styles.optionIcon, { backgroundColor: option.bgColor }]}>
-                <Ionicons name={option.icon} size={24} color={option.color} />
+              <View style={[styles.optionIcon, { backgroundColor: opt.bgColor }]}>
+                <Ionicons name={opt.icon} size={24} color={opt.color} />
               </View>
               <View style={styles.optionMeta}>
-                <Text style={[styles.optionName, { color: c.ink }]}>{t(option.labelKey)}</Text>
-                <Text style={[styles.optionDesc, { color: c.inkSoft }]}>{t(option.descKey)}</Text>
+                <Text style={[styles.optionName, { color: c.ink }]}>{t(opt.labelKey)}</Text>
+                <Text style={[styles.optionDesc, { color: c.inkSoft }]}>{t(opt.descKey)}</Text>
                 <View style={styles.optionStats}>
                   <Ionicons name="time-outline" size={11} color={c.inkSoft} />
-                  <Text style={[styles.optionEta, { color: c.inkSoft }]}>{option.eta} {t('min')}</Text>
+                  <Text style={[styles.optionEta, { color: c.inkSoft }]}>
+                    {estimateLoading ? '...' : eta != null ? `${eta} ${t('min')}` : `— ${t('min')}`}
+                  </Text>
                   <View style={[styles.statDot, { backgroundColor: c.silver }]} />
                   <Ionicons name="people-outline" size={11} color={c.inkSoft} />
                   <Text style={[styles.optionEta, { color: c.inkSoft }]}>1-4</Text>
@@ -128,7 +120,13 @@ export function RideOptionsSheet({
               </View>
               <View style={styles.priceBlock}>
                 <Text style={[styles.priceLabel, { color: c.inkSoft }]}>{t('egp')}</Text>
-                <Text style={[styles.price, { color: isSelected ? option.color : c.ink }]}>{option.price}</Text>
+                {estimateLoading ? (
+                  <ActivityIndicator size="small" color={opt.color} style={{ marginTop: 4 }} />
+                ) : (
+                  <Text style={[styles.price, { color: isSelected ? opt.color : c.ink }]}>
+                    {price != null ? price.toFixed(0) : '—'}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -138,17 +136,23 @@ export function RideOptionsSheet({
       <TouchableOpacity
         style={[
           styles.confirmBtn,
-          { backgroundColor: selected ? c.ink : c.silver, opacity: selected ? 1 : 0.5 },
+          { backgroundColor: selected && !confirming ? c.ink : c.silver, opacity: selected && !confirming ? 1 : 0.5 },
         ]}
-        disabled={!selected}
+        disabled={!selected || !!confirming}
         onPress={() => {
           if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           onConfirm();
         }}
         activeOpacity={0.9}
       >
-        <Ionicons name="checkmark-circle" size={18} color={c.isDark ? c.background : c.white} />
-        <Text style={[styles.confirmText, { color: c.isDark ? c.background : c.white }]}>{t('confirm')}</Text>
+        {confirming ? (
+          <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+        ) : (
+          <>
+            <Ionicons name="checkmark-circle" size={18} color={c.isDark ? c.background : c.white} />
+            <Text style={[styles.confirmText, { color: c.isDark ? c.background : c.white }]}>{t('confirm')}</Text>
+          </>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -156,22 +160,11 @@ export function RideOptionsSheet({
 
 const styles = StyleSheet.create({
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 28,
-    elevation: 24,
-    paddingTop: 6,
-    zIndex: 999,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.3, shadowRadius: 28, elevation: 24, paddingTop: 6, zIndex: 999,
   },
   handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: 16 },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 16 },
@@ -188,7 +181,7 @@ const styles = StyleSheet.create({
   optionStats: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   optionEta: { fontSize: 11 },
   statDot: { width: 3, height: 3, borderRadius: 2 },
-  priceBlock: { alignItems: 'flex-end' },
+  priceBlock: { alignItems: 'flex-end', minWidth: 44 },
   priceLabel: { fontSize: 10, fontWeight: '500' },
   price: { fontSize: 20, fontWeight: '700', letterSpacing: -0.5 },
   confirmBtn: {
@@ -199,4 +192,3 @@ const styles = StyleSheet.create({
   },
   confirmText: { fontSize: 15, fontWeight: '600' },
 });
-
