@@ -1,1 +1,1 @@
-export { RealMap } from './RealMap.web';
+export { RealMap } from './RealMap.native';
