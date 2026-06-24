@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated,  ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,7 +56,7 @@ export function RideOptionsSheet({
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: Platform.OS === 'web' ? 24 : insets.bottom + 35,
+          paddingBottom: insets.bottom + 35,
           transform: [{ translateY }],
         },
       ]}
@@ -97,7 +97,7 @@ export function RideOptionsSheet({
                 },
               ]}
               onPress={() => {
-                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                Haptics.selectionAsync();
                 onSelect(id);
               }}
               activeOpacity={0.85}
@@ -140,7 +140,7 @@ export function RideOptionsSheet({
         ]}
         disabled={!selected || !!confirming}
         onPress={() => {
-          if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           onConfirm();
         }}
         activeOpacity={0.9}

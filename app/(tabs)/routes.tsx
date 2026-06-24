@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  ActivityIndicator, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,7 +37,7 @@ function makeStyles(c: ThemeColors) {
 
 export default function RoutesScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const [searchQuery, setSearchQuery] = useState('');
   const { openRoute } = useBooking();
   const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();

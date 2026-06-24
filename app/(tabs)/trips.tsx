@@ -147,7 +147,7 @@ function CapacityBar({ current, max, c, label }: { current: number; max: number;
 
 export default function TripsScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const { activeBooking } = useBooking();
   const { colors: c, glassStyle: gs, t, language } = useTheme();
@@ -244,7 +244,7 @@ export default function TripsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     await refresh();
     setRefreshing(false);
   }, [refresh]);
@@ -257,7 +257,7 @@ export default function TripsScreen() {
 
   // cancelSheetId holds the bookingId (not tripId) so the API call is correct
   const handleCancelPress = (bookingId: string) => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setCancelSheetId(bookingId);
   };
 
@@ -273,7 +273,7 @@ export default function TripsScreen() {
       Animated.timing(anim, {
         toValue: 0,
         duration: 320,
-        useNativeDriver: Platform.OS !== 'web',
+        useNativeDriver: true,
       }).start(async () => {
         await refresh();
         anim.setValue(1);
@@ -325,7 +325,7 @@ export default function TripsScreen() {
             <TouchableOpacity
               key={tp}
               style={[styles.tabBtn, tab === tp && styles.tabBtnActive]}
-              onPress={() => { setTab(tp); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+              onPress={() => { setTab(tp); Haptics.selectionAsync(); }}
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, tab === tp && styles.tabTextActive]}>
@@ -362,7 +362,7 @@ export default function TripsScreen() {
               <TouchableOpacity
                 style={styles.emptyBtn}
                 onPress={() => {
-                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   router.push('/' as any);
                 }}
                 activeOpacity={0.88}
@@ -421,7 +421,7 @@ export default function TripsScreen() {
                 onPress={() => {
                   if (trip.id === 'live') { router.push('/ticket'); }
                   else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
-                  if (Platform.OS !== 'web') Haptics.selectionAsync();
+                  Haptics.selectionAsync();
                 }}
                 activeOpacity={0.9}
               >

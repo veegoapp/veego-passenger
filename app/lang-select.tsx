@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation, CheckCircle } from 'lucide-react-native';
@@ -15,7 +15,7 @@ export default function LangSelectScreen() {
   const [selected, setSelected] = useState<'en' | 'ar' | null>(null);
 
   const handleSelect = async (lang: 'en' | 'ar') => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelected(lang);
     setLanguage(lang, true);
     try {

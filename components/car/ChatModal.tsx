@@ -32,7 +32,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
 
   const handleSend = async () => {
     if (!text.trim() || sending) return;
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     const msg = text.trim();
     setText('');
     await sendMessage(msg);
@@ -49,7 +49,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
         style={{ flex: 1, backgroundColor: bgColor }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.header, { backgroundColor: headerBg, paddingTop: Platform.OS === 'web' ? 20 : insets.top + 4 }]}>
+        <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 4 }]}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.8} style={styles.backBtn}>
             <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={20} color={c.ink} />
           </TouchableOpacity>
@@ -106,7 +106,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
           styles.inputBar,
           {
             backgroundColor: inputBg,
-            paddingBottom: Platform.OS === 'web' ? 16 : insets.bottom + 8,
+            paddingBottom: insets.bottom + 8,
             borderTopColor: c.border,
           },
         ]}>

@@ -125,7 +125,7 @@ export default function ReceiptScreen() {
         style={styles.topGradient}
       />
 
-      <View style={[styles.header, { paddingTop: Platform.OS === 'web' ? 60 : insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.successBadge}>
           <Check size={16} color="#fff" strokeWidth={3} />
         </View>
@@ -210,7 +210,7 @@ export default function ReceiptScreen() {
       </ScrollView>
 
       {/* Bottom CTAs */}
-      <View style={[styles.cta, { paddingBottom: Platform.OS === 'web' ? 24 : insets.bottom + 12, borderTopColor: c.border }]}>
+      <View style={[styles.cta, { paddingBottom: insets.bottom + 12, borderTopColor: c.border }]}>
         {!alreadyRated && (
           <TouchableOpacity
             style={[styles.rateBtn, { backgroundColor: c.ink }]}

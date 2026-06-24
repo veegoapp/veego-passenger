@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import api from '../../api/client';
 import { getSocket } from '../../api/socket';
@@ -97,17 +96,15 @@ export function useNotifications(): UseNotificationsResult {
       };
       setNotifications((prev) => [activatedNotif, ...prev]);
 
-      if (Platform.OS !== 'web') {
-        Notifications.scheduleNotificationAsync({
-          content: {
-            title: '🚌 Your trip is now Active!',
-            body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
-            sound: true,
-            data: { tripId: data.tripId, type: 'trip_activated' },
-          },
-          trigger: null,
-        }).catch(() => {});
-      }
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: '🚌 Your trip is now Active!',
+          body: 'Minimum passengers reached — your shuttle trip has been confirmed and is now active.',
+          sound: true,
+          data: { tripId: data.tripId, type: 'trip_activated' },
+        },
+        trigger: null,
+      }).catch(() => {});
     };
 
     // Resolved socket stored so cleanup is synchronous — no async in the return fn

@@ -445,7 +445,7 @@ export function TripSheet() {
   const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     if (pick === 'from') {
       setFromIdx(idx);
       if (idx === toIdx) setToIdx(Math.min(route.path.length - 1, idx + 1));
@@ -478,7 +478,7 @@ export function TripSheet() {
                 style={styles.heroFavBtn}
                 activeOpacity={0.7}
                 onPress={() => {
-                  if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 }}
               >
                 <Heart size={16} color="rgba(255,255,255,0.7)" />
@@ -593,7 +593,7 @@ export function TripSheet() {
                     onPress={() => {
                       setSelectedDateIdx(i);
                       setTimeIdx(0);
-                      if (Platform.OS !== 'web') Haptics.selectionAsync();
+                      Haptics.selectionAsync();
                     }}
                     activeOpacity={0.75}
                   >
@@ -663,7 +663,7 @@ export function TripSheet() {
                 return (
                   <TouchableOpacity
                     key={`${trip.id ?? i}`}
-                    onPress={() => { setTimeIdx(i); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                    onPress={() => { setTimeIdx(i); Haptics.selectionAsync(); }}
                     disabled={disabled}
                     style={[
                       styles.tripCard,
@@ -815,7 +815,7 @@ export function TripSheet() {
               <TouchableOpacity
                 style={[styles.seatBtn, seatCount <= 1 && styles.seatBtnDisabled]}
                 disabled={seatCount <= 1}
-                onPress={() => { setSeatCount(Math.max(1, seatCount - 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                onPress={() => { setSeatCount(Math.max(1, seatCount - 1)); Haptics.selectionAsync(); }}
                 activeOpacity={0.7}
               >
                 <Minus size={16} color={c.ink} />
@@ -828,7 +828,7 @@ export function TripSheet() {
               <TouchableOpacity
                 style={[styles.seatBtn, seatCount >= selectedTripSeats && styles.seatBtnDisabled]}
                 disabled={seatCount >= selectedTripSeats}
-                onPress={() => { setSeatCount(Math.min(selectedTripSeats, seatCount + 1)); if (Platform.OS !== 'web') Haptics.selectionAsync(); }}
+                onPress={() => { setSeatCount(Math.min(selectedTripSeats, seatCount + 1)); Haptics.selectionAsync(); }}
                 activeOpacity={0.7}
               >
                 <Plus size={16} color={c.ink} />
@@ -875,7 +875,7 @@ export function TripSheet() {
             activeOpacity={0.88}
             onPress={() => {
               if (!valid) return;
-              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               const trip = visibleTrips[safeTimeIdx];
               const tripDate = formatTripDateUTC(trip?.departureTime ?? '');
               const tripTime = formatTripTimeUTC(trip?.departureTime ?? '');

@@ -55,7 +55,7 @@ function makeStyles(c: ThemeColors, insetTop: number) {
     modalHeader: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
       paddingHorizontal: 16, paddingBottom: 12,
-      paddingTop: Platform.OS === 'web' ? 20 : insetTop + 8,
+      paddingTop: insetTop + 8,
       backgroundColor: c.isDark ? '#1a1a2e' : '#ffffff',
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
@@ -101,7 +101,7 @@ function makeStyles(c: ThemeColors, insetTop: number) {
 export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
   const { colors: c, t, isRTL } = useTheme();
   const insets    = useSafeAreaInsets();
-  const insetTop  = Platform.OS === 'web' ? 60 : insets.top;
+  const insetTop  = insets.top;
   const styles    = useMemo(() => makeStyles(c, insetTop), [c, insetTop]);
 
   const [phase, setPhase]               = useState<CarPhase>('idle');
@@ -154,7 +154,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
   }, []);
 
   const handleSelectDestination = useCallback(async (loc: string) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     setDestination(loc);
     setPhase('ride_options');
 
@@ -171,7 +171,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
 
   const handleConfirmRide = useCallback(async () => {
     if (!selectedRide) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const pickup  = userCoordsRef.current ?? { latitude: 30.0444, longitude: 31.2357 };
     const dropoff = destCoords ?? { latitude: pickup.latitude + 0.01, longitude: pickup.longitude + 0.01 };
@@ -199,7 +199,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
   }, [resetRide]);
 
   const handleCancel = useCallback(async () => {
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     if (phase === 'in_ride' && rideState.rideId) {
       await cancelRide('Cancelled by passenger');
     }
@@ -242,7 +242,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
             <TouchableOpacity
               style={styles.searchBox}
               onPress={() => {
-                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                Haptics.selectionAsync();
                 setSearchQuery('');
                 setPhase('selecting');
               }}

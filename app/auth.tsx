@@ -38,12 +38,12 @@ export default function AuthPage() {
   const { language, setLanguage, t, colors: c } = useTheme();
 
   const switchTab = (newTab: AuthTab) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     setTab(newTab);
   };
 
   const switchLang = (lang: 'en' | 'ar') => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     setLanguage(lang);
   };
 
@@ -115,7 +115,6 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
     Promise.all([
       LocalAuthentication.hasHardwareAsync(),
       LocalAuthentication.isEnrolledAsync(),
@@ -146,14 +145,14 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', { email: email.trim(), password });
       await persistTokens(data);
       await saveSession(email.trim(), data.user?.name ?? data.name);
       emitAuthEvent('auth:login');
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (e: any) {
       const status = e?.response?.status;
@@ -275,7 +274,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       Alert.alert(t('error'), t('password_min'));
       return;
     }
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     try {
       const { data } = await api.post('/auth/register', {
@@ -285,7 +284,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         password,
       });
       if (data.requiresOtp) {
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.push({ pathname: '/verify-phone', params: { phone: data.phone ?? phone.trim(), maskedPhone: data.maskedPhone ?? data.phone ?? phone.trim(), termsVersion: String(termsData?.version ?? '') } } as any);
         return;
       }
@@ -296,7 +295,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         acceptTerms(termsData.version).catch(() => {});
       }
       emitAuthEvent('auth:login');
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSuccess();
     } catch (e: any) {
       const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? t('register_failed');
@@ -386,7 +385,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       <TouchableOpacity
         style={[styles.termsCheckRow, isRTL && { flexDirection: 'row-reverse' }]}
         activeOpacity={0.8}
-        onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setTermsChecked((v) => !v); }}
+        onPress={() => { Haptics.selectionAsync(); setTermsChecked((v) => !v); }}
       >
         <View style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>
           {termsChecked && <Check size={12} color={C.white} strokeWidth={3} />}
@@ -444,7 +443,7 @@ function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
   // ── Step A: Phone submission ──────────────────────────────────────────────────────
   const handleSend = async () => {
     if (!phone.trim()) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     setError('');
     try {
@@ -454,7 +453,7 @@ function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
     } finally {
       setLoading(false);
     }
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setStep('otp');
   };
 
@@ -518,7 +517,7 @@ function ForgotForm({ onSuccess }: { onSuccess: () => void }) {
     <ResetStep
       token={otpToken}
       onSuccess={() => {
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         onSuccess();
       }}
       t={t}
@@ -553,13 +552,13 @@ function OtpStep({
 
   const handleVerify = async () => {
     if (otp.length < OTP_LENGTH) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     setError('');
     try {
       const { data } = await api.post('/auth/verify-otp', { phone, otp });
       const token = data?.token ?? data?.resetToken ?? data?.data?.token ?? '';
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onVerified(token);
     } catch {
       setError(t('invalid_otp'));
@@ -676,7 +675,7 @@ function ResetStep({
       setError(t('password_min'));
       return;
     }
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     setError('');
     try {

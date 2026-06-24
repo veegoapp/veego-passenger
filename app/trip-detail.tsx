@@ -183,7 +183,7 @@ function makeStyles(c: ThemeColors) {
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -321,7 +321,6 @@ export default function TripDetailScreen() {
 
   // Socket: join/leave trip room + listen for driver location + live status updates
   useEffect(() => {
-    if (Platform.OS === 'web') return;
     if (!id) return;
 
     let cleanedUp = false;
@@ -449,20 +448,16 @@ export default function TripDetailScreen() {
   };
 
   const handleCancelPress = () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const within12h = isWithin12Hours(trip?.departureIso ?? '');
-    if (Platform.OS !== 'web') {
-      Alert.alert(
-        t('cancel_warning_title'),
-        within12h ? t('cancel_no_refund') : t('cancel_refund_full'),
-        [
-          { text: t('cancel_keep'), style: 'cancel' },
-          { text: t('cancel_confirm'), style: 'destructive', onPress: doCancel },
-        ],
-      );
-    } else {
-      setShowCancelModal(true);
-    }
+    Alert.alert(
+      t('cancel_warning_title'),
+      within12h ? t('cancel_no_refund') : t('cancel_refund_full'),
+      [
+        { text: t('cancel_keep'), style: 'cancel' },
+        { text: t('cancel_confirm'), style: 'destructive', onPress: doCancel },
+      ],
+    );
   };
 
   const doCancel = async () => {
@@ -515,7 +510,7 @@ export default function TripDetailScreen() {
   }, [trip?.id, trip?.driverUserId]);
 
   const handleSOS = () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Alert.alert(
       '🚨 SOS',
       'هل تحتاج إلى مساعدة طارئة؟',
@@ -555,7 +550,7 @@ export default function TripDetailScreen() {
   const deepLink = `veego://shuttle/trip/${id}`;
 
   const handleShare = async () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await Share.share({
         message: t('join_trip_msg')
@@ -791,35 +786,6 @@ export default function TripDetailScreen() {
         onSkip={() => setShuttleRatingVisible(false)}
       />
 
-      {Platform.OS === 'web' && showCancelModal && (
-        <Modal transparent animationType="fade" visible>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalBox, { backgroundColor: c.white }]}>
-              <Text style={[styles.modalTitle, { color: c.ink }]}>{t('cancel_warning_title')}</Text>
-              <Text style={[styles.modalBody, { color: c.inkSoft }]}>
-                {isWithin12Hours(trip?.departureIso ?? '') ? t('cancel_warning_10h') : t('cancel_warning_free')}
-              </Text>
-              <View style={styles.modalActions}>
-                <Pressable
-                  style={[styles.modalBtn, { backgroundColor: c.mist }]}
-                  onPress={() => setShowCancelModal(false)}
-                >
-                  <Text style={[styles.modalBtnText, { color: c.ink }]}>{t('cancel_keep')}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.modalBtn, { backgroundColor: c.badge }]}
-                  onPress={doCancel}
-                  disabled={!!cancellingId}
-                >
-                  <Text style={[styles.modalBtnText, { color: '#fff' }]}>
-                    {cancellingId ? `${t('cancel_confirm')}…` : t('cancel_confirm')}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
     </LinearGradient>
   );
 }

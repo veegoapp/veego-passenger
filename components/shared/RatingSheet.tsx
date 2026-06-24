@@ -44,7 +44,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
   }, [visible]);
 
   const handleStarPress = (n: number) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     setStars(n);
     Animated.sequence([
       Animated.timing(starScale[n - 1], { toValue: 1.4, duration: 120, useNativeDriver: true }),
@@ -54,7 +54,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
 
   const handleSubmit = () => {
     if (stars === 0) return;
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Keyboard.dismiss();
     setSubmitted(true);
     Animated.spring(checkScale, { toValue: 1, useNativeDriver: true, damping: 10, stiffness: 180 }).start();
@@ -72,7 +72,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: Platform.OS === 'web' ? 32 : insets.bottom + 32,
+          paddingBottom: insets.bottom + 32,
           transform: [{ translateY }],
         },
       ]}

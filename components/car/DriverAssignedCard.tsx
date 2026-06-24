@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated,  Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,7 +41,7 @@ export function DriverAssignedCard({
 
   const handleCall = () => {
     if (!driver?.phone) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const url = `tel:${driver.phone}`;
     Linking.canOpenURL(url).then((ok: boolean) => { if (ok) Linking.openURL(url); }).catch(() => {});
   };
@@ -65,7 +65,7 @@ export function DriverAssignedCard({
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: Platform.OS === 'web' ? 20 : insets.bottom + 16,
+          paddingBottom: insets.bottom + 16,
           transform: [{ translateY }],
         },
       ]}
@@ -133,7 +133,7 @@ export function DriverAssignedCard({
             style={[styles.iconBtn, { backgroundColor: c.mist }]}
             activeOpacity={0.8}
             onPress={() => {
-              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              Haptics.selectionAsync();
               setChatOpen(true);
             }}
           >
@@ -153,7 +153,7 @@ export function DriverAssignedCard({
             style={[styles.iconBtn, { backgroundColor: c.isDark ? 'rgba(235,90,90,0.15)' : 'rgba(235,90,90,0.08)' }]}
             activeOpacity={0.8}
             onPress={() => {
-              if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
               onCancel();
             }}
           >

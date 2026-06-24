@@ -145,7 +145,7 @@ function makeStyles(c: ThemeColors) {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const [mode, setMode] = useState<ServiceMode>('shuttle');
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openRoute, activeBooking } = useBooking();
@@ -210,7 +210,7 @@ export default function HomeScreen() {
 
   const handleServicePress = (id: string) => {
     handleServiceTap(id as ServiceType, () => {
-      if (Platform.OS !== 'web') Haptics.selectionAsync();
+      Haptics.selectionAsync();
       if (id === 'shuttle' || id === 'car' || id === 'scooter') {
         setMode(id as ServiceMode);
         setActiveSearchField(null);
@@ -232,7 +232,7 @@ export default function HomeScreen() {
       setPickupLocation(location.name);
     } else {
       setDestinationLocation(location.name);
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setActiveSearchField(null);
     setTypedText('');

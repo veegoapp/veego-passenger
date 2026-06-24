@@ -67,7 +67,7 @@ export default function VerifyPhoneScreen() {
 
   const handleVerify = async () => {
     if (otp.length < OTP_LENGTH || !phone) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     setError('');
     setSuccessMsg('');
@@ -86,7 +86,7 @@ export default function VerifyPhoneScreen() {
         const v = parseInt(termsVersion, 10);
         if (!isNaN(v)) acceptTerms(v).catch(() => {});
       }
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');
     } catch (e: any) {
       const msg: string = e?.response?.data?.error ?? e?.response?.data?.message ?? '';

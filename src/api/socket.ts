@@ -1,5 +1,4 @@
 import { io, Socket } from 'socket.io-client';
-import { Platform } from 'react-native';
 import { tokenStore, registerSocketReconnect } from './client';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -32,7 +31,7 @@ export async function getSocket(): Promise<Socket> {
 
   socket = io(SOCKET_URL, {
     path: '/api/socket.io',
-    transports: Platform.OS === 'web' ? ['websocket', 'polling'] : ['websocket'],
+    transports: ['websocket'],
     auth: token ? { token } : {},
     reconnection: true,
     reconnectionAttempts: 10,

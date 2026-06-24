@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, Platform, SafeAreaView,
+  StyleSheet, ActivityIndicator, SafeAreaView, Platform,
 } from 'react-native';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,19 +29,13 @@ export async function acceptTerms(version: number): Promise<void> {
 
 export async function storeAcceptedVersion(version: number): Promise<void> {
   try {
-    if (Platform.OS === 'web') {
-      localStorage.setItem(TERMS_VERSION_KEY, String(version));
-    } else {
-      await AsyncStorage.setItem(TERMS_VERSION_KEY, String(version));
-    }
+    await AsyncStorage.setItem(TERMS_VERSION_KEY, String(version));
   } catch {}
 }
 
 export async function getAcceptedVersion(): Promise<number | null> {
   try {
-    const raw = Platform.OS === 'web'
-      ? localStorage.getItem(TERMS_VERSION_KEY)
-      : await AsyncStorage.getItem(TERMS_VERSION_KEY);
+    const raw = await AsyncStorage.getItem(TERMS_VERSION_KEY);
     if (!raw) return null;
     const n = parseInt(raw, 10);
     return isNaN(n) ? null : n;

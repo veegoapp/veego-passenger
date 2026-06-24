@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, CheckCheck, Navigation, Sparkles, Settings, Bell } from 'lucide-react-native';
@@ -41,7 +41,7 @@ const ICON_BG_DARK: Record<string, string> = {
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { colors: c, glassStyle: gs, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const iconBg = c.isDark ? ICON_BG_DARK : ICON_BG_LIGHT;

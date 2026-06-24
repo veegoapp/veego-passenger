@@ -83,7 +83,7 @@ export default function ReviewConfirmScreen() {
   const handleApplyPromo = useCallback(async () => {
     const code = promoInput.trim();
     if (!code || promoStatus === 'loading' || promoStatus === 'valid') return;
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     setPromoStatus('loading');
     setPromoError('');
 
@@ -92,11 +92,11 @@ export default function ReviewConfirmScreen() {
       setPromoStatus('valid');
       setPromoDiscount(result.discount ?? '');
       setAppliedCode(code);
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       setPromoStatus('invalid');
       setPromoError(result.message ?? t('promo_invalid'));
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [promoInput, promoStatus, baseTotal, validateCode, t]);
 
@@ -107,7 +107,7 @@ export default function ReviewConfirmScreen() {
 
   const onConfirm = useCallback(async () => {
     if (confirming) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     clearBookingError();
     setConfirming(true);
     await handleConfirm(appliedCode || undefined);

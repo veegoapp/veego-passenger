@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ArrowLeft, ArrowRight, Bike as ScooterIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
@@ -60,7 +60,7 @@ function makeStyles(c: ThemeColors, insetTop: number) {
 export function ScooterServiceScreen({ onBack, embedded }: ScooterServiceScreenProps) {
   const { isRTL } = useTheme();
   const insets = useSafeAreaInsets();
-  const insetTop = Platform.OS === 'web' ? 60 : insets.top;
+  const insetTop = insets.top;
 
   const c = { isDark: true } as ThemeColors;
   const styles = makeStyles(c, insetTop);

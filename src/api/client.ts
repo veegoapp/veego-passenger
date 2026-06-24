@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 import { router } from 'expo-router';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -24,7 +23,6 @@ const REFRESH_KEY = 'veego_refresh_token';
 
 async function getToken(key: string): Promise<string | null> {
   try {
-    if (Platform.OS === 'web') return null; // Web uses httpOnly cookies; tokens not stored client-side
     return await SecureStore.getItemAsync(key);
   } catch {
     return null;
@@ -33,14 +31,12 @@ async function getToken(key: string): Promise<string | null> {
 
 async function setToken(key: string, value: string): Promise<void> {
   try {
-    if (Platform.OS === 'web') return; // Web: server sets httpOnly cookies on login
     await SecureStore.setItemAsync(key, value);
   } catch {}
 }
 
 async function removeToken(key: string): Promise<void> {
   try {
-    if (Platform.OS === 'web') return; // Web: call POST /auth/logout to clear server-side cookie
     await SecureStore.deleteItemAsync(key);
   } catch {}
 }
@@ -56,7 +52,7 @@ const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 12000,
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: Platform.OS === 'web', // send httpOnly cookies on web
+  withCredentials: false,
 });
 
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {

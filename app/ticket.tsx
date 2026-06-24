@@ -226,7 +226,7 @@ function makeStyles(c: ThemeColors) {
 
 export default function TicketScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { activeBooking, confirmedBookingId, confirmedTripId, confirmedBookingStatus, shuttleInfo } = useBooking();
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
@@ -252,7 +252,7 @@ export default function TicketScreen() {
   const cardOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Animated.parallel([
       Animated.spring(checkScale, { toValue: 1, damping: 10, stiffness: 150, useNativeDriver: true }),
       Animated.timing(checkOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
@@ -269,8 +269,6 @@ export default function TicketScreen() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-
     let resolvedSocket: Awaited<ReturnType<typeof getSocket>> | null = null;
     let isMounted = true;
 
@@ -279,7 +277,7 @@ export default function TicketScreen() {
       const bare = currentId.replace(/^#/, '');
       if (String(data.bookingId) === bare || String(data.bookingId) === currentId) {
         setBoarded(true);
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Animated.spring(boardedAnim, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 180 }).start();
       }
     };
@@ -295,7 +293,7 @@ export default function TicketScreen() {
       const tid = confirmedTripIdRef.current;
       if (!tid || String(data.tripId) === String(tid)) {
         setLiveStatus('active');
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     };
 
@@ -369,7 +367,7 @@ export default function TicketScreen() {
           <X size={18} color={c.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('boarding_pass')}</Text>
-        <TouchableOpacity style={styles.headerBtn} activeOpacity={0.8} onPress={() => { if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
+        <TouchableOpacity style={styles.headerBtn} activeOpacity={0.8} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
           <Share2 size={16} color={c.ink} />
         </TouchableOpacity>
       </View>

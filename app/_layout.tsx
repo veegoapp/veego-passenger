@@ -1,6 +1,6 @@
 import '@/src/hooks/shared/backgroundLocationTask';
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
-import { View, Platform, Text, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -148,7 +148,7 @@ function AppShell() {
   const notifSubRef = useRef<any>(null);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || isExpoGo) return;
+    if (isExpoGo) return;
 
     try {
       notifSubRef.current = Notifications.addNotificationResponseReceivedListener(
@@ -221,7 +221,7 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, []);
 
-  const allReady = Platform.OS === 'web' || ((fontsLoaded || !!fontError) && assetsReady) || timedOut;
+  const allReady = ((fontsLoaded || !!fontError) && assetsReady) || timedOut;
 
   useEffect(() => {
     if (allReady) {

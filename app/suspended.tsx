@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet,  Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldOff, MessageCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,12 +38,12 @@ const SUPPORT_URL = 'https://wa.me/201000000000';
 
 export default function SuspendedScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 40 : insets.top;
+  const top = insets.top;
   const { colors: c } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const handleContactSupport = () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Linking.openURL(SUPPORT_URL).catch(() => {
       router.push('/support' as any);
     });

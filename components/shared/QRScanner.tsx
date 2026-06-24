@@ -83,26 +83,6 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
     onScanned({ data: parsedData, type });
   };
 
-  if (Platform.OS === 'web') {
-    return (
-      <View style={[styles.container, { backgroundColor: '#0d0e22' }]}>
-        <View style={[styles.header, { paddingTop: (Platform.OS === 'web' ? 60 : insets.top) + 8 }]}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <X size={20} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.unsupportedWrap}>
-          <QrCode size={64} color="rgba(255,255,255,0.3)" />
-          <Text style={styles.unsupportedTitle}>{t('qr_camera_web')}</Text>
-          <Text style={styles.unsupportedSub}>{t('qr_camera_web_sub')}</Text>
-          <TouchableOpacity style={styles.closeFullBtn} onPress={onClose}>
-            <Text style={styles.closeFullBtnText}>{t('cancel')}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   if (!permission) {
     return (
       <View style={[styles.container, { backgroundColor: '#0d0e22', alignItems: 'center', justifyContent: 'center' }]}>

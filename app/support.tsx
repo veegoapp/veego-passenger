@@ -89,7 +89,7 @@ function makeStyles(c: ThemeColors) {
 
 export default function SupportScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { colors: c, glassStyle: gs, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -103,7 +103,7 @@ export default function SupportScreen() {
       Alert.alert(t('error'), t('support_missing_fields'));
       return;
     }
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSending(true);
     try {
       await api.post('/support/tickets', {
@@ -123,7 +123,7 @@ export default function SupportScreen() {
     } finally {
       setSending(false);
     }
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setSent(true);
   };
 
@@ -168,7 +168,7 @@ export default function SupportScreen() {
                   style={[gs, styles.contactCard]}
                   activeOpacity={0.85}
                   onPress={() => {
-                    if (Platform.OS !== 'web') Haptics.selectionAsync();
+                    Haptics.selectionAsync();
                     Alert.alert(item.label, item.sub);
                   }}
                 >
@@ -191,7 +191,7 @@ export default function SupportScreen() {
                       key={key}
                       style={[styles.issueChip, active ? styles.issueChipActive : styles.issueChipInactive]}
                       onPress={() => {
-                        if (Platform.OS !== 'web') Haptics.selectionAsync();
+                        Haptics.selectionAsync();
                         setSelectedIssue(key);
                       }}
                       activeOpacity={0.8}

@@ -49,7 +49,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
   }, [onClose]);
 
   const handleConfirm = useCallback(async () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     setError('');
     try {
@@ -96,7 +96,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
                   key={reason}
                   style={[styles.reasonRow, active && styles.reasonRowActive, isRTL && styles.rowRTL]}
                   onPress={() => {
-                    if (Platform.OS !== 'web') Haptics.selectionAsync();
+                    Haptics.selectionAsync();
                     setSelected(active ? null : reason);
                     setError('');
                   }}

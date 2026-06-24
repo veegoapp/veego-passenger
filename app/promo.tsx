@@ -104,7 +104,7 @@ function makeStyles(c: ThemeColors) {
 
 export default function PromoScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const isAr = language === 'ar';
@@ -124,7 +124,7 @@ export default function PromoScreen() {
   const handleApply = async (inputCode: string) => {
     const trimmed = inputCode.trim().toUpperCase();
     if (!trimmed) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setValidating(true);
     const result = await validateCode(trimmed);
     setValidating(false);
@@ -133,9 +133,9 @@ export default function PromoScreen() {
       setAppliedCode(trimmed);
       setApplied(true);
       Animated.spring(checkScale, { toValue: 1, useNativeDriver: true, damping: 10, stiffness: 180 }).start();
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(t('promo_code_invalid'), result.message ?? t('promo_code_invalid_msg'));
     }
   };
@@ -158,7 +158,7 @@ export default function PromoScreen() {
   }, [prefillCode]);
 
   const handleCardPress = (cardCode: string) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     setCode(cardCode);
     handleApply(cardCode);
   };

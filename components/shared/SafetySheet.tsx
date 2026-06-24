@@ -36,12 +36,12 @@ export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, pla
   }, [onClose]);
 
   const handleCall122 = useCallback(() => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Linking.openURL('tel:122');
   }, []);
 
   const handleWhatsApp = useCallback(async () => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     let lat: number | null = null;
     let lng: number | null = null;
@@ -73,7 +73,7 @@ export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, pla
 
   const handleReportEmergency = useCallback(async () => {
     if (!rideId) return;
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     Linking.openURL('tel:123');
 
     setSosLoading(true);
@@ -97,7 +97,7 @@ export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, pla
         ...(lng != null ? { longitude: lng } : {}),
         notes: 'SOS triggered by passenger',
       });
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSosSuccess(true);
       setTimeout(() => handleClose(), 2500);
     } catch {

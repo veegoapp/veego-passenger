@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,7 +80,7 @@ function makeStyles(c: ThemeColors) {
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { colors: c, glassStyle: gs, t, language } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [selectedCharge, setSelectedCharge] = useState<number | null>(null);
@@ -93,7 +93,7 @@ export default function WalletScreen() {
 
   const handleConfirmCharge = async () => {
     if (!selectedCharge) return;
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const result = await recharge(selectedCharge);
     setSelectedCharge(null);
     Alert.alert(
@@ -106,7 +106,7 @@ export default function WalletScreen() {
   };
 
   const handleTransfer = () => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     Alert.alert(t('transfer_title'), t('transfer_soon_msg'));
   };
 
@@ -197,7 +197,7 @@ export default function WalletScreen() {
             style={[styles.actionBtn, { backgroundColor: c.ink }]}
             activeOpacity={0.85}
             onPress={() => {
-              if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               if (!selectedCharge) {
                 Alert.alert(t('select_amount_title'), t('select_amount_body'));
               } else {
@@ -223,7 +223,7 @@ export default function WalletScreen() {
             style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border }]}
             activeOpacity={0.85}
             onPress={() => {
-              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              Haptics.selectionAsync();
               router.push('/promo');
             }}
           >
@@ -243,7 +243,7 @@ export default function WalletScreen() {
                   style={[styles.chargeBtn, { backgroundColor: selected ? c.ink : c.white, borderColor: selected ? c.ink : c.border }]}
                   onPress={() => {
                     setSelectedCharge(selected ? null : amount);
-                    if (Platform.OS !== 'web') Haptics.selectionAsync();
+                    Haptics.selectionAsync();
                   }}
                   activeOpacity={0.8}
                 >
@@ -289,7 +289,7 @@ export default function WalletScreen() {
           <Text style={styles.sectionLabel}>{t('tx_history')}</Text>
           <View style={styles.txList}>
             {transactions.map((tx) => (
-              <TouchableOpacity key={tx.id} style={[gs, styles.txCard]} activeOpacity={0.85} onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); }}>
+              <TouchableOpacity key={tx.id} style={[gs, styles.txCard]} activeOpacity={0.85} onPress={() => { Haptics.selectionAsync(); }}>
                 <View style={[styles.txIcon, { backgroundColor: tx.type === 'credit' ? 'rgba(85,196,154,0.12)' : c.mist }]}>
                   {React.createElement(tx.icon as React.ComponentType<{size?:number;color?:string}>, { size: 20, color: tx.type === 'credit' ? '#55c49a' : c.inkSoft })}
                 </View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated,  TextInput } from 'react-native';
 import { Calendar, Clock, Users, Check, Tag, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -100,11 +100,11 @@ export function ConfirmSheet() {
       setPromoStatus('valid');
       setPromoDiscount(result.discount ?? '');
       setAppliedCode(code);
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       setPromoStatus('invalid');
       setPromoError(result.message ?? 'Invalid promo code');
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [promoInput, pendingBooking, validateCode]);
 
@@ -239,7 +239,7 @@ export function ConfirmSheet() {
               )}
             </View>
 
-            <TouchableOpacity style={styles.confirmBtn} activeOpacity={0.9} onPress={() => { if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); handleConfirm(appliedCode || undefined); }}>
+            <TouchableOpacity style={styles.confirmBtn} activeOpacity={0.9} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); handleConfirm(appliedCode || undefined); }}>
               <Check size={16} color={c.isDark ? c.background : c.white} />
               <Text style={styles.confirmBtnText}>{t('confirm_booking')}</Text>
             </TouchableOpacity>

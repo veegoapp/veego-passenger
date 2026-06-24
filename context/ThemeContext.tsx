@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { I18nManager, Platform, View, Text, Animated, StyleSheet } from 'react-native';
+import { I18nManager, View, Text, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LIGHT, DARK, makeGlassStyle, ThemeColors } from '@/constants/colors';
 import { translations, LangKey, Lang } from '@/constants/i18n';
@@ -135,11 +135,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           if (typeof prefs.darkMode === 'boolean') setDarkModeState(prefs.darkMode);
           if (prefs.language === 'en' || prefs.language === 'ar') {
             setLanguageState(prefs.language);
-            if (Platform.OS !== 'web') {
-              const shouldBeRTL = prefs.language === 'ar';
-              if (I18nManager.isRTL !== shouldBeRTL) {
-                I18nManager.forceRTL(shouldBeRTL);
-              }
+            const shouldBeRTL = prefs.language === 'ar';
+            if (I18nManager.isRTL !== shouldBeRTL) {
+              I18nManager.forceRTL(shouldBeRTL);
             }
           }
         } catch {}
@@ -170,17 +168,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         return AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existing, language: l }));
       })
       .catch(() => {});
-    if (Platform.OS !== 'web') {
-      const shouldBeRTL = l === 'ar';
-      if (I18nManager.isRTL !== shouldBeRTL) {
-        I18nManager.forceRTL(shouldBeRTL);
-        try {
-          const { default: Updates } = require('expo-updates');
-          if (typeof Updates?.reloadAsync === 'function') {
-            Updates.reloadAsync().catch(() => {});
-          }
-        } catch {}
-      }
+    const shouldBeRTL = l === 'ar';
+    if (I18nManager.isRTL !== shouldBeRTL) {
+      I18nManager.forceRTL(shouldBeRTL);
+      try {
+        const { default: Updates } = require('expo-updates');
+        if (typeof Updates?.reloadAsync === 'function') {
+          Updates.reloadAsync().catch(() => {});
+        }
+      } catch {}
     }
   }, []);
 

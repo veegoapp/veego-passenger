@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  RefreshControl, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Heart, Clock, GitCommit, Navigation, Ticket, Car, Bus, RefreshCw, Bike as ScooterIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -83,7 +83,7 @@ function makeStyles(c: ThemeColors) {
 
 export default function FavoritesScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { colors: c, glassStyle: gs, t, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -102,13 +102,13 @@ export default function FavoritesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     await Promise.allSettled([refreshRoutes(), refreshDest()]);
     setRefreshing(false);
   }, [refreshRoutes, refreshDest]);
 
   const handleBookAgain = (from: string, to: string, type: TripType) => {
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     // Navigate to the appropriate service tab pre-filled with this route
     router.push(`/(tabs)` as any);
   };
@@ -197,7 +197,7 @@ export default function FavoritesScreen() {
                     <TouchableOpacity
                       style={styles.rebookBtn}
                       onPress={() => {
-                        if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                         openRoute(route);
                       }}
                       activeOpacity={0.88}
@@ -208,7 +208,7 @@ export default function FavoritesScreen() {
                     <TouchableOpacity
                       style={styles.removeBtn}
                       onPress={() => {
-                        if (Platform.OS !== 'web') Haptics.selectionAsync();
+                        Haptics.selectionAsync();
                         toggleFavorite(route.id);
                       }}
                       activeOpacity={0.8}

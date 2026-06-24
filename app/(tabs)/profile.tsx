@@ -248,7 +248,7 @@ function PersonalInfoModal({
   }, [visible, savedEmail, savedDob]);
 
   const handleSave = async () => {
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await saveProfile(savedName, email, dob);
     onSaved?.(savedName);
     setSaved(true);
@@ -266,7 +266,7 @@ function PersonalInfoModal({
     }
     try {
       await api.patch('/users/me/password', { currentPassword: currentPw, newPassword: newPw });
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(t('saved'), t('password_updated'));
       setPwOpen(false);
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
@@ -357,7 +357,7 @@ function PersonalInfoModal({
             <View style={styles.pwSection}>
               <TouchableOpacity
                 style={styles.pwSectionHeader}
-                onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setPwOpen((v) => !v); }}
+                onPress={() => { Haptics.selectionAsync(); setPwOpen((v) => !v); }}
                 activeOpacity={0.8}
               >
                 <View style={[styles.toggleIcon, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5' }]}>
@@ -537,7 +537,7 @@ function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => v
                 <Text style={styles.toggleLabel}>{item.label}</Text>
                 <Text style={styles.toggleSub}>{item.sub}</Text>
               </View>
-              <Switch value={item.value} onValueChange={(v) => { if (Platform.OS !== 'web') Haptics.selectionAsync(); item.set(v); }} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
+              <Switch value={item.value} onValueChange={(v) => { Haptics.selectionAsync(); item.set(v); }} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
             </View>
           ))}
           <TouchableOpacity style={styles.dangerBtn} onPress={handleDelete} activeOpacity={0.8}>
@@ -610,7 +610,7 @@ function NotificationsModal({ visible, onClose }: { visible: boolean; onClose: (
                 <Text style={styles.toggleLabel}>{item.label}</Text>
                 <Text style={styles.toggleSub}>{item.sub}</Text>
               </View>
-              <Switch value={item.value} onValueChange={(v) => { if (Platform.OS !== 'web') Haptics.selectionAsync(); item.set(v); }} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
+              <Switch value={item.value} onValueChange={(v) => { Haptics.selectionAsync(); item.set(v); }} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
             </View>
           ))}
         </ScrollView>
@@ -637,7 +637,7 @@ function HelpFaqModal({ visible, onClose }: { visible: boolean; onClose: () => v
               key={i}
               style={styles.faqItem}
               activeOpacity={0.8}
-              onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setOpenIndex(openIndex === i ? null : i); }}
+              onPress={() => { Haptics.selectionAsync(); setOpenIndex(openIndex === i ? null : i); }}
             >
               <View style={styles.faqQ}>
                 <View style={[styles.toggleIcon, { backgroundColor: c.mist }]}>
@@ -678,7 +678,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
         issueType: selectedIssue,
         message: message.trim(),
       });
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSent(true);
     } catch {
       Alert.alert(t('error'), 'Failed to send your message. Please try again.');
@@ -722,7 +722,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
                         <TouchableOpacity
                           key={key}
                           style={[styles.issueChip, active ? styles.issueChipActive : styles.issueChipInactive]}
-                          onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setSelectedIssue(key); }}
+                          onPress={() => { Haptics.selectionAsync(); setSelectedIssue(key); }}
                           activeOpacity={0.8}
                         >
                           <Text style={[styles.issueChipText, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>
@@ -878,7 +878,7 @@ function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: (
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { colors: c, glassStyle: gs, darkMode, setDarkMode, language, setLanguage, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
@@ -948,7 +948,7 @@ export default function ProfileScreen() {
     .toUpperCase() || 'VG';
 
   const open = (screen: ProfileScreen) => {
-    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    Haptics.selectionAsync();
     setActiveModal(screen);
   };
   const close = () => setActiveModal(null);
@@ -1042,7 +1042,7 @@ export default function ProfileScreen() {
               <Text style={styles.settingLabel}>{t('dark_mode')}</Text>
               <Switch
                 value={darkMode}
-                onValueChange={(v) => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setDarkMode(v); }}
+                onValueChange={(v) => { Haptics.selectionAsync(); setDarkMode(v); }}
                 trackColor={{ false: c.silver, true: c.ink }}
                 thumbColor={c.isDark ? c.background : c.white}
               />
@@ -1056,14 +1056,14 @@ export default function ProfileScreen() {
               <View style={styles.langRow}>
                 <TouchableOpacity
                   style={[styles.langBtn, language === 'en' ? styles.langBtnActive : styles.langBtnInactive]}
-                  onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setLanguage('en'); }}
+                  onPress={() => { Haptics.selectionAsync(); setLanguage('en'); }}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.langBtnText, { color: language === 'en' ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>EN</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.langBtn, language === 'ar' ? styles.langBtnActive : styles.langBtnInactive]}
-                  onPress={() => { if (Platform.OS !== 'web') Haptics.selectionAsync(); setLanguage('ar'); }}
+                  onPress={() => { Haptics.selectionAsync(); setLanguage('ar'); }}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.langBtnText, { color: language === 'ar' ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>AR</Text>
@@ -1120,7 +1120,7 @@ export default function ProfileScreen() {
           style={styles.logoutBtn}
           activeOpacity={0.8}
           onPress={() => {
-            if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             Alert.alert(t('sign_out'), t('sign_out_q'), [
               { text: t('cancel'), style: 'cancel' },
               { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {} emitAuthEvent('auth:logout'); try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {} router.replace('/auth'); } },

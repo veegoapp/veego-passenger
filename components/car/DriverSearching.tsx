@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Animated,  TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -70,7 +70,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: Platform.OS === 'web' ? 20 : insets.bottom + 16,
+          paddingBottom: insets.bottom + 16,
           transform: [{ translateY }],
         },
       ]}

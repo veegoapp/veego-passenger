@@ -12,8 +12,6 @@ Notifications.setNotificationHandler({
 });
 
 async function registerPushToken(): Promise<string | null> {
-  if (Platform.OS === 'web') return null;
-
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;

@@ -22,9 +22,9 @@ import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 import { getErrorMessage } from '@/src/utils/errorMessages';
 
 const haptic = {
-  selection: () => { if (Platform.OS !== 'web') Haptics.selectionAsync(); },
-  impact: (style = Haptics.ImpactFeedbackStyle.Medium) => { if (Platform.OS !== 'web') Haptics.impactAsync(style); },
-  notify: (type: Haptics.NotificationFeedbackType) => { if (Platform.OS !== 'web') Haptics.notificationAsync(type); },
+  selection: () => { Haptics.selectionAsync(); },
+  impact: (style = Haptics.ImpactFeedbackStyle.Medium) => { Haptics.impactAsync(style); },
+  notify: (type: Haptics.NotificationFeedbackType) => { Haptics.notificationAsync(type); },
 };
 
 const { width: SW } = Dimensions.get('window');
@@ -224,7 +224,7 @@ function PlacePicker({
 
 export default function CarScreen() {
   const insets = useSafeAreaInsets();
-  const top = Platform.OS === 'web' ? 60 : insets.top;
+  const top = insets.top;
   const { t, isRTL } = useTheme();
 
   const [phase, setPhase] = useState<Phase>('request');
@@ -393,7 +393,6 @@ export default function CarScreen() {
 
   // Check GPS position for geofence
   useEffect(() => {
-    if (Platform.OS === 'web') return;
     Location.requestForegroundPermissionsAsync().then(({ status }) => {
       if (status !== 'granted') return;
       Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).then((loc) => {
