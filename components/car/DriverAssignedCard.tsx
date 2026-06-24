@@ -81,7 +81,7 @@ export function DriverAssignedCard({
             {isStarted
               ? t('trip_status_active')
               : isArrived
-              ? t('driver_arrived') ?? 'Driver arrived'
+              ? t('status_driver_arrived')
               : `${t('driver_arriving')} ${driver?.eta ?? '—'} ${t('min')}`}
           </Text>
           {destination && (

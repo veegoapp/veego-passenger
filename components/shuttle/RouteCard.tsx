@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
-import { MapPin, Clock, Users, Zap, Sparkles, Ticket, GraduationCap, Moon } from 'lucide-react-native';
+import { MapPin, Clock, Users, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -118,13 +118,6 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
 
 type Offer = { id: string; tag: string; title: string; subtitle: string; colors: [string, string]; icon: React.ComponentType<{size?:number;color?:string}> };
 
-const FALLBACK_OFFERS: Offer[] = [
-  { id: 'o1', tag: 'New rider', title: '50% off your first ride', subtitle: 'Auto-applied at checkout', colors: ['#ddeef8', '#ece5f8'], icon: Sparkles },
-  { id: 'o2', tag: 'Weekly pass', title: 'Unlimited rides for 7 days', subtitle: 'Save up to 35%', colors: ['#d6f3e8', '#e0eef8'], icon: Ticket },
-  { id: 'o3', tag: 'Student', title: '20% off with student ID', subtitle: 'Verify in profile', colors: ['#f8f0d5', '#f8e8d5'], icon: GraduationCap },
-  { id: 'o4', tag: 'Limited', title: 'Night Owl — 45 EGP', subtitle: 'After 9pm, all lines', colors: ['#e8e0f5', '#e5eaf8'], icon: Moon },
-];
-
 const PASTEL_PAIRS: [string, string][] = [
   ['#ddeef8', '#ece5f8'],
   ['#d6f3e8', '#e0eef8'],
@@ -147,19 +140,16 @@ export function FeaturedOffers() {
   const { promos } = usePromos();
   const isAr = language === 'ar';
 
-  const offers: Offer[] = promos.length > 0
-    ? promos.map((p, i) => ({
-        id: p.code || String(i),
-        tag: isAr ? p.titleAr : p.titleEn,
-        title: isAr ? p.titleAr : p.titleEn,
-        subtitle: isAr ? p.subtitleAr : p.subtitleEn,
-        colors: (c.isDark ? DARK_PASTEL_PAIRS : PASTEL_PAIRS)[i % PASTEL_PAIRS.length],
-        icon: p.icon,
-      }))
-    : FALLBACK_OFFERS.map((o, i) => ({
-        ...o,
-        colors: (c.isDark ? DARK_PASTEL_PAIRS : PASTEL_PAIRS)[i % PASTEL_PAIRS.length],
-      }));
+  if (promos.length === 0) return null;
+
+  const offers: Offer[] = promos.map((p, i) => ({
+    id: p.code || String(i),
+    tag: isAr ? p.titleAr : p.titleEn,
+    title: isAr ? p.titleAr : p.titleEn,
+    subtitle: isAr ? p.subtitleAr : p.subtitleEn,
+    colors: (c.isDark ? DARK_PASTEL_PAIRS : PASTEL_PAIRS)[i % PASTEL_PAIRS.length],
+    icon: p.icon,
+  });
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.offersScroll}>

@@ -11,6 +11,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
 import { RouteCard, FeaturedOffers } from '@/components/shuttle/RouteCard';
+import { usePromos } from '@/src/hooks/shared/usePromos';
 import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
@@ -157,12 +158,13 @@ export default function HomeScreen() {
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
   const { debt } = useMyDebt();
   const { profile } = useProfile();
+  const { promos } = usePromos();
 
   const greetingKey = getGreetingKey(new Date().getHours());
   const firstName = getFirstName(profile.name);
   const avatarInitials = getInitials(profile.name);
 
-  const [pickupLocation, setPickupLocation] = useState('Current Location');
+  const [pickupLocation, setPickupLocation] = useState('');
   const [destinationLocation, setDestinationLocation] = useState('');
   const [activeSearchField, setActiveSearchField] = useState<'from' | 'to' | null>(null);
   const [typedText, setTypedText] = useState('');
@@ -426,7 +428,7 @@ export default function HomeScreen() {
                     autoFocus
                   />
                 ) : (
-                  <Text style={styles.mapInputText} numberOfLines={1}>{pickupLocation}</Text>
+                  <Text style={styles.mapInputText} numberOfLines={1}>{pickupLocation || t('current_location')}</Text>
                 )}
               </TouchableOpacity>
 
@@ -545,15 +547,19 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
 
-          <SectionHeader title={t('featured_offers')} />
-          <FeaturedOffers />
+          {promos.length > 0 && (
+            <>
+              <SectionHeader title={t('featured_offers')} />
+              <FeaturedOffers />
+            </>
+          )}
 
           {/* عرض الـ Most Booked لـ 5 خطوط كحد أقصى */}
           {mostBookedRoutes.length > 0 && (
             <View>
               <View style={styles.mostBookedHeader}>
                 <Text style={styles.mostBookedTitle}>
-                  <Flame size={16} color="#ef4444" fill="#ef4444" /> Most Booked
+                  <Flame size={16} color="#ef4444" fill="#ef4444" /> {t('most_booked')}
                 </Text>
               </View>
               <View style={styles.routesList}>

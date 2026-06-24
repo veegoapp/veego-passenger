@@ -99,7 +99,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 
         {onCancel && (
           <TouchableOpacity style={[styles.cancelBtn, { borderColor: c.border }]} onPress={onCancel} activeOpacity={0.7}>
-            <Text style={[styles.cancelTxt, { color: c.inkSoft }]}>Cancel</Text>
+            <Text style={[styles.cancelTxt, { color: c.inkSoft }]}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
       </View>

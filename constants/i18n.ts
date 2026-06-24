@@ -619,6 +619,10 @@ const en = {
   terms_updated_banner: 'The terms have been updated. Please review and accept.',
   accept: 'Accept',
   terms_loading: 'Loading terms…',
+
+  current_location: 'Current Location',
+  most_booked: 'Most Booked',
+  request_ride_failed: 'Failed to request ride. Please try again.',
 };
 
 const ar: typeof en = {
@@ -1242,6 +1246,10 @@ const ar: typeof en = {
   terms_updated_banner: 'تم تحديث الشروط. يرجى المراجعة والموافقة.',
   accept: 'أوافق',
   terms_loading: 'جارٍ تحميل الشروط…',
+
+  current_location: 'موقعك الحالي',
+  most_booked: 'الأكثر حجزًا',
+  request_ride_failed: 'فشل طلب الرحلة. حاول مجدداً.',
 };
 
 export type LangKey = keyof typeof en;

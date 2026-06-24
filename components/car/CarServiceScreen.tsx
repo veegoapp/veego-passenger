@@ -98,6 +98,12 @@ function makeStyles(c: ThemeColors, insetTop: number) {
   });
 }
 
+function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good_evening' {
+  if (hour >= 5 && hour < 12) return 'good_morning';
+  if (hour >= 12 && hour < 17) return 'good_afternoon';
+  return 'good_evening';
+}
+
 export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
   const { colors: c, t, isRTL } = useTheme();
   const insets    = useSafeAreaInsets();
@@ -184,7 +190,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
     });
 
     if (!result.success) {
-      Alert.alert(t('error'), result.error ?? 'Failed to request ride');
+      Alert.alert(t('error'), result.error ?? t('request_ride_failed'));
     }
   }, [selectedRide, destCoords, destination, requestRide, t]);
 
@@ -225,7 +231,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
             <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={18} color="#ffffff" />
           </TouchableOpacity>
           <View style={styles.titleBlock}>
-            <Text style={styles.topTitle}>{t('good_morning')}</Text>
+            <Text style={styles.topTitle}>{t(getGreetingKey(new Date().getHours()))}</Text>
             <Text style={styles.topSubtitle}>VeeGo</Text>
           </View>
           <TouchableOpacity
