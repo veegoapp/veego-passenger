@@ -105,7 +105,7 @@ function makeStyles(c: ThemeColors) {
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: 16,
-      backgroundColor: c.isDark ? c.white : c.mist,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.5)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: c.isDark ? 0.3 : 0.08,
@@ -170,6 +170,7 @@ export default function HomeScreen() {
   const [typedText, setTypedText] = useState('');
   const [headerHeight, setHeaderHeight] = useState(220);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [nominatimResults, setNominatimResults] = useState<SavedLocation[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Fetch saved locations on mount
@@ -221,13 +222,37 @@ export default function HomeScreen() {
     });
   };
 
+  // Nominatim geocoding suggestions when typing
+  useEffect(() => {
+    if (!typedText || typedText.trim().length < 2) { setNominatimResults([]); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(typedText)}&limit=6&countrycodes=eg`,
+          { signal: controller.signal, headers: { 'Accept-Language': language === 'ar' ? 'ar' : 'en' } }
+        );
+        const data = await res.json();
+        setNominatimResults(data.map((item: any, i: number) => ({
+          id: `nom-${i}`,
+          name: item.display_name?.split(',')[0] ?? item.display_name,
+          address: item.display_name,
+          latitude: parseFloat(item.lat),
+          longitude: parseFloat(item.lon),
+        })));
+      } catch {}
+    }, 400);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [typedText, language]);
+
   const filteredSuggestions = useMemo(() => {
     if (!typedText) return savedLocations;
     const lower = typedText.toLowerCase();
-    return savedLocations.filter(
+    const saved = savedLocations.filter(
       loc => loc.name.toLowerCase().includes(lower) || loc.address.toLowerCase().includes(lower),
     );
-  }, [typedText, savedLocations]);
+    return [...saved, ...nominatimResults.filter(n => !saved.some(s => s.name === n.name))];
+  }, [typedText, savedLocations, nominatimResults]);
 
   const handleSelectLocation = useCallback((location: SavedLocation) => {
     if (activeSearchField === 'from') {

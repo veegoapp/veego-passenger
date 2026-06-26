@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
 import { CheckCircle2, XCircle } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -234,7 +233,6 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
   }, [phase, rideState.rideId, cancelRide, handleReset]);
 
   const showDriverMarker = ['driver_assigned', 'arrived', 'started'].includes(rideState.status);
-  const hideSearch = phase === 'in_ride' || phase === 'completed' || phase === 'cancelled';
 
   return (
     <View style={styles.root}>
@@ -253,54 +251,6 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
         onUserLocation={handleUserLocation}
       />
 
-      {/* Top overlay */}
-      <View style={styles.topOverlay}>
-        <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.85}>
-            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={18} color="#ffffff" />
-          </TouchableOpacity>
-          <View style={styles.titleBlock}>
-            <Text style={styles.topTitle}>{t(getGreetingKey(new Date().getHours()))}</Text>
-            <Text style={styles.topSubtitle}>VeeGo</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.notifBtn}
-            activeOpacity={0.85}
-            onPress={() => router.push('/notifications' as any)}
-          >
-            <Ionicons name="notifications-outline" size={18} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-
-        {!hideSearch && (
-          <View style={styles.searchWrap}>
-            <TouchableOpacity
-              style={styles.searchBox}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setSearchQuery('');
-                setPhase('selecting');
-              }}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="search-outline" size={16} color={destination ? '#55c49a' : 'rgba(255,255,255,0.5)'} />
-              {destination ? (
-                <>
-                  <View style={styles.destTag}>
-                    <Ionicons name="location" size={12} color="#55c49a" />
-                    <Text style={styles.destTagText} numberOfLines={1}>{destination}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.clearBtn} onPress={handleReset}>
-                    <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.4)" />
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={styles.searchPlaceholder}>{t('where_going_car')}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
 
       {/* Destination modal */}
       <Modal visible={phase === 'selecting'} animationType="slide" onRequestClose={() => setPhase('idle')}>
