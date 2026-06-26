@@ -323,14 +323,16 @@ function makeStyles(c: ThemeColors, gs: object) {
     requestTripBtn: {
       marginHorizontal: 16, marginTop: 14, marginBottom: 2,
       borderRadius: 16,
-      shadowColor: '#4f46e5', shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.35, shadowRadius: 14, elevation: 8,
+      shadowColor: c.ink, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
     },
-    requestTripBtnGradient: {
+    requestTripBtnInner: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: 8, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 16,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#ffffff',
+      borderWidth: 1.5, borderColor: c.isDark ? 'rgba(255,255,255,0.12)' : c.border,
     },
-    requestTripBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff', letterSpacing: -0.2 },
+    requestTripBtnText: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
 
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
@@ -561,15 +563,10 @@ export function TripSheet() {
               }}
               activeOpacity={0.82}
             >
-              <LinearGradient
-                colors={c.isDark ? ['#6c63ff', '#4f46e5'] : ['#4f46e5', '#6c63ff']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.requestTripBtnGradient}
-              >
-                <Ticket size={16} color="#fff" strokeWidth={2} />
+              <View style={styles.requestTripBtnInner}>
+                <Ticket size={16} color={c.ink} strokeWidth={2} />
                 <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           )}
 
