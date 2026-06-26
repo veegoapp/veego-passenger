@@ -107,6 +107,39 @@ export function useNotifications(): UseNotificationsResult {
       }).catch(() => {});
     };
 
+    const onTripRequestFulfilled = (data: any) => {
+      const routeName: string = data.routeName ?? data.route_name ?? '';
+      const routeId: string | number | null = data.routeId ?? data.route_id ?? null;
+      const title = '🚌 رحلة متاحة على خطك!';
+      const body = routeName
+        ? `تتوفر الآن رحلات على خط ${routeName}. احجز مقعدك الآن!`
+        : 'تتوفر الآن رحلات على أحد الخطوط التي طلبتها. احجز مقعدك الآن!';
+
+      const fulfilled: Notification = {
+        id: `trip-request-fulfilled-${data.requestId ?? routeId ?? Math.random()}`,
+        type: 'trip',
+        title,
+        body,
+        createdAt: data.fulfilledAt ?? new Date().toISOString(),
+        unread: true,
+      };
+      setNotifications((prev) => [fulfilled, ...prev]);
+
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: true,
+          data: {
+            type: 'trip_request_fulfilled',
+            routeId,
+            routeName,
+          },
+        },
+        trigger: null,
+      }).catch(() => {});
+    };
+
     // Resolved socket stored so cleanup is synchronous — no async in the return fn
     let resolvedSocket: ReturnType<typeof import('socket.io-client').io> | null = null;
     let isMounted = true;
@@ -126,6 +159,7 @@ export function useNotifications(): UseNotificationsResult {
         socket.on('notification:new', onNotificationNew);
         socket.on('booking:boarded', onBoarded);
         socket.on('trip:activated', onTripActivated);
+        socket.on('trip:request_fulfilled', onTripRequestFulfilled);
 
         // Re-join room after socket reconnects (e.g. network recovery)
         onReconnect = async () => {
@@ -145,6 +179,7 @@ export function useNotifications(): UseNotificationsResult {
         (resolvedSocket as any).off('notification:new', onNotificationNew);
         (resolvedSocket as any).off('booking:boarded', onBoarded);
         (resolvedSocket as any).off('trip:activated', onTripActivated);
+        (resolvedSocket as any).off('trip:request_fulfilled', onTripRequestFulfilled);
         if (onReconnect) (resolvedSocket as any).off('connect', onReconnect);
       }
     };

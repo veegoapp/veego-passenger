@@ -94,6 +94,17 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
     router.push('/(tabs)/car' as any);
     return;
   }
+
+  // Trip request fulfilled — open routes tab so passenger can book immediately
+  if (category === 'trip_request_fulfilled') {
+    const routeId = data.routeId ?? data.route_id ?? null;
+    if (routeId) {
+      router.push(`/(tabs)/routes?highlight=${routeId}` as any);
+    } else {
+      router.push('/(tabs)/routes' as any);
+    }
+    return;
+  }
 }
 
 const isExpoGo = Constants.appOwnership === 'expo';
