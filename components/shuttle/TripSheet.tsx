@@ -504,19 +504,17 @@ export function TripSheet() {
               {isAr ? (route.toAr ?? route.to) : route.to}
             </Text>
 
-            {/* Request a Trip button — only when requestsEnabled */}
-            {route.requestsEnabled && (
-              <TouchableOpacity
-                style={styles.requestTripBtn}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setRequestSheetOpen(true);
-                }}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
-              </TouchableOpacity>
-            )}
+            {/* Request a Trip button — always visible; backend enforces 403 if not enabled */}
+            <TouchableOpacity
+              style={styles.requestTripBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setRequestSheetOpen(true);
+              }}
+              activeOpacity={0.82}
+            >
+              <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
+            </TouchableOpacity>
 
             {/* Journey track visualization */}
             <View style={styles.journeyWrap}>
@@ -953,13 +951,11 @@ export function TripSheet() {
         </View>
       </Animated.View>
 
-      {route.requestsEnabled && (
-        <RequestTripSheet
-          visible={requestSheetOpen}
-          route={route}
-          onClose={() => setRequestSheetOpen(false)}
-        />
-      )}
+      <RequestTripSheet
+        visible={requestSheetOpen}
+        route={route}
+        onClose={() => setRequestSheetOpen(false)}
+      />
     </View>
   );
 }
