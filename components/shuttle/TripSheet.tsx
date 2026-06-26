@@ -321,12 +321,16 @@ function makeStyles(c: ThemeColors, gs: object) {
 
     /* Request a Trip */
     requestTripBtn: {
-      alignSelf: 'flex-start', marginTop: 10,
-      paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
-      backgroundColor: 'rgba(255,255,255,0.18)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+      marginHorizontal: 16, marginTop: 14, marginBottom: 2,
+      borderRadius: 16,
+      shadowColor: '#4f46e5', shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35, shadowRadius: 14, elevation: 8,
     },
-    requestTripBtnText: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+    requestTripBtnGradient: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: 8, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 16,
+    },
+    requestTripBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff', letterSpacing: -0.2 },
 
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
@@ -506,20 +510,6 @@ export function TripSheet() {
               {isAr ? (route.toAr ?? route.to) : route.to}
             </Text>
 
-            {/* Request a Trip — visible only for routes enabled by the backend */}
-            {tripRequestEnabledIds.has(Number(route.id)) && (
-              <TouchableOpacity
-                style={styles.requestTripBtn}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setRequestSheetOpen(true);
-                }}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
-              </TouchableOpacity>
-            )}
-
             {/* Journey track visualization */}
             <View style={styles.journeyWrap}>
               <ScrollView
@@ -560,6 +550,28 @@ export function TripSheet() {
               </ScrollView>
             </View>
           </View>
+
+          {/* ── Request a Trip button ── */}
+          {tripRequestEnabledIds.has(Number(route.id)) && (
+            <TouchableOpacity
+              style={styles.requestTripBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setRequestSheetOpen(true);
+              }}
+              activeOpacity={0.82}
+            >
+              <LinearGradient
+                colors={c.isDark ? ['#6c63ff', '#4f46e5'] : ['#4f46e5', '#6c63ff']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.requestTripBtnGradient}
+              >
+                <Ticket size={16} color="#fff" strokeWidth={2} />
+                <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* ── Info stat cards (compact horizontal) ── */}
           <View style={styles.statsRow}>
