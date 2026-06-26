@@ -157,6 +157,9 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
       setSuccess(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
+      console.error('[TripRequest] error status:', e?.response?.status);
+      console.error('[TripRequest] error data:', JSON.stringify(e?.response?.data));
+      console.error('[TripRequest] error message:', e?.message);
       const code = e?.response?.data?.error;
       if (code === 'trip_requests_disabled') {
         Alert.alert('', t('trip_request_disabled'));
