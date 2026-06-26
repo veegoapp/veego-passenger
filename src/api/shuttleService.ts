@@ -129,6 +129,16 @@ export interface SubmitTripRequestResult {
 }
 
 /**
+ * GET /api/trip-requests/enabled-routes — returns the routes that have
+ * requestsEnabled = true. Only IDs are used by the app for fast lookup.
+ */
+export async function getEnabledTripRequestRoutes(): Promise<Set<number>> {
+  const { data } = await api.get('/trip-requests/enabled-routes');
+  const list: any[] = Array.isArray(data) ? data : data.data ?? [];
+  return new Set(list.map((r: any) => Number(r.id)));
+}
+
+/**
  * POST /api/trip-requests — passenger submits a trip request for a route.
  * Only works when requestsEnabled === true for the route.
  * Errors: 403 trip_requests_disabled, 400 validation.

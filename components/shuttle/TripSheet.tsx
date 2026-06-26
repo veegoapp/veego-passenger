@@ -19,6 +19,7 @@ import { calcSegmentPrice, DATES } from '@/constants/data';
 import { SectionLabel } from '@/components/shared/Shared';
 import api from '@/src/api/client';
 import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
+import { useEnabledTripRequestRoutes } from '@/src/hooks/shuttle/useEnabledTripRequestRoutes';
 
 /**
  * §21.2: statuses that mean the trip is ahead and accepting new bookings.
@@ -364,6 +365,7 @@ export function TripSheet() {
   const [pick, setPick] = useState<'from' | 'to'>('from');
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
   const [requestSheetOpen, setRequestSheetOpen] = useState(false);
+  const { enabledIds: tripRequestEnabledIds } = useEnabledTripRequestRoutes();
 
   useEffect(() => {
     if (selectedRoute && selectedRoute.path.length >= 2) {
@@ -504,17 +506,19 @@ export function TripSheet() {
               {isAr ? (route.toAr ?? route.to) : route.to}
             </Text>
 
-            {/* Request a Trip button — always visible; backend enforces 403 if not enabled */}
-            <TouchableOpacity
-              style={styles.requestTripBtn}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setRequestSheetOpen(true);
-              }}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
-            </TouchableOpacity>
+            {/* Request a Trip — visible only for routes enabled by the backend */}
+            {tripRequestEnabledIds.has(Number(route.id)) && (
+              <TouchableOpacity
+                style={styles.requestTripBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setRequestSheetOpen(true);
+                }}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Journey track visualization */}
             <View style={styles.journeyWrap}>
