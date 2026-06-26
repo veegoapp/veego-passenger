@@ -329,8 +329,8 @@ function makeStyles(c: ThemeColors, gs: object) {
     requestTripBtnInner: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: 8, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 16,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#ffffff',
-      borderWidth: 1.5, borderColor: c.isDark ? 'rgba(255,255,255,0.12)' : c.border,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.09)' : '#f0f0f5',
+      borderWidth: 0,
     },
     requestTripBtnText: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
 
