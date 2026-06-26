@@ -15,17 +15,13 @@ import { getErrorMessage } from '@/src/utils/errorMessages';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 
-const ISSUE_TYPE_SUBJECT: Record<string, string> = {
-  issue_booking: 'Booking problem',
-  issue_payment: 'Payment issue',
-  issue_driver: 'Driver complaint',
-  issue_app: 'App not working',
-  issue_other: 'Other',
+const ISSUE_MAP: Record<string, { subject: string; category: string }> = {
+  issue_booking: { subject: 'Booking problem',   category: 'other'   },
+  issue_payment: { subject: 'Payment issue',     category: 'payment' },
+  issue_driver:  { subject: 'Driver complaint',  category: 'quality' },
+  issue_app:     { subject: 'App not working',   category: 'other'   },
+  issue_other:   { subject: 'Other',             category: 'other'   },
 };
-
-function toBackendType(issueKey: string): 'passenger' | 'driver' {
-  return issueKey === 'issue_driver' ? 'driver' : 'passenger';
-}
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -106,11 +102,11 @@ export default function SupportScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSending(true);
     try {
+      const mapped = ISSUE_MAP[selectedIssue] ?? ISSUE_MAP.issue_other;
       await api.post('/support/tickets', {
-        subject:  ISSUE_TYPE_SUBJECT[selectedIssue] ?? 'Support Request',
+        subject:  mapped.subject,
         message:  message.trim(),
-        type:     toBackendType(selectedIssue),
-        priority: 'medium',
+        category: mapped.category,
       });
     } catch (e: any) {
       const status = e?.response?.status;
