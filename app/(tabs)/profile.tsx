@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, Lock, ChevronRight, ChevronLeft, MapPin, BarChart2, Megaphone, Bus, Tag, Lightbulb, User, Shield, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Trash2, Eye, EyeOff, KeyRound, Banknote, Wallet } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, ChevronRight, ChevronLeft, Megaphone, Bus, Tag, Lightbulb, User, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Eye, EyeOff, KeyRound, Banknote, Wallet } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,7 +24,6 @@ import TermsModal from '@/components/shared/TermsModal';
 type ProfileScreen =
   | 'personal_info'
   | 'payment_methods'
-  | 'privacy'
   | 'notifications'
   | 'help_faq'
   | 'contact_support'
@@ -477,78 +476,6 @@ function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: 
 
 // SecurityModal removed per Phase 7 — security settings consolidated into PersonalInfoModal (Change Password)
 
-function PrivacyModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors: c, t } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
-  const [locationHistory, setLocationHistory] = useState(true);
-  const [analytics, setAnalytics] = useState(true);
-  const [ads, setAds] = useState(false);
-
-  useEffect(() => {
-    if (!visible) return;
-    api.get('/users/me/privacy').then(({ data }) => {
-      if (typeof data.privacyLocationHistory === 'boolean') setLocationHistory(data.privacyLocationHistory);
-      if (typeof data.privacyAnalytics === 'boolean') setAnalytics(data.privacyAnalytics);
-      if (typeof data.privacyPersonalizedAds === 'boolean') setAds(data.privacyPersonalizedAds);
-    }).catch(() => {});
-  }, [visible]);
-
-  const syncPrivacy = (field: string, value: boolean) => {
-    api.patch('/users/me/privacy', { [field]: value }).catch(() => {});
-  };
-
-  const TOGGLES = [
-    { icon: MapPin, label: t('location_history'), sub: t('location_history_sub'), value: locationHistory, set: (v: boolean) => { setLocationHistory(v); syncPrivacy('privacyLocationHistory', v); } },
-    { icon: BarChart2, label: t('share_analytics'), sub: t('share_analytics_sub'), value: analytics, set: (v: boolean) => { setAnalytics(v); syncPrivacy('privacyAnalytics', v); } },
-    { icon: Megaphone, label: t('personalized_ads'), sub: t('personalized_ads_sub'), value: ads, set: (v: boolean) => { setAds(v); syncPrivacy('privacyPersonalizedAds', v); } },
-  ];
-
-  const handleDelete = () => {
-    Alert.alert(t('delete_account'), t('delete_account_confirm'), [
-      { text: t('cancel'), style: 'cancel' },
-      {
-        text: t('delete_account'), style: 'destructive', onPress: async () => {
-          try {
-            await api.delete('/users/me');
-            try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {}
-            try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); } catch {}
-            try { await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {}
-            emitAuthEvent('auth:logout');
-            router.replace('/auth');
-          } catch {
-            Alert.alert(t('error'), t('delete_account_error'));
-          }
-        },
-      },
-    ]);
-  };
-
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.modal}>
-        <ModalHeader title={t('privacy_title')} onClose={onClose} />
-        <ScrollView contentContainerStyle={styles.modalScroll}>
-          {TOGGLES.map((item, i) => (
-            <View key={i} style={styles.toggleRow}>
-              <View style={styles.toggleIcon}>
-                <item.icon size={20} color={c.ink} />
-              </View>
-              <View style={styles.toggleMeta}>
-                <Text style={styles.toggleLabel}>{item.label}</Text>
-                <Text style={styles.toggleSub}>{item.sub}</Text>
-              </View>
-              <Switch value={item.value} onValueChange={(v) => { Haptics.selectionAsync(); item.set(v); }} trackColor={{ false: c.silver, true: c.ink }} thumbColor={c.isDark ? c.background : c.white} />
-            </View>
-          ))}
-          <TouchableOpacity style={styles.dangerBtn} onPress={handleDelete} activeOpacity={0.8}>
-            <Trash2 size={16} color={c.badge} />
-            <Text style={styles.dangerBtnText}>{t('delete_account')}</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-  );
-}
 
 const NOTIF_KEY = '@veego_notif_v1';
 
@@ -1006,7 +933,6 @@ export default function ProfileScreen() {
             {[
               { icon: User, label: t('personal_info'), value: heroName, screen: 'personal_info' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash'), screen: 'payment_methods' as ProfileScreen },
-              { icon: Shield, label: t('privacy'), value: undefined, screen: 'privacy' as ProfileScreen },
             ].map((item, i) => (
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
@@ -1144,7 +1070,6 @@ export default function ProfileScreen() {
         heroInitials={heroInitials}
       />
       <PaymentMethodsModal visible={activeModal === 'payment_methods'} onClose={close} />
-      <PrivacyModal visible={activeModal === 'privacy'} onClose={close} />
       <NotificationsModal visible={activeModal === 'notifications'} onClose={close} />
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
