@@ -2,7 +2,7 @@ import React, {
   createContext, useContext, useState, useEffect,
   useCallback, useMemo, useRef,
 } from 'react';
-import { Alert, AppState, AppStateStatus, Platform } from 'react-native';
+import { Alert, AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import api from '@/src/api/client';
 import { tokenStore } from '@/src/api/client';
@@ -63,16 +63,6 @@ async function resolveUserZoneId(
 
 async function fetchUserZoneId(): Promise<number | null> {
   try {
-    if (Platform.OS === 'web') {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 8000,
-          maximumAge: 60_000,
-        }),
-      );
-      return resolveUserZoneId(pos.coords.latitude, pos.coords.longitude);
-    }
-
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return null;
 
