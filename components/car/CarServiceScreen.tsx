@@ -122,9 +122,10 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
 
   const { rideState, requesting, requestRide, cancelRide, resetRide } = useRide();
 
-  // Map rideState.status → phase
+  // Map rideState.status → phase (guard: only act when a real ride exists)
   useEffect(() => {
     const s = rideState.status;
+    if (!rideState.rideId) return;
     if (['searching', 'driver_assigned', 'arrived', 'started'].includes(s)) {
       setPhase('in_ride');
     } else if (s === 'completed') {
@@ -132,7 +133,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
     } else if (s === 'cancelled' || s === 'timeout') {
       setPhase('cancelled');
     }
-  }, [rideState.status]);
+  }, [rideState.status, rideState.rideId]);
 
   const fetchEstimate = useCallback(async (pickup: Coords, dropoff: Coords) => {
     setEstLoading(true);
