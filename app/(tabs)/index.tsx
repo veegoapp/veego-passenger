@@ -16,6 +16,7 @@ import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarServiceScreen } from '@/components/car/CarServiceScreen';
+import { CarMap } from '@/components/car/CarMap';
 import { ScooterMap } from '@/components/scooter/ScooterMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
@@ -99,25 +100,17 @@ function makeStyles(c: ThemeColors) {
     searchDivider: { width: 1, height: 16, backgroundColor: c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' },
 
     mapSearchBox: {
-      marginHorizontal: 20,
-      marginTop: 6,
-      marginBottom: 10,
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: 16,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.5)',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: c.isDark ? 0.3 : 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-      borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: c.isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)',
     },
     mapInputRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 40, borderRadius: 10, paddingHorizontal: 8 },
-    mapInputRowActive: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f4f4f7' },
-    mapInputText: { fontSize: 13.5, fontWeight: '500', color: c.ink, flex: 1 },
-    mapInputPlaceholder: { fontSize: 13.5, fontWeight: '600', color: c.inkSoft, flex: 1 },
+    mapInputRowActive: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+    mapInputText: { fontSize: 13.5, fontWeight: '700', color: c.ink, flex: 1 },
+    mapInputPlaceholder: { fontSize: 13.5, fontWeight: '700', color: c.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)', flex: 1 },
     mapInputDivider: { height: 1, backgroundColor: c.border, marginVertical: 4, marginLeft: 28, opacity: 0.5 },
     dotGreen: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
     dotRed: { width: 6, height: 6, borderRadius: 1.5, backgroundColor: c.badge },
@@ -442,9 +435,10 @@ export default function HomeScreen() {
         <View style={{
           position: 'absolute',
           top: headerHeight,
-          left: 16,
-          right: 16,
+          left: 0,
+          right: 0,
           zIndex: 999,
+          paddingHorizontal: 12,
         }}>
           {/* Transparent search card */}
           <View style={styles.mapSearchBox}>
@@ -615,10 +609,7 @@ export default function HomeScreen() {
       {/* Scooter */}
       {mode === 'scooter' && (
         <View style={{ flex: 1 }}>
-          <ScooterMap
-            phase={destinationLocation ? 'driver_assigned' : 'idle'}
-            destination={destinationLocation || null}
-          />
+          <CarMap />
         </View>
       )}
 
