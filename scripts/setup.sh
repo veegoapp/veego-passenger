@@ -28,5 +28,5 @@ sleep 2
 export EXPO_NO_TELEMETRY=1
 export NODE_OPTIONS=--max-old-space-size=4096
 
-# ── Start Metro (mobile only — tunnel so phone can reach Replit) ─
-exec pnpm exec expo start --port 8081 --tunnel
+# ── Start Metro (mobile only) ─────────────────────────────────────
+exec pnpm exec expo start --port 8081
