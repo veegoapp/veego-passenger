@@ -133,7 +133,7 @@ export interface SubmitTripRequestResult {
  * requestsEnabled = true. Only IDs are used by the app for fast lookup.
  */
 export async function getEnabledTripRequestRoutes(): Promise<Set<number>> {
-  const { data } = await api.get('/trip-requests/enabled-routes');
+  const { data } = await api.get('/api/trip-requests/enabled-routes');
   const list: any[] = Array.isArray(data) ? data : data.data ?? [];
   return new Set(list.map((r: any) => Number(r.id)));
 }
