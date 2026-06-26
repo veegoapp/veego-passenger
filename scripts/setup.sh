@@ -20,11 +20,13 @@ echo "=== Starting Metro Bundler (Android & iOS only) ==="
 # ── Kill leftover Metro processes ────────────────────────────────
 pkill -9 -f "expo start" 2>/dev/null || true
 pkill -9 -f "metro"      2>/dev/null || true
-sleep 1
+# Also kill whatever is holding port 8081 directly
+fuser -k 8081/tcp 2>/dev/null || true
+sleep 2
 
 # ── Expo settings ────────────────────────────────────────────────
 export EXPO_NO_TELEMETRY=1
 export NODE_OPTIONS=--max-old-space-size=4096
 
-# ── Start Metro (mobile only — no web) ──────────────────────────
-exec pnpm exec expo start --port 8081
+# ── Start Metro (mobile only — tunnel so phone can reach Replit) ─
+exec pnpm exec expo start --port 8081 --tunnel
