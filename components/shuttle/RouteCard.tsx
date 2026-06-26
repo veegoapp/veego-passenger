@@ -149,7 +149,7 @@ export function FeaturedOffers() {
     subtitle: isAr ? p.subtitleAr : p.subtitleEn,
     colors: (c.isDark ? DARK_PASTEL_PAIRS : PASTEL_PAIRS)[i % PASTEL_PAIRS.length],
     icon: p.icon,
-  });
+  }));
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.offersScroll}>

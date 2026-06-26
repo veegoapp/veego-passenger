@@ -17,17 +17,23 @@ fi
 echo "=== Installing dependencies ==="
 pnpm install
 
-echo "=== Starting Expo (Web + Tunnel) ==="
+echo "=== Starting Expo Web ==="
 
-# ── Kill anything on port 5000 first (SIGKILL, not SIGTERM) ──────
+# ── Kill anything on port 5000 first ─────────────────────────────
 fuser -k 5000/tcp 2>/dev/null || true
 pkill -9 -f "expo start" 2>/dev/null || true
 pkill -9 -f "metro" 2>/dev/null || true
-sleep 3
+sleep 2
 
 # ── Expo settings ────────────────────────────────────────────────
 export EXPO_NO_TELEMETRY=1
 export NODE_OPTIONS=--max-old-space-size=4096
 
+# ── Replit proxy vars ─────────────────────────────────────────────
+export EXPO_PACKAGER_PROXY_URL="https://$REPLIT_DEV_DOMAIN"
+export REACT_NATIVE_PACKAGER_HOSTNAME="$REPLIT_DEV_DOMAIN"
+export EXPO_PUBLIC_DOMAIN="$REPLIT_DEV_DOMAIN"
+export EXPO_PUBLIC_REPL_ID="$REPL_ID"
+
 # ── Start Expo web on port 5000 ──────────────────────────────────
-exec pnpm exec expo start --web --port 5000 --tunnel --clear
+exec pnpm exec expo start --web --port 5000 --non-interactive
