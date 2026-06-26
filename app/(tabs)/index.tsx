@@ -41,7 +41,7 @@ function getFirstName(fullName: string): string {
   return parts.length > 0 ? parts[0] : 'VeeGo';
 }
 
-type ServiceMode = 'shuttle' | 'car' | 'scooter';
+type ServiceMode = 'shuttle' | 'car' | 'scooter' | 'delivery';
 
 const SERVICES = [
   { id: 'shuttle' as const, labelKey: 'shuttle' as const, icon: Bus },
@@ -207,7 +207,7 @@ export default function HomeScreen() {
   const handleServicePress = (id: string) => {
     handleServiceTap(id as ServiceType, () => {
       Haptics.selectionAsync();
-      if (id === 'shuttle' || id === 'car' || id === 'scooter') {
+      if (id === 'shuttle' || id === 'car' || id === 'scooter' || id === 'delivery') {
         setMode(id as ServiceMode);
         setActiveSearchField(null);
         setDestinationLocation('');
@@ -608,6 +608,13 @@ export default function HomeScreen() {
 
       {/* Scooter */}
       {mode === 'scooter' && (
+        <View style={{ flex: 1 }}>
+          <CarMap />
+        </View>
+      )}
+
+      {/* Delivery */}
+      {mode === 'delivery' && (
         <View style={{ flex: 1 }}>
           <CarMap />
         </View>
