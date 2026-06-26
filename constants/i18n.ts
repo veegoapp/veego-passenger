@@ -623,6 +623,20 @@ const en = {
   current_location: 'Current Location',
   most_booked: 'Most Booked',
   request_ride_failed: 'Failed to request ride. Please try again.',
+
+  request_a_trip: 'Request a Trip',
+  trip_request_direction: 'Direction',
+  one_way: 'One Way',
+  round_trip: 'Round Trip',
+  outbound_time: 'Outbound Time',
+  return_time: 'Return Time',
+  send_request: 'Send Request',
+  trip_request_sent: 'Request Received!',
+  trip_request_msg: "We'll notify you as soon as a trip is available on this route.",
+  trip_request_disabled: 'Trip requests are not available for this route.',
+  trip_request_error: 'Failed to send request. Please try again.',
+  select_outbound_time: 'Select outbound time',
+  select_return_time: 'Select return time',
 };
 
 const ar: typeof en = {
@@ -1250,6 +1264,20 @@ const ar: typeof en = {
   current_location: 'موقعك الحالي',
   most_booked: 'الأكثر حجزًا',
   request_ride_failed: 'فشل طلب الرحلة. حاول مجدداً.',
+
+  request_a_trip: 'اطلب رحلة',
+  trip_request_direction: 'الاتجاه',
+  one_way: 'ذهاب فقط',
+  round_trip: 'ذهاب وعودة',
+  outbound_time: 'موعد الذهاب',
+  return_time: 'موعد العودة',
+  send_request: 'إرسال الطلب',
+  trip_request_sent: 'تم استلام طلبك!',
+  trip_request_msg: 'سنُرسل لك إشعاراً حين تتوفر رحلات على هذا الخط.',
+  trip_request_disabled: 'طلبات الرحلات غير متاحة لهذا الخط.',
+  trip_request_error: 'فشل إرسال الطلب. حاول مجدداً.',
+  select_outbound_time: 'اختر موعد الذهاب',
+  select_return_time: 'اختر موعد العودة',
 };
 
 export type LangKey = keyof typeof en;

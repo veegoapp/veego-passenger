@@ -96,6 +96,7 @@ export type Route = {
   minRequired?: number;          // min bookings to activate
   upcomingWeekStart?: string | null;
   timeslots?: TimeSlot[];        // preferred over deprecated timeSlots (§20)
+  requestsEnabled?: boolean;     // whether "Request a Trip" is enabled for this route
 };
 
 /**

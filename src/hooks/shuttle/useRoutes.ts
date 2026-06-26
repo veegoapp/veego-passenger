@@ -65,6 +65,8 @@ function mapApiRoute(r: any, idx: number): Route {
     upcomingWeekStart: r.upcomingWeekStart ?? null,
     timeslots,
 
+    requestsEnabled: r.requestsEnabled ?? r.requests_enabled ?? false,
+
     path: Array.isArray(r.stations)
       ? r.stations
           .slice()

@@ -18,6 +18,7 @@ import { useServiceControl } from '@/context/ServiceControlContext';
 import { calcSegmentPrice, DATES } from '@/constants/data';
 import { SectionLabel } from '@/components/shared/Shared';
 import api from '@/src/api/client';
+import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
 
 /**
  * §21.2: statuses that mean the trip is ahead and accepting new bookings.
@@ -317,6 +318,15 @@ function makeStyles(c: ThemeColors, gs: object) {
     },
     ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2 },
 
+    /* Request a Trip */
+    requestTripBtn: {
+      alignSelf: 'flex-start', marginTop: 10,
+      paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',
+    },
+    requestTripBtnText: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
     loadingText: { fontSize: 13, color: c.inkSoft },
@@ -353,6 +363,7 @@ export function TripSheet() {
   const [timeIdx, setTimeIdx] = useState(0);
   const [pick, setPick] = useState<'from' | 'to'>('from');
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
+  const [requestSheetOpen, setRequestSheetOpen] = useState(false);
 
   useEffect(() => {
     if (selectedRoute && selectedRoute.path.length >= 2) {
@@ -492,6 +503,20 @@ export function TripSheet() {
               {isAr ? ' ← ' : ' → '}
               {isAr ? (route.toAr ?? route.to) : route.to}
             </Text>
+
+            {/* Request a Trip button — only when requestsEnabled */}
+            {route.requestsEnabled && (
+              <TouchableOpacity
+                style={styles.requestTripBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setRequestSheetOpen(true);
+                }}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Journey track visualization */}
             <View style={styles.journeyWrap}>
@@ -927,6 +952,14 @@ export function TripSheet() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      {route.requestsEnabled && (
+        <RequestTripSheet
+          visible={requestSheetOpen}
+          route={route}
+          onClose={() => setRequestSheetOpen(false)}
+        />
+      )}
     </View>
   );
 }

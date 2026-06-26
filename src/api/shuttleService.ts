@@ -111,6 +111,33 @@ export async function cancelBooking(bookingId: string | number): Promise<CancelB
   return data;
 }
 
+// ── Trip Requests ─────────────────────────────────────────────────
+
+export type TripRequestDirection = 'one_way' | 'round_trip';
+
+export interface SubmitTripRequestBody {
+  routeId: string | number;
+  direction: TripRequestDirection;
+  outboundTime: string;  // "HH:MM"
+  returnTime?: string;   // "HH:MM" — required if direction === 'round_trip'
+}
+
+export interface SubmitTripRequestResult {
+  data: Record<string, unknown>;
+  message: string;
+  messageEn: string;
+}
+
+/**
+ * POST /api/trip-requests — passenger submits a trip request for a route.
+ * Only works when requestsEnabled === true for the route.
+ * Errors: 403 trip_requests_disabled, 400 validation.
+ */
+export async function submitTripRequest(body: SubmitTripRequestBody): Promise<SubmitTripRequestResult> {
+  const { data } = await api.post('/trip-requests', body);
+  return data;
+}
+
 /**
  * GET /shuttle/my-debt — passenger outstanding cash debt and offence count (§13.1).
  * Must be checked on app launch; show a prominent banner if hasDebt === true (§21.7).
