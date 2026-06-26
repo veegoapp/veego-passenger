@@ -149,7 +149,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
     setLoading(true);
     try {
       await submitTripRequest({
-        routeId: route.id,
+        routeId: Number(route.id),
         direction,
         outboundTime: outboundTime!,
         ...(direction === 'round_trip' && returnTime ? { returnTime } : {}),
