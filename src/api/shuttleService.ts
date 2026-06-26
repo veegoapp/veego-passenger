@@ -144,7 +144,7 @@ export async function getEnabledTripRequestRoutes(): Promise<Set<number>> {
  * Errors: 403 trip_requests_disabled, 400 validation.
  */
 export async function submitTripRequest(body: SubmitTripRequestBody): Promise<SubmitTripRequestResult> {
-  const { data } = await api.post('/trip-requests', body);
+  const { data } = await api.post('/api/trip-requests', body);
   return data;
 }
 
