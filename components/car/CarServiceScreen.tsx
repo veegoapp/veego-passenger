@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Animated, Modal, Alert,
+  TextInput, Animated, Modal, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -95,6 +95,12 @@ function makeStyles(c: ThemeColors, insetTop: number) {
     invoiceAmount: { fontSize: 26, fontWeight: '800', color: '#10b981', marginTop: 2, letterSpacing: -0.5 },
     actionBtn: { width: '100%', height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
     actionBtnTxt: { fontSize: 15, fontWeight: '700' },
+    resumeOverlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 999, backgroundColor: 'rgba(13,14,34,0.82)',
+      alignItems: 'center', justifyContent: 'center', gap: 14,
+    },
+    resumeText: { color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '500' },
   });
 }
 
@@ -120,7 +126,21 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
   const [estimateLoading, setEstLoading]= useState(false);
   const userCoordsRef = useRef<Coords | null>(null);
 
-  const { rideState, requesting, requestRide, cancelRide, resetRide } = useRide();
+  const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide } = useRide();
+  const [resuming, setResuming] = useState(false);
+
+  // On mount: check if there's an active ride in the backend and resume it
+  useEffect(() => {
+    let cancelled = false;
+    setResuming(true);
+    resumeActiveRide().then((resumed) => {
+      if (cancelled) return;
+      if (resumed?.dropoffAddress) setDestination(resumed.dropoffAddress);
+    }).finally(() => {
+      if (!cancelled) setResuming(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Map rideState.status → phase (guard: only act when a real ride exists)
   useEffect(() => {
@@ -218,6 +238,14 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
 
   return (
     <View style={styles.root}>
+      {/* Resume overlay — shown briefly while checking for an active ride */}
+      {resuming && (
+        <View style={styles.resumeOverlay}>
+          <ActivityIndicator size="large" color="#55c49a" />
+          <Text style={styles.resumeText}>{t('checking_active_ride')}</Text>
+        </View>
+      )}
+
       <CarMap
         driverLocation={rideState.driverLocation}
         destCoords={destCoords}

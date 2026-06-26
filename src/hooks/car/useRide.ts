@@ -106,6 +106,13 @@ export interface RideState {
   passengerRating: { id: number; score: number } | null;
 }
 
+export interface ResumedRide {
+  rideId: string;
+  status: RideStatus;
+  dropoffAddress?: string;
+  pickupAddress?: string;
+}
+
 interface UseRideResult {
   rideState: RideState;
   requesting: boolean;
@@ -119,6 +126,7 @@ interface UseRideResult {
   cancelRide: (reason?: string) => Promise<void>;
   clearDeviationWarning: () => void;
   resetRide: () => void;
+  resumeActiveRide: () => Promise<ResumedRide | null>;
 }
 
 const DEFAULT_STATE: RideState = {
@@ -514,6 +522,52 @@ export function useRide(): UseRideResult {
     socketListening.current = false;
   }, [stopPolling]);
 
+  const resumeActiveRide = useCallback(async (): Promise<ResumedRide | null> => {
+    try {
+      const { data } = await api.get('/rides/active');
+      const ride = data?.data ?? data;
+      if (!ride?.id) return null;
+
+      const rideId = String(ride.id);
+      const status: RideStatus = ride.status ?? ride.rideStatus;
+      if (!status || TERMINAL_STATUSES.includes(status)) return null;
+
+      const driver: DriverInfo | null = ride.driver
+        ? {
+            name: ride.driver.name ?? 'Driver',
+            phone: ride.driver.phone ?? '',
+            vehicle: ride.driver.vehicle ?? '',
+            vehicleColor: ride.driver.vehicleColor ?? ride.driver.vehicle_color,
+            plateNumber: ride.driver.plateNumber ?? ride.driver.plate_number,
+            rating: ride.driver.rating ?? 4.8,
+            eta: ride.eta ?? ride.driver.eta ?? 5,
+          }
+        : null;
+
+      activeRideIdRef.current = rideId;
+      setRideState((prev) => ({
+        ...prev,
+        rideId,
+        status,
+        driver,
+        driverLocation: ride.driverLocation ?? ride.driver_location ?? null,
+        fare: ride.fare ?? ride.finalPrice ?? null,
+      }));
+
+      await setupSocketListeners(rideId);
+      startPolling(rideId);
+
+      return {
+        rideId,
+        status,
+        pickupAddress: ride.pickupAddress ?? ride.pickup_address,
+        dropoffAddress: ride.dropoffAddress ?? ride.dropoff_address,
+      };
+    } catch {
+      return null;
+    }
+  }, [setupSocketListeners, startPolling]);
+
   useEffect(() => {
     return () => {
       socketCleanupRef.current?.();
@@ -527,5 +581,5 @@ export function useRide(): UseRideResult {
     rideId: rideState.rideId,
   });
 
-  return { rideState, requesting, requestRide, cancelRide, clearDeviationWarning, resetRide };
+  return { rideState, requesting, requestRide, cancelRide, clearDeviationWarning, resetRide, resumeActiveRide };
 }
