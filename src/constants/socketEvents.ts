@@ -5,28 +5,40 @@
 
 export const SOCKET_EVENTS = {
   // Server → Passenger
-  RIDE_DRIVER_ASSIGNED:    "ride:driver_assigned",
-  RIDE_DRIVER_ARRIVED:     "ride:driver_arrived",
-  RIDE_ARRIVED:            "ride:arrived",
-  RIDE_DRIVER_LOCATION:    "ride:driver_location",
-  RIDE_STARTED:            "ride:started",
-  RIDE_COMPLETED:          "ride:completed",
-  RIDE_CANCELLED:          "ride:cancelled",
-  RIDE_TIMEOUT:            "ride:timeout",
-  RIDE_DEVIATION_WARNING:  "ride:deviation_warning",
-  NOTIFICATION_NEW:        "notification:new",
-  BOOKING_BOARDED:         "booking:boarded",
-  TRIP_CHAT_MESSAGE:       "trip:chat:message",
-  /** Emitted when a pending shuttle trip reaches minRequired passengers and flips to Active */
-  TRIP_ACTIVATED:          "trip:activated",
-  /** Emitted when admin updates the wallet feature flag */
-  WALLET_FEATURE_CHANGED:  "wallet:feature:changed",
-  /** Emitted when admin updates which payment methods are active */
-  PAYMENT_METHODS_CHANGED: "payment:methods:changed",
+  RIDE_DRIVER_ASSIGNED:          "ride:driver_assigned",
+  RIDE_DRIVER_ARRIVED:           "ride:driver_arrived",
+  RIDE_ETA_UPDATE:               "ride:eta_update",
+  RIDE_ARRIVED:                  "ride:arrived",
+  RIDE_WAITING_CHARGE_STARTED:   "ride:waiting:charge:started",
+  RIDE_WAITING_CHARGE_UPDATED:   "ride:waiting:charge:updated",
+  RIDE_WAITING_CHARGE_CAPPED:    "ride:waiting:charge:capped",
+  RIDE_DRIVER_LOCATION:          "ride:driver_location",
+  RIDE_STARTED:                  "ride:started",
+  RIDE_COMPLETED:                "ride:completed",
+  RIDE_CANCELLED:                "ride:cancelled",
+  RIDE_DRIVER_CANCELLED:         "ride:driver_cancelled",
+  RIDE_NO_SHOW_CANCELLED:        "ride:no_show_cancelled",
+  RIDE_STATUS_CHANGED:           "ride:status:changed",
+  RIDE_DEVIATION_WARNING:        "ride:deviation:warning",
+  RIDE_MESSAGE_NEW:              "ride:message:new",
+  NOTIFICATION_NEW:              "notification:new",
+  BOOKING_BOARDED:               "booking:boarded",
+  PASSENGER_TRIP_TRACKING:       "passenger:trip:tracking",
+  SURGE_UPDATED:                 "surge:updated",
+  SERVICE_CONTROL_CHANGED:       "service:control:changed",
+  SERVICE_SETTINGS_CHANGED:      "service:settings:changed",
+  WALLET_FEATURE_CHANGED:        "wallet:feature:changed",
+  PAYMENT_METHODS_CHANGED:       "payment:methods:changed",
+  SOS_TRIGGERED:                 "sos:triggered",
+  SHUTTLE_DRIVER_LOCATION:       "shuttle:driver:location",
+  TRIP_CHAT_MESSAGE:             "trip:chat:message",
+  TRIP_ACTIVATED:                "trip:activated",
 
-  // Client → Server
-  JOIN:                   "join",
-  PASSENGER_JOIN_TRIP:    "passenger:join:trip",
+  // Passenger → Server
+  JOIN:                          "join",
+  PASSENGER_JOIN_TRIP:           "passenger:join:trip",
+  LEAVE_TRIP:                    "leave:trip",
+  PASSENGER_SOS:                 "passenger:sos",
 } as const;
 
 export type PassengerSocketEvent = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];
