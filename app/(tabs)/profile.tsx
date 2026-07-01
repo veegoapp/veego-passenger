@@ -1,7 +1,7 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert,
-  Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView, Animated,
+  Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +28,7 @@ type ProfileScreen =
   | 'help_faq'
   | 'contact_support'
   | 'rating_details'
+  | 'ratings_history'
   | 'terms'
   | null;
 
@@ -158,18 +159,6 @@ function makeStyles(c: ThemeColors) {
     ratingScore: { fontSize: 56, fontWeight: '800', color: '#ffffff', letterSpacing: -2 },
     ratingStars: { flexDirection: 'row', gap: 4 },
     ratingSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
-    ratingBarRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 10,
-      paddingVertical: 6,
-    },
-    ratingBarLabel: { fontSize: 13, fontWeight: '600', color: c.ink, width: 14, textAlign: 'center' },
-    ratingBarTrack: {
-      flex: 1, height: 8, borderRadius: 4,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#ececf5',
-      overflow: 'hidden',
-    },
-    ratingBarFill: { height: 8, borderRadius: 4, backgroundColor: '#f59e0b' },
-    ratingBarPct: { fontSize: 12, color: c.inkSoft, width: 34, textAlign: 'right' },
   });
 }
 
@@ -688,41 +677,25 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
 
 // ── Rating Details Modal ─────────────────────────────────────────────────────
 
-function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+function RatingDetailsModal({ visible, onClose, onOpenHistory }: { visible: boolean; onClose: () => void; onOpenHistory: () => void }) {
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const barAnims = useRef([1, 2, 3, 4, 5].map(() => new Animated.Value(0))).current;
   const [ratingData, setRatingData] = useState<{
-    overallScore: number | null;
+    averageRating: number | null;
     totalRatings: number;
-    distribution: Record<number, number>;
   } | null>(null);
 
   useEffect(() => {
     if (!visible) return;
-    api.get('/users/me/rating').then(({ data }) => {
+    api.get('/user/me/passenger-rating').then(({ data }) => {
       setRatingData({
-        overallScore: data.overallScore ?? null,
+        averageRating: typeof data.averageRating === 'number' ? data.averageRating : null,
         totalRatings: data.totalRatings ?? 0,
-        distribution: data.distribution ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
       });
     }).catch(() => {
-      setRatingData({ overallScore: null, totalRatings: 0, distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
+      setRatingData({ averageRating: null, totalRatings: 0 });
     });
   }, [visible]);
-
-  useEffect(() => {
-    if (!visible || !ratingData || ratingData.overallScore === null) return;
-    barAnims.forEach((anim) => anim.setValue(0));
-    const animations = [5, 4, 3, 2, 1].map((star, i) =>
-      Animated.timing(barAnims[i], {
-        toValue: (ratingData.distribution[star] ?? 0) / 100,
-        duration: 600 + i * 80,
-        useNativeDriver: false,
-      }),
-    );
-    Animated.stagger(60, animations).start();
-  }, [visible, ratingData]);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -738,12 +711,12 @@ function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: (
           >
             <View style={styles.ratingHero}>
               <Text style={styles.ratingScore}>
-                {ratingData?.overallScore !== null && ratingData?.overallScore !== undefined
-                  ? ratingData.overallScore.toFixed(1) : '—'}
+                {ratingData?.averageRating !== null && ratingData?.averageRating !== undefined
+                  ? ratingData.averageRating.toFixed(1) : '—'}
               </Text>
               <View style={styles.ratingStars}>
                 {[1, 2, 3, 4, 5].map((s) => {
-                  const score = ratingData?.overallScore ?? null;
+                  const score = ratingData?.averageRating ?? null;
                   return (
                     <Star
                       key={s}
@@ -756,47 +729,93 @@ function RatingDetailsModal({ visible, onClose }: { visible: boolean; onClose: (
                 })}
               </View>
               <Text style={styles.ratingSubtitle}>
-                {ratingData?.overallScore !== null && ratingData?.overallScore !== undefined
+                {ratingData?.averageRating !== null && ratingData?.averageRating !== undefined
                   ? t('based_on_ratings').replace('{count}', String(ratingData.totalRatings)).replace('{plural}', ratingData.totalRatings !== 1 ? 's' : '')
                   : t('no_ratings_yet')}
               </Text>
             </View>
           </LinearGradient>
 
-          {/* Rating breakdown */}
-          <View style={{ backgroundColor: c.white, borderRadius: 22, padding: 18, gap: 4, ...S.float }}>
-            <Text style={[styles.inputLabel, { marginBottom: 10 }]}>{t('rating_breakdown')}</Text>
-            {!ratingData || ratingData.overallScore === null ? (
-              <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingVertical: 12 }}>
-                {t('no_ratings_received')}
-              </Text>
-            ) : (
-              [5, 4, 3, 2, 1].map((star, i) => {
-                const pct = ratingData.distribution[star] ?? 0;
-                return (
-                  <View key={star} style={styles.ratingBarRow}>
-                    <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                    <Text style={styles.ratingBarLabel}>{star}</Text>
-                    <View style={styles.ratingBarTrack}>
-                      <Animated.View
-                        style={[
-                          styles.ratingBarFill,
-                          {
-                            width: barAnims[i].interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['0%', `${pct}%`],
-                            }),
-                            backgroundColor: star >= 4 ? '#22c55e' : star === 3 ? '#f59e0b' : '#ef4444',
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.ratingBarPct}>{pct}%</Text>
-                  </View>
-                );
-              })
-            )}
+          <View style={[styles.groupCard, S.float]}>
+            <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={onOpenHistory}>
+              <View style={styles.settingIcon}><Star size={16} color={c.ink} /></View>
+              <Text style={styles.settingLabel}>{t('my_ratings')}</Text>
+              <ChevronRight size={14} color={c.silver} />
+            </TouchableOpacity>
           </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ── Rating History Modal ("My Ratings") ──────────────────────────────────────
+
+interface GivenRating {
+  id: number;
+  context: string;
+  score: string | number;
+  comment: string | null;
+  driverResponse: string | null;
+  createdAt: string;
+  driverName: string | null;
+}
+
+function RatingHistoryModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { colors: c, t } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
+  const [ratings, setRatings] = useState<GivenRating[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    setLoading(true);
+    api.get('/user/ratings/given').then(({ data }) => {
+      setRatings(Array.isArray(data?.data) ? data.data : []);
+    }).catch(() => {
+      setRatings([]);
+    }).finally(() => setLoading(false));
+  }, [visible]);
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={styles.modal}>
+        <ModalHeader title={t('my_ratings')} onClose={onClose} />
+        <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40, gap: 12 }]}>
+          {loading && !ratings ? (
+            <ActivityIndicator color={c.ink} style={{ marginTop: 40 }} />
+          ) : !ratings || ratings.length === 0 ? (
+            <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingVertical: 40 }}>
+              {t('ratings_given_empty')}
+            </Text>
+          ) : (
+            ratings.map((r) => {
+              const score = typeof r.score === 'string' ? parseFloat(r.score) : r.score;
+              return (
+                <View key={r.id} style={[styles.groupCard, S.float, { padding: 16, gap: 8 }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={styles.cardName}>{r.driverName ?? t('driver_label')}</Text>
+                    <View style={{ flexDirection: 'row', gap: 2 }}>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} size={13} color="#f59e0b" fill={s <= Math.round(score) ? '#f59e0b' : 'transparent'} strokeWidth={1.5} />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={styles.cardSub}>
+                    {new Date(r.createdAt).toLocaleDateString()}
+                    {r.context ? ` · ${r.context === 'shuttle' ? t('shuttle') : t('car')}` : ''}
+                  </Text>
+                  {!!r.comment && <Text style={{ fontSize: 13, color: c.ink }}>{r.comment}</Text>}
+                  {!!r.driverResponse && (
+                    <View style={{ backgroundColor: c.mist, borderRadius: 12, padding: 10, marginTop: 4 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: c.inkSoft, marginBottom: 2 }}>{t('driver_response_label')}</Text>
+                      <Text style={{ fontSize: 12.5, color: c.ink }}>{r.driverResponse}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })
+          )}
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -831,8 +850,8 @@ export default function ProfileScreen() {
     api.get('/users/me/stats').then(({ data }) => {
       if (typeof data.savedAmount === 'number') setSavedAmount(data.savedAmount);
     }).catch(() => {});
-    api.get('/users/me/rating').then(({ data }) => {
-      if (typeof data.overallScore === 'number') setOverallRating(data.overallScore);
+    api.get('/user/me/passenger-rating').then(({ data }) => {
+      if (typeof data.averageRating === 'number') setOverallRating(data.averageRating);
     }).catch(() => {});
   }, []);
 
@@ -931,8 +950,9 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>{t('account')}</Text>
           <View style={[gs, styles.groupCard]}>
             {[
-              { icon: User, label: t('personal_info'), value: heroName, screen: 'personal_info' as ProfileScreen },
-              { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash'), screen: 'payment_methods' as ProfileScreen },
+              { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileScreen },
+              { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileScreen },
+              { icon: Star, label: t('my_ratings'), value: undefined as string | undefined, screen: 'ratings_history' as ProfileScreen },
             ].map((item, i) => (
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
@@ -1073,7 +1093,12 @@ export default function ProfileScreen() {
       <NotificationsModal visible={activeModal === 'notifications'} onClose={close} />
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
-      <RatingDetailsModal visible={activeModal === 'rating_details'} onClose={close} />
+      <RatingDetailsModal
+        visible={activeModal === 'rating_details'}
+        onClose={close}
+        onOpenHistory={() => open('ratings_history')}
+      />
+      <RatingHistoryModal visible={activeModal === 'ratings_history'} onClose={close} />
       <TermsModal
         visible={activeModal === 'terms'}
         onClose={close}

@@ -47,11 +47,17 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
   const category = (data.category ?? data.type ?? '').toLowerCase();
   const deepLink: string = data.deep_link ?? data.deepLink ?? '';
 
+  // Shuttle "trip ended, please rate your driver" push → open trip detail with the rating sheet up
+  const wantsRatingPrompt =
+    category.includes('rating') || category.includes('rate_driver') || data.action === 'rate_driver';
+  const tripDetailPath = (tripId: string) =>
+    wantsRatingPrompt ? `/trip-detail?id=${tripId}&openRating=1` : `/trip-detail?id=${tripId}`;
+
   // Fix 7: Handle invite/share deep link: veego://shuttle/trip/{tripId}
   if (deepLink.startsWith('veego://shuttle/trip/')) {
     const tripId = deepLink.replace('veego://shuttle/trip/', '').split('?')[0];
     if (tripId) {
-      router.push(`/trip-detail?id=${tripId}` as any);
+      router.push(tripDetailPath(tripId) as any);
       return;
     }
   }
@@ -75,10 +81,11 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
   }
 
   // Fix 6: Booking confirmation notification — navigate to trip detail
-  if (category === 'booking' || category === 'trip') {
+  // Also covers the shuttle "trip ended, rate your driver" push (category: trip / shuttle_trip_ended)
+  if (category === 'booking' || category === 'trip' || category === 'shuttle_trip_ended') {
     const tripId = data.tripId ?? data.trip_id ?? data.bookingId ?? data.booking_id ?? null;
     if (tripId) {
-      router.push(`/trip-detail?id=${tripId}` as any);
+      router.push(tripDetailPath(String(tripId)) as any);
     } else {
       router.push('/(tabs)/trips' as any);
     }

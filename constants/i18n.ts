@@ -573,8 +573,9 @@ const en = {
   // Profile — rating modal
   rating_details: 'Rating Details',
   no_ratings_yet: 'No ratings yet',
-  no_ratings_received: 'You have not received any ratings yet.',
-  rating_breakdown: 'Rating Breakdown',
+  my_ratings: 'My Ratings',
+  ratings_given_empty: "You haven't rated any drivers yet.",
+  driver_response_label: "Driver's response",
 
   // Profile — avatar picker
   tap_change_photo: 'Tap to change photo',
@@ -1217,8 +1218,9 @@ const ar: typeof en = {
   // Profile — rating modal
   rating_details: 'تفاصيل التقييم',
   no_ratings_yet: 'لا توجد تقييمات بعد',
-  no_ratings_received: 'لم تتلقَّ أي تقييمات حتى الآن.',
-  rating_breakdown: 'توزيع التقييمات',
+  my_ratings: 'تقييماتي',
+  ratings_given_empty: 'لم تقيّم أي سائق حتى الآن.',
+  driver_response_label: 'رد السائق',
 
   // Profile — avatar picker
   tap_change_photo: 'اضغط لتغيير الصورة',

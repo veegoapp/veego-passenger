@@ -181,7 +181,7 @@ function makeStyles(c: ThemeColors) {
 }
 
 export default function TripDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, openRating } = useLocalSearchParams<{ id: string; openRating?: string }>();
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { colors: c, t, language, isRTL } = useTheme();
@@ -420,6 +420,22 @@ export default function TripDetailScreen() {
 
   // Merge socket live status over API status — socket wins when present
   const effectiveStatus = liveStatus ?? trip?.status ?? '';
+
+  // Push notification "rate your driver" tap → auto-open the rating sheet once trip data is ready
+  const autoRatingHandled = useRef(false);
+  useEffect(() => {
+    if (autoRatingHandled.current) return;
+    if (openRating !== '1') return;
+    if (effectiveStatus !== 'completed' || !trip?.driverUserId || shuttleAlreadyRated) return;
+    autoRatingHandled.current = true;
+    setShuttleRatingVisible(true);
+  }, [openRating, effectiveStatus, trip?.driverUserId, shuttleAlreadyRated]);
+
+  // The "already rated" check above runs async and may resolve after the sheet
+  // was auto-opened (openRating=1 race) — close it if it turns out to be stale.
+  useEffect(() => {
+    if (shuttleAlreadyRated) setShuttleRatingVisible(false);
+  }, [shuttleAlreadyRated]);
 
   const showMap = useMemo(() => {
     if (!trip) return false;
