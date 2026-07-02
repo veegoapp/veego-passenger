@@ -923,7 +923,7 @@ function RatingHistoryModal({ visible, onClose }: { visible: boolean; onClose: (
                   </View>
                   <Text style={styles.cardSub}>
                     {new Date(r.createdAt).toLocaleDateString()}
-                    {r.context ? ` · ${r.context === 'shuttle' ? t('shuttle') : t('car')}` : ''}
+                    {r.context ? ` · ${r.context === 'trip' || r.context === 'shuttle' ? t('shuttle') : t('car')}` : ''}
                   </Text>
                   {!!r.comment && <Text style={{ fontSize: 13, color: c.ink }}>{r.comment}</Text>}
                   {!!r.driverResponse && (
