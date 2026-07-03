@@ -605,6 +605,8 @@ const en = {
   // Phone OTP verification (register/login flow)
   otp_expired: 'Your code expired. A new one has been sent.',
   otp_code_sent: 'Code sent!',
+  otp_attempts_remaining: '{n} attempts remaining',
+  otp_locked_out: 'Too many incorrect attempts. Please request a new code.',
 
   tagline: 'Your daily route, simplified',
   lang_english: 'English',
@@ -1252,6 +1254,8 @@ const ar: typeof en = {
   // Phone OTP verification (register/login flow)
   otp_expired: 'انتهت صلاحية الرمز. تم إرسال رمز جديد.',
   otp_code_sent: 'تم إرسال الرمز!',
+  otp_attempts_remaining: 'باقي {n} محاولات',
+  otp_locked_out: 'محاولات خاطئة كثيرة. يرجى طلب رمز جديد.',
 
   tagline: 'طريقك اليومي، ببساطة',
   lang_english: 'الإنجليزية',

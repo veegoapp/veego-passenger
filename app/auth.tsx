@@ -148,7 +148,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { email: email.trim(), password });
+      const { data } = await api.post('/auth/login', { credential: email.trim(), password });
       await persistTokens(data);
       await saveSession(email.trim(), data.user?.name ?? data.name);
       emitAuthEvent('auth:login');

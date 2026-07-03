@@ -34,6 +34,9 @@ export default function VerifyPhoneScreen() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [locked, setLocked] = useState(false);
+  const [lockCountdown, setLockCountdown] = useState(0);
+  const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const inputRef = useRef<any>(null);
 
   useEffect(() => {
@@ -42,6 +45,15 @@ export default function VerifyPhoneScreen() {
     return () => clearTimeout(id);
   }, [countdown]);
 
+  useEffect(() => {
+    if (lockCountdown <= 0) {
+      if (locked) setLocked(false);
+      return;
+    }
+    const id = setTimeout(() => setLockCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [lockCountdown, locked]);
+
   const doResend = async (silent = false) => {
     if (!phone || (countdown > 0 && !silent)) return;
     if (!silent) setResending(true);
@@ -49,6 +61,9 @@ export default function VerifyPhoneScreen() {
     setSuccessMsg('');
     try {
       await api.post('/auth/send-otp', { phone });
+      setLocked(false);
+      setLockCountdown(0);
+      setAttemptsRemaining(null);
       if (!silent) {
         setSuccessMsg(t('otp_code_sent'));
         setCountdown(60);
@@ -66,7 +81,7 @@ export default function VerifyPhoneScreen() {
   };
 
   const handleVerify = async () => {
-    if (otp.length < OTP_LENGTH || !phone) return;
+    if (otp.length < OTP_LENGTH || !phone || locked) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     setError('');
@@ -89,14 +104,26 @@ export default function VerifyPhoneScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');
     } catch (e: any) {
-      const msg: string = e?.response?.data?.error ?? e?.response?.data?.message ?? '';
-      if (msg.toLowerCase().includes('expired')) {
-        setOtp('');
+      const status = e?.response?.status;
+      const body = e?.response?.data ?? {};
+      const msg: string = body.error ?? body.message ?? '';
+      setOtp('');
+      if (status === 429) {
+        const retryAfter: number = body.retryAfter ?? 900;
+        setAttemptsRemaining(null);
+        setLocked(true);
+        setLockCountdown(retryAfter);
+        setError(msg || t('otp_locked_out'));
+      } else if (msg.toLowerCase().includes('expired')) {
+        setAttemptsRemaining(null);
         setError(t('otp_expired'));
         doResend(true);
-      } else {
+      } else if (typeof body.attemptsRemaining === 'number') {
+        setAttemptsRemaining(body.attemptsRemaining);
         setError(msg || t('invalid_otp'));
-        setOtp('');
+      } else {
+        setAttemptsRemaining(null);
+        setError(msg || t('invalid_otp'));
       }
     } finally {
       setLoading(false);
@@ -123,6 +150,7 @@ export default function VerifyPhoneScreen() {
             ref={inputRef}
             style={styles.hiddenInput}
             value={otp}
+            editable={!locked}
             onChangeText={(v) => {
               const cleaned = v.replace(/\D/g, '').slice(0, OTP_LENGTH);
               setOtp(cleaned);
@@ -146,6 +174,7 @@ export default function VerifyPhoneScreen() {
                   !!error && styles.otpBoxError,
                 ]}
                 activeOpacity={0.85}
+                disabled={locked}
                 onPress={() => inputRef.current?.focus()}
               >
                 <Text style={styles.otpDigit}>{d}</Text>
@@ -153,14 +182,20 @@ export default function VerifyPhoneScreen() {
             ))}
           </View>
 
-          {!!error && <Text style={styles.errorText}>{error}</Text>}
+          {!!error && (
+            <Text style={styles.errorText}>
+              {error}
+              {locked && lockCountdown > 0 ? ` (${t('resend_in').replace('{s}', String(lockCountdown))})` : ''}
+              {!locked && attemptsRemaining !== null ? ` — ${t('otp_attempts_remaining').replace('{n}', String(attemptsRemaining))}` : ''}
+            </Text>
+          )}
           {!!successMsg && !error && <Text style={styles.successText}>{successMsg}</Text>}
 
           <TouchableOpacity
-            style={[styles.primaryBtn, (otp.length < OTP_LENGTH || loading) && { opacity: 0.5 }]}
+            style={[styles.primaryBtn, (otp.length < OTP_LENGTH || loading || locked) && { opacity: 0.5 }]}
             activeOpacity={0.9}
             onPress={handleVerify}
-            disabled={otp.length < OTP_LENGTH || loading}
+            disabled={otp.length < OTP_LENGTH || loading || locked}
           >
             {loading ? (
               <ActivityIndicator color={C.white} size="small" />
@@ -173,7 +208,11 @@ export default function VerifyPhoneScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.resendBtn, (countdown > 0 || resending) && { opacity: 0.4 }]}
+            style={[
+              styles.resendBtn,
+              locked && styles.resendBtnEmphasized,
+              (countdown > 0 || resending) && { opacity: 0.4 },
+            ]}
             onPress={() => doResend()}
             disabled={countdown > 0 || resending}
             activeOpacity={0.7}
@@ -181,7 +220,7 @@ export default function VerifyPhoneScreen() {
             {resending ? (
               <ActivityIndicator color={C.inkSoft} size="small" />
             ) : (
-              <Text style={styles.resendText}>
+              <Text style={[styles.resendText, locked && styles.resendTextEmphasized]}>
                 {countdown > 0 ? t('resend_in').replace('{s}', String(countdown)) : t('resend')}
               </Text>
             )}
@@ -254,5 +293,10 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: C.white, fontSize: 15, fontWeight: '600' },
   resendBtn: { paddingVertical: 12, paddingHorizontal: 20 },
+  resendBtnEmphasized: {
+    backgroundColor: 'rgba(85,196,154,0.12)',
+    borderRadius: 14,
+  },
   resendText: { fontSize: 13, fontWeight: '500', color: C.inkSoft, textAlign: 'center' },
+  resendTextEmphasized: { color: C.accentMint, fontWeight: '700' },
 });
