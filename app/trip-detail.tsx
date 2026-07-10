@@ -542,7 +542,7 @@ export default function TripDetailScreen() {
               const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
               getSocket().then((socket) => {
                 socket.emit('passenger:sos', {
-                  rideId: currentRideId,
+                  tripId: currentRideId,
                   latitude: loc.coords.latitude,
                   longitude: loc.coords.longitude,
                   notes: 'Passenger SOS',
@@ -551,7 +551,7 @@ export default function TripDetailScreen() {
             } catch {
               getSocket().then((socket) => {
                 socket.emit('passenger:sos', {
-                  rideId: currentRideId,
+                  tripId: currentRideId,
                   latitude: null,
                   longitude: null,
                   notes: 'Passenger SOS — location unavailable',

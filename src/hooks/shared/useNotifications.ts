@@ -25,16 +25,6 @@ function mapApiNotif(n: any): Notification {
   };
 }
 
-async function fetchUserId(): Promise<number | null> {
-  try {
-    const { data } = await api.get('/users/me');
-    const d = data.user ?? data.profile ?? data;
-    return d.id ?? d.userId ?? d.user_id ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export function useNotifications(): UseNotificationsResult {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,39 +97,6 @@ export function useNotifications(): UseNotificationsResult {
       }).catch(() => {});
     };
 
-    const onTripRequestFulfilled = (data: any) => {
-      const routeName: string = data.routeName ?? data.route_name ?? '';
-      const routeId: string | number | null = data.routeId ?? data.route_id ?? null;
-      const title = '🚌 رحلة متاحة على خطك!';
-      const body = routeName
-        ? `تتوفر الآن رحلات على خط ${routeName}. احجز مقعدك الآن!`
-        : 'تتوفر الآن رحلات على أحد الخطوط التي طلبتها. احجز مقعدك الآن!';
-
-      const fulfilled: Notification = {
-        id: `trip-request-fulfilled-${data.requestId ?? routeId ?? Math.random()}`,
-        type: 'trip',
-        title,
-        body,
-        createdAt: data.fulfilledAt ?? new Date().toISOString(),
-        unread: true,
-      };
-      setNotifications((prev) => [fulfilled, ...prev]);
-
-      Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          body,
-          sound: true,
-          data: {
-            type: 'trip_request_fulfilled',
-            routeId,
-            routeName,
-          },
-        },
-        trigger: null,
-      }).catch(() => {});
-    };
-
     // Resolved socket stored so cleanup is synchronous — no async in the return fn
     let resolvedSocket: ReturnType<typeof import('socket.io-client').io> | null = null;
     let isMounted = true;
@@ -151,21 +108,13 @@ export function useNotifications(): UseNotificationsResult {
         if (!isMounted) return;
         resolvedSocket = socket as any;
 
-        // Join the passenger-specific room
-        const userId = await fetchUserId();
-        if (!isMounted) return;
-        if (userId) socket.emit('join', `passenger:${userId}`);
-
         socket.on('notification:new', onNotificationNew);
         socket.on('booking:boarded', onBoarded);
         socket.on('trip:activated', onTripActivated);
-        socket.on('trip:request_fulfilled', onTripRequestFulfilled);
 
-        // Re-join room after socket reconnects (e.g. network recovery)
-        onReconnect = async () => {
-          const uid = await fetchUserId();
-          if (uid && resolvedSocket) (resolvedSocket as any).emit('join', `passenger:${uid}`);
-        };
+        // No-op: the backend already auto-joins the passenger's personal room on
+        // every connect/reconnect from the auth handshake, so no join emit is needed here.
+        onReconnect = async () => {};
         socket.on('connect', onReconnect as any);
       } catch {
         // Socket unavailable — graceful degradation, no polling fallback needed
@@ -179,7 +128,6 @@ export function useNotifications(): UseNotificationsResult {
         (resolvedSocket as any).off('notification:new', onNotificationNew);
         (resolvedSocket as any).off('booking:boarded', onBoarded);
         (resolvedSocket as any).off('trip:activated', onTripActivated);
-        (resolvedSocket as any).off('trip:request_fulfilled', onTripRequestFulfilled);
         if (onReconnect) (resolvedSocket as any).off('connect', onReconnect);
       }
     };
