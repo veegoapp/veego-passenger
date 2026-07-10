@@ -37,6 +37,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 interface TripDetail {
   id: string | number;
+  routeId?: number | string | null;
   status: string;
   departureIso: string;
   routeName: string;
@@ -74,6 +75,7 @@ function mapApiToDetail(b: any): TripDetail {
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
   return {
     id: trip.id ?? trip._id ?? b.id ?? b._id ?? '',
+    routeId: trip.routeId ?? trip.route_id ?? route.id ?? null,
     status: (b.status ?? trip.shuttleStatus ?? trip.shuttle_status ?? trip.status ?? '').toLowerCase(),
     departureIso,
     routeName:   route.name   ?? trip.name  ?? '—',
@@ -275,10 +277,10 @@ export default function TripDetailScreen() {
     fetchTrip();
   }, [fetchTrip]);
 
-  // Fetch all stations for this trip — poll every 30 s during live phases
-  const fetchStations = useCallback(async (tripId: string | number) => {
+  // Fetch all stations for this trip's route — poll every 30 s during live phases
+  const fetchStations = useCallback(async (routeId: string | number) => {
     try {
-      const res = await api.get(`/driver/trips/${tripId}/stations`);
+      const res = await api.get(`/routes/${routeId}/stations`);
       const raw: any[] = res.data?.data ?? res.data ?? [];
       setStations(raw.map((s: any) => ({
         id:        s.id,
@@ -296,11 +298,11 @@ export default function TripDetailScreen() {
   useEffect(() => {
     const currentStatus = (liveStatus ?? trip?.status ?? '').toLowerCase();
     const livePhase = ['driver_assigned', 'scheduled', 'active', 'boarding'].includes(currentStatus);
-    if (!trip?.id || !livePhase) return;
-    fetchStations(trip.id);
-    const interval = setInterval(() => fetchStations(trip.id!), 30_000);
+    if (!trip?.routeId || !livePhase) return;
+    fetchStations(trip.routeId);
+    const interval = setInterval(() => fetchStations(trip.routeId!), 30_000);
     return () => clearInterval(interval);
-  }, [trip?.id, liveStatus, trip?.status, fetchStations]);
+  }, [trip?.routeId, liveStatus, trip?.status, fetchStations]);
 
   // When trip is completed, check if passenger already rated via GET /user/ratings/given
   useEffect(() => {
@@ -329,7 +331,7 @@ export default function TripDetailScreen() {
     getSocket().then((socket) => {
       if (cleanedUp) return;
 
-      socket.emit('join:trip', { tripId: id });
+      socket.emit('join:trip', { tripId: Number(id) });
 
       // Driver location — moves the map marker in real time
       const locationHandler = (payload: {
@@ -372,7 +374,7 @@ export default function TripDetailScreen() {
 
       // Re-join trip room after socket reconnects (network recovery)
       const reconnectHandler = () => {
-        socket.emit('join:trip', { tripId: id });
+        socket.emit('join:trip', { tripId: Number(id) });
       };
 
       socket.on('shuttle:driver:location', locationHandler);
