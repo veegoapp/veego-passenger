@@ -1192,7 +1192,7 @@ export default function ProfileScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             Alert.alert(t('sign_out'), t('sign_out_q'), [
               { text: t('cancel'), style: 'cancel' },
-              { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {} emitAuthEvent('auth:logout'); try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {} router.replace('/auth'); } },
+              { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await api.post('/auth/logout'); } catch {} try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {} emitAuthEvent('auth:logout'); try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {} router.replace('/auth'); } },
             ]);
           }}
         >
