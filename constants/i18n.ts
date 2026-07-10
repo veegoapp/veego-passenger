@@ -406,6 +406,7 @@ const en = {
   save_location_btn: 'Save this location',
   service_unavailable: 'Unavailable',
   payment_methods_cash: 'Cash',
+  payment_methods_online: 'Online Payment',
 
   scooter: 'Scooter',
   no_messages_yet: 'No messages yet.\nSay hello to your driver!',
@@ -1055,6 +1056,7 @@ const ar: typeof en = {
   save_location_btn: 'حفظ هذا الموقع',
   service_unavailable: 'غير متاح',
   payment_methods_cash: 'نقداً',
+  payment_methods_online: 'الدفع الإلكتروني',
 
   scooter: 'سكوتر',
   no_messages_yet: 'لا توجد رسائل بعد.\nقل مرحباً لسائقك!',

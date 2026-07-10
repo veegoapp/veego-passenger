@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
 import api from '../../api/client';
-import { getSocket, type RideStatus, type DriverLocation } from '../../api/socket';
+import { getSocket, type RideStatus, type DriverLocation, normalizeRideStatus } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
 
 const DriverAssignedSchema = z.object({
@@ -79,6 +79,11 @@ const SurgeUpdatedSchema = z.object({
 
 const DeviationWarningSchema = z.object({
   rideId: z.string().or(z.number()),
+});
+
+const RideEtaUpdateSchema = z.object({
+  rideId: z.string().or(z.number()),
+  etaMinutes: z.number().optional(),
 });
 
 export interface DriverInfo {
@@ -171,27 +176,28 @@ export function useRide(): UseRideResult {
       if (!activeRideIdRef.current) return;
       try {
         const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
-        const status: RideStatus = data.status ?? data.rideStatus;
+        const ride = data?.data ?? data;
+        const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
         if (!status) return;
 
         setRideState((prev) => {
-          const updatedDriver: DriverInfo | null = data.driver
+          const updatedDriver: DriverInfo | null = ride.driver
             ? {
-                name: data.driver.name ?? prev.driver?.name ?? 'Driver',
-                phone: data.driver.phone ?? prev.driver?.phone ?? '',
-                vehicle: data.driver.vehicle ?? prev.driver?.vehicle ?? '',
-                vehicleColor: data.driver.vehicleColor ?? data.driver.vehicle_color ?? prev.driver?.vehicleColor,
-                plateNumber: data.driver.plateNumber ?? data.driver.plate_number ?? prev.driver?.plateNumber,
-                rating: data.driver.rating ?? prev.driver?.rating ?? 4.8,
-                eta: data.eta ?? data.driver.eta ?? prev.driver?.eta ?? 5,
+                name: ride.driver.name ?? prev.driver?.name ?? 'Driver',
+                phone: ride.driver.phone ?? prev.driver?.phone ?? '',
+                vehicle: ride.driver.vehicle ?? prev.driver?.vehicle ?? '',
+                vehicleColor: ride.driver.vehicleColor ?? ride.driver.vehicle_color ?? prev.driver?.vehicleColor,
+                plateNumber: ride.driver.plateNumber ?? ride.driver.plate_number ?? prev.driver?.plateNumber,
+                rating: ride.driver.rating ?? prev.driver?.rating ?? 4.8,
+                eta: ride.eta ?? ride.driver.eta ?? prev.driver?.eta ?? 5,
               }
             : prev.driver;
 
           const updatedLocation: DriverLocation | null =
-            data.driverLocation ?? data.driver_location ?? prev.driverLocation;
+            ride.driverLocation ?? ride.driver_location ?? prev.driverLocation;
 
           const updatedPassengerRating =
-            data.passengerRating !== undefined ? data.passengerRating : prev.passengerRating;
+            ride.passengerRating !== undefined ? ride.passengerRating : prev.passengerRating;
 
           return { ...prev, status, driver: updatedDriver, driverLocation: updatedLocation, passengerRating: updatedPassengerRating };
         });
@@ -230,7 +236,8 @@ export function useRide(): UseRideResult {
         s.off('ride:waiting:charge:updated');
         s.off('ride:waiting:charge:capped');
         s.off('surge:updated');
-        s.off('ride:deviation_warning');
+        s.off('ride:deviation:warning');
+        s.off('ride:eta_update');
         if (reconnectHandler) s.io.off('reconnect', reconnectHandler);
       }
       socketListening.current = false;
@@ -335,7 +342,7 @@ export function useRide(): UseRideResult {
         const parsed = RideStatusUpdateSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:status_update payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
-        const status = parsed.data.status as RideStatus;
+        const status = normalizeRideStatus(parsed.data.status);
         if (!status) return;
         setRideState((prev) => ({ ...prev, status }));
         if (TERMINAL_STATUSES.includes(status)) cleanup();
@@ -346,7 +353,7 @@ export function useRide(): UseRideResult {
         if (!parsed.success) { console.warn('[Socket] Invalid ride:status:changed payload'); return; }
         const data = parsed.data;
         if (String(data.rideId) !== String(rideId)) return;
-        const status = data.status as RideStatus;
+        const status = normalizeRideStatus(data.status);
         if (!status) return;
         setRideState((prev) => {
           const updates: Partial<RideState> = { status };
@@ -371,7 +378,7 @@ export function useRide(): UseRideResult {
             const msg = m?.message ?? '';
             updates.cancelReason = msg || (cancelledBy ? `Cancelled by ${cancelledBy}` : null);
           }
-          if ((status as string) === 'active') {
+          if (status === 'started') {
             updates.waitingChargeStatus = 'none';
             updates.waitingRatePerMinute = null;
           }
@@ -419,11 +426,21 @@ export function useRide(): UseRideResult {
         setRideState((prev) => ({ ...prev, surgeMultiplier: parsed.data.multiplier ?? prev.surgeMultiplier }));
       });
 
-      socket.on('ride:deviation_warning', (raw: unknown) => {
+      socket.on('ride:deviation:warning', (raw: unknown) => {
         const parsed = DeviationWarningSchema.safeParse(raw);
-        if (!parsed.success) { console.warn('[Socket] Invalid ride:deviation_warning payload'); return; }
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:deviation:warning payload'); return; }
         if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, deviationWarning: true }));
+      });
+
+      socket.on('ride:eta_update', (raw: unknown) => {
+        const parsed = RideEtaUpdateSchema.safeParse(raw);
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:eta_update payload'); return; }
+        if (String(parsed.data.rideId) !== String(rideId)) return;
+        if (parsed.data.etaMinutes === undefined) return;
+        setRideState((prev) => (
+          prev.driver ? { ...prev, driver: { ...prev.driver, eta: parsed.data.etaMinutes! } } : prev
+        ));
       });
 
       // On reconnect, re-fetch ride state to recover any events missed during the disconnect window
@@ -431,21 +448,22 @@ export function useRide(): UseRideResult {
         if (!activeRideIdRef.current) return;
         try {
           const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
-          const status: RideStatus = data.status ?? data.rideStatus;
+          const ride = data?.data ?? data;
+          const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
           if (!status) return;
           setRideState((prev) => {
-            const updatedDriver: DriverInfo | null = data.driver
+            const updatedDriver: DriverInfo | null = ride.driver
               ? {
-                  name: data.driver.name ?? prev.driver?.name ?? 'Driver',
-                  phone: data.driver.phone ?? prev.driver?.phone ?? '',
-                  vehicle: data.driver.vehicle ?? prev.driver?.vehicle ?? '',
-                  vehicleColor: data.driver.vehicleColor ?? data.driver.vehicle_color ?? prev.driver?.vehicleColor,
-                  plateNumber: data.driver.plateNumber ?? data.driver.plate_number ?? prev.driver?.plateNumber,
-                  rating: data.driver.rating ?? prev.driver?.rating ?? 4.8,
-                  eta: data.eta ?? data.driver.eta ?? prev.driver?.eta ?? 5,
+                  name: ride.driver.name ?? prev.driver?.name ?? 'Driver',
+                  phone: ride.driver.phone ?? prev.driver?.phone ?? '',
+                  vehicle: ride.driver.vehicle ?? prev.driver?.vehicle ?? '',
+                  vehicleColor: ride.driver.vehicleColor ?? ride.driver.vehicle_color ?? prev.driver?.vehicleColor,
+                  plateNumber: ride.driver.plateNumber ?? ride.driver.plate_number ?? prev.driver?.plateNumber,
+                  rating: ride.driver.rating ?? prev.driver?.rating ?? 4.8,
+                  eta: ride.eta ?? ride.driver.eta ?? prev.driver?.eta ?? 5,
                 }
               : prev.driver;
-            const updatedFare = data.fare ?? data.finalPrice ?? prev.fare;
+            const updatedFare = ride.fare ?? ride.finalPrice ?? prev.fare;
             return { ...prev, status, driver: updatedDriver, fare: updatedFare };
           });
           if (TERMINAL_STATUSES.includes(status)) cleanup();
@@ -529,7 +547,7 @@ export function useRide(): UseRideResult {
       if (!ride?.id) return null;
 
       const rideId = String(ride.id);
-      const status: RideStatus = ride.status ?? ride.rideStatus;
+      const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
       if (!status || TERMINAL_STATUSES.includes(status)) return null;
 
       const driver: DriverInfo | null = ride.driver

@@ -71,7 +71,7 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error) => {
     const status = error.response?.status;
-    const reason = error.response?.data?.reason ?? error.response?.data?.code ?? '';
+    const reason = error.response?.data?.reason ?? error.response?.data?.code ?? error.response?.data?.error ?? '';
     const originalRequest = error.config;
 
     // Fix 8: Account suspended — block navigation entirely
@@ -99,6 +99,10 @@ api.interceptors.response.use(
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
         const newAccessToken = data.accessToken ?? data.access_token ?? data.token;
         await setToken(TOKEN_KEY, newAccessToken);
+        const newRefreshToken = data.refreshToken ?? data.refresh_token;
+        if (newRefreshToken) {
+          await setToken(REFRESH_KEY, newRefreshToken);
+        }
         refreshQueue.forEach((cb) => cb(newAccessToken));
         refreshQueue = [];
         if (_socketReconnect) { _socketReconnect().catch(() => {}); }

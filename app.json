@@ -12,21 +12,13 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.veego.app",
-      "config": {
-        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-      }
+      "bundleIdentifier": "com.veego.app"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#f8f8fb"
       },
-      "package": "com.veego.app",
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-        }
-      }
+      "package": "com.veego.app"
     },
     "plugins": [
       "expo-router",

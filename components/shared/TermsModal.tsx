@@ -18,12 +18,12 @@ export interface TermsData {
 }
 
 export async function fetchPassengerTerms(): Promise<TermsData> {
-  const { data } = await api.get('/api/terms/passenger');
+  const { data } = await api.get('/terms/passenger');
   return data as TermsData;
 }
 
 export async function acceptTerms(version: number): Promise<void> {
-  await api.post('/api/terms/accept', { app: 'passenger', version });
+  await api.post('/terms/accept', { app: 'passenger', version });
   await storeAcceptedVersion(version);
 }
 

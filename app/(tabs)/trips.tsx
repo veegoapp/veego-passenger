@@ -185,7 +185,7 @@ export default function TripsScreen() {
     getSocket().then((socket) => {
       if (cleanedUp) return;
 
-      tripIds.forEach((tid) => socket.emit('join:trip', { tripId: tid }));
+      tripIds.forEach((tid) => socket.emit('join:trip', { tripId: Number(tid) }));
 
       const statusHandler = (payload: {
         tripId: string | number;
@@ -215,7 +215,7 @@ export default function TripsScreen() {
 
       // Re-join trip rooms after socket reconnects
       const reconnectHandler = () => {
-        tripIds.forEach((tid) => socket.emit('join:trip', { tripId: tid }));
+        tripIds.forEach((tid) => socket.emit('join:trip', { tripId: Number(tid) }));
       };
 
       socket.on('shuttle:trip:status', statusHandler);

@@ -996,7 +996,9 @@ export default function ProfileScreen() {
       const compressed = await compressImageForUpload(asset.uri);
       const form = new FormData();
       form.append('avatar', { uri: compressed.uri, name: compressed.name, type: compressed.type } as any);
-      const { data: uploadData } = await api.post('/users/me/avatar', form);
+      const { data: uploadData } = await api.post('/users/me/avatar', form, {
+        headers: { 'Content-Type': undefined },
+      });
       if (uploadData?.avatarUrl) setAvatarUri(uploadData.avatarUrl);
     } catch {
       setAvatarUri(prevUri);
@@ -1190,7 +1192,7 @@ export default function ProfileScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             Alert.alert(t('sign_out'), t('sign_out_q'), [
               { text: t('cancel'), style: 'cancel' },
-              { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {} emitAuthEvent('auth:logout'); try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {} router.replace('/auth'); } },
+              { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await api.post('/auth/logout'); } catch {} try { await AsyncStorage.removeItem('@veego_session_v1'); } catch {} emitAuthEvent('auth:logout'); try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {} router.replace('/auth'); } },
             ]);
           }}
         >

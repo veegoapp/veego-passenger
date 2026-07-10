@@ -60,7 +60,7 @@ async function flushOfflineSnapshots(): Promise<void> {
 
   try {
     const batch = pending.slice(0, MAX_BATCH_SIZE);
-    await api.post('/api/tracking/locations/batch', { locations: batch });
+    await api.post('/tracking/locations/batch', { locations: batch });
     // Purge immediately after successful upload
     await savePendingSnapshots([]);
   } catch (err) {
@@ -73,7 +73,7 @@ async function flushOfflineSnapshots(): Promise<void> {
 }
 
 async function sendSnapshot(snapshot: LocationSnapshot): Promise<void> {
-  await api.post('/api/tracking/location', snapshot);
+  await api.post('/tracking/location', snapshot);
 }
 
 async function getCurrentLocation(): Promise<{
