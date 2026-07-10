@@ -68,7 +68,7 @@ export async function fetchGoogleRoute(
     : undefined;
 
   try {
-    const { data: raw } = await api.get('/api/directions', {
+    const { data: raw } = await api.get('/directions', {
       params: {
         origin:      originStr,
         destination: destStr,
