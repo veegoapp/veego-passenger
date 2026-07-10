@@ -71,7 +71,7 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error) => {
     const status = error.response?.status;
-    const reason = error.response?.data?.reason ?? error.response?.data?.code ?? '';
+    const reason = error.response?.data?.reason ?? error.response?.data?.code ?? error.response?.data?.error ?? '';
     const originalRequest = error.config;
 
     // Fix 8: Account suspended — block navigation entirely
