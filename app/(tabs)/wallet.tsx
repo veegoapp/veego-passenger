@@ -88,7 +88,8 @@ export default function WalletScreen() {
 
   const { balance, spent, transactions, recharge } = useWallet();
   const { debt } = useMyDebt();
-  const { walletFeature } = usePaymentConfig();
+  const { walletFeature, paymentMethods } = usePaymentConfig();
+  const paymobEnabled = paymentMethods.some((m) => m.key === 'paymob');
   const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
 
   const handleConfirmCharge = async () => {
@@ -282,6 +283,20 @@ export default function WalletScreen() {
                 <Text style={styles.pmBadgeText}>{t('active')}</Text>
               </View>
             </View>
+            {!paymobEnabled && (
+              <View style={[styles.pmCard, { opacity: 0.6 }]}>
+                <View style={styles.pmIconBox}>
+                  <CreditCard size={20} color={c.inkSoft} />
+                </View>
+                <View style={styles.pmMeta}>
+                  <Text style={styles.pmName}>{t('payment_methods_online')}</Text>
+                  <Text style={styles.pmSub}>{t('payment_cards_soon')}</Text>
+                </View>
+                <View style={[styles.pmBadge, { backgroundColor: 'rgba(148,163,184,0.18)' }]}>
+                  <Text style={[styles.pmBadgeText, { color: c.inkSoft }]}>{t('soon')}</Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
