@@ -99,6 +99,10 @@ api.interceptors.response.use(
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
         const newAccessToken = data.accessToken ?? data.access_token ?? data.token;
         await setToken(TOKEN_KEY, newAccessToken);
+        const newRefreshToken = data.refreshToken ?? data.refresh_token;
+        if (newRefreshToken) {
+          await setToken(REFRESH_KEY, newRefreshToken);
+        }
         refreshQueue.forEach((cb) => cb(newAccessToken));
         refreshQueue = [];
         if (_socketReconnect) { _socketReconnect().catch(() => {}); }
