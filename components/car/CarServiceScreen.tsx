@@ -199,8 +199,12 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
     if (!selectedRide) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const pickup  = userCoordsRef.current ?? { latitude: 30.0444, longitude: 31.2357 };
-    const dropoff = destCoords ?? { latitude: pickup.latitude + 0.01, longitude: pickup.longitude + 0.01 };
+    const pickup = userCoordsRef.current;
+    const dropoff = destCoords;
+    if (!pickup || !dropoff) {
+      Alert.alert(t('location_error'), t('location_error_msg'));
+      return;
+    }
 
     const result = await requestRide({
       type: 'car',
