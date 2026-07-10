@@ -75,6 +75,27 @@ export type RideStatus =
   | 'cancelled'
   | 'timeout';
 
+// Maps the backend's raw ride_status enum values (see rideStatusEnum in
+// lib/db/src/schema/rides.ts: requested/searching/driver_assigned/
+// driver_arrived/active/completed/cancelled) onto this app's RideStatus
+// union. Single normalization boundary — any socket payload or REST
+// response carrying a raw backend status string must pass through this
+// before being assigned to RideState.status.
+const BACKEND_TO_APP_RIDE_STATUS: Record<string, RideStatus> = {
+  requested: 'searching',
+  searching: 'searching',
+  driver_assigned: 'driver_assigned',
+  driver_arrived: 'arrived',
+  active: 'started',
+  completed: 'completed',
+  cancelled: 'cancelled',
+};
+
+export function normalizeRideStatus(raw: string | null | undefined): RideStatus | undefined {
+  if (!raw) return undefined;
+  return BACKEND_TO_APP_RIDE_STATUS[raw];
+}
+
 export interface DriverLocation {
   latitude: number;
   longitude: number;

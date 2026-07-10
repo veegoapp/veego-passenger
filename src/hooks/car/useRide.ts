@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
 import api from '../../api/client';
-import { getSocket, type RideStatus, type DriverLocation } from '../../api/socket';
+import { getSocket, type RideStatus, type DriverLocation, normalizeRideStatus } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
 
 const DriverAssignedSchema = z.object({
@@ -171,7 +171,7 @@ export function useRide(): UseRideResult {
       if (!activeRideIdRef.current) return;
       try {
         const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
-        const status: RideStatus = data.status ?? data.rideStatus;
+        const status = normalizeRideStatus(data.status ?? data.rideStatus);
         if (!status) return;
 
         setRideState((prev) => {
@@ -335,7 +335,7 @@ export function useRide(): UseRideResult {
         const parsed = RideStatusUpdateSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:status_update payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
-        const status = parsed.data.status as RideStatus;
+        const status = normalizeRideStatus(parsed.data.status);
         if (!status) return;
         setRideState((prev) => ({ ...prev, status }));
         if (TERMINAL_STATUSES.includes(status)) cleanup();
@@ -346,7 +346,7 @@ export function useRide(): UseRideResult {
         if (!parsed.success) { console.warn('[Socket] Invalid ride:status:changed payload'); return; }
         const data = parsed.data;
         if (String(data.rideId) !== String(rideId)) return;
-        const status = data.status as RideStatus;
+        const status = normalizeRideStatus(data.status);
         if (!status) return;
         setRideState((prev) => {
           const updates: Partial<RideState> = { status };
@@ -371,7 +371,7 @@ export function useRide(): UseRideResult {
             const msg = m?.message ?? '';
             updates.cancelReason = msg || (cancelledBy ? `Cancelled by ${cancelledBy}` : null);
           }
-          if ((status as string) === 'active') {
+          if (status === 'started') {
             updates.waitingChargeStatus = 'none';
             updates.waitingRatePerMinute = null;
           }
@@ -431,7 +431,7 @@ export function useRide(): UseRideResult {
         if (!activeRideIdRef.current) return;
         try {
           const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
-          const status: RideStatus = data.status ?? data.rideStatus;
+          const status = normalizeRideStatus(data.status ?? data.rideStatus);
           if (!status) return;
           setRideState((prev) => {
             const updatedDriver: DriverInfo | null = data.driver
@@ -529,7 +529,7 @@ export function useRide(): UseRideResult {
       if (!ride?.id) return null;
 
       const rideId = String(ride.id);
-      const status: RideStatus = ride.status ?? ride.rideStatus;
+      const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
       if (!status || TERMINAL_STATUSES.includes(status)) return null;
 
       const driver: DriverInfo | null = ride.driver
