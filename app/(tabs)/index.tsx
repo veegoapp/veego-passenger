@@ -215,23 +215,24 @@ export default function HomeScreen() {
     });
   };
 
-  // Nominatim geocoding suggestions when typing
+  // Geocoding suggestions when typing — proxied through the backend
+  // (GET /geocode/search) instead of calling Nominatim directly.
   useEffect(() => {
     if (!typedText || typedText.trim().length < 2) { setNominatimResults([]); return; }
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(typedText)}&limit=8&addressdetails=1`,
-          { signal: controller.signal, headers: { 'Accept-Language': language === 'ar' ? 'ar' : 'en' } }
-        );
-        const data = await res.json();
-        setNominatimResults(data.map((item: any, i: number) => ({
+        const { data } = await api.get('/geocode/search', {
+          params: { q: typedText, lang: language === 'ar' ? 'ar' : 'en' },
+          signal: controller.signal,
+        });
+        const results: any[] = Array.isArray(data?.data) ? data.data : [];
+        setNominatimResults(results.map((item: any, i: number) => ({
           id: `nom-${i}`,
-          name: item.display_name?.split(',')[0] ?? item.display_name,
-          address: item.display_name,
-          latitude: parseFloat(item.lat),
-          longitude: parseFloat(item.lon),
+          name: item.name ?? item.address,
+          address: item.address,
+          latitude: item.latitude,
+          longitude: item.longitude,
         })));
       } catch {}
     }, 400);
