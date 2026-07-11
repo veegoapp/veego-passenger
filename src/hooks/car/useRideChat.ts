@@ -45,12 +45,17 @@ export function useRideChat(tripId: string | null) {
 
     const handler = (data: any) => {
       if (String(data.rideId) !== String(tripId)) return;
+      const isDriver = data.senderRole === 'driver' || data.sender_role === 'driver' || data.isDriver === true;
+      // A ride has exactly one passenger — any non-driver message on this ride's
+      // socket event is always an echo of a message this same user already
+      // added optimistically in sendMessage(), so skip it to avoid a duplicate.
+      if (!isDriver) return;
       setMessages((prev) => [
         ...prev,
         {
           id: data.id ?? data._id ?? String(Date.now()),
           text: data.text ?? data.message ?? data.content ?? '',
-          isDriver: data.senderRole === 'driver' || data.sender_role === 'driver' || data.isDriver === true,
+          isDriver,
           time: formatTime(data.sentAt ?? data.createdAt ?? data.created_at),
         },
       ]);
