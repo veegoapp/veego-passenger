@@ -24,8 +24,8 @@ TaskManager.defineTask(
       heading: heading ?? null,
       accuracy: accuracy ?? null,
       recordedAt: new Date().toISOString(),
-      tripId: null,
-      rideId: null,
+      // tripId/rideId intentionally omitted (not sent as null) — the backend
+      // schema field is optional, not nullable.
       isOfflineSync: true,
     };
 

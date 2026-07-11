@@ -18,8 +18,10 @@ interface LocationSnapshot {
   heading: number | null;
   accuracy: number | null;
   recordedAt: string;
-  tripId: number | null;
-  rideId: string | null;
+  // Omitted entirely (not sent as null) when unavailable — the backend schema
+  // is `.optional()`, not nullable, and rideId must be numeric.
+  tripId?: number;
+  rideId?: number;
   isOfflineSync: boolean;
 }
 
@@ -132,8 +134,8 @@ export function usePassengerTracking({
       heading: coords.heading,
       accuracy: coords.accuracy,
       recordedAt: new Date().toISOString(),
-      tripId: tripIdRef.current ?? null,
-      rideId: rideIdRef.current ?? null,
+      ...(tripIdRef.current != null ? { tripId: tripIdRef.current } : {}),
+      ...(rideIdRef.current != null ? { rideId: Number(rideIdRef.current) } : {}),
       isOfflineSync: false,
     };
 
