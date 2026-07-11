@@ -164,6 +164,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     setScheduledTrips([]);
     setTripsTotal(0);
 
+    // Refresh the wallet balance whenever the trip sheet opens — this is the
+    // point where it's actually displayed (price summary / insufficient-balance
+    // gate in TripSheet). Fire-and-forget so it doesn't affect route loading.
+    fetchWalletBalance().then(setWalletBalance);
+
     try {
       const { data } = await api.get(`/shuttle/lines/${route.id}`);
 

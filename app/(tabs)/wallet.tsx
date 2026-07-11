@@ -220,7 +220,7 @@ export default function WalletScreen() {
                 {t('cash_debt')}
               </Text>
               <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark]}>
-                {t('debt_owe_msg').replace('{amount}', String(debt.amount))}
+                {t('debt_owe_msg').replace('{amount}', String(debt.debtAmount))}
               </Text>
               {debt.offenceCount > 1 && (
                 <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark, { marginTop: 4 }]}>
