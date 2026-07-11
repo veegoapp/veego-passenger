@@ -37,6 +37,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 interface TripDetail {
   id: string | number;
+  bookingId?: string | number | null;
   routeId?: number | string | null;
   status: string;
   departureIso: string;
@@ -75,6 +76,9 @@ function mapApiToDetail(b: any): TripDetail {
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
   return {
     id: trip.id ?? trip._id ?? b.id ?? b._id ?? '',
+    // Distinct from `id` above (which resolves to the trip id when available) —
+    // cancellation must target the booking's own id, not the trip's.
+    bookingId: b.id ?? b._id ?? null,
     routeId: trip.routeId ?? trip.route_id ?? route.id ?? null,
     status: (b.status ?? trip.shuttleStatus ?? trip.shuttle_status ?? trip.status ?? '').toLowerCase(),
     departureIso,
@@ -480,11 +484,14 @@ export default function TripDetailScreen() {
 
   const doCancel = async () => {
     if (!id) return;
-    setCancellingId(String(id));
+    // The DELETE endpoint expects the booking's own id, not the trip id carried
+    // in the `id` route param — fall back to `id` only if it wasn't captured.
+    const targetBookingId = trip?.bookingId ?? id;
+    setCancellingId(String(targetBookingId));
     try {
       // §11.4, §21.3: DELETE /shuttle/bookings/:id — preferred self-cancel with 12h refund policy
       // Replaces deprecated PATCH /bookings/:id/cancel
-      const result = await cancelBooking(id);
+      const result = await cancelBooking(targetBookingId);
       if (result?.refunded === false) {
         Alert.alert(
           t('booking_cancelled_title'),

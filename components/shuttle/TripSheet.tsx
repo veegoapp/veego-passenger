@@ -459,7 +459,7 @@ export function TripSheet() {
 
   const pricePerSeat = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, 1) : route.price;
   const total = pricePerSeat * seatCount;
-  const seatsOk = seatCount >= 1 && seatCount <= selectedTripSeats;
+  const seatsOk = seatCount >= 1 && seatCount <= Math.min(2, selectedTripSeats);
   const valid = hasPath && safeFrom !== safeTo && !routeLoading && visibleTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled && seatsOk;
   const walletLow = walletBalance !== null && walletBalance < total;
 
@@ -862,9 +862,9 @@ export function TripSheet() {
                 <Text style={styles.seatMax}>{t('seats_left').replace(/\d+/, String(selectedTripSeats))}: {selectedTripSeats}</Text>
               </View>
               <TouchableOpacity
-                style={[styles.seatBtn, seatCount >= selectedTripSeats && styles.seatBtnDisabled]}
-                disabled={seatCount >= selectedTripSeats}
-                onPress={() => { setSeatCount(Math.min(selectedTripSeats, seatCount + 1)); Haptics.selectionAsync(); }}
+                style={[styles.seatBtn, seatCount >= Math.min(2, selectedTripSeats) && styles.seatBtnDisabled]}
+                disabled={seatCount >= Math.min(2, selectedTripSeats)}
+                onPress={() => { setSeatCount(Math.min(2, selectedTripSeats, seatCount + 1)); Haptics.selectionAsync(); }}
                 activeOpacity={0.7}
               >
                 <Plus size={16} color={c.ink} />

@@ -253,7 +253,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Client-side guard only — server must enforce seat count limits
-    if (!seatCount || seatCount < 1 || seatCount > 10 || !Number.isInteger(seatCount)) {
+    if (!seatCount || seatCount < 1 || seatCount > 2 || !Number.isInteger(seatCount)) {
       Alert.alert('Error', 'Invalid seat count');
       setActiveBooking(null);
       confirmingRef.current = false;
