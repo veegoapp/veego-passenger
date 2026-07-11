@@ -85,7 +85,6 @@ interface UseWalletResult {
   loading: boolean;
   error: string | null;
   refresh: () => void;
-  recharge: (amount: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 export function useWallet(): UseWalletResult {
@@ -135,20 +134,5 @@ export function useWallet(): UseWalletResult {
     fetchWallet();
   }, [fetchWallet]);
 
-  const recharge = useCallback(async (amount: number, paymentMethod: string = 'wallet') => {
-    try {
-      await api.post('/wallet/topup', { amount, paymentMethod });
-      await fetchWallet();
-      return { success: true };
-    } catch (e: any) {
-      const error =
-        e?.response?.data?.error ??
-        e?.response?.data?.message ??
-        e?.message ??
-        'Top-up failed';
-      return { success: false, error };
-    }
-  }, [fetchWallet]);
-
-  return { balance, spent, transactions, loading, error, refresh: fetchWallet, recharge };
+  return { balance, spent, transactions, loading, error, refresh: fetchWallet };
 }

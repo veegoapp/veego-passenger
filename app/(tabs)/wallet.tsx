@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  Alert } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,8 @@ import { ThemeColors, S } from '@/constants/colors';
 import { useWallet } from '@/src/hooks/shared/useWallet';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
+import { useWalletRecharge } from '@/src/hooks/shared/useWalletRecharge';
+import { PaymobCheckoutModal } from '@/components/wallet/PaymobCheckoutModal';
 
 const CHARGE_OPTIONS = [50, 100, 200, 500];
 
@@ -75,6 +77,13 @@ function makeStyles(c: ThemeColors) {
     debtBannerTitleDark: { color: '#fcd34d' },
     debtBannerBody: { fontSize: 12.5, color: '#78350f', lineHeight: 18 },
     debtBannerBodyDark: { color: '#fde68a' },
+    rechargeStatusBanner: {
+      marginHorizontal: 20, marginTop: 4, marginBottom: 16, borderRadius: 18,
+      paddingHorizontal: 16, paddingVertical: 14,
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: c.white,
+    },
+    rechargeStatusText: { flex: 1, fontSize: 13, color: c.inkSoft, lineHeight: 18 },
   });
 }
 
@@ -86,24 +95,53 @@ export default function WalletScreen() {
   const [selectedCharge, setSelectedCharge] = useState<number | null>(null);
   const isAr = language === 'ar';
 
-  const { balance, spent, transactions, recharge } = useWallet();
+  const { balance, spent, transactions, refresh: refreshWallet } = useWallet();
   const { debt } = useMyDebt();
   const { walletFeature, paymentMethods } = usePaymentConfig();
   const paymobEnabled = paymentMethods.some((m) => m.key === 'paymob');
   const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
 
-  const handleConfirmCharge = async () => {
-    if (!selectedCharge) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const result = await recharge(selectedCharge);
-    setSelectedCharge(null);
-    Alert.alert(
-      t('recharged_title'),
-      t('recharged_body').replace('{amount}', String(selectedCharge)),
-    );
-    if (!result.success) {
-      console.warn('[Wallet] Recharge API error:', result.error);
+  const recharge = useWalletRecharge();
+  const rechargeBusy = recharge.status !== 'idle';
+
+  // Reacts to the Paymob checkout outcome exactly once per attempt. The
+  // "Recharged!" alert only ever fires from the 'confirmed' branch, which is
+  // reached solely via useWalletRecharge polling GET /wallet after checkout —
+  // never immediately on submit and never on the checkout redirect alone.
+  useEffect(() => {
+    if (recharge.status === 'confirmed') {
+      refreshWallet();
+      Alert.alert(
+        t('recharged_title'),
+        t('recharged_body').replace('{amount}', String(recharge.amountEGP ?? '')),
+      );
+      recharge.reset();
+    } else if (recharge.status === 'failed') {
+      // errorMessage is only set when session creation itself failed (e.g.
+      // Paymob disabled, network error) — a checkout that opened and was
+      // then declined/failed by Paymob carries no errorMessage here.
+      if (recharge.errorMessage) {
+        Alert.alert(t('recharge_start_error_title'), recharge.errorMessage);
+      } else {
+        Alert.alert(t('recharge_failed_title'), t('recharge_failed_body'));
+      }
+      recharge.reset();
+    } else if (recharge.status === 'cancelled') {
+      Alert.alert(t('recharge_cancelled_title'), t('recharge_cancelled_body'));
+      recharge.reset();
+    } else if (recharge.status === 'timeout') {
+      refreshWallet();
+      Alert.alert(t('recharge_timeout_title'), t('recharge_timeout_body'));
+      recharge.reset();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recharge.status]);
+
+  const handleConfirmCharge = () => {
+    if (!selectedCharge || rechargeBusy) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    recharge.startRecharge(selectedCharge);
+    setSelectedCharge(null);
   };
 
   const handleTransfer = () => {
@@ -195,8 +233,9 @@ export default function WalletScreen() {
 
         <View style={styles.actionRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: c.ink }]}
+            style={[styles.actionBtn, { backgroundColor: c.ink, opacity: rechargeBusy ? 0.7 : 1 }]}
             activeOpacity={0.85}
+            disabled={rechargeBusy}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               if (!selectedCharge) {
@@ -206,7 +245,11 @@ export default function WalletScreen() {
               }
             }}
           >
-            <Plus size={20} color={c.isDark ? c.background : c.white} />
+            {rechargeBusy ? (
+              <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+            ) : (
+              <Plus size={20} color={c.isDark ? c.background : c.white} />
+            )}
             <Text style={[styles.actionBtnText, { color: c.isDark ? c.background : c.white }]}>{t('recharge')}</Text>
           </TouchableOpacity>
           <View style={{ flex: 1, gap: 4 }}>
@@ -232,6 +275,15 @@ export default function WalletScreen() {
             <Text style={[styles.actionBtnText, { color: '#55c49a' }]}>{t('promo_title')}</Text>
           </TouchableOpacity>
         </View>
+
+        {(recharge.status === 'initiating' || recharge.status === 'confirming') && (
+          <View style={[gs, styles.rechargeStatusBanner]}>
+            <ActivityIndicator size="small" color={c.ink} />
+            <Text style={styles.rechargeStatusText}>
+              {recharge.status === 'initiating' ? t('recharge_starting') : t('recharge_confirming_body')}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('quick_recharge')}</Text>
@@ -321,6 +373,13 @@ export default function WalletScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <PaymobCheckoutModal
+        visible={recharge.status === 'checkout'}
+        iframeUrl={recharge.iframeUrl}
+        merchantOrderId={recharge.merchantOrderId}
+        onClose={recharge.handleCheckoutClose}
+      />
     </LinearGradient>
   );
 }
