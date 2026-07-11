@@ -17,9 +17,9 @@ function formatTime(dateStr?: string): string {
 function normalizeMessages(raw: any[]): ChatMessage[] {
   return raw.map((m, i) => ({
     id: m.id ?? m._id ?? String(i),
-    text: m.message ?? m.text ?? m.content ?? '',
+    text: m.text ?? m.message ?? m.content ?? '',
     isDriver: m.senderRole === 'driver' || m.sender_role === 'driver' || m.isDriver === true,
-    time: formatTime(m.createdAt ?? m.created_at),
+    time: formatTime(m.sentAt ?? m.createdAt ?? m.created_at),
   }));
 }
 
@@ -30,10 +30,10 @@ export function useRideChat(tripId: string | null) {
 
   useEffect(() => {
     if (!tripId) { setMessages([]); return; }
-    api.get(`/trips/${tripId}/chat`)
+    api.get(`/rides/${tripId}/messages`)
       .then(({ data }) => {
         const raw: any[] =
-          data?.data?.messages ?? data?.messages ?? (Array.isArray(data) ? data : []);
+          data?.data ?? data?.messages ?? (Array.isArray(data) ? data : []);
         setMessages(normalizeMessages(raw));
       })
       .catch(() => {});
@@ -44,25 +44,25 @@ export function useRideChat(tripId: string | null) {
     listenerRef.current = true;
 
     const handler = (data: any) => {
-      if (data.tripId !== tripId && data.rideId !== tripId) return;
+      if (String(data.rideId) !== String(tripId)) return;
       setMessages((prev) => [
         ...prev,
         {
           id: data.id ?? data._id ?? String(Date.now()),
-          text: data.message ?? data.text ?? data.content ?? '',
+          text: data.text ?? data.message ?? data.content ?? '',
           isDriver: data.senderRole === 'driver' || data.sender_role === 'driver' || data.isDriver === true,
-          time: formatTime(data.createdAt ?? data.created_at),
+          time: formatTime(data.sentAt ?? data.createdAt ?? data.created_at),
         },
       ]);
     };
 
     getSocket().then((socket) => {
-      socket.on('trip:chat:message', handler);
+      socket.on('ride:message:new', handler);
     }).catch(() => {});
 
     return () => {
       getSocket().then((socket) => {
-        socket.off('trip:chat:message', handler);
+        socket.off('ride:message:new', handler);
       }).catch(() => {});
       listenerRef.current = false;
     };
@@ -78,7 +78,7 @@ export function useRideChat(tripId: string | null) {
     setMessages((prev) => [...prev, { id: tempId, text: text.trim(), isDriver: false, time: timeStr }]);
 
     try {
-      await api.post(`/trips/${tripId}/chat`, { message: text.trim() });
+      await api.post(`/rides/${tripId}/messages`, { text: text.trim() });
       return true;
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));

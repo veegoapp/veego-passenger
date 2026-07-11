@@ -206,9 +206,23 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
       return;
     }
 
+    // Backend requires a non-empty pickupAddress — reverse-geocode the pickup
+    // coordinates, falling back to a coordinate string if that fails.
+    let pickupAddress = '';
+    try {
+      const results = await Location.reverseGeocodeAsync(pickup);
+      if (results.length > 0) {
+        const r = results[0];
+        pickupAddress = [r.name, r.street, r.city].filter(Boolean).join(', ');
+      }
+    } catch {}
+    if (!pickupAddress) {
+      pickupAddress = `${pickup.latitude.toFixed(5)}, ${pickup.longitude.toFixed(5)}`;
+    }
+
     const result = await requestRide({
       type: 'car',
-      pickup:  { ...pickup,  address: '' },
+      pickup:  { ...pickup,  address: pickupAddress },
       dropoff: { ...dropoff, address: destination ?? '' },
       notes: selectedRide,
     });
