@@ -14,7 +14,7 @@ import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useTrips } from '@/src/hooks/shared/useTrips';
-import api from '@/src/api/client';
+import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 
@@ -269,7 +269,9 @@ export default function TripsScreen() {
 
     const anim = getFadeAnim(bookingId);
     try {
-      await api.patch(`/bookings/${bookingId}/cancel`, reason ? { reason } : undefined);
+      // §11.4, §21.3: DELETE /shuttle/bookings/:id — preferred self-cancel
+      // endpoint, replaces the deprecated PATCH /bookings/:id/cancel.
+      await cancelBooking(bookingId);
       Animated.timing(anim, {
         toValue: 0,
         duration: 320,

@@ -98,7 +98,9 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
   }
 
   if (category === 'ride') {
-    router.push('/(tabs)/car' as any);
+    // The car flow lives on the home tab (CarServiceScreen), not a
+    // standalone /(tabs)/car route.
+    router.push('/(tabs)' as any);
     return;
   }
 

@@ -52,7 +52,7 @@ async function checkAuthAndNavigate() {
       if (!refreshed) {
         await tokenStore.removeToken(tokenStore.TOKEN_KEY);
         await tokenStore.removeToken(tokenStore.REFRESH_KEY);
-        await AsyncStorage.removeItem(SESSION_KEY);
+        await SecureStore.deleteItemAsync(SESSION_KEY);
         router.replace('/onboarding');
         return;
       }
@@ -76,7 +76,7 @@ export function useAuthOnResume() {
           if (!refreshed) {
             await tokenStore.removeToken(tokenStore.TOKEN_KEY);
             await tokenStore.removeToken(tokenStore.REFRESH_KEY);
-            await AsyncStorage.removeItem(SESSION_KEY);
+            await SecureStore.deleteItemAsync(SESSION_KEY);
             router.replace('/onboarding');
           }
         }

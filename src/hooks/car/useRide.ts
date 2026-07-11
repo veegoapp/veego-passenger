@@ -118,6 +118,29 @@ export interface ResumedRide {
   pickupAddress?: string;
 }
 
+/**
+ * Normalizes a raw `ride.driver` object (from a REST ride payload) into
+ * DriverInfo, merging against `fallback` (typically the previous driver
+ * state) field-by-field so a partial update never blanks out already-known
+ * details. Returns `fallback` unchanged when the ride has no driver data.
+ */
+function mapDriverFromRide(
+  rideDriver: any,
+  topLevelEta: number | undefined,
+  fallback: DriverInfo | null,
+): DriverInfo | null {
+  if (!rideDriver) return fallback;
+  return {
+    name: rideDriver.name ?? fallback?.name ?? 'Driver',
+    phone: rideDriver.phone ?? fallback?.phone ?? '',
+    vehicle: rideDriver.vehicle ?? fallback?.vehicle ?? '',
+    vehicleColor: rideDriver.vehicleColor ?? rideDriver.vehicle_color ?? fallback?.vehicleColor,
+    plateNumber: rideDriver.plateNumber ?? rideDriver.plate_number ?? fallback?.plateNumber,
+    rating: rideDriver.rating ?? fallback?.rating ?? 4.8,
+    eta: topLevelEta ?? rideDriver.eta ?? fallback?.eta ?? 5,
+  };
+}
+
 interface UseRideResult {
   rideState: RideState;
   requesting: boolean;
@@ -181,17 +204,7 @@ export function useRide(): UseRideResult {
         if (!status) return;
 
         setRideState((prev) => {
-          const updatedDriver: DriverInfo | null = ride.driver
-            ? {
-                name: ride.driver.name ?? prev.driver?.name ?? 'Driver',
-                phone: ride.driver.phone ?? prev.driver?.phone ?? '',
-                vehicle: ride.driver.vehicle ?? prev.driver?.vehicle ?? '',
-                vehicleColor: ride.driver.vehicleColor ?? ride.driver.vehicle_color ?? prev.driver?.vehicleColor,
-                plateNumber: ride.driver.plateNumber ?? ride.driver.plate_number ?? prev.driver?.plateNumber,
-                rating: ride.driver.rating ?? prev.driver?.rating ?? 4.8,
-                eta: ride.eta ?? ride.driver.eta ?? prev.driver?.eta ?? 5,
-              }
-            : prev.driver;
+          const updatedDriver = mapDriverFromRide(ride.driver, ride.eta, prev.driver);
 
           const updatedLocation: DriverLocation | null =
             ride.driverLocation ?? ride.driver_location ?? prev.driverLocation;
@@ -452,17 +465,7 @@ export function useRide(): UseRideResult {
           const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
           if (!status) return;
           setRideState((prev) => {
-            const updatedDriver: DriverInfo | null = ride.driver
-              ? {
-                  name: ride.driver.name ?? prev.driver?.name ?? 'Driver',
-                  phone: ride.driver.phone ?? prev.driver?.phone ?? '',
-                  vehicle: ride.driver.vehicle ?? prev.driver?.vehicle ?? '',
-                  vehicleColor: ride.driver.vehicleColor ?? ride.driver.vehicle_color ?? prev.driver?.vehicleColor,
-                  plateNumber: ride.driver.plateNumber ?? ride.driver.plate_number ?? prev.driver?.plateNumber,
-                  rating: ride.driver.rating ?? prev.driver?.rating ?? 4.8,
-                  eta: ride.eta ?? ride.driver.eta ?? prev.driver?.eta ?? 5,
-                }
-              : prev.driver;
+            const updatedDriver = mapDriverFromRide(ride.driver, ride.eta, prev.driver);
             const updatedFare = ride.fare ?? ride.finalPrice ?? prev.fare;
             return { ...prev, status, driver: updatedDriver, fare: updatedFare };
           });
@@ -550,17 +553,7 @@ export function useRide(): UseRideResult {
       const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
       if (!status || TERMINAL_STATUSES.includes(status)) return null;
 
-      const driver: DriverInfo | null = ride.driver
-        ? {
-            name: ride.driver.name ?? 'Driver',
-            phone: ride.driver.phone ?? '',
-            vehicle: ride.driver.vehicle ?? '',
-            vehicleColor: ride.driver.vehicleColor ?? ride.driver.vehicle_color,
-            plateNumber: ride.driver.plateNumber ?? ride.driver.plate_number,
-            rating: ride.driver.rating ?? 4.8,
-            eta: ride.eta ?? ride.driver.eta ?? 5,
-          }
-        : null;
+      const driver = mapDriverFromRide(ride.driver, ride.eta, null);
 
       activeRideIdRef.current = rideId;
       setRideState((prev) => ({

@@ -158,11 +158,6 @@ export type Notification = {
   unread?: boolean;
 };
 
-// ── Static placeholders (kept for backwards compat) ──────────────
-
-export const stations: Station[] = [];
-export const routes: Route[] = [];
-
 // ── Date helpers ─────────────────────────────────────────────────
 
 /** 7-day date selector used in booking UI */
@@ -181,8 +176,6 @@ export const DATES = (() => {
   }
   return result;
 })();
-
-export const TIMES = ['08:45', '09:15', '09:45', '10:15', '10:45', '11:15'];
 
 // ── Capacity constants (§4) ───────────────────────────────────────
 

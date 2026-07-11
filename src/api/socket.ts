@@ -40,7 +40,7 @@ export async function getSocket(): Promise<Socket> {
   });
 
   socket.on('connect_error', (err) => {
-    console.warn('[Socket] connection error:', err.message);
+    if (__DEV__) console.warn('[Socket] connection error:', err.message);
   });
 
   return socket;

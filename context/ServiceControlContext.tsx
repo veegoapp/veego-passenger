@@ -98,9 +98,9 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
 
     getSocket().then((sock) => {
       sock.on('service:control:changed', applyUpdate);
-      console.log('[ServiceControl] socket authenticated successfully');
+      if (__DEV__) console.log('[ServiceControl] socket authenticated successfully');
     }).catch((e) => {
-      console.warn('[ServiceControl] socket listener setup failed:', e?.message ?? e);
+      if (__DEV__) console.warn('[ServiceControl] socket listener setup failed:', e?.message ?? e);
     });
   }
 
@@ -112,14 +112,14 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
       sock.off('service:control:changed', applyUpdate);
     }).catch(() => {});
     disconnectSocket();
-    console.log('[ServiceControl] socket disconnected');
+    if (__DEV__) console.log('[ServiceControl] socket disconnected');
   }
 
   // ── Fetch with exponential-backoff retry ──────────────────────────────────
   async function loadWithRetry(attempt = 0): Promise<void> {
     if (!isMounted.current) return;
 
-    if (attempt === 0) {
+    if (attempt === 0 && __DEV__) {
       console.log('[ServiceControl] service control fetch started');
     }
 
@@ -131,7 +131,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
       const map: ServiceControlMap = {};
       (raw as ServiceControl[]).forEach((svc) => { map[svc.serviceType] = svc; });
       setServices(map);
-      console.log(`[ServiceControl] service control fetch succeeded — ${raw.length} service(s) loaded`);
+      if (__DEV__) console.log(`[ServiceControl] service control fetch succeeded — ${raw.length} service(s) loaded`);
 
       if (isMounted.current) {
         setIsLoading(false);
@@ -143,10 +143,10 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
 
       if (attempt < 3) {
         const delay = 2000 * Math.pow(2, attempt);
-        console.warn(`[ServiceControl] fetch failed (attempt ${attempt + 1}/4), retrying in ${delay}ms…`);
+        if (__DEV__) console.warn(`[ServiceControl] fetch failed (attempt ${attempt + 1}/4), retrying in ${delay}ms…`);
         setTimeout(() => { if (isMounted.current) loadWithRetry(attempt + 1); }, delay);
       } else {
-        console.warn('[ServiceControl] failed to load service statuses after 4 attempts:', e?.message ?? e);
+        if (__DEV__) console.warn('[ServiceControl] failed to load service statuses after 4 attempts:', e?.message ?? e);
         if (isMounted.current) {
           setIsLoading(false);
           isInitializing.current = false;
@@ -169,7 +169,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     detachSocket();
     setServices({});
     isInitializing.current = false;
-    console.log('[ServiceControl] service control cleared on logout');
+    if (__DEV__) console.log('[ServiceControl] service control cleared on logout');
   }
 
   // ── Mount: check for existing token; subscribe to auth events ────────────
@@ -180,22 +180,22 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     tokenStore.getToken(tokenStore.TOKEN_KEY).then((token) => {
       if (!isMounted.current) return;
       if (token) {
-        console.log('[ServiceControl] token detected on mount, initializing…');
+        if (__DEV__) console.log('[ServiceControl] token detected on mount, initializing…');
         initServiceControl();
       } else {
-        console.log('[ServiceControl] no token on mount, waiting for authentication…');
+        if (__DEV__) console.log('[ServiceControl] no token on mount, waiting for authentication…');
       }
     }).catch(() => {});
 
     const unsubLogin = onAuthEvent('auth:login', () => {
       if (!isMounted.current) return;
-      console.log('[ServiceControl] auth:login received, initializing service control…');
+      if (__DEV__) console.log('[ServiceControl] auth:login received, initializing service control…');
       initServiceControl();
     });
 
     const unsubLogout = onAuthEvent('auth:logout', () => {
       if (!isMounted.current) return;
-      console.log('[ServiceControl] auth:logout received, clearing service control…');
+      if (__DEV__) console.log('[ServiceControl] auth:logout received, clearing service control…');
       resetServiceControl();
     });
 
@@ -221,7 +221,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
       tokenStore.getToken(tokenStore.TOKEN_KEY).then((token) => {
         if (!token || !isMounted.current || isRefreshing || isInitializing.current) return;
         isRefreshing = true;
-        console.log('[ServiceControl] app foregrounded — refreshing state');
+        if (__DEV__) console.log('[ServiceControl] app foregrounded — refreshing state');
 
         api.get('/services/control', { timeout: 10_000 })
           .then(({ data }) => {
@@ -230,7 +230,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
             const map: ServiceControlMap = {};
             (raw as ServiceControl[]).forEach((svc) => { map[svc.serviceType] = svc; });
             setServices(map);
-            console.log('[ServiceControl] foreground refresh completed');
+            if (__DEV__) console.log('[ServiceControl] foreground refresh completed');
           })
           .catch(() => {})
           .finally(() => { isRefreshing = false; });
@@ -293,7 +293,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     }
 
     // Unknown displayMode — fail closed
-    console.warn(`[ServiceControl] unknown displayMode "${mode}" for ${type} — blocking tap`);
+    if (__DEV__) console.warn(`[ServiceControl] unknown displayMode "${mode}" for ${type} — blocking tap`);
   }, [services, isServiceVisibleForZone]);
 
   const value = useMemo(
