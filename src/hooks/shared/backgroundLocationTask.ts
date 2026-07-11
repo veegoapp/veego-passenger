@@ -20,12 +20,13 @@ TaskManager.defineTask(
       entityType: 'passenger' as const,
       latitude,
       longitude,
-      speed: speed ?? null,
-      heading: heading ?? null,
-      accuracy: accuracy ?? null,
+      // speed/heading/accuracy/tripId/rideId intentionally omitted (not sent
+      // as null) when unavailable — the backend schema field is optional,
+      // not nullable.
+      ...(speed != null ? { speed } : {}),
+      ...(heading != null ? { heading } : {}),
+      ...(accuracy != null ? { accuracy } : {}),
       recordedAt: new Date().toISOString(),
-      // tripId/rideId intentionally omitted (not sent as null) — the backend
-      // schema field is optional, not nullable.
       isOfflineSync: true,
     };
 

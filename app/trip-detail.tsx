@@ -209,6 +209,7 @@ export default function TripDetailScreen() {
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
 
   const tripIdRef = useRef<string | number | null>(null);
+  const bookingIdRef = useRef<string | number | null>(null);
 
   const fetchTrip = useCallback(async () => {
     if (!id) { setError(t('trip_id_missing')); setLoading(false); return; }
@@ -267,6 +268,7 @@ export default function TripDetailScreen() {
           return detail;
         });
         tripIdRef.current = detail.id;
+        bookingIdRef.current = detail.bookingId ?? null;
       } else {
         setError(t('trip_load_error'));
       }
@@ -369,10 +371,12 @@ export default function TripDetailScreen() {
         }
       };
 
-      // Boarding confirmation — fired on passenger:{userId} room, but also arrives on trip room
+      // Boarding confirmation — fired on passenger:{userId} room, but also arrives on trip room.
+      // The event carries the booking's own id, not the trip id in `id` — compare
+      // against the booking id captured when this screen loaded the trip.
       const boardedHandler = (data: { bookingId?: string | number }) => {
-        if (!data.bookingId) return;
-        if (String(data.bookingId) !== String(id)) return;
+        if (!data.bookingId || bookingIdRef.current == null) return;
+        if (String(data.bookingId) !== String(bookingIdRef.current)) return;
         setBoarded(true);
       };
 

@@ -14,12 +14,13 @@ interface LocationSnapshot {
   entityType: 'passenger';
   latitude: number;
   longitude: number;
-  speed: number | null;
-  heading: number | null;
-  accuracy: number | null;
+  // speed/heading/accuracy/tripId/rideId are all omitted entirely (not sent
+  // as null) when unavailable — the backend schema is `.optional()`, not
+  // nullable, and rideId must be numeric.
+  speed?: number;
+  heading?: number;
+  accuracy?: number;
   recordedAt: string;
-  // Omitted entirely (not sent as null) when unavailable — the backend schema
-  // is `.optional()`, not nullable, and rideId must be numeric.
   tripId?: number;
   rideId?: number;
   isOfflineSync: boolean;
@@ -130,9 +131,9 @@ export function usePassengerTracking({
       entityType: 'passenger',
       latitude: coords.latitude,
       longitude: coords.longitude,
-      speed: coords.speed,
-      heading: coords.heading,
-      accuracy: coords.accuracy,
+      ...(coords.speed != null ? { speed: coords.speed } : {}),
+      ...(coords.heading != null ? { heading: coords.heading } : {}),
+      ...(coords.accuracy != null ? { accuracy: coords.accuracy } : {}),
       recordedAt: new Date().toISOString(),
       ...(tripIdRef.current != null ? { tripId: tripIdRef.current } : {}),
       ...(rideIdRef.current != null ? { rideId: Number(rideIdRef.current) } : {}),
