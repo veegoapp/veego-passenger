@@ -32,6 +32,8 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
   const tabOffsets = useRef<number[]>([]);
   const pillX = useRef(new Animated.Value(0)).current;
   const pillW = useRef(new Animated.Value(0)).current;
+  // Native-driven "pop" applied to the newly-active tab's icon only.
+  const iconScale = useRef(new Animated.Value(1)).current;
   const [pillReady, setPillReady] = useState(false);
 
   // ── Label cross-fade on language switch ───────────────────────────────────
@@ -67,8 +69,16 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
     const x = tabOffsets.current[index];
     const w = tabWidths.current[index];
     if (x === undefined || !(w > 0)) return;
-    Animated.spring(pillX, { toValue: x, useNativeDriver: false, damping: 22, stiffness: 220, mass: 0.75 }).start();
-    Animated.spring(pillW, { toValue: w, useNativeDriver: false, damping: 22, stiffness: 220, mass: 0.75 }).start();
+    // Position runs on the native thread via `transform: translateX` (unlike `left`,
+    // translateX can be natively driven) for a jump-free, jank-free slide.
+    Animated.spring(pillX, { toValue: x, useNativeDriver: true, ...Animation.spring.tabBar }).start();
+    // Width cannot be natively driven by classic Animated; kept on the JS thread
+    // with the same spring tuning so both motions feel like one unit.
+    Animated.spring(pillW, { toValue: w, useNativeDriver: false, ...Animation.spring.tabBar }).start();
+    // Icon "pop" — the newly active tab's icon springs up from a slightly
+    // smaller scale, giving the switch a bit of premium tactile feedback.
+    iconScale.setValue(0.85);
+    Animated.spring(iconScale, { toValue: 1, useNativeDriver: true, ...Animation.spring.tabBar }).start();
   };
 
   const handleLayout = (i: number, x: number, w: number) => {
@@ -119,8 +129,8 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
                 // Dark mode: solid ink pill with light icon
                 // Light mode: subtle tinted pill with dark icon (avoids white-on-white)
                 backgroundColor: c.isDark ? c.ink : 'rgba(15,23,42,0.09)',
-                left: pillX,
                 width: pillW,
+                transform: [{ translateX: pillX }],
                 pointerEvents: 'none' as any,
               },
             ]}
@@ -166,12 +176,17 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
               {/* labelOpacity fades icon+label together on language switch.
                   The pill sits outside this view so it stays fully opaque. */}
               <Animated.View style={[styles.navItemContent, { opacity: labelOpacity }]}>
-                <View style={{ position: 'relative' }}>
+                <Animated.View
+                  style={[
+                    { position: 'relative' },
+                    active ? { transform: [{ scale: iconScale }] } : null,
+                  ]}
+                >
                   <item.icon size={17} color={iconColor} style={{ zIndex: 2 }} />
                   {isDisabledWallet && (
                     <View style={styles.comingSoonDot} />
                   )}
-                </View>
+                </Animated.View>
                 <Text
                   style={[styles.navLabel, { color: labelColor, zIndex: 2 }]}
                   numberOfLines={1}
@@ -235,7 +250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', gap: 2,
   },
   activePill: {
-    position: 'absolute', top: 6, bottom: 6, borderRadius: 24, zIndex: 1,
+    position: 'absolute', top: 6, bottom: 6, left: 0, borderRadius: 24, zIndex: 1,
   },
   navLabel: { fontSize: 10, fontWeight: '700', lineHeight: 13 },
   comingSoonDot: {
