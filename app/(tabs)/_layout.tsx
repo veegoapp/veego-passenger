@@ -5,7 +5,7 @@ import { Home, Ticket, Heart, Wallet, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
-import { S } from '@/constants/colors';
+import { S, C } from '@/constants/colors';
 import { useTabBar } from '@/context/TabBarContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 
@@ -135,12 +135,12 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
           const iconColor = isDisabledWallet
             ? c.silver
             : active
-              ? (c.isDark ? c.background : '#0F172A')
+              ? (c.isDark ? c.background : c.ink)
               : c.inkSoft;
           const labelColor = isDisabledWallet
             ? c.silver
             : active
-              ? (c.isDark ? c.background : '#0F172A')
+              ? (c.isDark ? c.background : c.ink)
               : c.inkSoft;
           return (
             <TouchableOpacity
@@ -236,15 +236,15 @@ const styles = StyleSheet.create({
   activePill: {
     position: 'absolute', top: 6, bottom: 6, borderRadius: 24, zIndex: 1,
   },
-  navLabel: { fontSize: 10, fontWeight: '650', lineHeight: 13 },
+  navLabel: { fontSize: 10, fontWeight: '700', lineHeight: 13 },
   comingSoonDot: {
     position: 'absolute', top: -2, right: -4,
     width: 6, height: 6, borderRadius: 3,
-    backgroundColor: '#f59e0b',
+    backgroundColor: C.warning,
   },
   comingSoonBadge: {
     position: 'absolute', top: -6, right: -8,
-    backgroundColor: '#f59e0b', borderRadius: 6,
+    backgroundColor: C.warning, borderRadius: 6,
     paddingHorizontal: 4, paddingVertical: 1,
   },
   comingSoonBadgeText: { fontSize: 7, fontWeight: '700', color: '#ffffff' },

@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
 
   fieldError: {
     fontSize: 12.5,
-    color: '#dc2626',
+    color: C.error,
     marginTop: -4,
     paddingHorizontal: 4,
   },
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
     borderColor: C.accentMint,
     backgroundColor: 'rgba(85,196,154,0.06)',
   },
-  otpBoxError: { borderColor: '#dc2626' },
+  otpBoxError: { borderColor: C.error },
   otpDigit: {
     fontSize: 20,
     fontWeight: '700',
