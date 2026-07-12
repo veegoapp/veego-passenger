@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { CheckCircle, X, ArrowRight, ArrowLeft, Clock, RotateCcw } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
+import { Animation } from '@/constants/animations';
 import { submitTripRequest, TripRequestDirection } from '@/src/api/shuttleService';
 import type { Route } from '@/constants/data';
 
@@ -136,7 +137,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, { toValue: 600, duration: 260, useNativeDriver: true }),
-        Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(overlayAnim, { toValue: 0, duration: Animation.duration.fast, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);

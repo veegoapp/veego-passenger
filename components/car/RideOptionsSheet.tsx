@@ -4,6 +4,7 @@ import { MapPin, ChevronDown, Clock, Users, CheckCircle2, Car, Sparkles } from '
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { Animation } from '@/constants/animations';
 
 interface RideEstimate {
   economy: { price: number; eta: number };
@@ -39,8 +40,7 @@ export function RideOptionsSheet({
     Animated.spring(slideAnim, {
       toValue: visible ? 1 : 0,
       useNativeDriver: true,
-      damping: 22,
-      stiffness: 200,
+      ...Animation.spring.sheet,
       mass: 0.8,
     }).start();
   }, [visible]);

@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { C } from '@/constants/colors';
+import { Animation } from '@/constants/animations';
 import { IllustRoute, IllustSeat, IllustCity } from '@/components/shared/Illustrations';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -125,7 +126,7 @@ function DotItem({ active, done }: { active: boolean; done: boolean }) {
   useEffect(() => {
     Animated.parallel([
       Animated.spring(dotWidth, { toValue: active ? 22 : 6, damping: 18, useNativeDriver: false }),
-      Animated.timing(dotOpacity, { toValue: active ? 1 : done ? 0.7 : 0.4, duration: 200, useNativeDriver: false }),
+      Animated.timing(dotOpacity, { toValue: active ? 1 : done ? 0.7 : 0.4, duration: Animation.duration.fast, useNativeDriver: false }),
     ]).start();
   }, [active, done]);
 

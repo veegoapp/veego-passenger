@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Animation } from '@/constants/animations';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing, AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -102,12 +103,12 @@ export default function SplashPage() {
         Animated.sequence([
           Animated.timing(logoRotate, { toValue: 8, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
           Animated.timing(logoRotate, { toValue: -8, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(logoRotate, { toValue: 0, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(logoRotate, { toValue: 0, duration: Animation.duration.slower, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ),
       Animated.sequence([
         Animated.delay(400),
-        Animated.timing(barOpacity, { toValue: 1, duration: 300, useNativeDriver: false }),
+        Animated.timing(barOpacity, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: false }),
       ]),
       Animated.sequence([
         Animated.delay(500),

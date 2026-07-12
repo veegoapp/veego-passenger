@@ -6,6 +6,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap } from 'lucide-react-native';
+import { Animation } from '@/constants/animations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useBooking } from '@/context/BookingContext';
@@ -23,8 +24,8 @@ function SparkleParticle({ deg, delay, color, size = 8 }: { deg: number; delay: 
       Animated.delay(delay * 1000),
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0, duration: 800, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: Animation.duration.slower, useNativeDriver: true }),
         ]),
         Animated.timing(distance, { toValue: 1, duration: 1100, easing: Easing.out(Easing.ease), useNativeDriver: true }),
       ]),
@@ -255,7 +256,7 @@ export default function TicketScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Animated.parallel([
       Animated.spring(checkScale, { toValue: 1, damping: 10, stiffness: 150, useNativeDriver: true }),
-      Animated.timing(checkOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(checkOpacity, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: true }),
       Animated.spring(checkRotate, { toValue: 0, damping: 16, useNativeDriver: true }),
       Animated.sequence([
         Animated.delay(250),

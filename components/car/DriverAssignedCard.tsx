@@ -4,6 +4,7 @@ import { Star, Clock, MessageCircle, Phone, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
 
@@ -33,8 +34,7 @@ export function DriverAssignedCard({
     Animated.spring(slideAnim, {
       toValue: visible ? 1 : 0,
       useNativeDriver: true,
-      damping: 22,
-      stiffness: 200,
+      ...Animation.spring.sheet,
       mass: 0.85,
     }).start();
   }, [visible]);

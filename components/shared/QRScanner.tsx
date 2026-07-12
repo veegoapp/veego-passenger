@@ -7,6 +7,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, QrCode, Check, Camera } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { Animation } from '@/constants/animations';
 
 export interface QRScanResult {
   data: string;
@@ -36,7 +37,7 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
 
   // Animate corner brackets + scan line
   useEffect(() => {
-    Animated.timing(cornerAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    Animated.timing(cornerAnim, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: true }).start();
 
     const scanLoop = Animated.loop(
       Animated.sequence([

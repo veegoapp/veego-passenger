@@ -10,6 +10,7 @@ import Svg, {
   G,
 } from 'react-native-svg';
 import { C } from '@/constants/colors';
+import { Animation } from '@/constants/animations';
 
 export function IllustRoute() {
   return (
@@ -49,7 +50,7 @@ function SeatCell({ index, taken, isMe }: { index: number; taken: boolean; isMe:
     Animated.parallel([
       Animated.delay(index * 30),
       Animated.spring(scale, { toValue: 1, damping: 15, delay: index * 30, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 200, delay: index * 30, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 1, duration: Animation.duration.fast, delay: index * 30, useNativeDriver: true }),
     ]).start();
   }, []);
 

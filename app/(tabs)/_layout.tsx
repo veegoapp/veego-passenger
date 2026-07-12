@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
 import { S, C } from '@/constants/colors';
+import { Animation } from '@/constants/animations';
 import { useTabBar } from '@/context/TabBarContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 
@@ -52,7 +53,7 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
     layoutGen.current += 1;
     // Fade labels out, let the RTL reflow + new text land, then fade in.
     Animated.sequence([
-      Animated.timing(labelOpacity, { toValue: 0, duration: 100, useNativeDriver: true }),
+      Animated.timing(labelOpacity, { toValue: 0, duration: Animation.duration.instant, useNativeDriver: true }),
       Animated.timing(labelOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
     ]).start();
   }, [language]); // eslint-disable-line react-hooks/exhaustive-deps
