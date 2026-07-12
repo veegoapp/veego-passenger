@@ -11,6 +11,7 @@ import api from '@/src/api/client';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { VeeGoCard } from '@/components/ui/VeeGoCard';
 
 interface StationItem {
   id: string;
@@ -179,7 +180,17 @@ export default function StationsScreen() {
 
       {!loading && error && (
         <View style={styles.fullErrorWrap}>
-          <View style={styles.fullErrorCard}>
+          <VeeGoCard
+            variant="flat"
+            style={{
+              width: '100%',
+              borderRadius: 28,
+              backgroundColor: c.white,
+              padding: Spacing.xxl,
+              alignItems: 'center',
+              gap: Spacing.md,
+            }}
+          >
             <WifiOff size={40} color={c.silver} />
             <Text style={styles.fullErrorTitle}>{t('error')}</Text>
             <Text style={styles.fullErrorText}>{error}</Text>
@@ -187,7 +198,7 @@ export default function StationsScreen() {
               <RefreshCw size={14} color={c.ink} />
               <Text style={styles.retryText}>{t('retry')}</Text>
             </TouchableOpacity>
-          </View>
+          </VeeGoCard>
         </View>
       )}
 

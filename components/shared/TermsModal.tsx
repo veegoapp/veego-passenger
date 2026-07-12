@@ -10,6 +10,7 @@ import api from '@/src/api/client';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { VeeGoButton } from '@/components/ui/VeeGoButton';
 
 export const TERMS_VERSION_KEY = 'passenger_terms_accepted_version';
 
@@ -129,17 +130,14 @@ export default function TermsModal({
         {showBanner && (
           <View style={[styles.banner, { backgroundColor: `${c.accentMint}18`, borderColor: `${c.accentMint}50` }]}>
             <Text style={[styles.bannerText, { color: c.ink }]}>{t('terms_updated_banner')}</Text>
-            <TouchableOpacity
-              style={[styles.bannerBtn, { backgroundColor: c.ink }]}
+            <VeeGoButton
+              title={t('accept')}
               onPress={handleProfileAccept}
-              activeOpacity={0.85}
-              disabled={accepting}
-            >
-              {accepting
-                ? <ActivityIndicator size="small" color={c.white} />
-                : <Text style={[styles.bannerBtnText, { color: c.isDark ? c.background : c.white }]}>{t('accept')}</Text>
-              }
-            </TouchableOpacity>
+              loading={accepting}
+              variant="primary"
+              size="small"
+              style={{ paddingHorizontal: Spacing.lg, borderRadius: Radius.md, elevation: 0 }}
+            />
           </View>
         )}
 

@@ -19,6 +19,7 @@ import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { Shadows } from '@/constants/shadows';
+import { VeeGoButton } from '@/components/ui/VeeGoButton';
 
 interface Coords { latitude: number; longitude: number }
 interface RideEstimate { economy: { price: number; eta: number }; premium: { price: number; eta: number } }
@@ -370,9 +371,13 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
                 <Text style={styles.invoiceAmount}>{rideState.fare.toFixed(2)} {t('egp')}</Text>
               </View>
             )}
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: c.ink }]} onPress={handleReset}>
-              <Text style={[styles.actionBtnTxt, { color: c.isDark ? c.background : c.white }]}>{t('done')}</Text>
-            </TouchableOpacity>
+            <VeeGoButton
+              title={t('done')}
+              onPress={handleReset}
+              variant="primary"
+              size="large"
+              style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.xs, elevation: 0 }}
+            />
           </View>
         </View>
       )}
@@ -386,9 +391,13 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
             {rideState.cancelReason ? (
               <Text style={[styles.cardSub, { color: c.inkSoft }]}>{rideState.cancelReason}</Text>
             ) : null}
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: c.ink, marginTop: Spacing.sm }]} onPress={handleReset}>
-              <Text style={[styles.actionBtnTxt, { color: c.isDark ? c.background : c.white }]}>{t('try_again')}</Text>
-            </TouchableOpacity>
+            <VeeGoButton
+              title={t('try_again')}
+              onPress={handleReset}
+              variant="primary"
+              size="large"
+              style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.sm, elevation: 0 }}
+            />
           </View>
         </View>
       )}
