@@ -59,6 +59,7 @@ export function RideOptionsSheet({
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
           paddingBottom: insets.bottom + 35,
+          opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated,  TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
@@ -32,8 +32,8 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
     const makeDot = (anim: Animated.Value, delay: number) =>
       Animated.loop(Animated.sequence([
         Animated.delay(delay),
-        Animated.timing(anim, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         Animated.delay(600),
       ]));
 
@@ -43,7 +43,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseRing, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseRing, { toValue: 1, duration: 1500, easing: Easing.out(Easing.ease), useNativeDriver: true }),
         Animated.timing(pulseRing, { toValue: 0, duration: 0, useNativeDriver: true }),
       ])
     );
@@ -73,6 +73,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
           paddingBottom: insets.bottom + 16,
+          opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}

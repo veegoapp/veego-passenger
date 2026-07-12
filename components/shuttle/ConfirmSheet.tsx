@@ -6,6 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { usePromos } from '@/src/hooks/shared/usePromos';
+import { Animation } from '@/constants/animations';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -82,7 +83,7 @@ export function ConfirmSheet() {
       setAppliedCode('');
       setVisible(true);
       Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 1, useNativeDriver: true, bounciness: 4 }),
+        Animated.spring(slideAnim, { toValue: 1, useNativeDriver: true, ...Animation.spring.sheet }),
         Animated.timing(overlayAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
       ]).start();
     } else {

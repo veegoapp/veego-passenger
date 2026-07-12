@@ -69,6 +69,7 @@ export function DriverAssignedCard({
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
           paddingBottom: insets.bottom + 16,
+          opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}

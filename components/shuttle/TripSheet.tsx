@@ -15,6 +15,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
+import { Animation } from '@/constants/animations';
 import { calcSegmentPrice, DATES } from '@/constants/data';
 import { SectionLabel } from '@/components/shared/Shared';
 import api from '@/src/api/client';
@@ -392,7 +393,7 @@ export function TripSheet() {
     if (tripSheetOpen) {
       setVisible(true);
       Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 1, useNativeDriver: true, bounciness: 4 }),
+        Animated.spring(slideAnim, { toValue: 1, useNativeDriver: true, ...Animation.spring.sheet }),
         Animated.timing(overlayAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
       ]).start();
     } else {

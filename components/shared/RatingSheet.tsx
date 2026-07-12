@@ -76,6 +76,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
           paddingBottom: insets.bottom + 32,
+          opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}

@@ -134,7 +134,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
       setOutboundTime(null);
       setReturnTime(null);
       Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, damping: 22, stiffness: 180 }),
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, ...Animation.spring.sheet }),
         Animated.timing(overlayAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
       ]).start();
     } else {
