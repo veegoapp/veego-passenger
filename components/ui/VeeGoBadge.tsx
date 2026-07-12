@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
@@ -10,6 +10,14 @@ export type VeeGoBadgeVariant = 'success' | 'warning' | 'error' | 'info' | 'neut
 export interface VeeGoBadgeProps {
   text: string;
   variant?: VeeGoBadgeVariant;
+  /** Extra style merged onto the badge text (added after the variant text color). */
+  textStyle?: StyleProp<TextStyle>;
+  /** Overrides the variant's background color. */
+  backgroundColor?: string;
+  /** Adds a 1px border in this color. No border is drawn unless this is set. */
+  borderColor?: string;
+  /** Overrides the variant's text color. */
+  textColor?: string;
 }
 
 function getVariantColors(variant: VeeGoBadgeVariant, c: ThemeColors) {
@@ -28,13 +36,23 @@ function getVariantColors(variant: VeeGoBadgeVariant, c: ThemeColors) {
   }
 }
 
-export function VeeGoBadge({ text, variant = 'neutral' }: VeeGoBadgeProps) {
+export function VeeGoBadge({ text, variant = 'neutral', textStyle, backgroundColor, borderColor, textColor }: VeeGoBadgeProps) {
   const { colors: c } = useTheme();
   const { background, foreground } = getVariantColors(variant, c);
 
   return (
-    <View style={[styles.base, { backgroundColor: background }]}>
-      <Text style={[styles.text, { color: foreground, fontWeight: Typography.weight.semibold }]}>{text}</Text>
+    <View
+      style={[
+        styles.base,
+        { backgroundColor: backgroundColor ?? background },
+        borderColor ? { borderWidth: 1, borderColor } : null,
+      ]}
+    >
+      <Text
+        style={[styles.text, { color: textColor ?? foreground, fontWeight: Typography.weight.semibold }, textStyle]}
+      >
+        {text}
+      </Text>
     </View>
   );
 }

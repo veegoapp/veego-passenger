@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { GestureResponderEvent, Pressable, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/colors';
 import { Spacing } from '@/constants/spacing';
@@ -12,6 +12,11 @@ export interface VeeGoCardProps {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   variant?: VeeGoCardVariant;
+  /** Extra style applied to an inner wrapper around children, separate from the outer container `style`. */
+  contentStyle?: StyleProp<ViewStyle>;
+  /** Renders the card as a Pressable when true. Defaults to a plain View. */
+  pressable?: boolean;
+  onPress?: (event: GestureResponderEvent) => void;
 }
 
 function getVariantStyle(variant: VeeGoCardVariant, c: ThemeColors) {
@@ -26,11 +31,28 @@ function getVariantStyle(variant: VeeGoCardVariant, c: ThemeColors) {
   }
 }
 
-export function VeeGoCard({ children, style, variant = 'elevated' }: VeeGoCardProps) {
+export function VeeGoCard({
+  children,
+  style,
+  variant = 'elevated',
+  contentStyle,
+  pressable = false,
+  onPress,
+}: VeeGoCardProps) {
   const { colors: c } = useTheme();
   const variantStyle = getVariantStyle(variant, c);
+  const containerStyle = [styles.base, variantStyle, style];
+  const content = contentStyle ? <View style={contentStyle}>{children}</View> : children;
 
-  return <View style={[styles.base, variantStyle, style]}>{children}</View>;
+  if (pressable) {
+    return (
+      <Pressable onPress={onPress} style={containerStyle}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return <View style={containerStyle}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
