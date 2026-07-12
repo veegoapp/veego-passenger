@@ -1,111 +1,157 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Svg, {
   Path,
   Circle,
   Rect,
-  Defs,
-  LinearGradient,
-  Stop,
   G,
 } from 'react-native-svg';
-import { C } from '@/constants/colors';
-import { Animation } from '@/constants/animations';
-import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
+import type { ThemeColors } from '@/constants/colors';
 import { Shadows } from '@/constants/shadows';
 
-export function IllustRoute() {
+type GlyphProps = { x: number; y: number; s?: number; tone?: 'dark' | 'light'; c: ThemeColors };
+
+/** Small flat vehicle/service glyphs shared across the onboarding illustrations. */
+function GlyphBus({ x, y, s = 1, tone = 'dark', c }: GlyphProps) {
+  const fill = tone === 'dark' ? c.ink : c.white;
+  return (
+    <G transform={`translate(${x}, ${y}) scale(${s})`}>
+      <Rect x={0} y={0} width={40} height={22} rx={7} fill={fill} />
+      <Rect x={5} y={5} width={12} height={8} rx={2} fill={c.white} opacity={tone === 'dark' ? 0.5 : 0} />
+      <Rect x={5} y={5} width={12} height={8} rx={2} fill={c.ink} opacity={tone === 'light' ? 0.12 : 0} />
+      <Rect x={23} y={5} width={12} height={8} rx={2} fill={c.white} opacity={tone === 'dark' ? 0.5 : 0} />
+      <Rect x={23} y={5} width={12} height={8} rx={2} fill={c.ink} opacity={tone === 'light' ? 0.12 : 0} />
+      <Circle cx={9} cy={24} r={4.5} fill={fill} />
+      <Circle cx={31} cy={24} r={4.5} fill={fill} />
+      <Rect x={16} y={16} width={8} height={4} rx={1.5} fill={c.accentMint} />
+    </G>
+  );
+}
+
+function GlyphCar({ x, y, s = 1, tone = 'dark', c }: GlyphProps) {
+  const fill = tone === 'dark' ? c.ink : c.white;
+  return (
+    <G transform={`translate(${x}, ${y}) scale(${s})`}>
+      <Rect x={0} y={10} width={44} height={14} rx={7} fill={fill} />
+      <Rect x={9} y={0} width={24} height={12} rx={5} fill={fill} />
+      <Rect x={12} y={2.5} width={8} height={7} rx={2} fill={c.white} opacity={tone === 'dark' ? 0.5 : 0} />
+      <Rect x={12} y={2.5} width={8} height={7} rx={2} fill={c.ink} opacity={tone === 'light' ? 0.12 : 0} />
+      <Rect x={23} y={2.5} width={8} height={7} rx={2} fill={c.white} opacity={tone === 'dark' ? 0.5 : 0} />
+      <Rect x={23} y={2.5} width={8} height={7} rx={2} fill={c.ink} opacity={tone === 'light' ? 0.12 : 0} />
+      <Circle cx={10} cy={26} r={5.5} fill={fill} />
+      <Circle cx={34} cy={26} r={5.5} fill={fill} />
+      <Rect x={37} y={13} width={5} height={3} rx={1.5} fill={c.accentMint} />
+    </G>
+  );
+}
+
+function GlyphScooter({ x, y, s = 1, tone = 'dark', c }: GlyphProps) {
+  const stroke = tone === 'dark' ? c.ink : c.white;
+  return (
+    <G transform={`translate(${x}, ${y}) scale(${s})`}>
+      <Circle cx={6} cy={26} r={5.5} fill="none" stroke={stroke} strokeWidth={3.5} />
+      <Circle cx={34} cy={26} r={5.5} fill="none" stroke={stroke} strokeWidth={3.5} />
+      <Path d="M6,26 L6,10 L28,10 L28,3" stroke={stroke} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Path d="M6,26 L34,26" stroke={stroke} strokeWidth={3.5} strokeLinecap="round" fill="none" />
+      <Rect x={20} y={0} width={14} height={4.5} rx={2.25} fill={c.accentMint} />
+    </G>
+  );
+}
+
+function GlyphBox({ x, y, s = 1, tone = 'dark', c }: GlyphProps) {
+  const fill = tone === 'dark' ? c.ink : c.white;
+  return (
+    <G transform={`translate(${x}, ${y}) scale(${s})`}>
+      <Rect x={2} y={4} width={32} height={26} rx={5} fill={fill} />
+      <Path d="M2,14 L34,14 M18,4 L18,30" stroke={tone === 'dark' ? c.white : c.ink} strokeWidth={1.5} opacity={0.3} />
+      <Rect x={13} y={0} width={10} height={8} rx={2} fill={c.accentMint} />
+    </G>
+  );
+}
+
+const badge = { w: 64, h: 64, r: 18 };
+
+/** Slide 1 — "One app, every way to move": a hub connecting all four service modes. */
+export function IllustMultiModal({ colors: c }: { colors: ThemeColors }) {
   return (
     <View style={styles.container}>
-      <View style={styles.illustBg} />
+      <View style={[styles.illustBg, { backgroundColor: c.snow }]} />
       <Svg viewBox="0 0 300 280" style={StyleSheet.absoluteFillObject}>
-        <Defs>
-          <LinearGradient id="routeLine" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor="#4a9fcc" />
-            <Stop offset="1" stopColor="#8b6fd4" />
-          </LinearGradient>
-        </Defs>
-        <Path
-          d="M40,220 C90,200 90,120 150,120 C210,120 210,60 260,40"
-          stroke="url(#routeLine)"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray="2 6"
-        />
-        {([[40, 220], [150, 120], [260, 40]] as [number, number][]).map(([x, y], i) => (
-          <G key={i}>
-            <Circle cx={x} cy={y} r="14" fill="white" stroke="#1e1e28" strokeWidth="2" />
-            <Circle cx={x} cy={y} r="4" fill="#1e1e28" />
-          </G>
-        ))}
+        <G>
+          <Path d="M150,140 L56,52" stroke={c.border} strokeWidth="2" strokeDasharray="2 7" strokeLinecap="round" />
+          <Path d="M150,140 L244,52" stroke={c.border} strokeWidth="2" strokeDasharray="2 7" strokeLinecap="round" />
+          <Path d="M150,140 L56,228" stroke={c.border} strokeWidth="2" strokeDasharray="2 7" strokeLinecap="round" />
+          <Path d="M150,140 L244,228" stroke={c.border} strokeWidth="2" strokeDasharray="2 7" strokeLinecap="round" />
+        </G>
+
+        <Rect x={24} y={20} width={badge.w} height={badge.h} rx={badge.r} fill={c.white} stroke={c.border} strokeWidth={1} />
+        <GlyphBus x={32} y={34} s={0.85} c={c} />
+
+        <Rect x={212} y={20} width={badge.w} height={badge.h} rx={badge.r} fill={c.white} stroke={c.border} strokeWidth={1} />
+        <GlyphCar x={220} y={38} s={0.8} c={c} />
+
+        <Rect x={24} y={196} width={badge.w} height={badge.h} rx={badge.r} fill={c.white} stroke={c.border} strokeWidth={1} />
+        <GlyphScooter x={38} y={210} s={0.75} c={c} />
+
+        <Rect x={212} y={196} width={badge.w} height={badge.h} rx={badge.r} fill={c.white} stroke={c.border} strokeWidth={1} />
+        <GlyphBox x={228} y={214} s={0.75} c={c} />
+
+        <Circle cx="150" cy="140" r="36" fill={c.ink} />
+        <Circle cx="150" cy="140" r="11" fill={c.accentMint} />
       </Svg>
     </View>
   );
 }
 
-function SeatCell({ index, taken, isMe }: { index: number; taken: boolean; isMe: boolean }) {
-  const scale = useRef(new Animated.Value(0.7)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.delay(index * 30),
-      Animated.spring(scale, { toValue: 1, damping: 15, delay: index * 30, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: Animation.duration.fast, delay: index * 30, useNativeDriver: true }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={[
-        styles.seat,
-        isMe ? styles.seatMe : taken ? styles.seatTaken : styles.seatFree,
-        { transform: [{ scale }], opacity },
-      ]}
-    />
-  );
-}
-
-export function IllustSeat() {
-  const seats = Array.from({ length: 16 }, (_, i) => ({
-    index: i,
-    taken: [1, 4, 9, 12].includes(i),
-    isMe: i === 6,
-  }));
+/** Slide 2 — "Move your way": four service cards, one actively chosen. */
+export function IllustModePicker({ colors: c }: { colors: ThemeColors }) {
   return (
     <View style={styles.container}>
-      <View style={styles.illustBg} />
-      <View style={styles.seatGrid}>
-        {seats.map((s) => (
-          <SeatCell key={s.index} {...s} />
-        ))}
-      </View>
+      <View style={[styles.illustBg, { backgroundColor: c.snow }]} />
+      <Svg viewBox="0 0 300 280" style={StyleSheet.absoluteFillObject}>
+        <Rect x={24} y={26} width={122} height={100} rx={22} fill={c.white} stroke={c.border} strokeWidth={1} />
+        <GlyphBus x={64} y={62} s={0.85} c={c} />
+
+        {/* Selected: Car */}
+        <Rect x={154} y={26} width={122} height={100} rx={22} fill={c.ink} stroke={c.accentMint} strokeWidth={2.5} />
+        <GlyphCar x={192} y={62} s={0.8} tone="light" c={c} />
+
+        <Rect x={24} y={144} width={122} height={100} rx={22} fill={c.white} stroke={c.border} strokeWidth={1} />
+        <GlyphScooter x={68} y={182} s={0.75} c={c} />
+
+        <Rect x={154} y={144} width={122} height={100} rx={22} fill={c.white} stroke={c.border} strokeWidth={1} />
+        <GlyphBox x={196} y={182} s={0.75} c={c} />
+      </Svg>
     </View>
   );
 }
 
-export function IllustCity() {
+/** Slide 3 — "Everything connected": booking/tracking flowing into one wallet. */
+export function IllustConnected({ colors: c }: { colors: ThemeColors }) {
   return (
     <View style={styles.container}>
-      <View style={styles.illustBg} />
+      <View style={[styles.illustBg, { backgroundColor: c.snow }]} />
       <Svg viewBox="0 0 300 280" style={StyleSheet.absoluteFillObject}>
-        <G fill="#e8e8ee">
-          <Rect x="30" y="140" width="40" height="120" rx="6" />
-          <Rect x="80" y="100" width="50" height="160" rx="6" />
-          <Rect x="140" y="60" width="50" height="200" rx="6" />
-          <Rect x="200" y="120" width="35" height="140" rx="6" />
-          <Rect x="245" y="160" width="30" height="100" rx="6" />
-        </G>
-        <G>
-          <Rect x="100" y="200" width="100" height="40" rx="10" fill="#1e1e28" />
-          <Circle cx="120" cy="245" r="8" fill="#1e1e28" />
-          <Circle cx="180" cy="245" r="8" fill="#1e1e28" />
-          <Rect x="110" y="210" width="22" height="14" rx="3" fill="white" opacity="0.5" />
-          <Rect x="140" y="210" width="22" height="14" rx="3" fill="white" opacity="0.5" />
-          <Rect x="170" y="210" width="22" height="14" rx="3" fill="white" opacity="0.5" />
-        </G>
+        <Path
+          d="M90,64 C120,64 130,64 150,80 C170,96 180,96 210,96"
+          stroke={c.border}
+          strokeWidth="2.5"
+          strokeDasharray="2 7"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <Circle cx="90" cy="64" r="9" fill={c.white} stroke={c.ink} strokeWidth="2" />
+        <Circle cx="90" cy="64" r="3" fill={c.ink} />
+        <Circle cx="210" cy="96" r="9" fill={c.white} stroke={c.ink} strokeWidth="2" />
+        <Circle cx="210" cy="96" r="3" fill={c.ink} />
+
+        <Path d="M150,110 L150,158" stroke={c.ink} strokeWidth="2.5" strokeLinecap="round" />
+        <Circle cx="150" cy="134" r="7" fill={c.accentMint} />
+
+        <Rect x={62} y={168} width={176} height={92} rx={22} fill={c.ink} />
+        <Rect x={84} y={190} width={44} height={8} rx={4} fill={c.accentMint} />
+        <Rect x={84} y={210} width={90} height={7} rx={3.5} fill={c.white} opacity={0.5} />
+        <Rect x={84} y={226} width={60} height={7} rx={3.5} fill={c.white} opacity={0.3} />
+        <Circle cx="204" cy="228" r="14" fill={c.white} opacity={0.1} />
       </Svg>
     </View>
   );
@@ -120,38 +166,10 @@ const styles = StyleSheet.create({
   illustBg: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 28,
-    backgroundColor: '#f8f8fb',
     shadowColor: '#1e1e28',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 18,
     elevation: Shadows.medium.elevation,
-  },
-  seatGrid: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  seat: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
-  seatMe: {
-    backgroundColor: C.ink,
-    borderColor: C.ink,
-  },
-  seatTaken: {
-    backgroundColor: C.mist,
-    borderColor: C.mist,
-  },
-  seatFree: {
-    backgroundColor: C.white,
-    borderColor: C.border,
   },
 });
