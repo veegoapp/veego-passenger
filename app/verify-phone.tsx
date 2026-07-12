@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -8,7 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
-import { C, S } from '@/constants/colors';
+import { S } from '@/constants/colors';
+import type { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
@@ -29,7 +30,8 @@ async function persistTokens(data: any) {
 
 export default function VerifyPhoneScreen() {
   const { phone, maskedPhone, termsVersion } = useLocalSearchParams<{ phone: string; maskedPhone?: string; termsVersion?: string }>();
-  const { t, isRTL } = useTheme();
+  const { colors: c, t, isRTL } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -138,11 +140,11 @@ export default function VerifyPhoneScreen() {
   const displayPhone = maskedPhone || phone || '';
 
   return (
-    <LinearGradient colors={C.luxeGrad} style={styles.root}>
+    <LinearGradient colors={c.luxeGrad} style={styles.root}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.container}>
           <View style={styles.iconWrap}>
-            <Shield size={32} color={C.white} />
+            <Shield size={32} color={c.white} />
           </View>
 
           <Text style={styles.title}>{t('otp_title')}</Text>
@@ -201,11 +203,11 @@ export default function VerifyPhoneScreen() {
             disabled={otp.length < OTP_LENGTH || loading || locked}
           >
             {loading ? (
-              <ActivityIndicator color={C.white} size="small" />
+              <ActivityIndicator color={c.white} size="small" />
             ) : (
               <>
                 <Text style={styles.primaryBtnText}>{t('verify')}</Text>
-                {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
+                {isRTL ? <ArrowLeft size={16} color={c.white} /> : <ArrowRight size={16} color={c.white} />}
               </>
             )}
           </TouchableOpacity>
@@ -221,7 +223,7 @@ export default function VerifyPhoneScreen() {
             activeOpacity={0.7}
           >
             {resending ? (
-              <ActivityIndicator color={C.inkSoft} size="small" />
+              <ActivityIndicator color={c.inkSoft} size="small" />
             ) : (
               <Text style={[styles.resendText, locked && styles.resendTextEmphasized]}>
                 {countdown > 0 ? t('resend_in').replace('{s}', String(countdown)) : t('resend')}
@@ -234,72 +236,74 @@ export default function VerifyPhoneScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxl,
-    gap: Spacing.md,
-  },
-  iconWrap: {
-    width: 72, height: 72, borderRadius: Radius.xl,
-    backgroundColor: C.ink,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: Spacing.xs,
-    ...(S.luxe as any),
-  },
-  title: {
-    fontSize: 26, fontWeight: Typography.weight.bold, color: C.ink,
-    letterSpacing: -0.8, textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: Typography.size.sm, color: C.inkSoft, textAlign: 'center',
-  },
-  phone: {
-    fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: C.ink,
-    letterSpacing: 1.5, textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
-  otpRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.sm },
-  otpBox: {
-    width: 48, height: 56, borderRadius: Radius.lg,
-    borderWidth: 1.5, borderColor: C.border,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  otpBoxActive: {
-    borderColor: C.ink,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-  },
-  otpBoxFilled: {
-    borderColor: C.accentMint,
-    backgroundColor: 'rgba(85,196,154,0.1)',
-  },
-  otpBoxError: { borderColor: '#dc2626' },
-  otpDigit: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: C.ink },
-  errorText: {
-    fontSize: 13, color: '#dc2626', textAlign: 'center', marginTop: -4,
-  },
-  successText: {
-    fontSize: 13, color: C.accentMint, fontWeight: Typography.weight.semibold,
-    textAlign: 'center', marginTop: -4,
-  },
-  primaryBtn: {
-    width: '100%', height: 56, borderRadius: 20,
-    backgroundColor: C.ink,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, marginTop: Spacing.sm,
-    ...(S.luxe as any),
-  },
-  primaryBtnText: { color: C.white, fontSize: 15, fontWeight: Typography.weight.semibold },
-  resendBtn: { paddingVertical: Spacing.md, paddingHorizontal: 20 },
-  resendBtnEmphasized: {
-    backgroundColor: 'rgba(85,196,154,0.12)',
-    borderRadius: 14,
-  },
-  resendText: { fontSize: 13, fontWeight: Typography.weight.medium, color: C.inkSoft, textAlign: 'center' },
-  resendTextEmphasized: { color: C.accentMint, fontWeight: Typography.weight.bold },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1 },
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.xxl,
+      gap: Spacing.md,
+    },
+    iconWrap: {
+      width: 72, height: 72, borderRadius: Radius.xl,
+      backgroundColor: c.ink,
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: Spacing.xs,
+      ...(S.luxe as any),
+    },
+    title: {
+      fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink,
+      letterSpacing: -0.8, textAlign: 'center',
+    },
+    subtitle: {
+      fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center',
+    },
+    phone: {
+      fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: c.ink,
+      letterSpacing: 1.5, textAlign: 'center',
+      marginBottom: Spacing.xs,
+    },
+    hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
+    otpRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.sm },
+    otpBox: {
+      width: 48, height: 56, borderRadius: Radius.lg,
+      borderWidth: 1.5, borderColor: c.border,
+      backgroundColor: 'rgba(255,255,255,0.75)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    otpBoxActive: {
+      borderColor: c.ink,
+      backgroundColor: 'rgba(255,255,255,0.95)',
+    },
+    otpBoxFilled: {
+      borderColor: c.accentMint,
+      backgroundColor: 'rgba(85,196,154,0.1)',
+    },
+    otpBoxError: { borderColor: c.error },
+    otpDigit: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink },
+    errorText: {
+      fontSize: 13, color: c.error, textAlign: 'center', marginTop: -4,
+    },
+    successText: {
+      fontSize: 13, color: c.accentMint, fontWeight: Typography.weight.semibold,
+      textAlign: 'center', marginTop: -4,
+    },
+    primaryBtn: {
+      width: '100%', height: 56, borderRadius: 20,
+      backgroundColor: c.ink,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      gap: Spacing.sm, marginTop: Spacing.sm,
+      ...(S.luxe as any),
+    },
+    primaryBtnText: { color: c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
+    resendBtn: { paddingVertical: Spacing.md, paddingHorizontal: 20 },
+    resendBtnEmphasized: {
+      backgroundColor: 'rgba(85,196,154,0.12)',
+      borderRadius: 14,
+    },
+    resendText: { fontSize: 13, fontWeight: Typography.weight.medium, color: c.inkSoft, textAlign: 'center' },
+    resendTextEmphasized: { color: c.accentMint, fontWeight: Typography.weight.bold },
+  });
+}

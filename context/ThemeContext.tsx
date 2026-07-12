@@ -120,6 +120,34 @@ const overlayStyles = StyleSheet.create({
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Automatic app restart (RTL reload) ────────────────────────────────────────
+// I18nManager.forceRTL only takes effect for already-mounted native views after
+// a full reload. expo-updates is the primary mechanism (works in Expo Go +
+// standalone); if it throws or is unavailable, fall back to RN's
+// DevSettings.reload() so a language switch never silently leaves layout
+// mirroring unapplied.
+function triggerAppRestart(): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { default: Updates } = require('expo-updates');
+    (Updates.reloadAsync as () => Promise<void>)().catch(() => {
+      devSettingsReload();
+    });
+  } catch {
+    devSettingsReload();
+  }
+}
+
+function devSettingsReload(): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { NativeModules } = require('react-native');
+    NativeModules.DevSettings?.reload?.();
+  } catch {
+    // No restart path available — user must restart manually.
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [darkMode, setDarkModeState] = useState(false);
   const [language, setLanguageState] = useState<Lang>('en');
@@ -171,12 +199,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const shouldBeRTL = l === 'ar';
     if (I18nManager.isRTL !== shouldBeRTL) {
       I18nManager.forceRTL(shouldBeRTL);
-      try {
-        const { default: Updates } = require('expo-updates');
-        if (typeof Updates?.reloadAsync === 'function') {
-          Updates.reloadAsync().catch(() => {});
-        }
-      } catch {}
+      triggerAppRestart();
     }
   }, []);
 

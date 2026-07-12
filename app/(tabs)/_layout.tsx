@@ -5,7 +5,7 @@ import { Home, Ticket, Heart, Wallet, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
-import { S, C } from '@/constants/colors';
+import { S } from '@/constants/colors';
 import { Animation } from '@/constants/animations';
 import { useTabBar } from '@/context/TabBarContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
@@ -184,7 +184,7 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
                 >
                   <item.icon size={17} color={iconColor} style={{ zIndex: 2 }} />
                   {isDisabledWallet && (
-                    <View style={styles.comingSoonDot} />
+                    <View style={[styles.comingSoonDot, { backgroundColor: c.warning }]} />
                   )}
                 </Animated.View>
                 <Text
@@ -195,7 +195,7 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
                 </Text>
               </Animated.View>
               {isDisabledWallet && (
-                <View style={styles.comingSoonBadge}>
+                <View style={[styles.comingSoonBadge, { backgroundColor: c.warning }]}>
                   <Text style={styles.comingSoonBadgeText}>{t('soon')}</Text>
                 </View>
               )}
@@ -256,11 +256,10 @@ const styles = StyleSheet.create({
   comingSoonDot: {
     position: 'absolute', top: -2, right: -4,
     width: 6, height: 6, borderRadius: 3,
-    backgroundColor: C.warning,
   },
   comingSoonBadge: {
     position: 'absolute', top: -6, right: -8,
-    backgroundColor: C.warning, borderRadius: 6,
+    borderRadius: 6,
     paddingHorizontal: 4, paddingVertical: 1,
   },
   comingSoonBadgeText: { fontSize: 7, fontWeight: '700', color: '#ffffff' },

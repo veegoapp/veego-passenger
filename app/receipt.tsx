@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -105,12 +105,18 @@ export default function ReceiptScreen() {
     if (params.rideId) {
       try {
         await api.post(`/rides/${params.rideId}/rate-driver`, { rating: stars, comment });
-      } catch {}
+        setAlreadyRated(true);
+      } catch {
+        Alert.alert(t('error'), t('rating_submit_failed'));
+        // Not marking alreadyRated — the rating wasn't actually saved, so the
+        // prompt should still offer to retry next time this receipt is seen.
+      }
+    } else {
+      setAlreadyRated(true);
     }
-    setAlreadyRated(true);
     setRatingVisible(false);
     router.replace('/(tabs)' as any);
-  }, [params.rideId]);
+  }, [params.rideId, t]);
 
   const handleRatingSkip = useCallback(() => {
     setRatingVisible(false);

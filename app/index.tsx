@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animation } from '@/constants/animations';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing, AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { C } from '@/constants/colors';
+import type { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import { tokenStore } from '@/src/api/client';
 import api from '@/src/api/client';
@@ -108,7 +108,8 @@ export function useAuthOnResume() {
 }
 
 export default function SplashPage() {
-  const { t } = useTheme();
+  const { colors: c, t } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.88)).current;
   const logoRotate = useRef(new Animated.Value(0)).current;
@@ -143,11 +144,11 @@ export default function SplashPage() {
   const rotateDeg = logoRotate.interpolate({ inputRange: [-8, 8], outputRange: ['-8deg', '8deg'] });
 
   return (
-    <LinearGradient colors={C.luxeGrad} style={styles.root}>
+    <LinearGradient colors={c.luxeGrad} style={styles.root}>
       <Animated.View style={[styles.content, { opacity, transform: [{ scale }] }]}>
         <Animated.View style={[styles.iconWrap, { transform: [{ rotate: rotateDeg }] }]}>
           <View style={styles.iconInner}>
-            <Navigation size={32} color={C.white} />
+            <Navigation size={32} color={c.white} />
           </View>
           <View style={styles.iconGlow} />
         </Animated.View>
@@ -161,23 +162,25 @@ export default function SplashPage() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { alignItems: 'center', gap: Spacing.lg },
-  iconWrap: { position: 'relative', width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
-  iconInner: {
-    width: 80, height: 80, borderRadius: 28, backgroundColor: C.ink,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: C.ink, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.25, shadowRadius: 32, elevation: 10,
-  },
-  iconGlow: {
-    position: 'absolute', width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(30,30,40,0.08)',
-  },
-  wordmark: { fontSize: 46, fontWeight: Typography.weight.bold, color: C.ink, letterSpacing: -2.5, fontFamily: 'Inter_700Bold' },
-  tagline: { fontSize: 13, color: C.inkSoft, letterSpacing: 0.2, fontFamily: 'Inter_400Regular' },
-  barWrap: {
-    width: 220, height: 4, borderRadius: 2, backgroundColor: C.border, overflow: 'hidden', marginTop: Spacing.sm,
-  },
-  bar: { height: 4, borderRadius: 2, backgroundColor: C.ink },
-});
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    content: { alignItems: 'center', gap: Spacing.lg },
+    iconWrap: { position: 'relative', width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
+    iconInner: {
+      width: 80, height: 80, borderRadius: 28, backgroundColor: c.ink,
+      alignItems: 'center', justifyContent: 'center',
+      shadowColor: c.ink, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.25, shadowRadius: 32, elevation: 10,
+    },
+    iconGlow: {
+      position: 'absolute', width: 100, height: 100, borderRadius: 50,
+      backgroundColor: 'rgba(30,30,40,0.08)',
+    },
+    wordmark: { fontSize: 46, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -2.5, fontFamily: 'Inter_700Bold' },
+    tagline: { fontSize: 13, color: c.inkSoft, letterSpacing: 0.2, fontFamily: 'Inter_400Regular' },
+    barWrap: {
+      width: 220, height: 4, borderRadius: 2, backgroundColor: c.border, overflow: 'hidden', marginTop: Spacing.sm,
+    },
+    bar: { height: 4, borderRadius: 2, backgroundColor: c.ink },
+  });
+}

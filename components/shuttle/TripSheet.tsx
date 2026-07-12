@@ -207,7 +207,9 @@ function makeStyles(c: ThemeColors, gs: object) {
      * legible on that white surface. Active overrides then flip to white. */
     tripCard: {
       borderRadius: 20, borderWidth: 1.5, borderColor: c.border,
-      padding: Spacing.lg, backgroundColor: c.white, marginBottom: 10,
+      // Intentionally a literal (not c.white, which itself darkens in dark mode) —
+      // this card is always light-surfaced so the hardcoded dark text below stays legible.
+      padding: Spacing.lg, backgroundColor: '#ffffff', marginBottom: 10,
       shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
       shadowOpacity: c.isDark ? 0.18 : 0.04, shadowRadius: 6, elevation: Shadows.small.elevation,
     },
