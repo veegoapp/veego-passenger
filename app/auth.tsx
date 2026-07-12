@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
@@ -9,7 +9,8 @@ import { Navigation, User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail
 import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { C, S } from '@/constants/colors';
+import { S } from '@/constants/colors';
+import type { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
@@ -39,6 +40,7 @@ export default function AuthPage() {
   const [tab, setTab] = useState<AuthTab>('signin');
   const [prefillCredential, setPrefillCredential] = useState('');
   const { language, setLanguage, t, colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   const switchTab = (newTab: AuthTab) => {
     Haptics.selectionAsync();
@@ -51,7 +53,7 @@ export default function AuthPage() {
   };
 
   return (
-    <LinearGradient colors={C.luxeGrad} style={styles.root}>
+    <LinearGradient colors={c.luxeGrad} style={styles.root}>
       <View style={styles.langBar}>
         <TouchableOpacity
           style={[styles.langChip, language === 'ar' && styles.langChipActive]}
@@ -78,7 +80,7 @@ export default function AuthPage() {
         >
           <View style={styles.logoBlock}>
             <View style={styles.logoIcon}>
-              <Navigation size={24} color={C.white} />
+              <Navigation size={24} color={c.white} />
             </View>
             <Text style={styles.wordmark}>VeeGo</Text>
           </View>
@@ -117,7 +119,8 @@ export default function AuthPage() {
 }
 
 function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; initialCredential?: string }) {
-  const { t, isRTL } = useTheme();
+  const { t, isRTL, colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [email, setEmail] = useState(initialCredential ?? '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -190,12 +193,12 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <User size={16} color={C.inkSoft} />
+          <User size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={styles.inputField}
           placeholder={t('email_or_phone')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -207,12 +210,12 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <Lock size={16} color={C.inkSoft} />
+          <Lock size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={[styles.inputField, { flex: 1 }]}
           placeholder={t('password')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPass}
@@ -221,7 +224,7 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
           textAlign={isRTL ? 'right' : 'left'}
         />
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
-          {showPass ? <EyeOff size={16} color={C.inkSoft} /> : <Eye size={16} color={C.inkSoft} />}
+          {showPass ? <EyeOff size={16} color={c.inkSoft} /> : <Eye size={16} color={c.inkSoft} />}
         </TouchableOpacity>
       </View>
 
@@ -232,11 +235,11 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
         disabled={!email.trim() || !password.trim() || loading}
       >
         {loading ? (
-          <ActivityIndicator color={C.white} size="small" />
+          <ActivityIndicator color={c.white} size="small" />
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('sign_in')}</Text>
-            {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
+            {isRTL ? <ArrowLeft size={16} color={c.white} /> : <ArrowRight size={16} color={c.white} />}
           </>
         )}
       </TouchableOpacity>
@@ -247,7 +250,7 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
           activeOpacity={0.9}
           onPress={handleBiometric}
         >
-          <Shield size={18} color={C.ink} />
+          <Shield size={18} color={c.ink} />
           <Text style={styles.biometricBtnText}>Sign in with Biometrics</Text>
         </TouchableOpacity>
       )}
@@ -256,7 +259,8 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
 }
 
 function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
-  const { t, isRTL } = useTheme();
+  const { t, isRTL, colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -324,12 +328,12 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <User size={16} color={C.inkSoft} />
+          <User size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={styles.inputField}
           placeholder={t('full_name')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
@@ -340,12 +344,12 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <Phone size={16} color={C.inkSoft} />
+          <Phone size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={styles.inputField}
           placeholder={t('phone_placeholder')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
@@ -356,12 +360,12 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <Mail size={16} color={C.inkSoft} />
+          <Mail size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={styles.inputField}
           placeholder={t('email_address')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -373,12 +377,12 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <Lock size={16} color={C.inkSoft} />
+          <Lock size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={[styles.inputField, { flex: 1 }]}
           placeholder={t('password')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPass}
@@ -387,7 +391,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
           textAlign={isRTL ? 'right' : 'left'}
         />
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
-          {showPass ? <EyeOff size={16} color={C.inkSoft} /> : <Eye size={16} color={C.inkSoft} />}
+          {showPass ? <EyeOff size={16} color={c.inkSoft} /> : <Eye size={16} color={c.inkSoft} />}
         </TouchableOpacity>
       </View>
 
@@ -398,7 +402,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         onPress={() => { Haptics.selectionAsync(); setTermsChecked((v) => !v); }}
       >
         <View style={[styles.checkbox, termsChecked && styles.checkboxChecked]}>
-          {termsChecked && <Check size={12} color={C.white} strokeWidth={3} />}
+          {termsChecked && <Check size={12} color={c.white} strokeWidth={3} />}
         </View>
         <Text style={[styles.termsCheckText, isRTL && { textAlign: 'right' }]}>
           {t('terms_agree_checkbox')}{' '}
@@ -422,11 +426,11 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         disabled={!canSubmit}
       >
         {loading ? (
-          <ActivityIndicator color={C.white} size="small" />
+          <ActivityIndicator color={c.white} size="small" />
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('sign_up')}</Text>
-            {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
+            {isRTL ? <ArrowLeft size={16} color={c.white} /> : <ArrowRight size={16} color={c.white} />}
           </>
         )}
       </TouchableOpacity>
@@ -442,7 +446,8 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
-  const { t, isRTL } = useTheme();
+  const { t, isRTL, colors: c } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const OTP_LENGTH = 6;
   type ForgotStep = 'phone' | 'code';
   const [step, setStep] = useState<ForgotStep>('phone');
@@ -567,12 +572,12 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
 
         <View style={styles.inputWrap}>
           <View style={styles.inputIcon}>
-            <Phone size={16} color={C.inkSoft} />
+            <Phone size={16} color={c.inkSoft} />
           </View>
           <TextInput
             style={styles.inputField}
             placeholder={t('phone_placeholder')}
-            placeholderTextColor={C.silver}
+            placeholderTextColor={c.silver}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -590,11 +595,11 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
           disabled={!phone.trim() || loading}
         >
           {loading ? (
-            <ActivityIndicator color={C.white} size="small" />
+            <ActivityIndicator color={c.white} size="small" />
           ) : (
             <>
               <Text style={styles.primaryBtnText}>{t('send_code')}</Text>
-              {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
+              {isRTL ? <ArrowLeft size={16} color={c.white} /> : <ArrowRight size={16} color={c.white} />}
             </>
           )}
         </TouchableOpacity>
@@ -653,12 +658,12 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <Lock size={16} color={C.inkSoft} />
+          <Lock size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={[styles.inputField, { flex: 1 }]}
           placeholder={t('new_password')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={password}
           onChangeText={(v) => { setPassword(v); setError(''); }}
           secureTextEntry={!showPass}
@@ -668,18 +673,18 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
           textAlign={isRTL ? 'right' : 'left'}
         />
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
-          {showPass ? <EyeOff size={16} color={C.inkSoft} /> : <Eye size={16} color={C.inkSoft} />}
+          {showPass ? <EyeOff size={16} color={c.inkSoft} /> : <Eye size={16} color={c.inkSoft} />}
         </TouchableOpacity>
       </View>
 
       <View style={styles.inputWrap}>
         <View style={styles.inputIcon}>
-          <Lock size={16} color={C.inkSoft} />
+          <Lock size={16} color={c.inkSoft} />
         </View>
         <TextInput
           style={[styles.inputField, { flex: 1 }]}
           placeholder={t('confirm_password')}
-          placeholderTextColor={C.silver}
+          placeholderTextColor={c.silver}
           value={confirm}
           onChangeText={(v) => { setConfirm(v); setError(''); }}
           secureTextEntry={!showPass}
@@ -709,11 +714,11 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
         disabled={otp.length < OTP_LENGTH || !password.trim() || !confirm.trim() || loading || locked}
       >
         {loading ? (
-          <ActivityIndicator color={C.white} size="small" />
+          <ActivityIndicator color={c.white} size="small" />
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('reset_password')}</Text>
-            {isRTL ? <ArrowLeft size={16} color={C.white} /> : <ArrowRight size={16} color={C.white} />}
+            {isRTL ? <ArrowLeft size={16} color={c.white} /> : <ArrowRight size={16} color={c.white} />}
           </>
         )}
       </TouchableOpacity>
@@ -729,7 +734,7 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
         activeOpacity={0.7}
       >
         {resending ? (
-          <ActivityIndicator color={C.inkSoft} size="small" />
+          <ActivityIndicator color={c.inkSoft} size="small" />
         ) : (
           <Text style={[styles.resendBtnText, locked && styles.resendTextEmphasized]}>
             {countdown > 0 ? t('resend_in').replace('{s}', String(countdown)) : t('resend_otp')}
@@ -740,119 +745,121 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  langBar: {
-    position: 'absolute', top: 56, right: 20, zIndex: 20,
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 99, paddingHorizontal: 6, paddingVertical: Spacing.xs, gap: 2,
-    shadowColor: '#1e1e28', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-  },
-  langChip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: 99 },
-  langChipActive: { backgroundColor: C.ink },
-  langChipText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: C.inkSoft },
-  langChipTextActive: { color: C.white },
-  langSep: { width: 1, height: 14, backgroundColor: C.border },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 40, justifyContent: 'center', gap: 28 },
-  logoBlock: { alignItems: 'center', gap: Spacing.sm, paddingTop: 60 },
-  logoIcon: { width: 56, height: 56, borderRadius: 20, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', ...S.float },
-  wordmark: { fontSize: Typography.size.xxl, fontWeight: Typography.weight.bold, color: C.ink, letterSpacing: -1.2, fontFamily: 'Inter_700Bold' },
-  card: { backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)', overflow: 'hidden', ...S.luxe },
-  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.border },
-  tabBtn: { flex: 1, paddingVertical: Spacing.lg, alignItems: 'center' },
-  tabBtnActive: { borderBottomWidth: 2, borderBottomColor: C.ink, marginBottom: -1 },
-  tabText: { fontSize: 12.5, fontWeight: Typography.weight.medium, color: C.inkSoft },
-  tabTextActive: { color: C.ink, fontWeight: Typography.weight.semibold },
-  form: { padding: Spacing.xl, gap: Spacing.md },
-  formHeader: { gap: Spacing.xs, marginBottom: Spacing.xs },
-  formTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.semibold, color: C.ink, letterSpacing: -0.5, fontFamily: 'Inter_600SemiBold' },
-  formSubtitle: { fontSize: 13, color: C.inkSoft, fontFamily: 'Inter_400Regular' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.mist, borderRadius: 18, height: 52, paddingHorizontal: Spacing.lg, gap: 10 },
-  inputIcon: { width: 28, alignItems: 'center' },
-  inputField: { flex: 1, fontSize: Typography.size.sm, color: C.ink },
-  primaryBtn: { height: 56, borderRadius: 20, backgroundColor: C.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.xs, ...S.luxe },
-  primaryBtnText: { color: C.white, fontSize: 15, fontWeight: Typography.weight.semibold },
-  biometricBtn: { height: 52, borderRadius: 20, backgroundColor: C.mist, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: C.border },
-  biometricBtnText: { color: C.ink, fontSize: 15, fontWeight: Typography.weight.semibold },
-  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: Spacing.xs },
-  termsText: { fontSize: 11, color: C.inkSoft, flex: 1 },
-  termsLink: { color: C.ink, fontWeight: Typography.weight.semibold, textDecorationLine: 'underline' },
-  termsCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: Spacing.xs, paddingBottom: 2 },
-  checkbox: {
-    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: C.border,
-    backgroundColor: C.mist, alignItems: 'center', justifyContent: 'center',
-    marginTop: 1, flexShrink: 0,
-  },
-  checkboxChecked: { backgroundColor: C.ink, borderColor: C.ink },
-  termsCheckText: { fontSize: Typography.size.xs, color: C.inkSoft, flex: 1, lineHeight: 18 },
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1 },
+    langBar: {
+      position: 'absolute', top: 56, right: 20, zIndex: 20,
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.85)',
+      borderRadius: 99, paddingHorizontal: 6, paddingVertical: Spacing.xs, gap: 2,
+      shadowColor: '#1e1e28', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+    },
+    langChip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: 99 },
+    langChipActive: { backgroundColor: c.ink },
+    langChipText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: c.inkSoft },
+    langChipTextActive: { color: c.white },
+    langSep: { width: 1, height: 14, backgroundColor: c.border },
+    scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 40, justifyContent: 'center', gap: 28 },
+    logoBlock: { alignItems: 'center', gap: Spacing.sm, paddingTop: 60 },
+    logoIcon: { width: 56, height: 56, borderRadius: 20, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center', ...S.float },
+    wordmark: { fontSize: Typography.size.xxl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -1.2, fontFamily: 'Inter_700Bold' },
+    card: { backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)', overflow: 'hidden', ...S.luxe },
+    tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.border },
+    tabBtn: { flex: 1, paddingVertical: Spacing.lg, alignItems: 'center' },
+    tabBtnActive: { borderBottomWidth: 2, borderBottomColor: c.ink, marginBottom: -1 },
+    tabText: { fontSize: 12.5, fontWeight: Typography.weight.medium, color: c.inkSoft },
+    tabTextActive: { color: c.ink, fontWeight: Typography.weight.semibold },
+    form: { padding: Spacing.xl, gap: Spacing.md },
+    formHeader: { gap: Spacing.xs, marginBottom: Spacing.xs },
+    formTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_600SemiBold' },
+    formSubtitle: { fontSize: 13, color: c.inkSoft, fontFamily: 'Inter_400Regular' },
+    inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: c.mist, borderRadius: 18, height: 52, paddingHorizontal: Spacing.lg, gap: 10 },
+    inputIcon: { width: 28, alignItems: 'center' },
+    inputField: { flex: 1, fontSize: Typography.size.sm, color: c.ink },
+    primaryBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.xs, ...S.luxe },
+    primaryBtnText: { color: c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
+    biometricBtn: { height: 52, borderRadius: 20, backgroundColor: c.mist, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: c.border },
+    biometricBtnText: { color: c.ink, fontSize: 15, fontWeight: Typography.weight.semibold },
+    termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: Spacing.xs },
+    termsText: { fontSize: 11, color: c.inkSoft, flex: 1 },
+    termsLink: { color: c.ink, fontWeight: Typography.weight.semibold, textDecorationLine: 'underline' },
+    termsCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: Spacing.xs, paddingBottom: 2 },
+    checkbox: {
+      width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: c.border,
+      backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center',
+      marginTop: 1, flexShrink: 0,
+    },
+    checkboxChecked: { backgroundColor: c.ink, borderColor: c.ink },
+    termsCheckText: { fontSize: Typography.size.xs, color: c.inkSoft, flex: 1, lineHeight: 18 },
 
-  fieldError: {
-    fontSize: 12.5,
-    color: C.error,
-    marginTop: -4,
-    paddingHorizontal: Spacing.xs,
-  },
-  successText: {
-    fontSize: 12.5,
-    color: C.accentMint,
-    fontWeight: Typography.weight.semibold,
-    marginTop: -4,
-    paddingHorizontal: Spacing.xs,
-  },
+    fieldError: {
+      fontSize: 12.5,
+      color: c.error,
+      marginTop: -4,
+      paddingHorizontal: Spacing.xs,
+    },
+    successText: {
+      fontSize: 12.5,
+      color: c.accentMint,
+      fontWeight: Typography.weight.semibold,
+      marginTop: -4,
+      paddingHorizontal: Spacing.xs,
+    },
 
-  otpHiddenInput: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
-    opacity: 0,
-  },
-  otpRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 10,
-    marginVertical: Spacing.sm,
-  },
-  otpBox: {
-    width: 44,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: C.border,
-    backgroundColor: C.mist,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  otpBoxActive: {
-    borderColor: C.ink,
-    backgroundColor: 'rgba(0,0,0,0.04)',
-  },
-  otpBoxFilled: {
-    borderColor: C.accentMint,
-    backgroundColor: 'rgba(85,196,154,0.06)',
-  },
-  otpBoxError: { borderColor: C.error },
-  otpDigit: {
-    fontSize: 20,
-    fontWeight: Typography.weight.bold,
-    color: C.ink,
-    letterSpacing: -0.5,
-  },
+    otpHiddenInput: {
+      position: 'absolute',
+      width: 1,
+      height: 1,
+      opacity: 0,
+    },
+    otpRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 10,
+      marginVertical: Spacing.sm,
+    },
+    otpBox: {
+      width: 44,
+      height: 52,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: c.border,
+      backgroundColor: c.mist,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    otpBoxActive: {
+      borderColor: c.ink,
+      backgroundColor: 'rgba(0,0,0,0.04)',
+    },
+    otpBoxFilled: {
+      borderColor: c.accentMint,
+      backgroundColor: 'rgba(85,196,154,0.06)',
+    },
+    otpBoxError: { borderColor: c.error },
+    otpDigit: {
+      fontSize: 20,
+      fontWeight: Typography.weight.bold,
+      color: c.ink,
+      letterSpacing: -0.5,
+    },
 
-  resendBtn: {
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.xs,
-  },
-  resendBtnEmphasized: {
-    backgroundColor: 'rgba(85,196,154,0.12)',
-    borderRadius: 14,
-  },
-  resendBtnText: {
-    fontSize: 13,
-    fontWeight: Typography.weight.medium,
-    color: C.inkSoft,
-  },
-  resendTextEmphasized: { color: C.accentMint, fontWeight: Typography.weight.bold },
-});
+    resendBtn: {
+      alignSelf: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: Spacing.lg,
+      marginTop: Spacing.xs,
+    },
+    resendBtnEmphasized: {
+      backgroundColor: 'rgba(85,196,154,0.12)',
+      borderRadius: 14,
+    },
+    resendBtnText: {
+      fontSize: 13,
+      fontWeight: Typography.weight.medium,
+      color: c.inkSoft,
+    },
+    resendTextEmphasized: { color: c.accentMint, fontWeight: Typography.weight.bold },
+  });
+}
