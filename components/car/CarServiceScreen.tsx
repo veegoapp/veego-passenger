@@ -3,11 +3,10 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
   TextInput, Animated, Modal, Alert, ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { CheckCircle2, XCircle } from 'lucide-react-native';
+import { CheckCircle2, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useRide } from '@/src/hooks/car/useRide';
@@ -275,13 +274,13 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
         <View style={styles.selectingModal}>
           <View style={styles.modalHeader}>
             <TouchableOpacity style={styles.modalBackBtn} onPress={() => setPhase('idle')} activeOpacity={0.8}>
-              <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={18} color={c.ink} />
+              {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
             </TouchableOpacity>
             <Text style={styles.modalTitle}>{t('choose_dest')}</Text>
           </View>
 
           <View style={styles.searchInputRow}>
-            <Ionicons name="search-outline" size={15} color={c.inkSoft} />
+            <Search size={15} color={c.inkSoft} />
             <TextInput
               style={styles.searchInput}
               value={searchQuery}
@@ -295,7 +294,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={16} color={c.silver} />
+                <XCircle size={16} color={c.silver} />
               </TouchableOpacity>
             )}
           </View>
@@ -303,14 +302,14 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
           {searchQuery.trim().length > 0 ? (
             <TouchableOpacity style={styles.locItem} onPress={() => handleSelectDestination(searchQuery.trim())} activeOpacity={0.8}>
               <View style={styles.locIcon}>
-                <Ionicons name="location-outline" size={16} color={c.inkSoft} />
+                <MapPin size={16} color={c.inkSoft} />
               </View>
               <Text style={styles.locText}>{searchQuery.trim()}</Text>
-              <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={14} color={c.silver} />
+              {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
             </TouchableOpacity>
           ) : (
             <View style={styles.emptyTip}>
-              <Ionicons name="search-outline" size={28} color={c.silver} />
+              <Search size={28} color={c.silver} />
               <Text style={styles.emptyTipText}>{t('search_dest')}</Text>
             </View>
           )}

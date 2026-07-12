@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import type { WebViewNavigation } from 'react-native-webview';
@@ -110,7 +110,7 @@ export function PaymobCheckoutModal({ visible, iframeUrl, merchantOrderId, onClo
       <View style={[styles.container, { backgroundColor: bgColor }]}>
         <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 4, borderBottomColor: c.border }]}>
           <TouchableOpacity onPress={handleManualClose} activeOpacity={0.8} style={styles.closeBtn}>
-            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={20} color={c.ink} />
+            {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: c.ink }]} numberOfLines={1}>
             {t('paymob_checkout_title')}

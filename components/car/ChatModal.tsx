@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, Modal, Platform, KeyboardAvoidingView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, ArrowRight, MessageCircle, Hourglass, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -51,7 +51,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
       >
         <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 4 }]}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.8} style={styles.backBtn}>
-            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={20} color={c.ink} />
+            {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
           </TouchableOpacity>
           <View style={styles.headerMeta}>
             <View style={[styles.driverAvatar, { backgroundColor: c.ink }]}>
@@ -69,7 +69,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
 
         {messages.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubble-ellipses-outline" size={42} color={c.silver} />
+            <MessageCircle size={42} color={c.silver} />
             <Text style={[styles.emptyText, { color: c.inkSoft }]}>
               {t('no_messages_yet') ?? 'No messages yet.\nSay hello to your driver!'}
             </Text>
@@ -128,8 +128,8 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             activeOpacity={0.85}
           >
             {sending
-              ? <Ionicons name="hourglass-outline" size={16} color={c.silver} />
-              : <Ionicons name="send" size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
+              ? <Hourglass size={16} color={c.silver} />
+              : <Send size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
             }
           </TouchableOpacity>
         </View>

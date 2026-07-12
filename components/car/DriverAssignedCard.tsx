@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated,  Linking } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Star, Clock, MessageCircle, Phone, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
@@ -100,7 +100,7 @@ export function DriverAssignedCard({
           <View style={styles.driverMeta}>
             <Text style={[styles.driverName, { color: c.ink }]}>{driver?.name ?? '—'}</Text>
             <View style={styles.driverStats}>
-              <Ionicons name="star" size={13} color="#FFB000" />
+              <Star size={13} color="#FFB000" fill="#FFB000" />
               <Text style={[styles.statVal, { color: c.ink }]}>{driver?.rating?.toFixed(1) ?? '—'}</Text>
               <View style={[styles.sep, { backgroundColor: c.silver }]} />
               <Text style={[styles.statVal, { color: c.inkSoft }]}>
@@ -120,7 +120,7 @@ export function DriverAssignedCard({
         {/* Waiting charge banner */}
         {waitingChargeStatus === 'active' && waitingCharge != null && (
           <View style={[styles.waitingBanner, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: '#f59e0b' }]}>
-            <Ionicons name="time-outline" size={14} color="#f59e0b" />
+            <Clock size={14} color="#f59e0b" />
             <Text style={[styles.waitingText, { color: '#b97b10' }]}>
               {t('waiting_charge') ?? 'Waiting charge'}: {waitingCharge.toFixed(2)} {t('egp')}
             </Text>
@@ -137,7 +137,7 @@ export function DriverAssignedCard({
               setChatOpen(true);
             }}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color={c.ink} />
+            <MessageCircle size={18} color={c.ink} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -146,7 +146,7 @@ export function DriverAssignedCard({
             onPress={handleCall}
             disabled={!driver?.phone}
           >
-            <Ionicons name="call-outline" size={18} color={c.ink} />
+            <Phone size={18} color={c.ink} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -157,7 +157,7 @@ export function DriverAssignedCard({
               onCancel();
             }}
           >
-            <Ionicons name="close-outline" size={20} color="#eb5a5a" />
+            <X size={20} color="#eb5a5a" />
           </TouchableOpacity>
         </View>
       </View>

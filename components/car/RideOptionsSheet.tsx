@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated,  ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { MapPin, ChevronDown, Clock, Users, CheckCircle2, Car, Sparkles } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
@@ -11,8 +11,8 @@ interface RideEstimate {
 }
 
 const RIDE_DEFAULTS = {
-  economy: { id: 'economy' as const, labelKey: 'economy' as const, descKey: 'economy_desc' as const, icon: 'car-outline' as const, color: '#55c49a', bgColor: 'rgba(85,196,154,0.12)' },
-  premium: { id: 'premium' as const, labelKey: 'premium' as const, descKey: 'premium_desc' as const, icon: 'car-sport-outline' as const, color: '#8B6FD4', bgColor: 'rgba(139,111,212,0.12)' },
+  economy: { id: 'economy' as const, labelKey: 'economy' as const, descKey: 'economy_desc' as const, icon: Car, color: '#55c49a', bgColor: 'rgba(85,196,154,0.12)' },
+  premium: { id: 'premium' as const, labelKey: 'premium' as const, descKey: 'premium_desc' as const, icon: Car, color: '#8B6FD4', bgColor: 'rgba(139,111,212,0.12)' },
 };
 
 interface RideOptionsSheetProps {
@@ -69,13 +69,13 @@ export function RideOptionsSheet({
           <Text style={[styles.title, { color: c.ink }]}>{t('select_ride_type')}</Text>
           {destination && (
             <View style={styles.destRow}>
-              <Ionicons name="location" size={13} color={c.badge} />
+              <MapPin size={13} color={c.badge} />
               <Text style={[styles.destText, { color: c.inkSoft }]} numberOfLines={1}>{destination}</Text>
             </View>
           )}
         </View>
         <TouchableOpacity onPress={onDismiss} activeOpacity={0.8} style={[styles.closeBtn, { backgroundColor: c.mist }]}>
-          <Ionicons name="chevron-down" size={18} color={c.inkSoft} />
+          <ChevronDown size={18} color={c.inkSoft} />
         </TouchableOpacity>
       </View>
 
@@ -103,18 +103,23 @@ export function RideOptionsSheet({
               activeOpacity={0.85}
             >
               <View style={[styles.optionIcon, { backgroundColor: opt.bgColor }]}>
-                <Ionicons name={opt.icon} size={24} color={opt.color} />
+                <opt.icon size={24} color={opt.color} />
+                {id === 'premium' && (
+                  <View style={[styles.premiumBadge, { borderColor: opt.color }]}>
+                    <Sparkles size={10} color={opt.color} fill={opt.color} />
+                  </View>
+                )}
               </View>
               <View style={styles.optionMeta}>
                 <Text style={[styles.optionName, { color: c.ink }]}>{t(opt.labelKey)}</Text>
                 <Text style={[styles.optionDesc, { color: c.inkSoft }]}>{t(opt.descKey)}</Text>
                 <View style={styles.optionStats}>
-                  <Ionicons name="time-outline" size={11} color={c.inkSoft} />
+                  <Clock size={11} color={c.inkSoft} />
                   <Text style={[styles.optionEta, { color: c.inkSoft }]}>
                     {estimateLoading ? '...' : eta != null ? `${eta} ${t('min')}` : `— ${t('min')}`}
                   </Text>
                   <View style={[styles.statDot, { backgroundColor: c.silver }]} />
-                  <Ionicons name="people-outline" size={11} color={c.inkSoft} />
+                  <Users size={11} color={c.inkSoft} />
                   <Text style={[styles.optionEta, { color: c.inkSoft }]}>1-4</Text>
                 </View>
               </View>
@@ -149,7 +154,7 @@ export function RideOptionsSheet({
           <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
         ) : (
           <>
-            <Ionicons name="checkmark-circle" size={18} color={c.isDark ? c.background : c.white} />
+            <CheckCircle2 size={18} color={c.isDark ? c.background : c.white} />
             <Text style={[styles.confirmText, { color: c.isDark ? c.background : c.white }]}>{t('confirm')}</Text>
           </>
         )}
@@ -174,7 +179,13 @@ const styles = StyleSheet.create({
   closeBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   options: { paddingHorizontal: 20, gap: 10, marginBottom: 16 },
   option: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 14, gap: 12 },
-  optionIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  optionIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  premiumBadge: {
+    position: 'absolute', top: -3, right: -3,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#ffffff', borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center',
+  },
   optionMeta: { flex: 1, gap: 2 },
   optionName: { fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
   optionDesc: { fontSize: 11.5 },
