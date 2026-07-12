@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { Typography } from '@/constants/typography';
 
 export function SectionHeader({ title, onMore }: { title: string; onMore?: () => void }) {
   const { colors: c, t, isRTL } = useTheme();
@@ -32,9 +33,9 @@ export { RealMap as MapMockView } from './RealMap';
 
 const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 28 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', letterSpacing: -0.3 },
+  sectionTitle: { fontSize: 15, fontWeight: Typography.weight.semibold, letterSpacing: -0.3 },
   seeAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  seeAllText: { fontSize: 12, fontWeight: '500' },
+  seeAllText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium },
   sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionLabelText: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2 },
+  sectionLabelText: { fontSize: 11, fontWeight: Typography.weight.semibold, textTransform: 'uppercase', letterSpacing: 1.2 },
 });

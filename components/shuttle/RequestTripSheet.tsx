@@ -7,8 +7,12 @@ import * as Haptics from 'expo-haptics';
 import { CheckCircle, X, ArrowRight, ArrowLeft, Clock, RotateCcw } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
+import { Animation } from '@/constants/animations';
 import { submitTripRequest, TripRequestDirection } from '@/src/api/shuttleService';
 import type { Route } from '@/constants/data';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const OUTBOUND_SLOTS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00'];
 const RETURN_SLOTS   = ['15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00'];
@@ -21,13 +25,13 @@ function makeStyles(c: ThemeColors) {
       position: 'absolute', bottom: 0, left: 0, right: 0,
       backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
       borderTopLeftRadius: 32, borderTopRightRadius: 32,
-      ...S.float, paddingBottom: 32,
+      ...S.float, paddingBottom: Spacing.xxl,
       maxHeight: '88%',
     },
     handle: {
       width: 44, height: 5, borderRadius: 2.5,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
-      alignSelf: 'center', marginTop: 14, marginBottom: 4,
+      alignSelf: 'center', marginTop: 14, marginBottom: Spacing.xs,
     },
 
     header: {
@@ -35,25 +39,25 @@ function makeStyles(c: ThemeColors) {
       paddingHorizontal: 20, paddingVertical: 14,
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
-    headerTitle: { fontSize: 17, fontWeight: '700', color: c.ink },
+    headerTitle: { fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink },
     closeBtn: {
-      width: 32, height: 32, borderRadius: 16,
+      width: 32, height: 32, borderRadius: Radius.lg,
       backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center',
     },
     routeTag: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
     },
-    routeTagText: { fontSize: 12, color: c.inkSoft, fontWeight: '500' },
+    routeTagText: { fontSize: Typography.size.xs, color: c.inkSoft, fontWeight: Typography.weight.medium },
 
     scroll: { flexGrow: 0 },
-    scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
+    scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: Spacing.sm },
 
     sectionLabel: {
-      fontSize: 12, fontWeight: '700', color: c.inkSoft,
+      fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, color: c.inkSoft,
       textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 10,
     },
 
-    directionRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+    directionRow: { flexDirection: 'row', gap: 10, marginBottom: Spacing.xl },
     dirBtn: {
       flex: 1, paddingVertical: 11, borderRadius: 14,
       alignItems: 'center', justifyContent: 'center',
@@ -62,28 +66,28 @@ function makeStyles(c: ThemeColors) {
       flexDirection: 'row', gap: 6,
     },
     dirBtnActive: { borderColor: c.ink, backgroundColor: c.ink },
-    dirBtnText: { fontSize: 14, fontWeight: '600', color: c.inkSoft },
+    dirBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.inkSoft },
     dirBtnTextActive: { color: c.isDark ? c.background : '#ffffff' },
 
-    slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
+    slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.xl },
     slotBtn: {
-      paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12,
+      paddingHorizontal: 14, paddingVertical: 9, borderRadius: Radius.md,
       borderWidth: 1.5, borderColor: c.border,
       backgroundColor: c.white,
       minWidth: 68, alignItems: 'center',
     },
     slotBtnActive: { borderColor: c.ink, backgroundColor: c.ink },
-    slotText: { fontSize: 13, fontWeight: '600', color: c.ink },
+    slotText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink },
     slotTextActive: { color: c.isDark ? c.background : '#ffffff' },
 
-    ctaWrap: { paddingHorizontal: 20, paddingTop: 16 },
+    ctaWrap: { paddingHorizontal: 20, paddingTop: Spacing.lg },
     ctaBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: 8, paddingVertical: 16, borderRadius: 20,
+      gap: Spacing.sm, paddingVertical: Spacing.lg, borderRadius: 20,
       backgroundColor: c.ink,
     },
     ctaBtnDisabled: { opacity: 0.35 },
-    ctaBtnText: { fontSize: 16, fontWeight: '700', color: c.isDark ? c.background : '#ffffff' },
+    ctaBtnText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : '#ffffff' },
 
     successWrap: {
       alignItems: 'center', justifyContent: 'center',
@@ -92,15 +96,15 @@ function makeStyles(c: ThemeColors) {
     successIcon: {
       width: 72, height: 72, borderRadius: 36,
       backgroundColor: 'rgba(22,163,74,0.12)',
-      alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+      alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs,
     },
-    successTitle: { fontSize: 20, fontWeight: '700', color: c.ink, textAlign: 'center' },
-    successMsg: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center' },
+    successMsg: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
     doneBtn: {
-      marginTop: 8, paddingVertical: 14, paddingHorizontal: 40,
+      marginTop: Spacing.sm, paddingVertical: 14, paddingHorizontal: 40,
       borderRadius: 18, backgroundColor: c.ink,
     },
-    doneBtnText: { fontSize: 15, fontWeight: '700', color: c.isDark ? c.background : '#ffffff' },
+    doneBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : '#ffffff' },
   });
 }
 
@@ -130,13 +134,13 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
       setOutboundTime(null);
       setReturnTime(null);
       Animated.parallel([
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, damping: 22, stiffness: 180 }),
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, ...Animation.spring.sheet }),
         Animated.timing(overlayAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, { toValue: 600, duration: 260, useNativeDriver: true }),
-        Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(overlayAnim, { toValue: 0, duration: Animation.duration.fast, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);

@@ -12,57 +12,60 @@ import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { useWalletRecharge } from '@/src/hooks/shared/useWalletRecharge';
 import { PaymobCheckoutModal } from '@/components/wallet/PaymobCheckoutModal';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const CHARGE_OPTIONS = [50, 100, 200, 500];
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { paddingHorizontal: 20, paddingBottom: 12, gap: 4 },
-    headerTitle: { fontSize: 26, fontWeight: '700', color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
+    header: { paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.xs },
+    headerTitle: { fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
     headerSub: { fontSize: 13, color: c.inkSoft },
     balanceCard: { marginHorizontal: 20, borderRadius: 28, overflow: 'hidden', marginBottom: 20, ...S.float },
-    balanceGrad: { padding: 24, borderRadius: 28 },
+    balanceGrad: { padding: Spacing.xl, borderRadius: 28 },
     balanceGlow: { position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' },
-    balanceLabel: { fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '500', marginBottom: 8 },
-    balanceAmount: { fontSize: 42, fontWeight: '700', color: '#ffffff', letterSpacing: -1.5, fontFamily: 'Inter_700Bold' },
-    balanceCurrency: { fontSize: 18, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
+    balanceLabel: { fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium, marginBottom: Spacing.sm },
+    balanceAmount: { fontSize: 42, fontWeight: Typography.weight.bold, color: '#ffffff', letterSpacing: -1.5, fontFamily: 'Inter_700Bold' },
+    balanceCurrency: { fontSize: Typography.size.lg, color: 'rgba(255,255,255,0.7)', fontWeight: Typography.weight.medium },
     balanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 20 },
-    balanceStats: { flexDirection: 'row', gap: 16, marginTop: 4 },
+    balanceStats: { flexDirection: 'row', gap: Spacing.lg, marginTop: Spacing.xs },
     balanceStat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    balanceStatText: { fontSize: 12, color: 'rgba(255,255,255,0.65)' },
+    balanceStatText: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.65)' },
     actionRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 20 },
-    actionBtn: { flex: 1, height: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    actionBtnText: { fontSize: 14, fontWeight: '600' },
+    actionBtn: { flex: 1, height: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+    actionBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
     section: { marginBottom: 20 },
-    sectionLabel: { fontSize: 11, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 24, marginBottom: 10 },
+    sectionLabel: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 24, marginBottom: 10 },
     chargeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20 },
     chargeBtn: { width: '47%', height: 52, borderRadius: 18, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-    chargeBtnText: { fontSize: 15, fontWeight: '600' },
+    chargeBtnText: { fontSize: 15, fontWeight: Typography.weight.semibold },
     confirmChargeBtn: {
       marginHorizontal: 20, marginTop: 14, height: 52, borderRadius: 18,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
     },
-    confirmChargeBtnText: { fontSize: 14, fontWeight: '600' },
+    confirmChargeBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
     txList: { paddingHorizontal: 20, gap: 10 },
-    txCard: { borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.white },
+    txCard: { borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: c.white },
     txIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     txMeta: { flex: 1, gap: 2 },
-    txTitle: { fontSize: 13.5, fontWeight: '600', color: c.ink },
+    txTitle: { fontSize: 13.5, fontWeight: Typography.weight.semibold, color: c.ink },
     txSub: { fontSize: 11.5, color: c.inkSoft },
     txDate: { fontSize: 10.5, color: c.silver, marginTop: 2 },
-    txAmount: { fontSize: 15, fontWeight: '700' },
+    txAmount: { fontSize: 15, fontWeight: Typography.weight.bold },
     pmSection: { marginBottom: 20 },
-    pmCard: { borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.white },
+    pmCard: { borderRadius: 20, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.white },
     pmIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     pmMeta: { flex: 1, gap: 2 },
-    pmName: { fontSize: 14, fontWeight: '600', color: c.ink },
-    pmSub: { fontSize: 12, color: c.inkSoft },
-    pmBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: 'rgba(85,196,154,0.15)' },
-    pmBadgeText: { fontSize: 11, fontWeight: '600', color: '#55c49a' },
+    pmName: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    pmSub: { fontSize: Typography.size.xs, color: c.inkSoft },
+    pmBadge: { paddingHorizontal: 10, paddingVertical: Spacing.xs, borderRadius: 99, backgroundColor: 'rgba(85,196,154,0.15)' },
+    pmBadgeText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: '#55c49a' },
     debtBanner: {
-      marginHorizontal: 20, marginBottom: 16, borderRadius: 18,
+      marginHorizontal: 20, marginBottom: Spacing.lg, borderRadius: 18,
       backgroundColor: '#fff3cd', borderWidth: 1.5, borderColor: '#f59e0b',
-      padding: 16, flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+      padding: Spacing.lg, flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md,
     },
     debtBannerDark: {
       backgroundColor: '#2e2100', borderColor: '#f59e0b',
@@ -72,15 +75,15 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center',
       flexShrink: 0,
     },
-    debtBannerText: { flex: 1, gap: 4 },
-    debtBannerTitle: { fontSize: 13.5, fontWeight: '700', color: '#92400e' },
+    debtBannerText: { flex: 1, gap: Spacing.xs },
+    debtBannerTitle: { fontSize: 13.5, fontWeight: Typography.weight.bold, color: '#92400e' },
     debtBannerTitleDark: { color: '#fcd34d' },
     debtBannerBody: { fontSize: 12.5, color: '#78350f', lineHeight: 18 },
     debtBannerBodyDark: { color: '#fde68a' },
     rechargeStatusBanner: {
-      marginHorizontal: 20, marginTop: 4, marginBottom: 16, borderRadius: 18,
-      paddingHorizontal: 16, paddingVertical: 14,
-      flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginHorizontal: 20, marginTop: Spacing.xs, marginBottom: Spacing.lg, borderRadius: 18,
+      paddingHorizontal: Spacing.lg, paddingVertical: 14,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
       backgroundColor: c.white,
     },
     rechargeStatusText: { flex: 1, fontSize: 13, color: c.inkSoft, lineHeight: 18 },
@@ -156,27 +159,27 @@ export default function WalletScreen() {
           <Text style={styles.headerTitle}>{t('wallet_title')}</Text>
           <Text style={styles.headerSub}>{t('wallet_subtitle')}</Text>
         </View>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16 }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.lg }}>
           <View style={{
-            width: 80, height: 80, borderRadius: 24,
+            width: 80, height: 80, borderRadius: Radius.xl,
             backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
             alignItems: 'center', justifyContent: 'center',
           }}>
             <Clock size={36} color={c.silver} />
           </View>
-          <View style={{ alignItems: 'center', gap: 8 }}>
+          <View style={{ alignItems: 'center', gap: Spacing.sm }}>
             <View style={{
               paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99,
               backgroundColor: '#f59e0b',
             }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#ffffff', letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: 11, fontWeight: Typography.weight.bold, color: '#ffffff', letterSpacing: 0.5 }}>
                 {t('soon')}
               </Text>
             </View>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.5, textAlign: 'center' }}>
+            <Text style={{ fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, textAlign: 'center' }}>
               {t('wallet_title')}
             </Text>
-            <Text style={{ fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 20 }}>
+            <Text style={{ fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 20 }}>
               {walletFeature.unavailableMessage || t('wallet_coming_soon_msg')}
             </Text>
           </View>
@@ -223,7 +226,7 @@ export default function WalletScreen() {
                 {t('debt_owe_msg').replace('{amount}', String(debt.debtAmount))}
               </Text>
               {debt.offenceCount > 1 && (
-                <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark, { marginTop: 4 }]}>
+                <Text style={[styles.debtBannerBody, c.isDark && styles.debtBannerBodyDark, { marginTop: Spacing.xs }]}>
                   {t('no_show_offences').replace('{count}', String(debt.offenceCount))}
                 </Text>
               )}
@@ -252,7 +255,7 @@ export default function WalletScreen() {
             )}
             <Text style={[styles.actionBtnText, { color: c.isDark ? c.background : c.white }]}>{t('recharge')}</Text>
           </TouchableOpacity>
-          <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flex: 1, gap: Spacing.xs }}>
             <TouchableOpacity
               style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border, opacity: 0.45 }]}
               activeOpacity={1}
@@ -261,7 +264,7 @@ export default function WalletScreen() {
               <ArrowUp size={20} color={c.ink} />
               <Text style={[styles.actionBtnText, { color: c.ink }]}>{t('transfer')}</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 10, color: c.inkSoft, textAlign: 'center', fontWeight: '600' }}>Coming Soon</Text>
+            <Text style={{ fontSize: 10, color: c.inkSoft, textAlign: 'center', fontWeight: Typography.weight.semibold }}>Coming Soon</Text>
           </View>
           <TouchableOpacity
             style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border }]}

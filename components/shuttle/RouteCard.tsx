@@ -7,38 +7,41 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { usePromos } from '@/src/hooks/shared/usePromos';
 import type { Route } from '@/constants/data';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 // RouteCard uses t() from useTheme so it must call hook inside component
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    card: { backgroundColor: c.white, borderRadius: 24, overflow: 'hidden', ...S.luxe },
-    cardGrad: { padding: 16 },
+    card: { backgroundColor: c.white, borderRadius: Radius.xl, overflow: 'hidden', ...S.luxe },
+    cardGrad: { padding: Spacing.lg },
     cardAccent: { position: 'absolute', top: -48, right: -48, width: 160, height: 160, borderRadius: 80, opacity: 0.7 },
-    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    codeBox: { width: 44, height: 44, borderRadius: 16, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    codeText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: '600' },
+    cardTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    codeBox: { width: 44, height: 44, borderRadius: Radius.lg, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
+    codeText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: Typography.weight.semibold },
     cardMeta: { flex: 1 },
-    routeName: { fontSize: 14.5, fontWeight: '600', color: c.ink },
+    routeName: { fontSize: 14.5, fontWeight: Typography.weight.semibold, color: c.ink },
     routePath: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
     priceBox: { alignItems: 'flex-end' },
-    priceText: { fontSize: 15, fontWeight: '600', color: c.ink },
+    priceText: { fontSize: 15, fontWeight: Typography.weight.semibold, color: c.ink },
     priceLabel: { fontSize: 10, color: c.inkSoft },
-    cardStats: { flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 12 },
-    statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    cardStats: { flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: Spacing.md },
+    statItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
     statRight: { marginStart: 'auto' },
     statText: { fontSize: 11, color: c.inkSoft },
-    fillBar: { height: 4, borderRadius: 2, backgroundColor: c.mist, marginTop: 12, overflow: 'hidden' },
+    fillBar: { height: 4, borderRadius: 2, backgroundColor: c.mist, marginTop: Spacing.md, overflow: 'hidden' },
     fillBarFill: { height: '100%' as any, backgroundColor: c.ink, borderRadius: 2 },
-    offersScroll: { gap: 12, paddingRight: 4 },
-    offerCard: { width: 230, height: 120, borderRadius: 24, padding: 16, overflow: 'hidden', ...S.luxe },
+    offersScroll: { gap: Spacing.md, paddingRight: Spacing.xs },
+    offerCard: { width: 230, height: 120, borderRadius: Radius.xl, padding: Spacing.lg, overflow: 'hidden', ...S.luxe },
     offerGlow: {
       position: 'absolute', top: -40, right: -40, width: 128, height: 128, borderRadius: 64,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.4)',
     },
     offerTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     offerTag: {
-      fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2,
+      fontSize: 10, fontWeight: Typography.weight.semibold, textTransform: 'uppercase', letterSpacing: 1.2,
       color: c.isDark ? 'rgba(255,255,255,0.55)' : 'rgba(30,30,40,0.7)',
     },
     offerDot: {
@@ -46,9 +49,9 @@ function makeStyles(c: ThemeColors) {
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.25)' : 'rgba(30,30,40,0.3)',
     },
     offerTap: { fontSize: 10, color: c.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(30,30,40,0.6)' },
-    offerBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flex: 1, marginTop: 8, gap: 12 },
+    offerBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', flex: 1, marginTop: Spacing.sm, gap: Spacing.md },
     offerTextBox: { flex: 1 },
-    offerTitle: { fontSize: 14, fontWeight: '600', color: c.ink, lineHeight: 19 },
+    offerTitle: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink, lineHeight: 19 },
     offerSubtitle: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
     offerIconBox: {
       width: 36, height: 36, borderRadius: 14,
@@ -105,7 +108,7 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
           </View>
           <View style={[styles.statItem, styles.statRight]}>
             <Zap size={12} color={c.ink} />
-            <Text style={[styles.statText, { color: c.ink, fontWeight: '600' }]}>{route.nextDeparture}</Text>
+            <Text style={[styles.statText, { color: c.ink, fontWeight: Typography.weight.semibold }]}>{route.nextDeparture}</Text>
           </View>
         </View>
         <View style={styles.fillBar}>

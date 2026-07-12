@@ -12,6 +12,17 @@ export type ThemeColors = {
   luxeGrad: readonly [string, string];
   luxeSoftGrad: readonly [string, string];
   isDark: boolean;
+  // Canonical design-token aliases (source of truth for future UI work).
+  // These mirror the legacy fields above so existing call sites keep working.
+  primary: string;
+  accent: string;
+  surface: string;
+  text: string;
+  mutedText: string;
+  success: string;
+  warning: string;
+  error: string;
+  info: string;
 };
 
 export const LIGHT: ThemeColors = {
@@ -28,6 +39,15 @@ export const LIGHT: ThemeColors = {
   luxeGrad: ['#f4f4fb', '#ededf4'],
   luxeSoftGrad: ['#fafafa', '#f4f4f8'],
   isDark: false,
+  primary: '#1e1e28',
+  accent: '#55c49a',
+  surface: '#ffffff',
+  text: '#1e1e28',
+  mutedText: '#5e5e72',
+  success: '#3CC97A',
+  warning: '#D5A623',
+  error: '#E85454',
+  info: '#3D52D5',
 };
 
 export const DARK: ThemeColors = {
@@ -44,6 +64,15 @@ export const DARK: ThemeColors = {
   luxeGrad: ['#1e1e32', '#0f0f1e'],
   luxeSoftGrad: ['#181828', '#0f0f1e'],
   isDark: true,
+  primary: '#1e1e28',
+  accent: '#55c49a',
+  surface: '#16162a',
+  text: '#e8e8f2',
+  mutedText: '#7878a0',
+  success: '#3CC97A',
+  warning: '#D5A623',
+  error: '#E85454',
+  info: '#3D52D5',
 };
 
 export function makeGlassStyle(c: ThemeColors) {

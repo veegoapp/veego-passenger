@@ -1,7 +1,10 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated,  TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { Animation } from '@/constants/animations';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 interface DriverSearchingProps {
   visible: boolean;
@@ -21,8 +24,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
     Animated.spring(slideAnim, {
       toValue: visible ? 1 : 0,
       useNativeDriver: true,
-      damping: 22,
-      stiffness: 200,
+      ...Animation.spring.sheet,
     }).start();
   }, [visible]);
 
@@ -30,8 +32,8 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
     const makeDot = (anim: Animated.Value, delay: number) =>
       Animated.loop(Animated.sequence([
         Animated.delay(delay),
-        Animated.timing(anim, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         Animated.delay(600),
       ]));
 
@@ -41,7 +43,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseRing, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseRing, { toValue: 1, duration: 1500, easing: Easing.out(Easing.ease), useNativeDriver: true }),
         Animated.timing(pulseRing, { toValue: 0, duration: 0, useNativeDriver: true }),
       ])
     );
@@ -71,6 +73,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
           paddingBottom: insets.bottom + 16,
+          opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}
@@ -127,15 +130,15 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: 20 },
-  content: { alignItems: 'center', paddingHorizontal: 24, gap: 14, paddingBottom: 8 },
+  content: { alignItems: 'center', paddingHorizontal: Spacing.xl, gap: 14, paddingBottom: Spacing.sm },
   iconWrap: { width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
   ring: { position: 'absolute', width: 90, height: 90, borderRadius: 45, borderWidth: 2 },
   iconCircle: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
   iconInner: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 18, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-  subtitle: { fontSize: 13, textAlign: 'center', lineHeight: 18, paddingHorizontal: 12 },
+  title: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, fontFamily: 'Inter_700Bold' },
+  subtitle: { fontSize: 13, textAlign: 'center', lineHeight: 18, paddingHorizontal: Spacing.md },
   dotsRow: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginVertical: 2 },
   dot: { width: 7, height: 7, borderRadius: 3.5 },
-  cancelBtn: { marginTop: 4, borderWidth: 1, borderRadius: 14, paddingHorizontal: 28, paddingVertical: 10 },
-  cancelTxt: { fontSize: 13.5, fontWeight: '600' },
+  cancelBtn: { marginTop: Spacing.xs, borderWidth: 1, borderRadius: 14, paddingHorizontal: 28, paddingVertical: 10 },
+  cancelTxt: { fontSize: 13.5, fontWeight: Typography.weight.semibold },
 });

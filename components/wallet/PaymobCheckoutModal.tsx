@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import type { WebViewNavigation } from 'react-native-webview';
 import type { WebViewProps } from 'react-native-webview';
 import { useTheme } from '@/context/ThemeContext';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 // react-native-webview's public entry point only re-exports a few event
 // types (not WebViewErrorEvent/WebViewHttpErrorEvent), so these are derived
@@ -110,7 +112,7 @@ export function PaymobCheckoutModal({ visible, iframeUrl, merchantOrderId, onClo
       <View style={[styles.container, { backgroundColor: bgColor }]}>
         <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 4, borderBottomColor: c.border }]}>
           <TouchableOpacity onPress={handleManualClose} activeOpacity={0.8} style={styles.closeBtn}>
-            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={20} color={c.ink} />
+            {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: c.ink }]} numberOfLines={1}>
             {t('paymob_checkout_title')}
@@ -146,12 +148,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: Typography.size.md, fontWeight: Typography.weight.bold },
   loadingOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,

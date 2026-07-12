@@ -7,6 +7,10 @@ import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { VeeGoButton } from '@/components/ui/VeeGoButton';
 
 export const TERMS_VERSION_KEY = 'passenger_terms_accepted_version';
 
@@ -126,17 +130,14 @@ export default function TermsModal({
         {showBanner && (
           <View style={[styles.banner, { backgroundColor: `${c.accentMint}18`, borderColor: `${c.accentMint}50` }]}>
             <Text style={[styles.bannerText, { color: c.ink }]}>{t('terms_updated_banner')}</Text>
-            <TouchableOpacity
-              style={[styles.bannerBtn, { backgroundColor: c.ink }]}
+            <VeeGoButton
+              title={t('accept')}
               onPress={handleProfileAccept}
-              activeOpacity={0.85}
-              disabled={accepting}
-            >
-              {accepting
-                ? <ActivityIndicator size="small" color={c.white} />
-                : <Text style={[styles.bannerBtnText, { color: c.isDark ? c.background : c.white }]}>{t('accept')}</Text>
-              }
-            </TouchableOpacity>
+              loading={accepting}
+              variant="primary"
+              size="small"
+              style={{ paddingHorizontal: Spacing.lg, borderRadius: Radius.md, elevation: 0 }}
+            />
           </View>
         )}
 
@@ -185,25 +186,25 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 1, gap: 12,
+    paddingHorizontal: Spacing.lg, paddingVertical: 14,
+    borderBottomWidth: 1, gap: Spacing.md,
   },
-  backBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold' },
+  backBtn: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, fontSize: Typography.size.md, fontWeight: Typography.weight.bold, fontFamily: 'Inter_700Bold' },
   banner: {
-    margin: 16, marginBottom: 0,
-    borderRadius: 16, borderWidth: 1,
+    margin: Spacing.lg, marginBottom: 0,
+    borderRadius: Radius.lg, borderWidth: 1,
     padding: 14, gap: 10,
     flexDirection: 'row', alignItems: 'center',
   },
   bannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
-  bannerBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-  bannerBtnText: { fontSize: 13, fontWeight: '600' },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  bannerBtn: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radius.md },
+  bannerBtnText: { fontSize: 13, fontWeight: Typography.weight.semibold },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
   loadingText: { fontSize: 13 },
   body: { padding: 20, paddingBottom: 40 },
-  contentText: { fontSize: 14, lineHeight: 22 },
-  footer: { padding: 16, paddingBottom: Platform.OS === 'ios' ? 8 : 16, borderTopWidth: 1 },
+  contentText: { fontSize: Typography.size.sm, lineHeight: 22 },
+  footer: { padding: Spacing.lg, paddingBottom: Platform.OS === 'ios' ? 8 : 16, borderTopWidth: 1 },
   acceptBtn: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  acceptBtnText: { fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  acceptBtnText: { fontSize: 15, fontWeight: Typography.weight.semibold, fontFamily: 'Inter_600SemiBold' },
 });

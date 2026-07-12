@@ -1,11 +1,15 @@
 import { useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated,  Linking } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Star, Clock, MessageCircle, Phone, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 interface DriverAssignedCardProps {
   visible: boolean;
@@ -33,8 +37,7 @@ export function DriverAssignedCard({
     Animated.spring(slideAnim, {
       toValue: visible ? 1 : 0,
       useNativeDriver: true,
-      damping: 22,
-      stiffness: 200,
+      ...Animation.spring.sheet,
       mass: 0.85,
     }).start();
   }, [visible]);
@@ -66,6 +69,7 @@ export function DriverAssignedCard({
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
           paddingBottom: insets.bottom + 16,
+          opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}
@@ -100,7 +104,7 @@ export function DriverAssignedCard({
           <View style={styles.driverMeta}>
             <Text style={[styles.driverName, { color: c.ink }]}>{driver?.name ?? '—'}</Text>
             <View style={styles.driverStats}>
-              <Ionicons name="star" size={13} color="#FFB000" />
+              <Star size={13} color="#FFB000" fill="#FFB000" />
               <Text style={[styles.statVal, { color: c.ink }]}>{driver?.rating?.toFixed(1) ?? '—'}</Text>
               <View style={[styles.sep, { backgroundColor: c.silver }]} />
               <Text style={[styles.statVal, { color: c.inkSoft }]}>
@@ -120,7 +124,7 @@ export function DriverAssignedCard({
         {/* Waiting charge banner */}
         {waitingChargeStatus === 'active' && waitingCharge != null && (
           <View style={[styles.waitingBanner, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: '#f59e0b' }]}>
-            <Ionicons name="time-outline" size={14} color="#f59e0b" />
+            <Clock size={14} color="#f59e0b" />
             <Text style={[styles.waitingText, { color: '#b97b10' }]}>
               {t('waiting_charge') ?? 'Waiting charge'}: {waitingCharge.toFixed(2)} {t('egp')}
             </Text>
@@ -137,7 +141,7 @@ export function DriverAssignedCard({
               setChatOpen(true);
             }}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color={c.ink} />
+            <MessageCircle size={18} color={c.ink} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -146,7 +150,7 @@ export function DriverAssignedCard({
             onPress={handleCall}
             disabled={!driver?.phone}
           >
-            <Ionicons name="call-outline" size={18} color={c.ink} />
+            <Phone size={18} color={c.ink} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -157,7 +161,7 @@ export function DriverAssignedCard({
               onCancel();
             }}
           >
-            <Ionicons name="close-outline" size={20} color="#eb5a5a" />
+            <X size={20} color="#eb5a5a" />
           </TouchableOpacity>
         </View>
       </View>
@@ -180,35 +184,35 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -12 },
     shadowOpacity: 0.3, shadowRadius: 28, elevation: 24, paddingTop: 6, zIndex: 999,
   },
-  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: 12 },
-  container: { paddingHorizontal: 20, gap: 12 },
+  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: Spacing.md },
+  container: { paddingHorizontal: 20, gap: Spacing.md },
   etaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
   pulseDot: { width: 7, height: 7, borderRadius: 3.5 },
-  etaText: { fontSize: 13, fontWeight: '600' },
+  etaText: { fontSize: 13, fontWeight: Typography.weight.semibold },
   etaSep: { width: 1, height: 14, marginHorizontal: 2 },
-  etaDest: { fontSize: 12, flex: 1 },
+  etaDest: { fontSize: Typography.size.xs, flex: 1 },
   driverCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
     borderRadius: 20, padding: 14, borderWidth: 1,
   },
   avatarWrap: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarText: { color: '#ffffff', fontSize: 18, fontWeight: '700' },
-  driverMeta: { flex: 1, gap: 4 },
-  driverName: { fontSize: 16, fontWeight: '600', letterSpacing: -0.3 },
+  avatarText: { color: '#ffffff', fontSize: Typography.size.lg, fontWeight: Typography.weight.bold },
+  driverMeta: { flex: 1, gap: Spacing.xs },
+  driverName: { fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, letterSpacing: -0.3 },
   driverStats: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  statVal: { fontSize: 12, fontWeight: '500' },
+  statVal: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium },
   sep: { width: 1, height: 12 },
-  vehicleBlock: { alignItems: 'flex-end', gap: 4 },
-  plateBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  plateText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  vehicleBlock: { alignItems: 'flex-end', gap: Spacing.xs },
+  plateBadge: { borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs },
+  plateText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, letterSpacing: 0.5 },
   waitingBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1,
+    borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderWidth: 1,
   },
-  waitingText: { fontSize: 12.5, fontWeight: '600' },
+  waitingText: { fontSize: 12.5, fontWeight: Typography.weight.semibold },
   actionRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderTopWidth: 1, paddingTop: 12, paddingBottom: 4,
+    borderTopWidth: 1, paddingTop: Spacing.md, paddingBottom: Spacing.xs,
   },
-  iconBtn: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 48, height: 48, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
 });

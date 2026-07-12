@@ -6,8 +6,12 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { C } from '@/constants/colors';
+import { Animation } from '@/constants/animations';
 import { IllustRoute, IllustSeat, IllustCity } from '@/components/shared/Illustrations';
 import { useTheme } from '@/context/ThemeContext';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Shadows } from '@/constants/shadows';
 
 const { width } = Dimensions.get('window');
 
@@ -125,7 +129,7 @@ function DotItem({ active, done }: { active: boolean; done: boolean }) {
   useEffect(() => {
     Animated.parallel([
       Animated.spring(dotWidth, { toValue: active ? 22 : 6, damping: 18, useNativeDriver: false }),
-      Animated.timing(dotOpacity, { toValue: active ? 1 : done ? 0.7 : 0.4, duration: 200, useNativeDriver: false }),
+      Animated.timing(dotOpacity, { toValue: active ? 1 : done ? 0.7 : 0.4, duration: Animation.duration.fast, useNativeDriver: false }),
     ]).start();
   }, [active, done]);
 
@@ -144,17 +148,17 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 60, paddingHorizontal: 24,
+    paddingTop: 60, paddingHorizontal: Spacing.xl,
   },
   logo: {},
-  logoText: { fontSize: 24, fontWeight: '700', color: C.ink, letterSpacing: -1.2, fontFamily: 'Inter_700Bold' },
-  skipBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.7)' },
-  skipText: { fontSize: 13, color: C.inkSoft, fontWeight: '500' },
+  logoText: { fontSize: 24, fontWeight: Typography.weight.bold, color: C.ink, letterSpacing: -1.2, fontFamily: 'Inter_700Bold' },
+  skipBtn: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.7)' },
+  skipText: { fontSize: 13, color: C.inkSoft, fontWeight: Typography.weight.medium },
   slide: {
     width,
     flex: 1,
     paddingHorizontal: 28,
-    paddingTop: 32,
+    paddingTop: Spacing.xxl,
     gap: 28,
   },
   illustBox: {
@@ -163,20 +167,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     maxHeight: 320,
     backgroundColor: C.snow,
-    shadowColor: C.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 4,
+    shadowColor: C.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: Shadows.medium.elevation,
   },
-  textBox: { gap: 12 },
+  textBox: { gap: Spacing.md },
   tagBox: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(30,30,40,0.08)', borderRadius: 99,
-    paddingHorizontal: 12, paddingVertical: 5,
+    paddingHorizontal: Spacing.md, paddingVertical: 5,
   },
-  tagText: { fontSize: 10.5, fontWeight: '600', color: C.ink, textTransform: 'uppercase', letterSpacing: 1.3 },
-  title: { fontSize: 32, fontWeight: '700', color: C.ink, letterSpacing: -1.2, lineHeight: 38, fontFamily: 'Inter_700Bold' },
+  tagText: { fontSize: 10.5, fontWeight: Typography.weight.semibold, color: C.ink, textTransform: 'uppercase', letterSpacing: 1.3 },
+  title: { fontSize: 32, fontWeight: Typography.weight.bold, color: C.ink, letterSpacing: -1.2, lineHeight: 38, fontFamily: 'Inter_700Bold' },
   body: { fontSize: 15, color: C.inkSoft, lineHeight: 22, fontFamily: 'Inter_400Regular' },
   footer: {
     padding: 28, paddingBottom: 48,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.lg,
   },
   dots: { flexDirection: 'row', gap: 6 },
   dot: { height: 6, borderRadius: 3 },
@@ -185,7 +189,7 @@ const styles = StyleSheet.create({
   nextBtn: {
     flex: 1, height: 56, borderRadius: 20, backgroundColor: C.ink,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: C.ink, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 24, elevation: 8,
+    shadowColor: C.ink, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.22, shadowRadius: 24, elevation: Shadows.large.elevation,
   },
-  nextText: { color: C.white, fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  nextText: { color: C.white, fontSize: 15, fontWeight: Typography.weight.semibold, fontFamily: 'Inter_600SemiBold' },
 });

@@ -12,6 +12,9 @@ import { ThemeColors, S } from '@/constants/colors';
 import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
 import { useFavoriteDestinations } from '@/src/hooks/shared/useFavoriteDestinations';
 import type { TripType } from '@/constants/data';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const TYPE_ICON: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {
   shuttle: Bus,
@@ -27,57 +30,57 @@ const TYPE_COLOR: Record<TripType, string> = {
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { paddingHorizontal: 20, paddingBottom: 16 },
-    headerTitle: { fontSize: 28, fontWeight: '700', color: c.ink, letterSpacing: -1, fontFamily: 'Inter_700Bold' },
-    headerSub: { fontSize: 12, color: c.inkSoft, marginTop: 3 },
-    content: { paddingHorizontal: 20, gap: 24 },
+    header: { paddingHorizontal: 20, paddingBottom: Spacing.lg },
+    headerTitle: { fontSize: Typography.size.xxl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -1, fontFamily: 'Inter_700Bold' },
+    headerSub: { fontSize: Typography.size.xs, color: c.inkSoft, marginTop: 3 },
+    content: { paddingHorizontal: 20, gap: Spacing.xl },
 
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    sectionTitle: { fontSize: 13, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.1 },
-    sectionAction: { fontSize: 12, fontWeight: '600', color: c.ink },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md },
+    sectionTitle: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.1 },
+    sectionAction: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: c.ink },
 
     // Shuttle card
-    shuttleCard: { backgroundColor: c.white, borderRadius: 24, padding: 16, overflow: 'hidden', ...S.luxe },
+    shuttleCard: { backgroundColor: c.white, borderRadius: Radius.xl, padding: Spacing.lg, overflow: 'hidden', ...S.luxe },
     cardAccent: { position: 'absolute', top: -40, right: -40, width: 130, height: 130, borderRadius: 65, opacity: 0.5 },
-    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    codeBox: { width: 44, height: 44, borderRadius: 16, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    codeText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: '700' },
+    cardTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    codeBox: { width: 44, height: 44, borderRadius: Radius.lg, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
+    codeText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: Typography.weight.bold },
     cardMeta: { flex: 1, gap: 2 },
-    routeName: { fontSize: 14, fontWeight: '600', color: c.ink },
+    routeName: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
     routePath: { fontSize: 11, color: c.inkSoft },
     priceBox: { alignItems: 'flex-end' },
-    priceText: { fontSize: 15, fontWeight: '700', color: c.ink },
+    priceText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.ink },
     priceLabel: { fontSize: 10, color: c.inkSoft },
     cardStats: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 14 },
-    statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    statItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
     statText: { fontSize: 11, color: c.inkSoft },
     cardActions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
     rebookBtn: { flex: 1, height: 42, borderRadius: 14, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-    rebookText: { color: c.isDark ? c.background : c.white, fontSize: 13, fontWeight: '600' },
+    rebookText: { color: c.isDark ? c.background : c.white, fontSize: 13, fontWeight: Typography.weight.semibold },
     removeBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
 
     // Frequent destination card
-    destCard: { backgroundColor: c.white, borderRadius: 20, padding: 16, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
+    destCard: { backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
     destAccent: { position: 'absolute', right: -30, top: -30, width: 100, height: 100, borderRadius: 50, opacity: 0.08 },
-    destIconBox: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    destIconBox: { width: 44, height: 44, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center' },
     destMeta: { flex: 1 },
-    destFrom: { fontSize: 12, fontWeight: '600', color: c.ink },
-    destTo: { fontSize: 12, color: c.inkSoft, marginTop: 1 },
+    destFrom: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: c.ink },
+    destTo: { fontSize: Typography.size.xs, color: c.inkSoft, marginTop: 1 },
     destDetail: { fontSize: 11, color: c.silver, marginTop: 3 },
     destRight: { alignItems: 'flex-end', gap: 6 },
-    destPrice: { fontSize: 14, fontWeight: '700', color: c.ink },
+    destPrice: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: c.ink },
     destPriceLabel: { fontSize: 10, color: c.inkSoft },
-    destBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', gap: 5 },
-    destBtnText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: '600' },
+    destBtn: { paddingHorizontal: 14, paddingVertical: Spacing.sm, borderRadius: Radius.md, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', gap: 5 },
+    destBtnText: { color: c.isDark ? c.background : c.white, fontSize: 11, fontWeight: Typography.weight.semibold },
 
     // Empty / loading
-    emptyShuttle: { backgroundColor: c.mist, borderRadius: 20, padding: 20, alignItems: 'center', gap: 8 },
-    emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-    emptyTitle: { fontSize: 14, fontWeight: '600', color: c.ink },
-    emptySub: { fontSize: 12, color: c.inkSoft, textAlign: 'center', lineHeight: 18 },
-    emptyBtn: { marginTop: 8, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: c.ink },
-    emptyBtnText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
-    loadingWrap: { paddingVertical: 32, alignItems: 'center' },
+    emptyShuttle: { backgroundColor: c.mist, borderRadius: 20, padding: 20, alignItems: 'center', gap: Spacing.sm },
+    emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+    emptyTitle: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    emptySub: { fontSize: Typography.size.xs, color: c.inkSoft, textAlign: 'center', lineHeight: 18 },
+    emptyBtn: { marginTop: Spacing.sm, paddingHorizontal: 20, paddingVertical: 10, borderRadius: Radius.md, backgroundColor: c.ink },
+    emptyBtnText: { color: c.isDark ? c.background : c.white, fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
+    loadingWrap: { paddingVertical: Spacing.xxl, alignItems: 'center' },
   });
 }
 
@@ -158,7 +161,7 @@ export default function FavoritesScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: Spacing.md }}>
               {favoriteRoutes.map((route) => (
                 <View key={route.id} style={[gs, styles.shuttleCard]}>
                   <View style={[styles.cardAccent, { backgroundColor: route.color }]} />

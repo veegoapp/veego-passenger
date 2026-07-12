@@ -22,6 +22,9 @@ import { useServiceControl, ServiceType } from '@/context/ServiceControlContext'
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
 import api from '@/src/api/client';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good_evening' {
   if (hour >= 5 && hour < 12) return 'good_morning';
@@ -62,17 +65,17 @@ interface SavedLocation {
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12, zIndex: 10 },
-    greeting: { fontSize: 11, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '500' },
-    greetingName: { fontSize: 20, fontWeight: '600', color: c.ink, letterSpacing: -0.5 },
+    header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: Spacing.md, zIndex: 10 },
+    greeting: { fontSize: 11, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium },
+    greetingName: { fontSize: 20, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.5 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: c.badge, borderWidth: 1.5, borderColor: c.white },
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    avatarText: { color: c.isDark ? c.background : c.white, fontSize: 12, fontWeight: '600' },
+    avatarText: { color: c.isDark ? c.background : c.white, fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
 
-    serviceGrid: { flexDirection: 'row', flexWrap: 'nowrap', gap: 7, paddingHorizontal: 20, marginBottom: 12, zIndex: 20 },
-    serviceBtn: { flex: 1, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6, gap: 6 },
+    serviceGrid: { flexDirection: 'row', flexWrap: 'nowrap', gap: 7, paddingHorizontal: 20, marginBottom: Spacing.md, zIndex: 20 },
+    serviceBtn: { flex: 1, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: 6, gap: 6 },
     serviceBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     serviceBtnInactive: { backgroundColor: c.white, borderColor: c.border },
     serviceBtnSoon: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist, borderColor: c.border, opacity: 0.9 },
@@ -80,8 +83,8 @@ function makeStyles(c: ThemeColors) {
     serviceIconBox: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
     serviceIconBoxActive: { backgroundColor: 'rgba(255,255,255,0.18)' },
     serviceTextCol: { flex: 1, minWidth: 0 },
-    serviceLabel: { fontSize: 13, fontWeight: '600', letterSpacing: -0.2, flexShrink: 1 },
-    serviceSub: { fontSize: 10, fontWeight: '500', color: c.inkSoft },
+    serviceLabel: { fontSize: 13, fontWeight: Typography.weight.semibold, letterSpacing: -0.2, flexShrink: 1 },
+    serviceSub: { fontSize: 10, fontWeight: Typography.weight.medium, color: c.inkSoft },
     soonBadgeFloat: {
       position: 'absolute',
       top: 5,
@@ -92,48 +95,48 @@ function makeStyles(c: ThemeColors) {
       paddingVertical: 2,
       zIndex: 5,
     },
-    soonBadgeText: { fontSize: 8, fontWeight: '700', color: c.inkSoft, letterSpacing: 0.3 },
+    soonBadgeText: { fontSize: 8, fontWeight: Typography.weight.bold, color: c.inkSoft, letterSpacing: 0.3 },
 
     stickySearch: { paddingHorizontal: 20, marginBottom: 10 },
-    searchBar: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 20, paddingHorizontal: 16, gap: 10 },
+    searchBar: { flexDirection: 'row', alignItems: 'center', height: 50, borderRadius: 20, paddingHorizontal: Spacing.lg, gap: 10 },
     searchPlaceholder: { flex: 1, fontSize: 13.5, color: c.inkSoft },
     searchDivider: { width: 1, height: 16, backgroundColor: c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' },
 
     mapSearchBox: {
       paddingVertical: 10,
       paddingHorizontal: 14,
-      borderRadius: 16,
+      borderRadius: Radius.lg,
       backgroundColor: 'transparent',
       borderWidth: 1.5,
       borderColor: c.isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)',
     },
-    mapInputRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 40, borderRadius: 10, paddingHorizontal: 8 },
+    mapInputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, height: 40, borderRadius: 10, paddingHorizontal: Spacing.sm },
     mapInputRowActive: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
-    mapInputText: { fontSize: 13.5, fontWeight: '700', color: c.ink, flex: 1 },
-    mapInputPlaceholder: { fontSize: 13.5, fontWeight: '700', color: c.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)', flex: 1 },
-    mapInputDivider: { height: 1, backgroundColor: c.border, marginVertical: 4, marginLeft: 28, opacity: 0.5 },
+    mapInputText: { fontSize: 13.5, fontWeight: Typography.weight.bold, color: c.ink, flex: 1 },
+    mapInputPlaceholder: { fontSize: 13.5, fontWeight: Typography.weight.bold, color: c.isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)', flex: 1 },
+    mapInputDivider: { height: 1, backgroundColor: c.border, marginVertical: Spacing.xs, marginLeft: 28, opacity: 0.5 },
     dotGreen: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
     dotRed: { width: 6, height: 6, borderRadius: 1.5, backgroundColor: c.badge },
 
     scrollContent: { paddingHorizontal: 20, paddingTop: 0, gap: 0 },
-    heroCard: { borderRadius: 28, padding: 20, marginBottom: 8, overflow: 'hidden', ...S.float },
+    heroCard: { borderRadius: 28, padding: 20, marginBottom: Spacing.sm, overflow: 'hidden', ...S.float },
     heroGlow: { position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)' },
-    heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
+    heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.lg },
     heroLabel: { fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1.2 },
-    heroRouteName: { fontSize: 16, fontWeight: '600', color: '#ffffff', marginTop: 2 },
-    heroBadge: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6 },
-    heroBadgeText: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
+    heroRouteName: { fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, color: '#ffffff', marginTop: 2 },
+    heroBadge: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 99, paddingHorizontal: Spacing.md, paddingVertical: 6 },
+    heroBadgeText: { color: '#ffffff', fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
     heroBottom: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     heroStation: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    heroStationName: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+    heroStationName: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.85)', fontWeight: Typography.weight.medium },
 
-    mostBookedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8 },
-    mostBookedTitle: { fontSize: 15, fontWeight: '700', color: c.ink, flexDirection: 'row', alignItems: 'center', gap: 4 },
+    mostBookedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.md, marginBottom: Spacing.sm },
+    mostBookedTitle: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.ink, flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
 
     // رجعنا الاستايل الأصلي هنا ليكون متناسق
-    routesSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: 4, marginBottom: 12 },
-    viewAllBtn: { fontSize: 13, fontWeight: '600', color: '#3b82f6' },
-    routesList: { gap: 12 },
+    routesSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: Spacing.xs, marginBottom: Spacing.md },
+    viewAllBtn: { fontSize: 13, fontWeight: Typography.weight.semibold, color: '#3b82f6' },
+    routesList: { gap: Spacing.md },
   });
 }
 
@@ -360,7 +363,7 @@ export default function HomeScreen() {
           {debt?.hasDebt && (
             <View style={{
               marginHorizontal: 20,
-              marginBottom: 8,
+              marginBottom: Spacing.sm,
               flexDirection: 'row',
               alignItems: 'flex-start',
               gap: 10,
@@ -368,14 +371,14 @@ export default function HomeScreen() {
               borderRadius: 14,
               borderWidth: 1,
               borderColor: c.isDark ? 'rgba(220,38,38,0.35)' : 'rgba(220,38,38,0.25)',
-              padding: 12,
+              padding: Spacing.md,
             }}>
               <AlertCircle size={16} color="#dc2626" style={{ marginTop: 1 }} />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#dc2626', marginBottom: 2 }}>
+                <Text style={{ fontSize: 13, fontWeight: Typography.weight.bold, color: '#dc2626', marginBottom: 2 }}>
                   {t('debt_banner_title')}
                 </Text>
-                <Text style={{ fontSize: 12, color: c.isDark ? 'rgba(220,38,38,0.8)' : '#7f1d1d', lineHeight: 17 }}>
+                <Text style={{ fontSize: Typography.size.xs, color: c.isDark ? 'rgba(220,38,38,0.8)' : '#7f1d1d', lineHeight: 17 }}>
                   {t('debt_banner_body')}
                 </Text>
               </View>
@@ -397,7 +400,7 @@ export default function HomeScreen() {
           {/* ═══ تم نقل السيكشن الأصلي والكلمة هنا بالظبط بنفس ستايلها القديم ═══ */}
           {mode === 'shuttle' && (
             <View style={styles.routesSectionHeader}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: c.ink }}>{t('shuttle_routes_heading')}</Text>
+              <Text style={{ fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink }}>{t('shuttle_routes_heading')}</Text>
               <TouchableOpacity onPress={() => router.push('/routes')}>
                 <Text style={styles.viewAllBtn}>{t('view_all_routes')}</Text>
               </TouchableOpacity>
@@ -410,10 +413,10 @@ export default function HomeScreen() {
             if (hiddenCount === 0 || userZoneId === undefined) return null;
             return (
               <View style={{
-                marginHorizontal: 20, marginTop: -4, marginBottom: 8,
-                flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+                marginHorizontal: 20, marginTop: -4, marginBottom: Spacing.sm,
+                flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm,
                 backgroundColor: c.isDark ? 'rgba(255,180,0,0.10)' : 'rgba(245,158,11,0.08)',
-                borderRadius: 12, borderWidth: 1,
+                borderRadius: Radius.md, borderWidth: 1,
                 borderColor: c.isDark ? 'rgba(255,180,0,0.20)' : 'rgba(245,158,11,0.2)',
                 padding: 10,
               }}>
@@ -439,7 +442,7 @@ export default function HomeScreen() {
           left: 0,
           right: 0,
           zIndex: 999,
-          paddingHorizontal: 12,
+          paddingHorizontal: Spacing.md,
         }}>
           {/* Transparent search card */}
           <View style={styles.mapSearchBox}>
@@ -499,7 +502,7 @@ export default function HomeScreen() {
             <View style={{
               marginTop: 6,
               backgroundColor: c.white,
-              borderRadius: 16,
+              borderRadius: Radius.lg,
               maxHeight: 260,
               borderWidth: 1,
               borderColor: c.border,
@@ -517,12 +520,12 @@ export default function HomeScreen() {
                   filteredSuggestions.map((item) => (
                     <TouchableOpacity
                       key={item.id}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border }}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 1, borderBottomColor: c.border }}
                       onPress={() => handleSelectLocation(item)}
                     >
                       <Navigation size={15} color={c.inkSoft} />
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13.5, fontWeight: '500', color: c.ink }}>{item.name}</Text>
+                        <Text style={{ fontSize: 13.5, fontWeight: Typography.weight.medium, color: c.ink }}>{item.name}</Text>
                         {!!item.address && <Text style={{ fontSize: 11.5, color: c.inkSoft }} numberOfLines={1}>{item.address}</Text>}
                       </View>
                     </TouchableOpacity>

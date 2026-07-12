@@ -7,6 +7,11 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, QrCode, Check, Camera } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { Animation } from '@/constants/animations';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { Shadows } from '@/constants/shadows';
 
 export interface QRScanResult {
   data: string;
@@ -36,7 +41,7 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
 
   // Animate corner brackets + scan line
   useEffect(() => {
-    Animated.timing(cornerAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    Animated.timing(cornerAnim, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: true }).start();
 
     const scanLoop = Animated.loop(
       Animated.sequence([
@@ -195,14 +200,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md,
   },
   closeBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
+  headerTitle: { fontSize: 15, fontWeight: Typography.weight.bold, color: '#ffffff' },
 
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 10 },
   overlayRow: { backgroundColor: 'rgba(0,0,0,0.6)', width: '100%' },
@@ -230,7 +235,7 @@ const styles = StyleSheet.create({
     position: 'absolute', left: 8, right: 8, height: 2,
     backgroundColor: '#55c49a',
     shadowColor: '#55c49a', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 6,
-    elevation: 4,
+    elevation: Shadows.medium.elevation,
   },
   scannedOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -245,27 +250,27 @@ const styles = StyleSheet.create({
 
   bottomHint: {
     position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
-    alignItems: 'center', gap: 12, paddingHorizontal: 24,
+    alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xl,
   },
   hintText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
   rescanBtn: {
-    paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20,
+    paddingHorizontal: Spacing.xl, paddingVertical: 10, borderRadius: 20,
     backgroundColor: '#55c49a',
   },
-  rescanBtnText: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+  rescanBtnText: { fontSize: 13, fontWeight: Typography.weight.bold, color: '#ffffff' },
 
-  unsupportedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 32 },
-  unsupportedTitle: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
+  unsupportedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: Spacing.xxl },
+  unsupportedTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: '#ffffff' },
   unsupportedSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20 },
-  closeFullBtn: { marginTop: 8, paddingHorizontal: 32, paddingVertical: 12, borderRadius: 16, backgroundColor: '#55c49a' },
-  closeFullBtnText: { fontSize: 14, fontWeight: '700', color: '#ffffff' },
+  closeFullBtn: { marginTop: Spacing.sm, paddingHorizontal: Spacing.xxl, paddingVertical: Spacing.md, borderRadius: Radius.lg, backgroundColor: '#55c49a' },
+  closeFullBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#ffffff' },
 
-  permissionWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 32 },
-  permissionIcon: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(85,196,154,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  permissionTitle: { fontSize: 20, fontWeight: '700', color: '#ffffff' },
+  permissionWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: Spacing.xxl },
+  permissionIcon: { width: 80, height: 80, borderRadius: Radius.xl, backgroundColor: 'rgba(85,196,154,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  permissionTitle: { fontSize: 20, fontWeight: Typography.weight.bold, color: '#ffffff' },
   permissionSub: { fontSize: 13.5, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 21 },
-  permissionBtn: { marginTop: 8, width: '100%', height: 52, borderRadius: 18, backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center' },
-  permissionBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
-  cancelPermBtn: { paddingVertical: 8 },
-  cancelPermBtnText: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  permissionBtn: { marginTop: Spacing.sm, width: '100%', height: 52, borderRadius: 18, backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center' },
+  permissionBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: '#ffffff' },
+  cancelPermBtn: { paddingVertical: Spacing.sm },
+  cancelPermBtnText: { fontSize: Typography.size.sm, color: 'rgba(255,255,255,0.5)' },
 });

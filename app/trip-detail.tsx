@@ -18,6 +18,10 @@ import api, { tokenStore } from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import type { Station } from '@/components/shared/PassengerTrackingMap';
 import { RatingSheet } from '@/components/shared/RatingSheet';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { Shadows } from '@/constants/shadows';
 
 
 // Show map from 20 min before departure through the entire active trip
@@ -113,76 +117,76 @@ function isWithin20Min(departureIso: string): boolean {
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.md },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: c.ink, letterSpacing: -0.3 },
+    headerTitle: { flex: 1, fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.3 },
     shareBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
-    card: { marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', padding: 20, marginBottom: 16, ...S.float },
-    sectionLabel: { fontSize: 10, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
-    routeTitle: { fontSize: 18, fontWeight: '700', color: c.ink, letterSpacing: -0.4, marginBottom: 4 },
+    card: { marginHorizontal: 20, borderRadius: Radius.xl, overflow: 'hidden', padding: 20, marginBottom: Spacing.lg, ...S.float },
+    sectionLabel: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
+    routeTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4, marginBottom: Spacing.xs },
     routeSub: { fontSize: 13, color: c.inkSoft },
-    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 10 },
     statusDot: { width: 8, height: 8, borderRadius: 4 },
-    statusText: { fontSize: 13, fontWeight: '600' },
+    statusText: { fontSize: 13, fontWeight: Typography.weight.semibold },
     gridRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 0, marginTop: 6 },
-    gridItem: { width: '50%', paddingVertical: 8 },
+    gridItem: { width: '50%', paddingVertical: Spacing.sm },
     gridLabel: { fontSize: 10, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
-    gridValue: { fontSize: 14, fontWeight: '600', color: c.ink, marginTop: 2 },
-    mapCard: { marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', height: 240, backgroundColor: c.mist, marginBottom: 16, ...S.float },
+    gridValue: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink, marginTop: 2 },
+    mapCard: { marginHorizontal: 20, borderRadius: Radius.xl, overflow: 'hidden', height: 240, backgroundColor: c.mist, marginBottom: Spacing.lg, ...S.float },
     mapLabel: { position: 'absolute', top: 12, left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    mapLabelText: { fontSize: 11, fontWeight: '600', color: '#fff' },
+    mapLabelText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: '#fff' },
     mapPulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4d9ef6' },
-    shareCard: { marginHorizontal: 20, borderRadius: 20, borderWidth: 1.5, borderColor: c.accentMint, backgroundColor: 'rgba(85,196,154,0.06)', padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    shareCard: { marginHorizontal: 20, borderRadius: 20, borderWidth: 1.5, borderColor: c.accentMint, backgroundColor: 'rgba(85,196,154,0.06)', padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.lg },
     shareCardText: { flex: 1 },
-    shareCardTitle: { fontSize: 13.5, fontWeight: '700', color: c.ink },
-    shareCardBody: { fontSize: 12, color: c.inkSoft, marginTop: 3, lineHeight: 17 },
-    shareCardBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 14, backgroundColor: c.accentMint, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    shareCardBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-    loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-    loadingText: { fontSize: 14, color: c.inkSoft },
-    errorText: { fontSize: 14, color: c.badge, textAlign: 'center', marginHorizontal: 32 },
-    goBack: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 14, backgroundColor: c.ink },
-    goBackText: { fontSize: 14, fontWeight: '600', color: c.isDark ? c.background : c.white },
-    cancelBtn: { marginHorizontal: 20, marginBottom: 8, borderRadius: 16, borderWidth: 1.5, borderColor: c.badge, backgroundColor: 'rgba(220,38,38,0.05)', padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    cancelBtnText: { fontSize: 14, fontWeight: '600', color: c.badge },
-    rateBtn: { marginHorizontal: 20, marginBottom: 8, height: 54, borderRadius: 18, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    rateBtnText: { fontSize: 15, fontWeight: '700', color: c.isDark ? c.background : '#fff' },
+    shareCardTitle: { fontSize: 13.5, fontWeight: Typography.weight.bold, color: c.ink },
+    shareCardBody: { fontSize: Typography.size.xs, color: c.inkSoft, marginTop: 3, lineHeight: 17 },
+    shareCardBtn: { paddingHorizontal: Spacing.lg, paddingVertical: 9, borderRadius: 14, backgroundColor: c.accentMint, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    shareCardBtnText: { fontSize: 13, fontWeight: Typography.weight.bold, color: '#fff' },
+    loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
+    loadingText: { fontSize: Typography.size.sm, color: c.inkSoft },
+    errorText: { fontSize: Typography.size.sm, color: c.badge, textAlign: 'center', marginHorizontal: Spacing.xxl },
+    goBack: { marginTop: Spacing.md, paddingHorizontal: Spacing.xl, paddingVertical: 11, borderRadius: 14, backgroundColor: c.ink },
+    goBackText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.isDark ? c.background : c.white },
+    cancelBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.badge, backgroundColor: 'rgba(220,38,38,0.05)', padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+    cancelBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.badge },
+    rateBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, height: 54, borderRadius: 18, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+    rateBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : '#fff' },
     sosBtn: {
       position: 'absolute', top: 12, right: 12,
       flexDirection: 'row', alignItems: 'center', gap: 5,
       backgroundColor: '#dc2626', borderRadius: 99,
-      paddingHorizontal: 12, paddingVertical: 7,
+      paddingHorizontal: Spacing.md, paddingVertical: 7,
       shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.45, shadowRadius: 8, elevation: 8,
+      shadowOpacity: 0.45, shadowRadius: 8, elevation: Shadows.large.elevation,
     },
-    sosBtnText: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+    sosBtnText: { fontSize: Typography.size.xs, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
     boardedBanner: {
-      marginHorizontal: 20, marginBottom: 12,
-      flexDirection: 'row', alignItems: 'center', gap: 12,
+      marginHorizontal: 20, marginBottom: Spacing.md,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
       backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 18,
       padding: 14, borderWidth: 1.5, borderColor: '#22c55e',
     },
-    boardedEmoji: { fontSize: 22 },
-    boardedTitle: { fontSize: 14, fontWeight: '700', color: '#15803d' },
-    boardedSub:   { fontSize: 12, color: '#16a34a', marginTop: 2 },
+    boardedEmoji: { fontSize: Typography.size.xl },
+    boardedTitle: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#15803d' },
+    boardedSub:   { fontSize: Typography.size.xs, color: '#16a34a', marginTop: 2 },
     etaCard: {
-      marginHorizontal: 20, marginBottom: 12,
+      marginHorizontal: 20, marginBottom: Spacing.md,
       backgroundColor: c.isDark ? 'rgba(37,99,235,0.15)' : '#eff6ff',
       borderRadius: 18, padding: 14, borderWidth: 1,
       borderColor: c.isDark ? 'rgba(37,99,235,0.3)' : '#bfdbfe',
-      gap: 8,
+      gap: Spacing.sm,
     },
-    etaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    etaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     etaLabel: { flex: 1, fontSize: 13, color: c.inkSoft },
-    etaValue: { fontSize: 14, fontWeight: '700', color: '#2563eb' },
+    etaValue: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#2563eb' },
     etaDivider: { height: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : '#dbeafe' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 32 },
-    modalBox: { borderRadius: 24, padding: 24, width: '100%', maxWidth: 380, gap: 12 },
-    modalTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
-    modalBody: { fontSize: 14, lineHeight: 21, textAlign: 'center' },
-    modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl },
+    modalBox: { borderRadius: Radius.xl, padding: Spacing.xl, width: '100%', maxWidth: 380, gap: Spacing.md },
+    modalTitle: { fontSize: 17, fontWeight: Typography.weight.bold, textAlign: 'center' },
+    modalBody: { fontSize: Typography.size.sm, lineHeight: 21, textAlign: 'center' },
+    modalActions: { flexDirection: 'row', gap: 10, marginTop: Spacing.xs },
     modalBtn: { flex: 1, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    modalBtnText: { fontSize: 14, fontWeight: '600' },
+    modalBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
   });
 }
 
@@ -672,9 +676,9 @@ export default function TripDetailScreen() {
               {shuttleStatusLabel(effectiveStatus, isAr ? 'ar' : 'en')}
             </Text>
             {liveStatus !== null && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginStart: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginStart: 6 }}>
                 <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#55c49a' }} />
-                <Text style={{ fontSize: 10, color: '#55c49a', fontWeight: '600' }}>
+                <Text style={{ fontSize: 10, color: '#55c49a', fontWeight: Typography.weight.semibold }}>
                   {t('live_badge')}
                 </Text>
               </View>
@@ -715,7 +719,7 @@ export default function TripDetailScreen() {
                 : null}
               stations={stations}
               passengerStationId={trip.pickupStationId ?? undefined}
-              style={{ borderRadius: 24 }}
+              style={{ borderRadius: Radius.xl }}
             />
 
             {/* SOS floating button */}

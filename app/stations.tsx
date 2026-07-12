@@ -8,6 +8,10 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { MapMockView } from '@/components/shared/Shared';
 import api from '@/src/api/client';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { VeeGoCard } from '@/components/ui/VeeGoCard';
 
 interface StationItem {
   id: string;
@@ -39,42 +43,42 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 20, paddingBottom: 16,
+      paddingHorizontal: 20, paddingBottom: Spacing.lg,
     },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    title: { fontSize: 16, fontWeight: '600', color: c.ink },
-    mapWrap: { height: 200, marginHorizontal: 20, borderRadius: 28, overflow: 'hidden', marginBottom: 16, position: 'relative' },
+    title: { fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, color: c.ink },
+    mapWrap: { height: 200, marginHorizontal: 20, borderRadius: 28, overflow: 'hidden', marginBottom: Spacing.lg, position: 'relative' },
     mapOverlay: { position: 'absolute', bottom: 12, left: 12 },
-    mapLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8 },
-    mapLabelText: { fontSize: 11.5, fontWeight: '600', color: c.ink },
+    mapLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 99, paddingHorizontal: 14, paddingVertical: Spacing.sm },
+    mapLabelText: { fontSize: 11.5, fontWeight: Typography.weight.semibold, color: c.ink },
     list: { paddingHorizontal: 20, gap: 10 },
-    listTitle: { fontSize: 13, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.1, paddingLeft: 4 },
-    stationCard: { borderRadius: 22, padding: 16, backgroundColor: c.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    stationLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-    stationIndex: { width: 36, height: 36, borderRadius: 12, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    stationIndexText: { fontSize: 11, fontWeight: '600', color: c.inkSoft },
+    listTitle: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.1, paddingLeft: Spacing.xs },
+    stationCard: { borderRadius: 22, padding: Spacing.lg, backgroundColor: c.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    stationLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
+    stationIndex: { width: 36, height: 36, borderRadius: Radius.md, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
+    stationIndexText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft },
     stationInfo: { flex: 1 },
-    stationName: { fontSize: 13.5, fontWeight: '600', color: c.ink },
+    stationName: { fontSize: 13.5, fontWeight: Typography.weight.semibold, color: c.ink },
     stationArea: { fontSize: 11, color: c.inkSoft, marginTop: 1 },
     stationRight: { alignItems: 'flex-end', gap: 6 },
-    statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    statItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
     statText: { fontSize: 11, color: c.inkSoft },
-    etaTag: { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: c.mist },
+    etaTag: { borderRadius: 99, paddingHorizontal: 10, paddingVertical: Spacing.xs, backgroundColor: c.mist },
     etaTagNear: { backgroundColor: c.isDark ? 'rgba(85,196,154,0.15)' : 'rgba(85,196,154,0.15)' },
-    etaText: { fontSize: 11, fontWeight: '500', color: c.inkSoft },
+    etaText: { fontSize: 11, fontWeight: Typography.weight.medium, color: c.inkSoft },
     etaTextNear: { color: '#2a9e6b' },
     searchContainer: {
       flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: 22,
-      paddingHorizontal: 14, marginHorizontal: 20, marginBottom: 12, borderWidth: 1,
+      paddingHorizontal: 14, marginHorizontal: 20, marginBottom: Spacing.md, borderWidth: 1,
     },
-    searchInput: { flex: 1, fontSize: 13.5, fontWeight: '500', paddingVertical: 0, marginStart: 8 },
-    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 40 },
-    fullErrorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-    fullErrorCard: { width: '100%', borderRadius: 28, backgroundColor: c.white, padding: 32, alignItems: 'center', gap: 12 },
-    fullErrorTitle: { fontSize: 17, fontWeight: '700', color: c.ink, marginTop: 4 },
+    searchInput: { flex: 1, fontSize: 13.5, fontWeight: Typography.weight.medium, paddingVertical: 0, marginStart: 8 },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingVertical: 40 },
+    fullErrorWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
+    fullErrorCard: { width: '100%', borderRadius: 28, backgroundColor: c.white, padding: Spacing.xxl, alignItems: 'center', gap: Spacing.md },
+    fullErrorTitle: { fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink, marginTop: Spacing.xs },
     fullErrorText: { fontSize: 13.5, color: c.inkSoft, textAlign: 'center', lineHeight: 22 },
-    retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 99, backgroundColor: c.ink, marginTop: 4 },
-    retryText: { fontSize: 13, fontWeight: '600', color: c.isDark ? c.background : c.white },
+    retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: 99, backgroundColor: c.ink, marginTop: Spacing.xs },
+    retryText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.isDark ? c.background : c.white },
   });
 }
 
@@ -176,7 +180,17 @@ export default function StationsScreen() {
 
       {!loading && error && (
         <View style={styles.fullErrorWrap}>
-          <View style={styles.fullErrorCard}>
+          <VeeGoCard
+            variant="flat"
+            style={{
+              width: '100%',
+              borderRadius: 28,
+              backgroundColor: c.white,
+              padding: Spacing.xxl,
+              alignItems: 'center',
+              gap: Spacing.md,
+            }}
+          >
             <WifiOff size={40} color={c.silver} />
             <Text style={styles.fullErrorTitle}>{t('error')}</Text>
             <Text style={styles.fullErrorText}>{error}</Text>
@@ -184,7 +198,7 @@ export default function StationsScreen() {
               <RefreshCw size={14} color={c.ink} />
               <Text style={styles.retryText}>{t('retry')}</Text>
             </TouchableOpacity>
-          </View>
+          </VeeGoCard>
         </View>
       )}
 

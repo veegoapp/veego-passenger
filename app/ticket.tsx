@@ -6,12 +6,16 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap } from 'lucide-react-native';
+import { Animation } from '@/constants/animations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { getSocket } from '@/src/api/socket';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 
 function SparkleParticle({ deg, delay, color, size = 8 }: { deg: number; delay: number; color: string; size?: number }) {
@@ -23,8 +27,8 @@ function SparkleParticle({ deg, delay, color, size = 8 }: { deg: number; delay: 
       Animated.delay(delay * 1000),
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0, duration: 800, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: Animation.duration.slower, useNativeDriver: true }),
         ]),
         Animated.timing(distance, { toValue: 1, duration: 1100, easing: Easing.out(Easing.ease), useNativeDriver: true }),
       ]),
@@ -67,18 +71,18 @@ const SPARKLE_COLORS = ['#fbbf24', '#f59e0b', '#34d399', '#6ee7b7', '#93c5fd', '
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: Spacing.md },
     headerBtn: {
       width: 42, height: 42, alignItems: 'center', justifyContent: 'center',
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
       borderRadius: 21, borderWidth: 1,
       borderColor: c.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.35)',
     },
-    headerTitle: { fontSize: 15, fontWeight: '600', color: c.ink, letterSpacing: -0.2 },
-    scrollContent: { paddingHorizontal: 20, gap: 20, paddingTop: 4 },
+    headerTitle: { fontSize: 15, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.2 },
+    scrollContent: { paddingHorizontal: 20, gap: 20, paddingTop: Spacing.xs },
 
     /* ── Celebration block ── */
-    celebrationBlock: { alignItems: 'center', paddingTop: 8, paddingBottom: 4, gap: 14 },
+    celebrationBlock: { alignItems: 'center', paddingTop: Spacing.sm, paddingBottom: Spacing.xs, gap: 14 },
     sparkleHost: { width: 112, height: 112, alignItems: 'center', justifyContent: 'center', position: 'relative' },
     checkRing: {
       width: 96, height: 96, borderRadius: 48,
@@ -117,47 +121,47 @@ function makeStyles(c: ThemeColors) {
     },
     ticketTripBadge: {
       alignSelf: 'flex-end', marginBottom: 14,
-      borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5,
+      borderRadius: 99, paddingHorizontal: Spacing.md, paddingVertical: 5,
       backgroundColor: 'rgba(255,255,255,0.15)',
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     },
-    ticketTripBadgeText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+    ticketTripBadgeText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: 'rgba(255,255,255,0.9)' },
     ticketRouteName: {
-      fontSize: 22, fontWeight: '800', color: '#ffffff',
-      letterSpacing: -0.5, marginBottom: 8, textAlign: 'center',
+      fontSize: Typography.size.xl, fontWeight: '800', color: '#ffffff',
+      letterSpacing: -0.5, marginBottom: Spacing.sm, textAlign: 'center',
     },
-    ticketRouteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 },
+    ticketRouteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
     ticketStation: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     ticketStationDot: { width: 8, height: 8, borderRadius: 4 },
-    ticketStationText: { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
-    ticketTimeRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8, marginTop: 12 },
+    ticketStationText: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.75)', fontWeight: Typography.weight.medium },
+    ticketTimeRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.md },
     ticketTime: { fontSize: 36, fontWeight: '800', color: '#ffffff', letterSpacing: -1 },
     ticketTimeTz: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
 
     /* Perforation */
     perforationRow: { flexDirection: 'row', alignItems: 'center', height: 32, position: 'relative' },
-    punchLeft: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginStart: -16 },
+    punchLeft: { width: 32, height: 32, borderRadius: Radius.lg, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginStart: -16 },
     perforationLine: {
       flex: 1, height: 0,
       borderTopWidth: 2, borderColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#e2e2ea',
       borderStyle: 'dashed',
     },
-    punchRight: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginEnd: -16 },
+    punchRight: { width: 32, height: 32, borderRadius: Radius.lg, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginEnd: -16 },
 
     /* Ticket body */
-    ticketBody: { paddingHorizontal: 22, paddingBottom: 24, paddingTop: 8, backgroundColor: c.white, gap: 0 },
+    ticketBody: { paddingHorizontal: 22, paddingBottom: Spacing.xl, paddingTop: Spacing.sm, backgroundColor: c.white, gap: 0 },
     infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0, marginBottom: 20 },
     infoRow: {
       flexDirection: 'row', alignItems: 'center', gap: 14,
-      paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5',
+      paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5',
     },
     infoIcon: {
-      width: 36, height: 36, borderRadius: 12,
+      width: 36, height: 36, borderRadius: Radius.md,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f5f5fa',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
     infoLabel: { fontSize: 10, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
-    infoValue: { fontSize: 14, fontWeight: '600', color: c.ink, marginTop: 1 },
+    infoValue: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink, marginTop: 1 },
 
     /* Status badge in ticket header */
     statusBadge: {
@@ -166,16 +170,16 @@ function makeStyles(c: ThemeColors) {
       borderRadius: 99, paddingHorizontal: 14, paddingVertical: 6,
     },
     statusBadgeDot: { width: 7, height: 7, borderRadius: 3.5 },
-    statusBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+    statusBadgeText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, letterSpacing: 0.3 },
 
     /* Pending notice banner — modern minimal */
     pendingBanner: {
       borderRadius: 18, overflow: 'hidden',
-      marginBottom: 4,
+      marginBottom: Spacing.xs,
     },
     pendingBannerInner: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      paddingHorizontal: 16, paddingVertical: 14,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      paddingHorizontal: Spacing.lg, paddingVertical: 14,
       borderRadius: 18,
       borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
       backgroundColor: 'rgba(245,158,11,0.09)',
@@ -186,24 +190,24 @@ function makeStyles(c: ThemeColors) {
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
     pendingBannerTitle: {
-      fontSize: 13, fontWeight: '700', color: c.isDark ? '#fbbf24' : '#92400e', marginBottom: 2,
+      fontSize: 13, fontWeight: Typography.weight.bold, color: c.isDark ? '#fbbf24' : '#92400e', marginBottom: 2,
     },
     pendingBannerBody: {
-      fontSize: 12, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 17, opacity: 0.85,
+      fontSize: Typography.size.xs, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 17, opacity: 0.85,
     },
 
     /* Boarded banner */
     boardedBanner: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      backgroundColor: '#22c55e', borderRadius: 20, padding: 16,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      backgroundColor: '#22c55e', borderRadius: 20, padding: Spacing.lg,
     },
-    boardedBannerText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#ffffff' },
+    boardedBannerText: { flex: 1, fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#ffffff' },
 
     /* Tracking card */
-    trackingCard: { borderRadius: 20, backgroundColor: c.mist, padding: 14, gap: 8 },
-    trackingHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    trackingTitle: { fontSize: 13, fontWeight: '600', color: c.ink },
-    trackingStation: { fontSize: 13, color: c.ink, fontWeight: '500' },
+    trackingCard: { borderRadius: 20, backgroundColor: c.mist, padding: 14, gap: Spacing.sm },
+    trackingHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    trackingTitle: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink },
+    trackingStation: { fontSize: 13, color: c.ink, fontWeight: Typography.weight.medium },
     trackingSub: { fontSize: 11, color: c.inkSoft },
 
     /* Actions */
@@ -213,14 +217,14 @@ function makeStyles(c: ThemeColors) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
       shadowColor: c.ink, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 20, elevation: 10,
     },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: '700' },
+    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: Typography.weight.bold },
     secondaryBtn: { height: 48, alignItems: 'center', justifyContent: 'center' },
-    secondaryBtnText: { fontSize: 14, color: c.inkSoft },
+    secondaryBtnText: { fontSize: Typography.size.sm, color: c.inkSoft },
     goHomeBtn: {
       marginTop: 20, height: 52, paddingHorizontal: 28, borderRadius: 18,
       backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
     },
-    goHomeBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600' },
+    goHomeBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
   });
 }
 
@@ -255,7 +259,7 @@ export default function TicketScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Animated.parallel([
       Animated.spring(checkScale, { toValue: 1, damping: 10, stiffness: 150, useNativeDriver: true }),
-      Animated.timing(checkOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(checkOpacity, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: true }),
       Animated.spring(checkRotate, { toValue: 0, damping: 16, useNativeDriver: true }),
       Animated.sequence([
         Animated.delay(250),
@@ -336,8 +340,8 @@ export default function TicketScreen() {
 
   if (!confirmedBookingId) {
     return (
-      <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: c.ink, textAlign: 'center', marginBottom: 8 }}>
+      <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
+        <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center', marginBottom: Spacing.sm }}>
           {t('ticket_load_error')}
         </Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.goHomeBtn}>
@@ -352,7 +356,7 @@ export default function TicketScreen() {
   if (!booking) {
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 16, color: c.inkSoft }}>{t('no_booking')}</Text>
+        <Text style={{ fontSize: Typography.size.md, color: c.inkSoft }}>{t('no_booking')}</Text>
         <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={styles.goHomeBtn}>
           <Text style={styles.goHomeBtnText}>{t('go_home')}</Text>
         </TouchableOpacity>

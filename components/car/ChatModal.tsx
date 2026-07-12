@@ -3,12 +3,15 @@ import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, Modal, Platform, KeyboardAvoidingView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, ArrowRight, MessageCircle, Hourglass, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { useRideChat } from '@/src/hooks/car/useRideChat';
 import { useState } from 'react';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Shadows } from '@/constants/shadows';
 
 interface ChatModalProps {
   visible: boolean;
@@ -51,7 +54,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
       >
         <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 4 }]}>
           <TouchableOpacity onPress={onClose} activeOpacity={0.8} style={styles.backBtn}>
-            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={20} color={c.ink} />
+            {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
           </TouchableOpacity>
           <View style={styles.headerMeta}>
             <View style={[styles.driverAvatar, { backgroundColor: c.ink }]}>
@@ -69,7 +72,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
 
         {messages.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubble-ellipses-outline" size={42} color={c.silver} />
+            <MessageCircle size={42} color={c.silver} />
             <Text style={[styles.emptyText, { color: c.inkSoft }]}>
               {t('no_messages_yet') ?? 'No messages yet.\nSay hello to your driver!'}
             </Text>
@@ -79,7 +82,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             ref={listRef}
             data={messages}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.messageList, { paddingBottom: 16 }]}
+            contentContainerStyle={[styles.messageList, { paddingBottom: Spacing.lg }]}
             showsVerticalScrollIndicator={false}
             onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
             renderItem={({ item }) => (
@@ -128,8 +131,8 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             activeOpacity={0.85}
           >
             {sending
-              ? <Ionicons name="hourglass-outline" size={16} color={c.silver} />
-              : <Ionicons name="send" size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
+              ? <Hourglass size={16} color={c.silver} />
+              : <Send size={16} color={text.trim() ? (c.isDark ? c.background : c.white) : c.silver} />
             }
           </TouchableOpacity>
         </View>
@@ -141,25 +144,25 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12, gap: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.md,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: Shadows.small.elevation,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   headerMeta: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  driverAvatarText: { fontSize: 14, fontWeight: '700' },
-  headerName: { fontSize: 15, fontWeight: '600' },
-  headerSub: { fontSize: 11, fontWeight: '500' },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 40 },
-  emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  messageList: { padding: 16, gap: 8 },
+  driverAvatarText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold },
+  headerName: { fontSize: 15, fontWeight: Typography.weight.semibold },
+  headerSub: { fontSize: 11, fontWeight: Typography.weight.medium },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingHorizontal: 40 },
+  emptyText: { fontSize: Typography.size.sm, textAlign: 'center', lineHeight: 20 },
+  messageList: { padding: Spacing.lg, gap: Spacing.sm },
   bubble: { width: '100%' },
   driverBubble: { alignItems: 'flex-start' },
   userBubble: { alignItems: 'flex-end' },
-  bubbleInner: { maxWidth: '78%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, gap: 4 },
-  bubbleText: { fontSize: 14, lineHeight: 20 },
+  bubbleInner: { maxWidth: '78%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, gap: Spacing.xs },
+  bubbleText: { fontSize: Typography.size.sm, lineHeight: 20 },
   bubbleTime: { fontSize: 10 },
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
-  input: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 100 },
+  inputBar: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1 },
+  input: { flex: 1, borderRadius: 20, paddingHorizontal: Spacing.lg, paddingVertical: 10, fontSize: Typography.size.sm, maxHeight: 100 },
   sendBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

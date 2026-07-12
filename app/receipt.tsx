@@ -10,53 +10,56 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { RatingSheet } from '@/components/shared/RatingSheet';
 import api from '@/src/api/client';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     topGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 260 },
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.md },
     successBadge: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { flex: 1, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },
-    closeBtn: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' },
-    content: { padding: 20, paddingBottom: 0, gap: 12 },
+    headerTitle: { flex: 1, fontSize: 17, fontWeight: Typography.weight.bold, letterSpacing: -0.3 },
+    closeBtn: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' },
+    content: { padding: 20, paddingBottom: 0, gap: Spacing.md },
     card: { borderRadius: 20, borderWidth: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.85)', padding: 18, gap: 10 },
-    sectionLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
-    routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    sectionLabel: { fontSize: 10, fontWeight: Typography.weight.semibold, textTransform: 'uppercase', letterSpacing: 1 },
+    routeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     routeDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
-    routeLine: { width: 2, height: 16, marginLeft: 4, backgroundColor: c.border },
-    routeText: { fontSize: 14, fontWeight: '500', flex: 1 },
-    driverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    routeLine: { width: 2, height: 16, marginLeft: Spacing.xs, backgroundColor: c.border },
+    routeText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.medium, flex: 1 },
+    driverRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     driverAvatar: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    driverInitials: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    driverName: { fontSize: 15, fontWeight: '600' },
-    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-    ratingText: { fontSize: 12 },
+    driverInitials: { color: '#fff', fontSize: Typography.size.md, fontWeight: Typography.weight.bold },
+    driverName: { fontSize: 15, fontWeight: Typography.weight.semibold },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: 3 },
+    ratingText: { fontSize: Typography.size.xs },
     fareRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     fareLabel: { fontSize: 13 },
-    fareValue: { fontSize: 13, fontWeight: '500' },
+    fareValue: { fontSize: 13, fontWeight: Typography.weight.medium },
     fareTotal: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10, marginTop: 2,
     },
-    fareTotalLabel: { fontSize: 15, fontWeight: '700' },
-    fareTotalValue: { fontSize: 17, fontWeight: '700' },
-    payRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    fareTotalLabel: { fontSize: 15, fontWeight: Typography.weight.bold },
+    fareTotalValue: { fontSize: 17, fontWeight: Typography.weight.bold },
+    payRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     payLabel: { fontSize: 13, flex: 1 },
-    payValue: { fontSize: 13, fontWeight: '600' },
+    payValue: { fontSize: 13, fontWeight: Typography.weight.semibold },
     cta: {
       padding: 20, paddingTop: 14, borderTopWidth: 1,
       backgroundColor: c.isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.97)',
-      gap: 8,
+      gap: Spacing.sm,
     },
-    rateBtn: { height: 54, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    rateBtnText: { fontSize: 15, fontWeight: '700' },
+    rateBtn: { height: 54, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+    rateBtnText: { fontSize: 15, fontWeight: Typography.weight.bold },
     doneBtn: { alignItems: 'center', paddingVertical: 10 },
-    doneBtnText: { fontSize: 14 },
+    doneBtnText: { fontSize: Typography.size.sm },
     cashBanner: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
-      borderRadius: 16, borderWidth: 1.5, padding: 14,
+      borderRadius: Radius.lg, borderWidth: 1.5, padding: 14,
     },
-    cashBannerText: { flex: 1, fontSize: 14, fontWeight: '600', lineHeight: 20 },
+    cashBannerText: { flex: 1, fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, lineHeight: 20 },
   });
 }
 
