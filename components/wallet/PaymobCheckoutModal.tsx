@@ -6,6 +6,8 @@ import { WebView } from 'react-native-webview';
 import type { WebViewNavigation } from 'react-native-webview';
 import type { WebViewProps } from 'react-native-webview';
 import { useTheme } from '@/context/ThemeContext';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 // react-native-webview's public entry point only re-exports a few event
 // types (not WebViewErrorEvent/WebViewHttpErrorEvent), so these are derived
@@ -146,12 +148,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: Typography.size.md, fontWeight: Typography.weight.bold },
   loadingOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,

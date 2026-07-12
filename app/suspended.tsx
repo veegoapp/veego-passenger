@@ -7,30 +7,32 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+    container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl },
     iconCircle: {
       width: 96, height: 96, borderRadius: 32,
       backgroundColor: 'rgba(239,68,68,0.12)', alignItems: 'center', justifyContent: 'center',
-      marginBottom: 24,
+      marginBottom: Spacing.xl,
     },
     title: {
-      fontSize: 22, fontWeight: '700', color: c.ink, textAlign: 'center',
+      fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center',
       letterSpacing: -0.5, fontFamily: 'Inter_700Bold', marginBottom: 14, lineHeight: 30,
     },
     body: {
-      fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 22, marginBottom: 32,
+      fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 22, marginBottom: Spacing.xxl,
     },
     primaryBtn: {
       width: '100%', height: 56, borderRadius: 20, backgroundColor: c.ink,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-      marginBottom: 12, ...S.float,
+      marginBottom: Spacing.md, ...S.float,
     },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '700' },
-    secondaryBtn: { paddingVertical: 12 },
-    secondaryBtnText: { fontSize: 14, color: c.inkSoft },
+    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.bold },
+    secondaryBtn: { paddingVertical: Spacing.md },
+    secondaryBtnText: { fontSize: Typography.size.sm, color: c.inkSoft },
   });
 }
 

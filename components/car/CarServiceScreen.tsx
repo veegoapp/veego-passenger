@@ -15,6 +15,10 @@ import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { Shadows } from '@/constants/shadows';
 
 interface Coords { latitude: number; longitude: number }
 interface RideEstimate { economy: { price: number; eta: number }; premium: { price: number; eta: number } }
@@ -31,74 +35,74 @@ function makeStyles(c: ThemeColors, insetTop: number) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: '#0d0e22' },
     topOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, paddingTop: insetTop + 8 },
-    topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingBottom: 10 },
+    topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.lg, paddingBottom: 10 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
     titleBlock: { flex: 1 },
-    topTitle: { color: 'rgba(255,255,255,0.75)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '500' },
-    topSubtitle: { color: '#ffffff', fontSize: 16, fontWeight: '600', letterSpacing: -0.3 },
+    topTitle: { color: 'rgba(255,255,255,0.75)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium },
+    topSubtitle: { color: '#ffffff', fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, letterSpacing: -0.3 },
     notifBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
-    searchWrap: { paddingHorizontal: 16, paddingBottom: 0 },
+    searchWrap: { paddingHorizontal: Spacing.lg, paddingBottom: 0 },
     searchBox: {
       flexDirection: 'row', alignItems: 'center', height: 52,
-      borderRadius: 18, paddingHorizontal: 16, gap: 10,
+      borderRadius: 18, paddingHorizontal: Spacing.lg, gap: 10,
       backgroundColor: inputBg, borderWidth: 1.5, borderColor: inputBorder,
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25, shadowRadius: 12, elevation: 8,
+      shadowOpacity: 0.25, shadowRadius: 12, elevation: Shadows.large.elevation,
     },
-    searchPlaceholder: { flex: 1, fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: '400' },
-    destTag: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(85,196,154,0.2)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
-    destTagText: { fontSize: 11.5, color: '#55c49a', fontWeight: '500', maxWidth: 120 },
-    clearBtn: { padding: 4 },
+    searchPlaceholder: { flex: 1, fontSize: Typography.size.sm, color: 'rgba(255,255,255,0.5)', fontWeight: Typography.weight.regular },
+    destTag: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(85,196,154,0.2)', borderRadius: 10, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs },
+    destTagText: { fontSize: 11.5, color: '#55c49a', fontWeight: Typography.weight.medium, maxWidth: 120 },
+    clearBtn: { padding: Spacing.xs },
     selectingModal: { flex: 1, backgroundColor: c.isDark ? '#0f0f1e' : '#f4f4f8' },
     modalHeader: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      paddingHorizontal: 16, paddingBottom: 12,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md,
       paddingTop: insetTop + 8,
       backgroundColor: c.isDark ? '#1a1a2e' : '#ffffff',
       borderBottomWidth: 1, borderBottomColor: c.border,
     },
     modalBackBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    modalTitle: { fontSize: 17, fontWeight: '600', color: c.ink, flex: 1 },
+    modalTitle: { fontSize: 17, fontWeight: Typography.weight.semibold, color: c.ink, flex: 1 },
     searchInputRow: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
-      marginHorizontal: 16, marginVertical: 12, height: 48,
-      borderRadius: 16, paddingHorizontal: 14, borderWidth: 1,
+      marginHorizontal: Spacing.lg, marginVertical: Spacing.md, height: 48,
+      borderRadius: Radius.lg, paddingHorizontal: 14, borderWidth: 1,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.white,
       borderColor: c.border,
     },
-    searchInput: { flex: 1, fontSize: 14, color: c.ink },
+    searchInput: { flex: 1, fontSize: Typography.size.sm, color: c.ink },
     locItem: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
       paddingHorizontal: 20, paddingVertical: 15,
       borderBottomWidth: 1, borderBottomColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.border,
     },
-    locIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    locText: { flex: 1, fontSize: 13.5, color: c.ink, fontWeight: '500' },
+    locIcon: { width: 36, height: 36, borderRadius: Radius.md, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
+    locText: { flex: 1, fontSize: 13.5, color: c.ink, fontWeight: Typography.weight.medium },
     emptyTip: { paddingHorizontal: 20, paddingTop: 40, alignItems: 'center', gap: 10 },
     emptyTipText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     card: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
       backgroundColor: c.isDark ? 'rgba(16,16,32,0.98)' : '#ffffff',
       borderTopLeftRadius: 28, borderTopRightRadius: 28,
-      padding: 24,
+      padding: Spacing.xl,
       elevation: 10, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16,
       shadowOffset: { width: 0, height: -4 },
       zIndex: 999,
     },
     cardInner: { alignItems: 'center', gap: 6 },
-    cardTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3, fontFamily: 'Inter_700Bold' },
+    cardTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, letterSpacing: -0.3, fontFamily: 'Inter_700Bold' },
     cardSub: { fontSize: 13, textAlign: 'center' },
-    invoice: { width: '100%', borderRadius: 16, padding: 16, alignItems: 'center', marginVertical: 12 },
-    invoiceLabel: { fontSize: 12, fontWeight: '500' },
+    invoice: { width: '100%', borderRadius: Radius.lg, padding: Spacing.lg, alignItems: 'center', marginVertical: Spacing.md },
+    invoiceLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium },
     invoiceAmount: { fontSize: 26, fontWeight: '800', color: '#10b981', marginTop: 2, letterSpacing: -0.5 },
-    actionBtn: { width: '100%', height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-    actionBtnTxt: { fontSize: 15, fontWeight: '700' },
+    actionBtn: { width: '100%', height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
+    actionBtnTxt: { fontSize: 15, fontWeight: Typography.weight.bold },
     resumeOverlay: {
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
       zIndex: 999, backgroundColor: 'rgba(13,14,34,0.82)',
       alignItems: 'center', justifyContent: 'center', gap: 14,
     },
-    resumeText: { color: 'rgba(255,255,255,0.75)', fontSize: 14, fontWeight: '500' },
+    resumeText: { color: 'rgba(255,255,255,0.75)', fontSize: Typography.size.sm, fontWeight: Typography.weight.medium },
   });
 }
 
@@ -358,7 +362,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
         <View style={styles.card}>
           <View style={styles.cardInner}>
             <CheckCircle2 size={48} color="#10b981" />
-            <Text style={[styles.cardTitle, { color: c.ink, marginTop: 8 }]}>{t('trip_complete')}</Text>
+            <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('trip_complete')}</Text>
             <Text style={[styles.cardSub, { color: c.inkSoft }]}>{t('payment_paid')}</Text>
             {rideState.fare != null && (
               <View style={[styles.invoice, { backgroundColor: c.mist }]}>
@@ -378,11 +382,11 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
         <View style={styles.card}>
           <View style={styles.cardInner}>
             <XCircle size={48} color="#ef4444" />
-            <Text style={[styles.cardTitle, { color: c.ink, marginTop: 8 }]}>{t('cancel_trip')}</Text>
+            <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('cancel_trip')}</Text>
             {rideState.cancelReason ? (
               <Text style={[styles.cardSub, { color: c.inkSoft }]}>{rideState.cancelReason}</Text>
             ) : null}
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: c.ink, marginTop: 8 }]} onPress={handleReset}>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: c.ink, marginTop: Spacing.sm }]} onPress={handleReset}>
               <Text style={[styles.actionBtnTxt, { color: c.isDark ? c.background : c.white }]}>{t('try_again')}</Text>
             </TouchableOpacity>
           </View>

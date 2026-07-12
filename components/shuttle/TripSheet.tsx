@@ -20,6 +20,10 @@ import { SectionLabel } from '@/components/shared/Shared';
 import api from '@/src/api/client';
 import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
 import { useEnabledTripRequestRoutes } from '@/src/hooks/shuttle/useEnabledTripRequestRoutes';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { Shadows } from '@/constants/shadows';
 
 /**
  * §21.2: statuses that mean the trip is ahead and accepting new bookings.
@@ -110,14 +114,14 @@ function makeStyles(c: ThemeColors, gs: object) {
       alignSelf: 'center', marginTop: 14,
     },
     scroll: { flex: 1 },
-    scrollContent: { paddingBottom: 8 },
+    scrollContent: { paddingBottom: Spacing.sm },
 
     /* ── Route hero ─────────────────────────────────────── */
     routeHero: {
       backgroundColor: c.ink,
-      paddingHorizontal: 24, paddingTop: 22, paddingBottom: 0,
+      paddingHorizontal: Spacing.xl, paddingTop: 22, paddingBottom: 0,
       borderTopLeftRadius: 28, borderTopRightRadius: 28,
-      marginHorizontal: 12, marginTop: 16,
+      marginHorizontal: Spacing.md, marginTop: Spacing.lg,
       borderRadius: 28, overflow: 'hidden',
     },
     heroGlow: {
@@ -125,64 +129,64 @@ function makeStyles(c: ThemeColors, gs: object) {
       width: 200, height: 200, borderRadius: 100,
       backgroundColor: 'rgba(255,255,255,0.04)',
     },
-    heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
+    heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.lg },
     heroCodeBox: {
       width: 42, height: 42, borderRadius: 14,
       backgroundColor: 'rgba(255,255,255,0.12)',
       alignItems: 'center', justifyContent: 'center',
     },
-    heroCodeText: { color: '#ffffff', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+    heroCodeText: { color: '#ffffff', fontSize: 11, fontWeight: Typography.weight.bold, letterSpacing: 0.5 },
     heroFavBtn: {
       width: 38, height: 38, borderRadius: 19,
       backgroundColor: 'rgba(255,255,255,0.1)',
       alignItems: 'center', justifyContent: 'center',
     },
     heroRouteName: {
-      fontSize: 22, fontWeight: '700', color: '#ffffff',
-      letterSpacing: -0.5, marginBottom: 4,
+      fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: '#ffffff',
+      letterSpacing: -0.5, marginBottom: Spacing.xs,
     },
     heroRoutePath: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 20 },
 
     /* Journey track — pin-marker style */
     journeyWrap: { paddingBottom: 20 },
-    journeyScroll: { paddingRight: 24 },
-    journeyRow: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
+    journeyScroll: { paddingRight: Spacing.xl },
+    journeyRow: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: Spacing.sm },
     journeyStop: { alignItems: 'center', width: 70 },
     journeyPin: { height: 28, alignItems: 'center', justifyContent: 'center' },
     journeyLabel: {
       fontSize: 10, color: 'rgba(255,255,255,0.55)',
       textAlign: 'center', marginTop: 5, lineHeight: 13,
     },
-    journeyLabelActive: { color: '#ffffff', fontWeight: '600' },
-    journeyConnector: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: 12 },
+    journeyLabelActive: { color: '#ffffff', fontWeight: Typography.weight.semibold },
+    journeyConnector: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: Spacing.md },
     journeyConnectorActive: { backgroundColor: 'rgba(255,255,255,0.65)' },
 
     /* Stat cards row — compact horizontal */
-    statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, marginTop: 10, marginBottom: 4 },
+    statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md, marginTop: 10, marginBottom: Spacing.xs },
     statCard: {
-      flex: 1, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 8,
+      flex: 1, borderRadius: 14, paddingHorizontal: 10, paddingVertical: Spacing.sm,
       overflow: 'hidden',
-      flexDirection: 'row', alignItems: 'center', gap: 8,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
       shadowOpacity: c.isDark ? 0.25 : 0.06, shadowRadius: 8, elevation: 3,
     },
     statIconBox: {
-      width: 26, height: 26, borderRadius: 8,
+      width: 26, height: 26, borderRadius: Radius.sm,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
       alignItems: 'center', justifyContent: 'center',
     },
-    statValue: { fontSize: 12, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
+    statValue: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
     statLabel: { fontSize: 9, color: c.inkSoft, lineHeight: 12, letterSpacing: 0.1 },
 
     /* Date selector strip */
-    dateSelectorWrap: { paddingHorizontal: 12, marginTop: 12 },
+    dateSelectorWrap: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
     dateItem: {
       alignItems: 'center', paddingHorizontal: 11, paddingVertical: 7,
       borderRadius: 14, marginEnd: 8, borderWidth: 1.5, minWidth: 60,
     },
     dateItemActive: { backgroundColor: c.ink, borderColor: c.ink },
     dateItemInactive: { backgroundColor: c.white, borderColor: c.border },
-    dateDayLabel: { fontSize: 9, fontWeight: '600', textTransform: 'uppercase' as any, letterSpacing: 0.4, marginBottom: 1 },
+    dateDayLabel: { fontSize: 9, fontWeight: Typography.weight.semibold, textTransform: 'uppercase' as any, letterSpacing: 0.4, marginBottom: 1 },
     dateDayLabelActive: { color: c.isDark ? c.background : '#ffffff' },
     dateDayLabelInactive: { color: c.inkSoft },
     dateDayNum: { fontSize: 17, fontWeight: '800', letterSpacing: -0.5 },
@@ -190,10 +194,10 @@ function makeStyles(c: ThemeColors, gs: object) {
     dateDayNumInactive: { color: c.ink },
 
     /* Section wrapper */
-    sectionWrap: { paddingHorizontal: 12, marginTop: 18 },
+    sectionWrap: { paddingHorizontal: Spacing.md, marginTop: 18 },
     sectionTitle: {
-      fontSize: 11, fontWeight: '600', color: c.inkSoft,
-      textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12,
+      fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft,
+      textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: Spacing.md,
     },
 
     /* Trip cards — vertical full-width.
@@ -202,74 +206,74 @@ function makeStyles(c: ThemeColors, gs: object) {
      * legible on that white surface. Active overrides then flip to white. */
     tripCard: {
       borderRadius: 20, borderWidth: 1.5, borderColor: c.border,
-      padding: 16, backgroundColor: c.white, marginBottom: 10,
+      padding: Spacing.lg, backgroundColor: c.white, marginBottom: 10,
       shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: c.isDark ? 0.18 : 0.04, shadowRadius: 6, elevation: 2,
+      shadowOpacity: c.isDark ? 0.18 : 0.04, shadowRadius: 6, elevation: Shadows.small.elevation,
     },
     tripCardActive: {
       backgroundColor: c.ink, borderColor: c.ink,
-      shadowOpacity: 0.22, shadowRadius: 14, elevation: 8,
+      shadowOpacity: 0.22, shadowRadius: 14, elevation: Shadows.large.elevation,
     },
     tripCardDisabled: { opacity: 0.4 },
     tripCardTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-    tripTime: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: -1 },
+    tripTime: { fontSize: Typography.size.xxl, fontWeight: '800', color: '#0F172A', letterSpacing: -1 },
     tripTimeActive: { color: c.isDark ? c.background : '#ffffff' },
     tripNumberBox: {
-      borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
+      borderRadius: 10, paddingHorizontal: 10, paddingVertical: Spacing.xs,
       backgroundColor: 'rgba(0,0,0,0.06)',
-      flexDirection: 'row', alignItems: 'center', gap: 4,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
     },
     tripNumberBoxActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
-    tripNumberText: { fontSize: 12, fontWeight: '600', color: '#475569' },
+    tripNumberText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: '#475569' },
     tripNumberTextActive: { color: 'rgba(255,255,255,0.8)' },
     tripDateText: { fontSize: 11, color: '#475569', marginTop: 2 },
     tripDateTextActive: { color: 'rgba(255,255,255,0.55)' },
     tripStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
     tripStatusDot: { width: 7, height: 7, borderRadius: 4 },
-    tripStatusText: { fontSize: 11, fontWeight: '600' },
+    tripStatusText: { fontSize: 11, fontWeight: Typography.weight.semibold },
     tripSeatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-    tripSeatsFraction: { fontSize: 12, fontWeight: '600', color: '#475569' },
+    tripSeatsFraction: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: '#475569' },
     tripSeatsFractionActive: { color: 'rgba(255,255,255,0.65)' },
     tripSeatsLabel: { fontSize: 11, color: '#475569' },
     tripSeatsLabelActive: { color: 'rgba(255,255,255,0.5)' },
     progressBarWrap: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.08)', overflow: 'hidden' },
     progressBarFill: { height: '100%' as any, borderRadius: 3 },
-    tripAvailRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
+    tripAvailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.sm },
     tripAvailDot: { width: 6, height: 6, borderRadius: 3 },
-    tripAvailText: { fontSize: 12, fontWeight: '600' },
+    tripAvailText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
     tripMessage: { fontSize: 11, color: '#475569', marginTop: 6, lineHeight: 15 },
     tripMessageActive: { color: 'rgba(255,255,255,0.6)' },
 
     /* No trips */
-    noTripsWrap: { paddingVertical: 28, alignItems: 'center', gap: 8, borderRadius: 20, backgroundColor: c.white, borderWidth: 1, borderColor: c.border },
-    noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingHorizontal: 24 },
+    noTripsWrap: { paddingVertical: 28, alignItems: 'center', gap: Spacing.sm, borderRadius: 20, backgroundColor: c.white, borderWidth: 1, borderColor: c.border },
+    noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xl },
 
     /* Station picker */
-    pickTabWrap: { flexDirection: 'row', padding: 4, borderRadius: 18, gap: 2, backgroundColor: c.mist },
-    pickTab: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-    pickTabActive: { backgroundColor: c.ink, shadowColor: c.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
-    pickTabText: { fontSize: 12.5, fontWeight: '500' },
+    pickTabWrap: { flexDirection: 'row', padding: Spacing.xs, borderRadius: 18, gap: 2, backgroundColor: c.mist },
+    pickTab: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.sm },
+    pickTabActive: { backgroundColor: c.ink, shadowColor: c.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: Shadows.medium.elevation },
+    pickTabText: { fontSize: 12.5, fontWeight: Typography.weight.medium },
 
-    timeline: { marginTop: 12, backgroundColor: c.white, borderRadius: 20, padding: 16, gap: 0, borderWidth: 1, borderColor: c.border },
-    timelineRow: { flexDirection: 'row', gap: 12, paddingBottom: 12 },
+    timeline: { marginTop: Spacing.md, backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, gap: 0, borderWidth: 1, borderColor: c.border },
+    timelineRow: { flexDirection: 'row', gap: Spacing.md, paddingBottom: Spacing.md },
     timelineLeft: { alignItems: 'center', width: 16 },
-    tlDot: { width: 16, height: 16, borderRadius: 8, borderWidth: 2 },
+    tlDot: { width: 16, height: 16, borderRadius: Radius.sm, borderWidth: 2 },
     tlDotActive: { borderColor: c.ink, backgroundColor: c.ink },
     tlDotSeg: { borderColor: c.ink, backgroundColor: c.white },
     tlDotInactive: { borderColor: c.silver, backgroundColor: c.white },
     tlLine: { width: 2, flex: 1, marginTop: 2, minHeight: 16 },
     tlLineActive: { backgroundColor: c.ink },
     tlLineInactive: { backgroundColor: 'rgba(195,195,204,0.4)' },
-    timelineRight: { flex: 1, paddingBottom: 4 },
+    timelineRight: { flex: 1, paddingBottom: Spacing.xs },
     timelineTextRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-    tlName: { fontSize: 13.5, fontWeight: '500' },
-    tlBadge: { backgroundColor: c.ink, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
-    tlBadgeText: { fontSize: 10, fontWeight: '600', color: c.isDark ? c.background : c.white, textTransform: 'uppercase', letterSpacing: 0.8 },
+    tlName: { fontSize: 13.5, fontWeight: Typography.weight.medium },
+    tlBadge: { backgroundColor: c.ink, borderRadius: 99, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+    tlBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.isDark ? c.background : c.white, textTransform: 'uppercase', letterSpacing: 0.8 },
     tlArea: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
 
     /* Seat selector */
     seatRow: {
-      flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 16, marginTop: 12,
+      flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: Spacing.lg, marginTop: Spacing.md,
       backgroundColor: c.white, borderWidth: 1, borderColor: c.border,
     },
     seatBtn: {
@@ -279,21 +283,21 @@ function makeStyles(c: ThemeColors, gs: object) {
     seatBtnDisabled: { opacity: 0.3 },
     seatCountText: { fontSize: 24, fontWeight: '800', color: c.ink, minWidth: 42, textAlign: 'center' },
     seatLabelWrap: { flex: 1, paddingStart: 12 },
-    seatLabel: { fontSize: 13, color: c.ink, fontWeight: '600' },
+    seatLabel: { fontSize: 13, color: c.ink, fontWeight: Typography.weight.semibold },
     seatMax: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
 
     /* Price card */
     priceSummary: {
-      flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 16, marginTop: 12,
-      backgroundColor: c.white, borderWidth: 1, borderColor: c.border, gap: 16,
+      flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: Spacing.lg, marginTop: Spacing.md,
+      backgroundColor: c.white, borderWidth: 1, borderColor: c.border, gap: Spacing.lg,
     },
     priceIcon: {
-      width: 52, height: 52, borderRadius: 16, backgroundColor: c.ink,
+      width: 52, height: 52, borderRadius: Radius.lg, backgroundColor: c.ink,
       alignItems: 'center', justifyContent: 'center',
     },
-    priceSegLabel: { fontSize: 12, color: c.inkSoft, lineHeight: 17 },
-    priceTotal: { fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.5, marginTop: 2 },
-    walletRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+    priceSegLabel: { fontSize: Typography.size.xs, color: c.inkSoft, lineHeight: 17 },
+    priceTotal: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, marginTop: 2 },
+    walletRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.xs },
     walletText: { fontSize: 11, color: c.inkSoft },
     walletLow: { color: '#e53e3e' },
     walletOk: { color: '#38a169' },
@@ -302,14 +306,14 @@ function makeStyles(c: ThemeColors, gs: object) {
     serviceBanner: {
       flexDirection: 'row', alignItems: 'flex-start', gap: 10,
       backgroundColor: c.isDark ? 'rgba(245,158,11,0.12)' : '#fef3c7',
-      borderRadius: 16, padding: 14, marginTop: 12,
+      borderRadius: Radius.lg, padding: 14, marginTop: Spacing.md,
       borderWidth: 1, borderColor: c.isDark ? 'rgba(245,158,11,0.22)' : 'transparent',
     },
     serviceBannerText: { flex: 1, fontSize: 12.5, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 18 },
 
     /* CTA */
     cta: {
-      padding: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border,
+      padding: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: c.border,
       backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
     },
     ctaBtn: {
@@ -317,29 +321,29 @@ function makeStyles(c: ThemeColors, gs: object) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
       shadowColor: c.ink, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
     },
-    ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: '700', letterSpacing: -0.2 },
+    ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: Typography.weight.bold, letterSpacing: -0.2 },
 
     /* Request a Trip */
     requestTripBtn: {
-      marginHorizontal: 16, marginTop: 14, marginBottom: 2,
-      borderRadius: 16,
+      marginHorizontal: Spacing.lg, marginTop: 14, marginBottom: 2,
+      borderRadius: Radius.lg,
       shadowColor: c.ink, shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
     },
     requestTripBtnInner: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: 8, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 16,
+      gap: Spacing.sm, paddingVertical: 14, paddingHorizontal: 20, borderRadius: Radius.lg,
       backgroundColor: c.isDark ? '#2a2a3a' : '#BDB76B',
       borderWidth: 0,
     },
-    requestTripBtnText: { fontSize: 15, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
+    requestTripBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
 
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
     loadingText: { fontSize: 13, color: c.inkSoft },
     errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
-    retryBtn: { marginTop: 4, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: c.border },
-    retryBtnText: { fontSize: 13, fontWeight: '500', color: c.ink },
+    retryBtn: { marginTop: Spacing.xs, paddingHorizontal: 20, paddingVertical: Spacing.sm, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border },
+    retryBtnText: { fontSize: 13, fontWeight: Typography.weight.medium, color: c.ink },
   });
 }
 
@@ -647,7 +651,7 @@ export function TripSheet() {
 
           {/* Service disabled banner */}
           {!shuttleServiceEnabled && (
-            <View style={[styles.serviceBanner, { marginHorizontal: 12 }]}>
+            <View style={[styles.serviceBanner, { marginHorizontal: Spacing.md }]}>
               <AlertTriangle size={15} color={c.isDark ? '#fbbf24' : '#92400e'} style={{ marginTop: 1 }} />
               <Text style={styles.serviceBannerText}>{shuttleDisabledMessage}</Text>
             </View>
@@ -847,7 +851,7 @@ export function TripSheet() {
 
           {/* ── Seat selector ── */}
           {hasPath && scheduledTrips.length > 0 && (
-            <View style={[styles.seatRow, { marginHorizontal: 12 }]}>
+            <View style={[styles.seatRow, { marginHorizontal: Spacing.md }]}>
               <TouchableOpacity
                 style={[styles.seatBtn, seatCount <= 1 && styles.seatBtnDisabled]}
                 disabled={seatCount <= 1}
@@ -873,7 +877,7 @@ export function TripSheet() {
           )}
 
           {/* ── Price summary ── */}
-          <View style={[styles.priceSummary, { marginHorizontal: 12, marginTop: 12 }]}>
+          <View style={[styles.priceSummary, { marginHorizontal: Spacing.md, marginTop: Spacing.md }]}>
             <View style={styles.priceIcon}>
               <Ticket size={22} color={c.isDark ? c.background : c.white} />
             </View>

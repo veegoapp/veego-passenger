@@ -7,6 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useNotifications } from '@/src/hooks/shared/useNotifications';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const CATEGORY_ICONS = {
   trip: Navigation, promo: Sparkles, system: Settings,
@@ -14,19 +17,19 @@ const CATEGORY_ICONS = {
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    title: { fontSize: 18, fontWeight: '600', color: c.ink, letterSpacing: -0.4, fontFamily: 'Inter_600SemiBold' },
+    title: { fontSize: Typography.size.lg, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.4, fontFamily: 'Inter_600SemiBold' },
     unreadCount: { fontSize: 11, color: c.inkSoft, marginTop: 1 },
     list: { paddingHorizontal: 20, gap: 10 },
-    notifCard: { borderRadius: 22, padding: 16, backgroundColor: c.white, flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+    notifCard: { borderRadius: 22, padding: Spacing.lg, backgroundColor: c.white, flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
     notifCardUnread: { borderStartWidth: 3, borderStartColor: c.ink },
-    notifIconWrap: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    notifContent: { flex: 1, gap: 4 },
-    notifTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    notifTitle: { fontSize: 13.5, fontWeight: '600', color: c.ink, flex: 1 },
+    notifIconWrap: { width: 44, height: 44, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    notifContent: { flex: 1, gap: Spacing.xs },
+    notifTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    notifTitle: { fontSize: 13.5, fontWeight: Typography.weight.semibold, color: c.ink, flex: 1 },
     unreadDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: c.ink, flexShrink: 0 },
-    notifBody: { fontSize: 12, color: c.inkSoft, lineHeight: 17 },
+    notifBody: { fontSize: Typography.size.xs, color: c.inkSoft, lineHeight: 17 },
     notifTime: { fontSize: 10.5, color: c.silver, marginTop: 2 },
     loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
   });
@@ -53,7 +56,7 @@ export default function NotificationsScreen() {
         <TouchableOpacity style={[gs, styles.backBtn]} onPress={() => router.back()} activeOpacity={0.8}>
           {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
         </TouchableOpacity>
-        <View style={{ flex: 1, paddingHorizontal: 12 }}>
+        <View style={{ flex: 1, paddingHorizontal: Spacing.md }}>
           <Text style={styles.title}>{t('notifications')}</Text>
           {unreadCount > 0 && (
             <Text style={styles.unreadCount}>{unreadCount} {t('new_notif')}</Text>

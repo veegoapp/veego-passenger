@@ -10,6 +10,8 @@ import { C } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import { tokenStore } from '@/src/api/client';
 import api from '@/src/api/client';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 const LANG_KEY = '@veego_lang_selected';
 const SESSION_KEY = '@veego_session_v1';
@@ -143,7 +145,7 @@ export default function SplashPage() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { alignItems: 'center', gap: 16 },
+  content: { alignItems: 'center', gap: Spacing.lg },
   iconWrap: { position: 'relative', width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
   iconInner: {
     width: 80, height: 80, borderRadius: 28, backgroundColor: C.ink,
@@ -154,10 +156,10 @@ const styles = StyleSheet.create({
     position: 'absolute', width: 100, height: 100, borderRadius: 50,
     backgroundColor: 'rgba(30,30,40,0.08)',
   },
-  wordmark: { fontSize: 46, fontWeight: '700', color: C.ink, letterSpacing: -2.5, fontFamily: 'Inter_700Bold' },
+  wordmark: { fontSize: 46, fontWeight: Typography.weight.bold, color: C.ink, letterSpacing: -2.5, fontFamily: 'Inter_700Bold' },
   tagline: { fontSize: 13, color: C.inkSoft, letterSpacing: 0.2, fontFamily: 'Inter_400Regular' },
   barWrap: {
-    width: 220, height: 4, borderRadius: 2, backgroundColor: C.border, overflow: 'hidden', marginTop: 8,
+    width: 220, height: 4, borderRadius: 2, backgroundColor: C.border, overflow: 'hidden', marginTop: Spacing.sm,
   },
   bar: { height: 4, borderRadius: 2, backgroundColor: C.ink },
 });

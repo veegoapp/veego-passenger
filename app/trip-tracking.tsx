@@ -9,6 +9,9 @@ import { getSocket, getSocketSync } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
 import api, { tokenStore } from '@/src/api/client';
 import { getErrorMessage } from '@/src/utils/errorMessages';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   searching: 'status_finding_driver',
@@ -209,18 +212,18 @@ export default function TripTrackingScreen() {
     return (
       <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: 12, fontSize: 14 }}>{t('loading_ride')}</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: Spacing.md, fontSize: Typography.size.sm }}>{t('loading_ride')}</Text>
       </View>
     );
   }
 
   if (deepLinkError) {
     return (
-      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: 32 }]}>
-        <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>{t('ride_not_found')}</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center', marginBottom: 24 }}>{deepLinkError}</Text>
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }]}>
+        <Text style={{ color: '#ef4444', fontSize: Typography.size.md, fontWeight: Typography.weight.bold, textAlign: 'center', marginBottom: Spacing.sm }}>{t('ride_not_found')}</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center', marginBottom: Spacing.xl }}>{deepLinkError}</Text>
         <TouchableOpacity
-          style={[styles.doneBtn, { paddingHorizontal: 32 }]}
+          style={[styles.doneBtn, { paddingHorizontal: Spacing.xxl }]}
           onPress={() => router.replace('/(tabs)' as any)}
           activeOpacity={0.9}
         >
@@ -336,7 +339,7 @@ const styles = StyleSheet.create({
 
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
-    paddingHorizontal: 16, paddingBottom: 10,
+    paddingHorizontal: Spacing.lg, paddingBottom: 10,
     flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   backBtn: {
@@ -346,36 +349,36 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8,
+    paddingHorizontal: 14, paddingVertical: Spacing.sm,
     borderRadius: 99, borderWidth: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 13, fontWeight: '600' },
+  statusText: { fontSize: 13, fontWeight: Typography.weight.semibold },
 
   card: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: 'rgba(13,14,34,0.97)',
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl,
     paddingTop: 20, paddingHorizontal: 20,
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
   },
 
   driverRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: Spacing.lg,
   },
   driverAvatar: {
     width: 46, height: 46, borderRadius: 23,
     backgroundColor: '#2563eb',
     alignItems: 'center', justifyContent: 'center',
   },
-  driverAvatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  driverAvatarText: { color: '#fff', fontSize: Typography.size.lg, fontWeight: Typography.weight.bold },
   driverInfo: { flex: 1 },
-  driverName: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  driverMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  driverName: { color: '#fff', fontSize: Typography.size.md, fontWeight: Typography.weight.bold },
+  driverMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { color: '#f59e0b', fontSize: 12, fontWeight: '600' },
-  vehicleText: { color: 'rgba(255,255,255,0.55)', fontSize: 12 },
+  ratingText: { color: '#f59e0b', fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
+  vehicleText: { color: 'rgba(255,255,255,0.55)', fontSize: Typography.size.xs },
   callBtn: {
     width: 42, height: 42, borderRadius: 21,
     borderWidth: 1, borderColor: 'rgba(37,99,235,0.4)',
@@ -385,19 +388,19 @@ const styles = StyleSheet.create({
 
   routeRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 12, paddingHorizontal: 4,
+    paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs,
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
   },
   routeItem: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   routeDot: { width: 9, height: 9, borderRadius: 5 },
-  routeText: { color: 'rgba(255,255,255,0.7)', fontSize: 12, flex: 1 },
+  routeText: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.xs, flex: 1 },
   routeDash: { width: 20, height: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 6 },
 
   doneBtn: {
-    marginTop: 12, backgroundColor: '#2563eb',
+    marginTop: Spacing.md, backgroundColor: '#2563eb',
     borderRadius: 14, paddingVertical: 14,
     alignItems: 'center',
   },
-  doneBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  doneBtnText: { color: '#fff', fontWeight: Typography.weight.bold, fontSize: 15 },
 });

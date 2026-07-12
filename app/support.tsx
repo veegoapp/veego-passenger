@@ -12,6 +12,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import api from '@/src/api/client';
 import { getErrorMessage } from '@/src/utils/errorMessages';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 
@@ -25,27 +28,27 @@ const ISSUE_MAP: Record<string, { subject: string; category: string }> = {
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, gap: 12 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md },
     backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     headerText: { flex: 1 },
     headerTitle: {
-      fontSize: 20, fontWeight: '700', color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
+      fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
     },
     headerSub: { fontSize: 12.5, color: c.inkSoft, marginTop: 1 },
 
     scroll: { paddingHorizontal: 20, gap: 20 },
-    inputLabel: { fontSize: 11.5, fontWeight: '700', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
+    inputLabel: { fontSize: 11.5, fontWeight: Typography.weight.bold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
 
-    issueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    issueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
     issueChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1 },
     issueChipActive: { backgroundColor: c.ink, borderColor: c.ink },
     issueChipInactive: { backgroundColor: c.white, borderColor: c.border },
-    issueChipText: { fontSize: 12.5, fontWeight: '600' },
+    issueChipText: { fontSize: 12.5, fontWeight: Typography.weight.semibold },
 
     textArea: {
       borderRadius: 18, borderWidth: 1, borderColor: c.border,
-      backgroundColor: c.white, paddingHorizontal: 16, paddingVertical: 14,
-      fontSize: 14, color: c.ink, minHeight: 120, textAlignVertical: 'top',
+      backgroundColor: c.white, paddingHorizontal: Spacing.lg, paddingVertical: 14,
+      fontSize: Typography.size.sm, color: c.ink, minHeight: 120, textAlignVertical: 'top',
     },
     primaryBtn: {
       height: 56, borderRadius: 20, backgroundColor: c.ink,
@@ -53,32 +56,32 @@ function makeStyles(c: ThemeColors) {
       shadowColor: c.ink, shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.25, shadowRadius: 14, elevation: 6,
     },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '700' },
+    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.bold },
 
     successWrap: {
-      flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16,
+      flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.lg,
     },
     successCircle: {
       width: 90, height: 90, borderRadius: 45,
       backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.4, textAlign: 'center' },
-    successSub: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4, textAlign: 'center' },
+    successSub: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
     successBtn: {
-      marginTop: 8, height: 52, paddingHorizontal: 40, borderRadius: 18,
+      marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 18,
       backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
     },
-    successBtnText: { fontSize: 15, fontWeight: '700', color: c.isDark ? c.background : c.white },
+    successBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : c.white },
 
     contactRow: { flexDirection: 'row', gap: 10 },
     contactCard: {
-      flex: 1, borderRadius: 20, padding: 16, alignItems: 'center', gap: 8,
+      flex: 1, borderRadius: 20, padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm,
     },
     contactIcon: {
-      width: 48, height: 48, borderRadius: 16,
+      width: 48, height: 48, borderRadius: Radius.lg,
       alignItems: 'center', justifyContent: 'center',
     },
-    contactLabel: { fontSize: 12, fontWeight: '600', color: c.ink },
+    contactLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: c.ink },
     contactSub: { fontSize: 11, color: c.inkSoft, textAlign: 'center' },
   });
 }

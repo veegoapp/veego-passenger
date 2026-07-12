@@ -8,29 +8,31 @@ import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: {
-      paddingHorizontal: 20, paddingBottom: 12,
+      paddingHorizontal: 20, paddingBottom: Spacing.md,
     },
     headerTopRow: {
-      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12
+      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md
     },
-    headerTitle: { fontSize: 26, fontWeight: '700', color: c.ink, letterSpacing: -0.8 },
-    headerSub: { fontSize: 12, color: c.inkSoft, marginTop: 2 },
+    headerTitle: { fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.8 },
+    headerSub: { fontSize: Typography.size.xs, color: c.inkSoft, marginTop: 2 },
     iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 
     searchContainer: {
       flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 23,
-      paddingHorizontal: 16, marginBottom: 0, borderWidth: 1
+      paddingHorizontal: Spacing.lg, marginBottom: 0, borderWidth: 1
     },
-    searchInput: { flex: 1, fontSize: 14, fontWeight: '500', paddingVertical: 0, marginStart: 8 },
-    list: { paddingHorizontal: 20, paddingTop: 16, gap: 12 },
+    searchInput: { flex: 1, fontSize: Typography.size.sm, fontWeight: Typography.weight.medium, paddingVertical: 0, marginStart: 8 },
+    list: { paddingHorizontal: 20, paddingTop: Spacing.lg, gap: Spacing.md },
     loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12, paddingTop: 40 },
+    emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.md, paddingTop: 40 },
     emptyIcon: { width: 72, height: 72, borderRadius: 28, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    emptyTitle: { fontSize: 16, fontWeight: '600', color: c.ink },
+    emptyTitle: { fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, color: c.ink },
     emptySub: { fontSize: 13, color: c.inkSoft, textAlign: 'center', lineHeight: 20 },
   });
 }
@@ -110,7 +112,7 @@ export default function RoutesScreen() {
           <Text style={styles.emptyTitle}>{error ? t('error') : t('no_routes')}</Text>
           <Text style={styles.emptySub}>{error ?? (searchQuery ? t('search_no_match') : t('routes_empty_msg'))}</Text>
           <TouchableOpacity onPress={refresh} activeOpacity={0.85}>
-            <Text style={{ color: c.ink, fontWeight: '600', fontSize: 14 }}>{t('retry')}</Text>
+            <Text style={{ color: c.ink, fontWeight: Typography.weight.semibold, fontSize: Typography.size.sm }}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

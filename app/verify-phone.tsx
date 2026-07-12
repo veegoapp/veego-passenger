@@ -13,6 +13,9 @@ import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { acceptTerms } from '@/components/shared/TermsModal';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const SESSION_KEY = '@veego_session_v1';
 const OTP_LENGTH = 6;
@@ -237,32 +240,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 12,
+    paddingHorizontal: Spacing.xxl,
+    gap: Spacing.md,
   },
   iconWrap: {
-    width: 72, height: 72, borderRadius: 24,
+    width: 72, height: 72, borderRadius: Radius.xl,
     backgroundColor: C.ink,
     alignItems: 'center', justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
     ...(S.luxe as any),
   },
   title: {
-    fontSize: 26, fontWeight: '700', color: C.ink,
+    fontSize: 26, fontWeight: Typography.weight.bold, color: C.ink,
     letterSpacing: -0.8, textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14, color: C.inkSoft, textAlign: 'center',
+    fontSize: Typography.size.sm, color: C.inkSoft, textAlign: 'center',
   },
   phone: {
-    fontSize: 18, fontWeight: '700', color: C.ink,
+    fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: C.ink,
     letterSpacing: 1.5, textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
   },
   hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
-  otpRow: { flexDirection: 'row', gap: 10, marginVertical: 8 },
+  otpRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.sm },
   otpBox: {
-    width: 48, height: 56, borderRadius: 16,
+    width: 48, height: 56, borderRadius: Radius.lg,
     borderWidth: 1.5, borderColor: C.border,
     backgroundColor: 'rgba(255,255,255,0.75)',
     alignItems: 'center', justifyContent: 'center',
@@ -276,27 +279,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(85,196,154,0.1)',
   },
   otpBoxError: { borderColor: '#dc2626' },
-  otpDigit: { fontSize: 22, fontWeight: '700', color: C.ink },
+  otpDigit: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: C.ink },
   errorText: {
     fontSize: 13, color: '#dc2626', textAlign: 'center', marginTop: -4,
   },
   successText: {
-    fontSize: 13, color: C.accentMint, fontWeight: '600',
+    fontSize: 13, color: C.accentMint, fontWeight: Typography.weight.semibold,
     textAlign: 'center', marginTop: -4,
   },
   primaryBtn: {
     width: '100%', height: 56, borderRadius: 20,
     backgroundColor: C.ink,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, marginTop: 8,
+    gap: Spacing.sm, marginTop: Spacing.sm,
     ...(S.luxe as any),
   },
-  primaryBtnText: { color: C.white, fontSize: 15, fontWeight: '600' },
-  resendBtn: { paddingVertical: 12, paddingHorizontal: 20 },
+  primaryBtnText: { color: C.white, fontSize: 15, fontWeight: Typography.weight.semibold },
+  resendBtn: { paddingVertical: Spacing.md, paddingHorizontal: 20 },
   resendBtnEmphasized: {
     backgroundColor: 'rgba(85,196,154,0.12)',
     borderRadius: 14,
   },
-  resendText: { fontSize: 13, fontWeight: '500', color: C.inkSoft, textAlign: 'center' },
-  resendTextEmphasized: { color: C.accentMint, fontWeight: '700' },
+  resendText: { fontSize: 13, fontWeight: Typography.weight.medium, color: C.inkSoft, textAlign: 'center' },
+  resendTextEmphasized: { color: C.accentMint, fontWeight: Typography.weight.bold },
 });

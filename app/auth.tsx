@@ -14,6 +14,8 @@ import { useTheme } from '@/context/ThemeContext';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import TermsModal, { fetchPassengerTerms, acceptTerms, type TermsData } from '@/components/shared/TermsModal';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 const SESSION_KEY = '@veego_session_v1';
 
@@ -744,59 +746,59 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 56, right: 20, zIndex: 20,
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 99, paddingHorizontal: 6, paddingVertical: 4, gap: 2,
+    borderRadius: 99, paddingHorizontal: 6, paddingVertical: Spacing.xs, gap: 2,
     shadowColor: '#1e1e28', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
   },
-  langChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99 },
+  langChip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: 99 },
   langChipActive: { backgroundColor: C.ink },
-  langChipText: { fontSize: 12, fontWeight: '600', color: C.inkSoft },
+  langChipText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: C.inkSoft },
   langChipTextActive: { color: C.white },
   langSep: { width: 1, height: 14, backgroundColor: C.border },
   scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 40, justifyContent: 'center', gap: 28 },
-  logoBlock: { alignItems: 'center', gap: 8, paddingTop: 60 },
+  logoBlock: { alignItems: 'center', gap: Spacing.sm, paddingTop: 60 },
   logoIcon: { width: 56, height: 56, borderRadius: 20, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', ...S.float },
-  wordmark: { fontSize: 28, fontWeight: '700', color: C.ink, letterSpacing: -1.2, fontFamily: 'Inter_700Bold' },
+  wordmark: { fontSize: Typography.size.xxl, fontWeight: Typography.weight.bold, color: C.ink, letterSpacing: -1.2, fontFamily: 'Inter_700Bold' },
   card: { backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)', overflow: 'hidden', ...S.luxe },
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.border },
-  tabBtn: { flex: 1, paddingVertical: 16, alignItems: 'center' },
+  tabBtn: { flex: 1, paddingVertical: Spacing.lg, alignItems: 'center' },
   tabBtnActive: { borderBottomWidth: 2, borderBottomColor: C.ink, marginBottom: -1 },
-  tabText: { fontSize: 12.5, fontWeight: '500', color: C.inkSoft },
-  tabTextActive: { color: C.ink, fontWeight: '600' },
-  form: { padding: 24, gap: 12 },
-  formHeader: { gap: 4, marginBottom: 4 },
-  formTitle: { fontSize: 22, fontWeight: '600', color: C.ink, letterSpacing: -0.5, fontFamily: 'Inter_600SemiBold' },
+  tabText: { fontSize: 12.5, fontWeight: Typography.weight.medium, color: C.inkSoft },
+  tabTextActive: { color: C.ink, fontWeight: Typography.weight.semibold },
+  form: { padding: Spacing.xl, gap: Spacing.md },
+  formHeader: { gap: Spacing.xs, marginBottom: Spacing.xs },
+  formTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.semibold, color: C.ink, letterSpacing: -0.5, fontFamily: 'Inter_600SemiBold' },
   formSubtitle: { fontSize: 13, color: C.inkSoft, fontFamily: 'Inter_400Regular' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.mist, borderRadius: 18, height: 52, paddingHorizontal: 16, gap: 10 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.mist, borderRadius: 18, height: 52, paddingHorizontal: Spacing.lg, gap: 10 },
   inputIcon: { width: 28, alignItems: 'center' },
-  inputField: { flex: 1, fontSize: 14, color: C.ink },
-  primaryBtn: { height: 56, borderRadius: 20, backgroundColor: C.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 4, ...S.luxe },
-  primaryBtnText: { color: C.white, fontSize: 15, fontWeight: '600' },
-  biometricBtn: { height: 52, borderRadius: 20, backgroundColor: C.mist, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: C.border },
-  biometricBtnText: { color: C.ink, fontSize: 15, fontWeight: '600' },
-  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 4 },
+  inputField: { flex: 1, fontSize: Typography.size.sm, color: C.ink },
+  primaryBtn: { height: 56, borderRadius: 20, backgroundColor: C.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.xs, ...S.luxe },
+  primaryBtnText: { color: C.white, fontSize: 15, fontWeight: Typography.weight.semibold },
+  biometricBtn: { height: 52, borderRadius: 20, backgroundColor: C.mist, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: C.border },
+  biometricBtnText: { color: C.ink, fontSize: 15, fontWeight: Typography.weight.semibold },
+  termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: Spacing.xs },
   termsText: { fontSize: 11, color: C.inkSoft, flex: 1 },
-  termsLink: { color: C.ink, fontWeight: '600', textDecorationLine: 'underline' },
-  termsCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: 4, paddingBottom: 2 },
+  termsLink: { color: C.ink, fontWeight: Typography.weight.semibold, textDecorationLine: 'underline' },
+  termsCheckRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: Spacing.xs, paddingBottom: 2 },
   checkbox: {
     width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: C.border,
     backgroundColor: C.mist, alignItems: 'center', justifyContent: 'center',
     marginTop: 1, flexShrink: 0,
   },
   checkboxChecked: { backgroundColor: C.ink, borderColor: C.ink },
-  termsCheckText: { fontSize: 12, color: C.inkSoft, flex: 1, lineHeight: 18 },
+  termsCheckText: { fontSize: Typography.size.xs, color: C.inkSoft, flex: 1, lineHeight: 18 },
 
   fieldError: {
     fontSize: 12.5,
     color: C.error,
     marginTop: -4,
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xs,
   },
   successText: {
     fontSize: 12.5,
     color: C.accentMint,
-    fontWeight: '600',
+    fontWeight: Typography.weight.semibold,
     marginTop: -4,
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xs,
   },
 
   otpHiddenInput: {
@@ -809,7 +811,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 10,
-    marginVertical: 8,
+    marginVertical: Spacing.sm,
   },
   otpBox: {
     width: 44,
@@ -832,7 +834,7 @@ const styles = StyleSheet.create({
   otpBoxError: { borderColor: C.error },
   otpDigit: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: Typography.weight.bold,
     color: C.ink,
     letterSpacing: -0.5,
   },
@@ -840,8 +842,8 @@ const styles = StyleSheet.create({
   resendBtn: {
     alignSelf: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginTop: 4,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.xs,
   },
   resendBtnEmphasized: {
     backgroundColor: 'rgba(85,196,154,0.12)',
@@ -849,8 +851,8 @@ const styles = StyleSheet.create({
   },
   resendBtnText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: Typography.weight.medium,
     color: C.inkSoft,
   },
-  resendTextEmphasized: { color: C.accentMint, fontWeight: '700' },
+  resendTextEmphasized: { color: C.accentMint, fontWeight: Typography.weight.bold },
 });

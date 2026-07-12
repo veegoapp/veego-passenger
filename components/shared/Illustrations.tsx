@@ -11,6 +11,9 @@ import Svg, {
 } from 'react-native-svg';
 import { C } from '@/constants/colors';
 import { Animation } from '@/constants/animations';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { Shadows } from '@/constants/shadows';
 
 export function IllustRoute() {
   return (
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 18,
-    elevation: 4,
+    elevation: Shadows.medium.elevation,
   },
   seatGrid: {
     flex: 1,
@@ -130,13 +133,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    gap: 12,
+    padding: Spacing.xxl,
+    gap: Spacing.md,
   },
   seat: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     borderWidth: 1,
   },
   seatMe: {

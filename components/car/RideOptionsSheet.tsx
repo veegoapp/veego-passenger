@@ -5,6 +5,8 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 interface RideEstimate {
   economy: { price: number; eta: number };
@@ -126,7 +128,7 @@ export function RideOptionsSheet({
               <View style={styles.priceBlock}>
                 <Text style={[styles.priceLabel, { color: c.inkSoft }]}>{t('egp')}</Text>
                 {estimateLoading ? (
-                  <ActivityIndicator size="small" color={opt.color} style={{ marginTop: 4 }} />
+                  <ActivityIndicator size="small" color={opt.color} style={{ marginTop: Spacing.xs }} />
                 ) : (
                   <Text style={[styles.price, { color: isSelected ? opt.color : c.ink }]}>
                     {price != null ? price.toFixed(0) : '—'}
@@ -171,14 +173,14 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -12 },
     shadowOpacity: 0.3, shadowRadius: 28, elevation: 24, paddingTop: 6, zIndex: 999,
   },
-  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: 16 },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 16 },
-  title: { fontSize: 19, fontWeight: '700', letterSpacing: -0.4, fontFamily: 'Inter_700Bold' },
-  destRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: Spacing.lg },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: Spacing.lg },
+  title: { fontSize: 19, fontWeight: Typography.weight.bold, letterSpacing: -0.4, fontFamily: 'Inter_700Bold' },
+  destRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.xs },
   destText: { fontSize: 12.5, flex: 1 },
   closeBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  options: { paddingHorizontal: 20, gap: 10, marginBottom: 16 },
-  option: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 14, gap: 12 },
+  options: { paddingHorizontal: 20, gap: 10, marginBottom: Spacing.lg },
+  option: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 14, gap: Spacing.md },
   optionIcon: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   premiumBadge: {
     position: 'absolute', top: -3, right: -3,
@@ -187,19 +189,19 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   optionMeta: { flex: 1, gap: 2 },
-  optionName: { fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
+  optionName: { fontSize: 15, fontWeight: Typography.weight.semibold, letterSpacing: -0.2 },
   optionDesc: { fontSize: 11.5 },
-  optionStats: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  optionStats: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.xs },
   optionEta: { fontSize: 11 },
   statDot: { width: 3, height: 3, borderRadius: 2 },
   priceBlock: { alignItems: 'flex-end', minWidth: 44 },
-  priceLabel: { fontSize: 10, fontWeight: '500' },
-  price: { fontSize: 20, fontWeight: '700', letterSpacing: -0.5 },
+  priceLabel: { fontSize: 10, fontWeight: Typography.weight.medium },
+  price: { fontSize: 20, fontWeight: Typography.weight.bold, letterSpacing: -0.5 },
   confirmBtn: {
     marginHorizontal: 20, height: 56, borderRadius: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
     shadowColor: '#1e1e28', shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15, shadowRadius: 16, elevation: 6,
   },
-  confirmText: { fontSize: 15, fontWeight: '600' },
+  confirmText: { fontSize: 15, fontWeight: Typography.weight.semibold },
 });

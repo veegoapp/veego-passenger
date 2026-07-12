@@ -7,6 +7,9 @@ import * as Haptics from 'expo-haptics';
 import { X, CircleDot, Circle } from 'lucide-react-native';
 import { C, ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 interface CancelReasonSheetProps {
   visible: boolean;
@@ -156,7 +159,7 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 28,
-    paddingTop: 12,
+    paddingTop: Spacing.md,
   },
   handle: {
     alignSelf: 'center',
@@ -176,15 +179,15 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     flexDirection: 'row-reverse',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: Typography.size.lg,
+    fontWeight: Typography.weight.bold,
     color: c.ink,
     letterSpacing: -0.4,
   },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#f4f4f6',
     alignItems: 'center',
     justifyContent: 'center',
@@ -192,17 +195,17 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   prompt: {
     fontSize: 13,
     color: c.inkSoft,
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
     lineHeight: 20,
   },
   reasons: {
-    gap: 8,
-    marginBottom: 12,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   reasonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: Spacing.md,
     borderRadius: 14,
     padding: 14,
     backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : '#f8f8fa',
@@ -214,13 +217,13 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     backgroundColor: 'rgba(85,196,154,0.07)',
   },
   reasonText: {
-    fontSize: 14,
+    fontSize: Typography.size.sm,
     color: c.ink,
     flex: 1,
   },
   reasonTextActive: {
     color: c.ink,
-    fontWeight: '600',
+    fontWeight: Typography.weight.semibold,
   },
   optionalHint: {
     fontSize: 11.5,
@@ -231,7 +234,7 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   errorText: {
     fontSize: 12.5,
     color: '#dc2626',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
     textAlign: 'center',
   },
   confirmBtn: {
@@ -247,7 +250,7 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   },
   confirmBtnText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: Typography.weight.bold,
     color: c.isDark ? c.background : '#fff',
   },
   backBtn: {
@@ -256,8 +259,8 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     justifyContent: 'center',
   },
   backBtnText: {
-    fontSize: 14,
+    fontSize: Typography.size.sm,
     color: c.inkSoft,
-    fontWeight: '500',
+    fontWeight: Typography.weight.medium,
   },
 }); }

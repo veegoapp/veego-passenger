@@ -22,6 +22,9 @@ import { emitAuthEvent } from '@/src/api/authEvents';
 import { compressImageForUpload } from '@/src/utils/imageCompression';
 import { ThemeColors, S } from '@/constants/colors';
 import TermsModal from '@/components/shared/TermsModal';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 type ProfileScreen =
   | 'personal_info'
@@ -36,81 +39,81 @@ type ProfileScreen =
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { paddingHorizontal: 20, paddingBottom: 12 },
-    headerTitle: { fontSize: 26, fontWeight: '700', color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
-    scrollContent: { paddingHorizontal: 20, paddingTop: 4, gap: 0 },
+    header: { paddingHorizontal: 20, paddingBottom: Spacing.md },
+    headerTitle: { fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
+    scrollContent: { paddingHorizontal: 20, paddingTop: Spacing.xs, gap: 0 },
     heroCard: { borderRadius: 28, overflow: 'hidden', marginBottom: 20, ...S.float },
     heroGrad: { padding: 20, borderRadius: 28, overflow: 'hidden' },
     heroGlow: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
-    heroContent: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
-    avatarLg: { width: 72, height: 72, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-    avatarLgText: { color: '#ffffff', fontSize: 22, fontWeight: '700' },
+    heroContent: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.lg },
+    avatarLg: { width: 72, height: 72, borderRadius: Radius.xl, backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    avatarLgText: { color: '#ffffff', fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
     heroText: { flex: 1, gap: 2 },
-    heroName: { fontSize: 18, fontWeight: '700', color: '#ffffff', fontFamily: 'Inter_700Bold' },
-    heroEmail: { fontSize: 12, color: 'rgba(255,255,255,0.65)' },
-    heroStats: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 0 },
+    heroName: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: '#ffffff', fontFamily: 'Inter_700Bold' },
+    heroEmail: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.65)' },
+    heroStats: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.md, gap: 0 },
     heroStat: { alignItems: 'center', flex: 1 },
-    heroStatNum: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
+    heroStatNum: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: '#ffffff' },
     heroStatLabel: { fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 1 },
     heroStatDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)' },
-    section: { marginBottom: 16, gap: 8 },
-    sectionLabel: { fontSize: 11, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 4 },
-    groupCard: { borderRadius: 24, overflow: 'hidden', backgroundColor: c.white },
-    settingItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+    section: { marginBottom: Spacing.lg, gap: Spacing.sm },
+    sectionLabel: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 4 },
+    groupCard: { borderRadius: Radius.xl, overflow: 'hidden', backgroundColor: c.white },
+    settingItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg, gap: Spacing.md },
     itemDivider: { height: 1, backgroundColor: c.border, opacity: 0.6, marginStart: 64 },
-    settingIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    settingLabel: { flex: 1, fontSize: 13.5, fontWeight: '500', color: c.ink },
+    settingIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
+    settingLabel: { flex: 1, fontSize: 13.5, fontWeight: Typography.weight.medium, color: c.ink },
     settingRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    settingValue: { fontSize: 12, color: c.inkSoft },
+    settingValue: { fontSize: Typography.size.xs, color: c.inkSoft },
     langRow: { flexDirection: 'row', gap: 6 },
     langBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 99, borderWidth: 1 },
     langBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     langBtnInactive: { backgroundColor: c.white, borderColor: c.border },
-    langBtnText: { fontSize: 12, fontWeight: '600' },
-    logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderRadius: 20, borderWidth: 1, borderColor: `${c.badge}40`, backgroundColor: `${c.badge}10` },
-    logoutText: { fontSize: 14, fontWeight: '500', color: c.badge },
+    langBtnText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
+    logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 52, borderRadius: 20, borderWidth: 1, borderColor: `${c.badge}40`, backgroundColor: `${c.badge}10` },
+    logoutText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.medium, color: c.badge },
 
     modal: { flex: 1, backgroundColor: c.isDark ? c.background : c.snow },
-    modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.border, gap: 12, backgroundColor: c.white },
-    modalBackBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    modalTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: c.ink, fontFamily: 'Inter_700Bold' },
-    modalHeaderAction: { fontSize: 14, fontWeight: '600', color: c.ink },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.border, gap: Spacing.md, backgroundColor: c.white },
+    modalBackBtn: { width: 36, height: 36, borderRadius: Radius.md, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
+    modalTitle: { flex: 1, fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink, fontFamily: 'Inter_700Bold' },
+    modalHeaderAction: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
     modalBody: { flex: 1 },
     modalScroll: { padding: 20, gap: 20 },
 
     inputGroup: { gap: 6 },
-    inputLabel: { fontSize: 12, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
-    input: { backgroundColor: c.white, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: c.ink, borderWidth: 1, borderColor: c.border },
-    primaryBtn: { height: 52, borderRadius: 18, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center', marginTop: 8, ...S.float },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
-    dangerBtn: { height: 52, borderRadius: 18, borderWidth: 1, borderColor: `${c.badge}50`, backgroundColor: `${c.badge}10`, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
-    dangerBtnText: { color: c.badge, fontSize: 14, fontWeight: '600' },
+    inputLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
+    input: { backgroundColor: c.white, borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, paddingVertical: 14, fontSize: 15, color: c.ink, borderWidth: 1, borderColor: c.border },
+    primaryBtn: { height: 52, borderRadius: 18, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.sm, ...S.float },
+    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.semibold, fontFamily: 'Inter_600SemiBold' },
+    dangerBtn: { height: 52, borderRadius: 18, borderWidth: 1, borderColor: `${c.badge}50`, backgroundColor: `${c.badge}10`, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: Spacing.sm },
+    dangerBtnText: { color: c.badge, fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
 
-    cardRow: { backgroundColor: c.white, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
+    cardRow: { backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
     cardIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     cardLabel: { flex: 1, gap: 2 },
-    cardName: { fontSize: 14, fontWeight: '600', color: c.ink },
-    cardSub: { fontSize: 12, color: c.inkSoft },
-    defaultBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, backgroundColor: `${c.accentMint}20` },
-    defaultBadgeText: { fontSize: 11, fontWeight: '600', color: c.accentMint },
+    cardName: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    cardSub: { fontSize: Typography.size.xs, color: c.inkSoft },
+    defaultBadge: { paddingHorizontal: 10, paddingVertical: Spacing.xs, borderRadius: 99, backgroundColor: `${c.accentMint}20` },
+    defaultBadgeText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.accentMint },
 
-    toggleRow: { backgroundColor: c.white, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
+    toggleRow: { backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 14, ...S.float },
     toggleIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     toggleMeta: { flex: 1 },
-    toggleLabel: { fontSize: 14, fontWeight: '600', color: c.ink },
-    toggleSub: { fontSize: 12, color: c.inkSoft, marginTop: 2 },
+    toggleLabel: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    toggleSub: { fontSize: Typography.size.xs, color: c.inkSoft, marginTop: 2 },
 
     faqItem: { backgroundColor: c.white, borderRadius: 20, overflow: 'hidden', ...S.float },
-    faqQ: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-    faqQText: { flex: 1, fontSize: 14, fontWeight: '600', color: c.ink },
-    faqA: { paddingHorizontal: 16, paddingBottom: 16, fontSize: 13.5, color: c.inkSoft, lineHeight: 20 },
+    faqQ: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg, gap: Spacing.md },
+    faqQText: { flex: 1, fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    faqA: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg, fontSize: 13.5, color: c.inkSoft, lineHeight: 20 },
 
-    issueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    issueChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 99, borderWidth: 1 },
+    issueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+    issueChip: { paddingHorizontal: 14, paddingVertical: Spacing.sm, borderRadius: 99, borderWidth: 1 },
     issueChipActive: { backgroundColor: c.ink, borderColor: c.ink },
     issueChipInactive: { backgroundColor: c.white, borderColor: c.border },
-    issueChipText: { fontSize: 12, fontWeight: '500' },
-    textArea: { backgroundColor: c.white, borderRadius: 16, padding: 16, fontSize: 14, color: c.ink, borderWidth: 1, borderColor: c.border, height: 120, textAlignVertical: 'top' },
+    issueChipText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium },
+    textArea: { backgroundColor: c.white, borderRadius: Radius.lg, padding: Spacing.lg, fontSize: Typography.size.sm, color: c.ink, borderWidth: 1, borderColor: c.border, height: 120, textAlignVertical: 'top' },
 
     attachmentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     attachmentThumb: { width: 64, height: 64, borderRadius: 14, overflow: 'hidden', backgroundColor: c.mist },
@@ -122,30 +125,30 @@ function makeStyles(c: ThemeColors) {
 
     successBox: { alignItems: 'center', gap: 14, paddingTop: 60 },
     successIcon: { width: 80, height: 80, borderRadius: 28, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center', ...S.float },
-    successTitle: { fontSize: 22, fontWeight: '700', color: c.ink, fontFamily: 'Inter_700Bold' },
-    successSub: { fontSize: 14, color: c.inkSoft, textAlign: 'center', paddingHorizontal: 32, lineHeight: 20 },
+    successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, fontFamily: 'Inter_700Bold' },
+    successSub: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xxl, lineHeight: 20 },
 
     readOnlyInput: {
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : '#f5f5f8',
-      borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+      borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, paddingVertical: 14,
       fontSize: 15, color: c.inkSoft, borderWidth: 1,
       borderColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#ececf0',
     },
     readOnlyBadge: {
       position: 'absolute', right: 14, top: '50%',
-      paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+      paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: Radius.sm,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#ececf0',
     },
-    readOnlyBadgeText: { fontSize: 10, fontWeight: '600', color: c.silver, letterSpacing: 0.4 },
+    readOnlyBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.silver, letterSpacing: 0.4 },
 
-    avatarPickerWrap: { alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
+    avatarPickerWrap: { alignItems: 'center', paddingTop: Spacing.sm, paddingBottom: Spacing.xs },
     avatarPickerCircle: {
       width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f5',
       alignItems: 'center', justifyContent: 'center',
       borderWidth: 2, borderColor: c.isDark ? 'rgba(255,255,255,0.15)' : '#e0e0ea',
     },
-    avatarPickerInitials: { fontSize: 28, fontWeight: '700', color: c.ink },
+    avatarPickerInitials: { fontSize: Typography.size.xxl, fontWeight: Typography.weight.bold, color: c.ink },
     avatarCameraBadge: {
       position: 'absolute', bottom: 0, right: 0,
       width: 28, height: 28, borderRadius: 14,
@@ -159,16 +162,16 @@ function makeStyles(c: ThemeColors) {
       borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#e8e8f2',
     },
     pwSectionHeader: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      padding: 16,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      padding: Spacing.lg,
     },
-    pwSectionTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: c.ink },
-    pwSectionBody: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+    pwSectionTitle: { flex: 1, fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    pwSectionBody: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg, gap: Spacing.md },
 
     ratingHero: { alignItems: 'center', paddingVertical: 28, gap: 6 },
     ratingScore: { fontSize: 56, fontWeight: '800', color: '#ffffff', letterSpacing: -2 },
-    ratingStars: { flexDirection: 'row', gap: 4 },
-    ratingSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+    ratingStars: { flexDirection: 'row', gap: Spacing.xs },
+    ratingSubtitle: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.55)', marginTop: Spacing.xs },
   });
 }
 
@@ -301,7 +304,7 @@ function PersonalInfoModal({
                   <Camera size={13} color={c.isDark ? c.background : '#ffffff'} />
                 </View>
               </TouchableOpacity>
-              <Text style={{ fontSize: 12, color: c.inkSoft, marginTop: 8 }}>{t('tap_change_photo')}</Text>
+              <Text style={{ fontSize: Typography.size.xs, color: c.inkSoft, marginTop: Spacing.sm }}>{t('tap_change_photo')}</Text>
             </View>
 
             {/* Full Name — read-only */}
@@ -463,7 +466,7 @@ function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: 
             </View>
           ))}
           {paymentMethods.length === 0 && (
-            <Text style={[styles.cardSub, { textAlign: 'center', marginTop: 24 }]}>
+            <Text style={[styles.cardSub, { textAlign: 'center', marginTop: Spacing.xl }]}>
               {t('no_payment_methods')}
             </Text>
           )}
@@ -567,7 +570,7 @@ function HelpFaqModal({ visible, onClose }: { visible: boolean; onClose: () => v
             >
               <View style={styles.faqQ}>
                 <View style={[styles.toggleIcon, { backgroundColor: c.mist }]}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: c.ink }}>{i + 1}</Text>
+                  <Text style={{ fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: c.ink }}>{i + 1}</Text>
                 </View>
                 <Text style={styles.faqQText}>{t(qKey)}</Text>
                 {openIndex === i ? <ChevronUp size={16} color={c.silver} /> : <ChevronDown size={16} color={c.silver} />}
@@ -706,7 +709,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
               </View>
             ) : (
               <>
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing.sm }}>
                   <Text style={styles.inputLabel}>{t('issue_type')}</Text>
                   <View style={styles.issueRow}>
                     {ISSUE_TYPES.map((key) => {
@@ -726,7 +729,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
                     })}
                   </View>
                 </View>
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing.sm }}>
                   <Text style={styles.inputLabel}>{t('describe_issue')}</Text>
                   <TextInput
                     style={styles.textArea}
@@ -737,7 +740,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
                     multiline
                   />
                 </View>
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: Spacing.sm }}>
                   <Text style={styles.inputLabel}>{t('attach_photos')}</Text>
                   <View style={styles.attachmentRow}>
                     {attachments.map((att) => (
@@ -827,7 +830,7 @@ function RatingDetailsModal({ visible, onClose, onOpenHistory }: { visible: bool
           {/* Hero score card */}
           <LinearGradient
             colors={[c.ink, c.isDark ? '#2a2a4a' : '#1e2040']}
-            style={{ borderRadius: 24, overflow: 'hidden' }}
+            style={{ borderRadius: Radius.xl, overflow: 'hidden' }}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           >
             <View style={styles.ratingHero}>
@@ -902,7 +905,7 @@ function RatingHistoryModal({ visible, onClose }: { visible: boolean; onClose: (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('my_ratings')} onClose={onClose} />
-        <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40, gap: 12 }]}>
+        <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40, gap: Spacing.md }]}>
           {loading && !ratings ? (
             <ActivityIndicator color={c.ink} style={{ marginTop: 40 }} />
           ) : !ratings || ratings.length === 0 ? (
@@ -913,7 +916,7 @@ function RatingHistoryModal({ visible, onClose }: { visible: boolean; onClose: (
             ratings.map((r) => {
               const score = typeof r.score === 'string' ? parseFloat(r.score) : r.score;
               return (
-                <View key={r.id} style={[styles.groupCard, S.float, { padding: 16, gap: 8 }]}>
+                <View key={r.id} style={[styles.groupCard, S.float, { padding: Spacing.lg, gap: Spacing.sm }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Text style={styles.cardName}>{r.driverName ?? t('driver_label')}</Text>
                     <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -928,8 +931,8 @@ function RatingHistoryModal({ visible, onClose }: { visible: boolean; onClose: (
                   </Text>
                   {!!r.comment && <Text style={{ fontSize: 13, color: c.ink }}>{r.comment}</Text>}
                   {!!r.driverResponse && (
-                    <View style={{ backgroundColor: c.mist, borderRadius: 12, padding: 10, marginTop: 4 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: c.inkSoft, marginBottom: 2 }}>{t('driver_response_label')}</Text>
+                    <View style={{ backgroundColor: c.mist, borderRadius: Radius.md, padding: 10, marginTop: Spacing.xs }}>
+                      <Text style={{ fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft, marginBottom: 2 }}>{t('driver_response_label')}</Text>
                       <Text style={{ fontSize: 12.5, color: c.ink }}>{r.driverResponse}</Text>
                     </View>
                   )}

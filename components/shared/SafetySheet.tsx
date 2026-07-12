@@ -9,6 +9,9 @@ import { ShieldAlert, Phone, MessageCircle, AlertTriangle, X, CheckCircle } from
 import { C, ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 interface SafetySheetProps {
   visible: boolean;
@@ -204,7 +207,7 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 28,
-    paddingTop: 12,
+    paddingTop: Spacing.md,
   },
   handle: {
     alignSelf: 'center',
@@ -233,15 +236,15 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: Typography.size.lg,
+    fontWeight: Typography.weight.bold,
     color: c.ink,
     letterSpacing: -0.4,
   },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#f4f4f6',
     alignItems: 'center',
     justifyContent: 'center',
@@ -279,7 +282,7 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   },
   optionLabel: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: Typography.weight.bold,
   },
   optionSub: {
     fontSize: 11.5,
@@ -288,12 +291,12 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   },
   successBlock: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: Spacing.xxl,
     gap: 14,
   },
   successText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: Typography.size.md,
+    fontWeight: Typography.weight.semibold,
     color: '#22a06b',
     textAlign: 'center',
   },
@@ -301,6 +304,6 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     fontSize: 12.5,
     color: '#dc2626',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
 }); }

@@ -7,6 +7,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { C } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { Shadows } from '@/constants/shadows';
 
 export const LANG_SELECTED_KEY = '@veego_lang_selected';
 
@@ -83,26 +87,26 @@ const styles = StyleSheet.create({
   content: { width: '100%', paddingHorizontal: 28, gap: 36, alignItems: 'center' },
   logoBlock: { alignItems: 'center', gap: 10 },
   logoIcon: {
-    width: 68, height: 68, borderRadius: 24, backgroundColor: C.ink,
+    width: 68, height: 68, borderRadius: Radius.xl, backgroundColor: C.ink,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: C.ink, shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.22, shadowRadius: 28, elevation: 8,
+    shadowOpacity: 0.22, shadowRadius: 28, elevation: Shadows.large.elevation,
   },
   wordmark: {
-    fontSize: 34, fontWeight: '700', color: C.ink,
+    fontSize: 34, fontWeight: Typography.weight.bold, color: C.ink,
     letterSpacing: -1.5, fontFamily: 'Inter_700Bold',
   },
-  textBlock: { alignItems: 'center', gap: 4 },
-  titleEn: { fontSize: 22, fontWeight: '600', color: C.ink, letterSpacing: -0.4 },
-  titleAr: { fontSize: 18, fontWeight: '500', color: C.inkSoft },
-  optionsBlock: { width: '100%', gap: 12 },
+  textBlock: { alignItems: 'center', gap: Spacing.xs },
+  titleEn: { fontSize: Typography.size.xl, fontWeight: Typography.weight.semibold, color: C.ink, letterSpacing: -0.4 },
+  titleAr: { fontSize: Typography.size.lg, fontWeight: Typography.weight.medium, color: C.inkSoft },
+  optionsBlock: { width: '100%', gap: Spacing.md },
   langOption: {
-    flexDirection: 'row', alignItems: 'center', gap: 16,
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.lg,
     backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 24, padding: 20,
+    borderRadius: Radius.xl, padding: 20,
     borderWidth: 2, borderColor: 'transparent',
     shadowColor: C.ink, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07, shadowRadius: 14, elevation: 2,
+    shadowOpacity: 0.07, shadowRadius: 14, elevation: Shadows.small.elevation,
   },
   langOptionSelected: {
     borderColor: C.ink,
@@ -111,9 +115,9 @@ const styles = StyleSheet.create({
   },
   langFlag: { fontSize: 34 },
   langTextBlock: { flex: 1, gap: 2 },
-  langName: { fontSize: 17, fontWeight: '600', color: C.inkSoft },
+  langName: { fontSize: 17, fontWeight: Typography.weight.semibold, color: C.inkSoft },
   langNameSelected: { color: C.ink },
   langNative: { fontSize: 13, color: C.silver },
-  hint: { fontSize: 12, color: C.inkSoft, textAlign: 'center' },
-  hintAr: { fontSize: 12, color: C.silver, textAlign: 'center', marginTop: -24 },
+  hint: { fontSize: Typography.size.xs, color: C.inkSoft, textAlign: 'center' },
+  hintAr: { fontSize: Typography.size.xs, color: C.silver, textAlign: 'center', marginTop: -24 },
 });

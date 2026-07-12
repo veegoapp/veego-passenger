@@ -12,46 +12,50 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { usePromos } from '@/src/hooks/shared/usePromos';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
+import { Shadows } from '@/constants/shadows';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: {
-      flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16, gap: 12,
+      flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md,
     },
     backBtn: {
       width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
     },
     headerText: { flex: 1 },
     headerTitle: {
-      fontSize: 20, fontWeight: '700', color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
+      fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
     },
     headerSub: { fontSize: 12.5, color: c.inkSoft, marginTop: 1 },
 
-    inputSection: { paddingHorizontal: 20, marginBottom: 24 },
+    inputSection: { paddingHorizontal: 20, marginBottom: Spacing.xl },
     inputRow: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
     },
     inputWrap: {
       flex: 1, height: 52, borderRadius: 18, borderWidth: 1.5,
-      flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 10,
+      flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, gap: 10,
     },
-    inputField: { flex: 1, fontSize: 14.5, fontWeight: '600', letterSpacing: 0.5 },
+    inputField: { flex: 1, fontSize: 14.5, fontWeight: Typography.weight.semibold, letterSpacing: 0.5 },
     applyBtn: {
       height: 52, paddingHorizontal: 22, borderRadius: 18,
       alignItems: 'center', justifyContent: 'center',
     },
-    applyBtnText: { fontSize: 14, fontWeight: '700', color: '#ffffff' },
+    applyBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#ffffff' },
 
     sectionLabel: {
-      fontSize: 11, fontWeight: '700', color: c.inkSoft,
+      fontSize: 11, fontWeight: Typography.weight.bold, color: c.inkSoft,
       textTransform: 'uppercase', letterSpacing: 1.2,
-      paddingHorizontal: 20, marginBottom: 12,
+      paddingHorizontal: 20, marginBottom: Spacing.md,
     },
-    promoList: { paddingHorizontal: 20, gap: 12 },
+    promoList: { paddingHorizontal: 20, gap: Spacing.md },
     promoCard: {
       borderRadius: 22, overflow: 'hidden',
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1, shadowRadius: 12, elevation: 4,
+      shadowOpacity: 0.1, shadowRadius: 12, elevation: Shadows.medium.elevation,
     },
     promoGrad: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
     promoIconWrap: {
@@ -60,45 +64,45 @@ function makeStyles(c: ThemeColors) {
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
     promoMeta: { flex: 1 },
-    promoTitle: { fontSize: 14, fontWeight: '700', color: '#ffffff', letterSpacing: -0.2 },
+    promoTitle: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#ffffff', letterSpacing: -0.2 },
     promoSub: { fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
-    promoExpiry: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+    promoExpiry: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: 6 },
     promoExpiryText: { fontSize: 10.5, color: 'rgba(255,255,255,0.6)' },
     promoRight: { alignItems: 'flex-end', gap: 6 },
     promoDiscount: {
       fontSize: 20, fontWeight: '800', color: '#ffffff', letterSpacing: -0.5,
     },
     promoCodeBadge: {
-      backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8,
-      paddingHorizontal: 10, paddingVertical: 4,
+      backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radius.sm,
+      paddingHorizontal: 10, paddingVertical: Spacing.xs,
     },
     promoCodeText: {
-      fontSize: 11, fontWeight: '700', color: '#ffffff', letterSpacing: 1,
+      fontSize: 11, fontWeight: Typography.weight.bold, color: '#ffffff', letterSpacing: 1,
     },
 
     successWrap: {
-      flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16,
+      flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.lg,
     },
     successCircle: {
       width: 90, height: 90, borderRadius: 45,
       backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: 22, fontWeight: '700', color: c.ink, letterSpacing: -0.4, textAlign: 'center' },
-    successSub: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4, textAlign: 'center' },
+    successSub: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
     successBtn: {
-      marginTop: 8, height: 52, paddingHorizontal: 40, borderRadius: 18,
+      marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 18,
       backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
     },
-    successBtnText: { fontSize: 15, fontWeight: '700', color: c.isDark ? c.background : c.white },
+    successBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : c.white },
 
     emptyState: {
-      alignItems: 'center', gap: 12, paddingVertical: 40, paddingHorizontal: 32,
+      alignItems: 'center', gap: Spacing.md, paddingVertical: 40, paddingHorizontal: Spacing.xxl,
     },
     emptyIcon: {
       width: 64, height: 64, borderRadius: 20, backgroundColor: c.mist,
       alignItems: 'center', justifyContent: 'center',
     },
-    emptyText: { fontSize: 14, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
+    emptyText: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
   });
 }
 
@@ -182,7 +186,7 @@ export default function PromoScreen() {
           </Animated.View>
           <Text style={styles.successTitle}>{t('promo_code_applied')}</Text>
           <Text style={styles.successSub}>
-            <Text style={{ fontWeight: '700', color: '#55c49a' }}>{appliedCode}</Text>
+            <Text style={{ fontWeight: Typography.weight.bold, color: '#55c49a' }}>{appliedCode}</Text>
             {'\n'}{t('promo_code_applied_msg')}
           </Text>
           <TouchableOpacity style={styles.successBtn} onPress={() => router.back()} activeOpacity={0.9}>

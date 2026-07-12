@@ -8,6 +8,9 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 interface RatingSheetProps {
   visible: boolean;
@@ -159,22 +162,22 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     zIndex: 1000,
   },
-  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: 16 },
-  inner: { paddingHorizontal: 24, alignItems: 'center', gap: 14 },
+  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: Spacing.lg },
+  inner: { paddingHorizontal: Spacing.xl, alignItems: 'center', gap: 14 },
   avatar: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#ffffff', fontSize: 22, fontWeight: '700' },
-  title: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginTop: 2 },
+  avatarText: { color: '#ffffff', fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
+  title: { fontSize: 20, fontWeight: Typography.weight.bold, letterSpacing: -0.4, marginTop: 2 },
   sub: { fontSize: 13.5, marginTop: -8 },
-  starsRow: { flexDirection: 'row', gap: 10, marginVertical: 4 },
-  commentBox: { width: '100%', borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, minHeight: 72 },
+  starsRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.xs },
+  commentBox: { width: '100%', borderRadius: Radius.lg, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, minHeight: 72 },
   commentInput: { fontSize: 13.5, lineHeight: 20 },
-  btnRow: { width: '100%', gap: 10, marginTop: 4 },
+  btnRow: { width: '100%', gap: 10, marginTop: Spacing.xs },
   submitBtn: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  submitText: { fontSize: 15, fontWeight: '700' },
-  skipBtn: { alignItems: 'center', paddingVertical: 8 },
+  submitText: { fontSize: 15, fontWeight: Typography.weight.bold },
+  skipBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
   skipText: { fontSize: 13.5 },
-  successWrap: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8, alignItems: 'center', gap: 14 },
+  successWrap: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.sm, alignItems: 'center', gap: 14 },
   successCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center' },
-  successTitle: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
+  successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, letterSpacing: -0.4 },
   successSub: { fontSize: 13.5, marginTop: -8 },
 });

@@ -3,6 +3,8 @@ import { ArrowLeft, ArrowRight, Bike as ScooterIcon } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
 
 interface ScooterServiceScreenProps {
   onBack: () => void;
@@ -16,7 +18,7 @@ function makeStyles(c: ThemeColors, insetTop: number) {
       backgroundColor: '#0d0e22',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 32,
+      padding: Spacing.xxl,
     },
     backBtn: {
       position: 'absolute',
@@ -38,11 +40,11 @@ function makeStyles(c: ThemeColors, insetTop: number) {
       borderColor: 'rgba(85,196,154,0.25)',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 24,
+      marginBottom: Spacing.xl,
     },
     title: {
       fontSize: 24,
-      fontWeight: '700',
+      fontWeight: Typography.weight.bold,
       color: '#ffffff',
       letterSpacing: -0.5,
       textAlign: 'center',

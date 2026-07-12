@@ -15,6 +15,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { useBooking } from '@/context/BookingContext';
 import { usePromos } from '@/src/hooks/shared/usePromos';
 import { S, makeGlassStyle } from '@/constants/colors';
+import { Typography } from '@/constants/typography';
+import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 /* ─────────────────────────────────────────────────────────── */
 /*  Helpers                                                     */
@@ -125,8 +128,8 @@ export default function ReviewConfirmScreen() {
 
     /* Header */
     header: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      paddingTop: insets.top + 10, paddingBottom: 12, paddingHorizontal: 16,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      paddingTop: insets.top + 10, paddingBottom: Spacing.md, paddingHorizontal: Spacing.lg,
       backgroundColor: c.isDark ? c.background : '#f2f2f7',
     },
     backBtn: {
@@ -137,12 +140,12 @@ export default function ReviewConfirmScreen() {
       ...S.luxe,
     },
     headerTitle: {
-      flex: 1, fontSize: 18, fontWeight: '700', color: c.ink,
+      flex: 1, fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: c.ink,
       letterSpacing: -0.5,
     },
 
     scroll:        { flex: 1 },
-    scrollContent: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 140 },
+    scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: 6, paddingBottom: 140 },
 
     /* ── Hero card (dark) ── */
     heroCard: {
@@ -160,29 +163,29 @@ export default function ReviewConfirmScreen() {
       width: 150, height: 150, borderRadius: 75,
       backgroundColor: 'rgba(85,196,154,0.07)',
     },
-    heroTopRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+    heroTopRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.lg },
     heroCodePill: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
       backgroundColor: 'rgba(255,255,255,0.12)',
-      borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6,
+      borderRadius: 99, paddingHorizontal: Spacing.md, paddingVertical: 6,
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
     },
     heroCodeDot:  { width: 7, height: 7, borderRadius: 4, backgroundColor: c.accentMint },
-    heroCodeText: { color: '#ffffff', fontSize: 12, fontWeight: '700', letterSpacing: 0.4 },
+    heroCodeText: { color: '#ffffff', fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, letterSpacing: 0.4 },
     heroRouteName: {
-      color: '#ffffff', fontSize: 22, fontWeight: '800',
-      letterSpacing: -0.6, marginBottom: 16,
+      color: '#ffffff', fontSize: Typography.size.xl, fontWeight: '800',
+      letterSpacing: -0.6, marginBottom: Spacing.lg,
     },
     heroTimeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
     heroTime:    { color: '#ffffff', fontSize: 38, fontWeight: '800', letterSpacing: -1.5 },
     heroDate:    {
-      color: 'rgba(255,255,255,0.55)', fontSize: 14,
-      fontWeight: '500', marginBottom: 6,
+      color: 'rgba(255,255,255,0.55)', fontSize: Typography.size.sm,
+      fontWeight: Typography.weight.medium, marginBottom: 6,
     },
 
     /* ── Section label ── */
     sectionLabel: {
-      fontSize: 11, fontWeight: '700', color: c.inkSoft,
+      fontSize: 11, fontWeight: Typography.weight.bold, color: c.inkSoft,
       textTransform: 'uppercase' as any, letterSpacing: 1.4,
       marginBottom: 10, marginTop: 2, paddingHorizontal: 2,
     },
@@ -191,21 +194,21 @@ export default function ReviewConfirmScreen() {
     tripCard: {
       ...gs,
       borderRadius: 22,
-      marginBottom: 16,
+      marginBottom: Spacing.lg,
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
     },
 
     /* Vertical timeline inside trip card */
-    timelineWrap:  { flexDirection: 'row', gap: 16, padding: 18, paddingBottom: 12 },
+    timelineWrap:  { flexDirection: 'row', gap: Spacing.lg, padding: 18, paddingBottom: Spacing.md },
     timelineLeft:  { alignItems: 'center', width: 18, paddingTop: 3 },
     tlDotTop: {
       width: 14, height: 14, borderRadius: 7,
       backgroundColor: c.ink,
       borderWidth: 2.5, borderColor: c.isDark ? 'rgba(255,255,255,0.2)' : '#1e1e28',
     },
-    tlLine:   { width: 2, flex: 1, backgroundColor: c.border, marginVertical: 4, minHeight: 28, borderRadius: 1 },
+    tlLine:   { width: 2, flex: 1, backgroundColor: c.border, marginVertical: Spacing.xs, minHeight: 28, borderRadius: 1 },
     tlDotBottom: {
       width: 14, height: 14, borderRadius: 7,
       backgroundColor: c.accentMint,
@@ -218,32 +221,32 @@ export default function ReviewConfirmScreen() {
       alignSelf: 'flex-start',
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : c.mist,
       borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
-      marginBottom: 4,
+      marginBottom: Spacing.xs,
     },
-    stationBadgeText: { fontSize: 9, fontWeight: '700', color: c.inkSoft, letterSpacing: 0.8, textTransform: 'uppercase' as any },
-    stationName: { fontSize: 14.5, fontWeight: '700', color: c.ink, letterSpacing: -0.3 },
+    stationBadgeText: { fontSize: 9, fontWeight: Typography.weight.bold, color: c.inkSoft, letterSpacing: 0.8, textTransform: 'uppercase' as any },
+    stationName: { fontSize: 14.5, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.3 },
 
     /* Info chips row */
     infoDivider: { height: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#ebebf0', marginHorizontal: 18 },
     infoChipsRow: {
       flexDirection: 'row', paddingHorizontal: 18, paddingVertical: 14, gap: 0,
     },
-    infoChip: { flex: 1, alignItems: 'center', gap: 4 },
-    infoChipDivider: { width: 1, backgroundColor: c.border, marginHorizontal: 4 },
+    infoChip: { flex: 1, alignItems: 'center', gap: Spacing.xs },
+    infoChipDivider: { width: 1, backgroundColor: c.border, marginHorizontal: Spacing.xs },
     infoChipIconBox: {
       width: 30, height: 30, borderRadius: 9,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
       alignItems: 'center', justifyContent: 'center',
     },
     infoChipLabel: { fontSize: 9.5, color: c.inkSoft, letterSpacing: 0.3 },
-    infoChipValue: { fontSize: 12.5, fontWeight: '700', color: c.ink, letterSpacing: -0.2 },
+    infoChipValue: { fontSize: 12.5, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
 
     /* ── Promo card ── */
     promoCard: {
       ...gs,
       borderRadius: 22,
-      marginBottom: 16,
-      padding: 16,
+      marginBottom: Spacing.lg,
+      padding: Spacing.lg,
       borderWidth: 1,
       borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
     },
@@ -257,36 +260,36 @@ export default function ReviewConfirmScreen() {
     promoInput: {
       flex: 1, height: 42, borderRadius: 13,
       borderWidth: 1.5, borderColor: c.border,
-      paddingHorizontal: 12, fontSize: 13.5, fontWeight: '600',
+      paddingHorizontal: Spacing.md, fontSize: 13.5, fontWeight: Typography.weight.semibold,
       color: c.ink, letterSpacing: 0.6,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.04)' : c.white,
     },
     promoInputActive: { borderColor: c.ink },
     promoApplyBtn: {
-      height: 42, paddingHorizontal: 16, borderRadius: 13,
+      height: 42, paddingHorizontal: Spacing.lg, borderRadius: 13,
       backgroundColor: c.ink,
       alignItems: 'center', justifyContent: 'center',
       ...S.luxe,
     },
     promoApplyBtnDisabled: { backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : c.mist },
-    promoApplyText:         { fontSize: 13, fontWeight: '700', color: c.isDark ? c.background : '#ffffff' },
+    promoApplyText:         { fontSize: 13, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : '#ffffff' },
     promoApplyTextDisabled: { color: c.inkSoft },
 
     promoSuccessRow: {
       flexDirection: 'row', alignItems: 'center',
-      marginTop: 12,
+      marginTop: Spacing.md,
       backgroundColor: 'rgba(85,196,154,0.1)',
-      borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9,
+      borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 9,
       borderWidth: 1, borderColor: 'rgba(85,196,154,0.2)',
     },
-    promoSuccessText: { flex: 1, fontSize: 13, fontWeight: '600', color: '#22a06b', marginStart: 6 },
+    promoSuccessText: { flex: 1, fontSize: 13, fontWeight: Typography.weight.semibold, color: '#22a06b', marginStart: 6 },
     promoErrorText:   { fontSize: 12.5, color: '#e0584a', marginTop: 10, paddingHorizontal: 2 },
 
     /* ── Fare card ── */
     fareCard: {
       ...gs,
       borderRadius: 22,
-      marginBottom: 16,
+      marginBottom: Spacing.lg,
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
@@ -295,30 +298,30 @@ export default function ReviewConfirmScreen() {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 18, paddingVertical: 13,
     },
-    fareRowLabel:  { fontSize: 11, fontWeight: '600', color: c.inkSoft, textTransform: 'uppercase' as any, letterSpacing: 0.8 },
-    fareRowValue:  { fontSize: 14, fontWeight: '600', color: c.ink },
+    fareRowLabel:  { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase' as any, letterSpacing: 0.8 },
+    fareRowValue:  { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
     fareDivider:   { height: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#ebebf0', marginHorizontal: 18 },
     fareTotalRow:  {
       flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
       paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18,
     },
-    fareTotalLabel: { fontSize: 13, fontWeight: '700', color: c.ink, letterSpacing: 0.2 },
+    fareTotalLabel: { fontSize: 13, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: 0.2 },
     fareTotalRight: { alignItems: 'flex-end', gap: 2 },
     fareOriginal:   { fontSize: 13, color: c.inkSoft, textDecorationLine: 'line-through' as any },
-    fareDiscounted: { fontSize: 28, fontWeight: '800', color: '#22a06b', letterSpacing: -1 },
-    fareNormal:     { fontSize: 28, fontWeight: '800', color: c.ink, letterSpacing: -1 },
+    fareDiscounted: { fontSize: Typography.size.xxl, fontWeight: '800', color: '#22a06b', letterSpacing: -1 },
+    fareNormal:     { fontSize: Typography.size.xxl, fontWeight: '800', color: c.ink, letterSpacing: -1 },
     savingsPill: {
-      flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.xs,
       backgroundColor: 'rgba(85,196,154,0.12)', borderRadius: 99,
-      paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-end',
+      paddingHorizontal: 10, paddingVertical: Spacing.xs, alignSelf: 'flex-end',
     },
     savingsDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accentMint },
-    savingsText: { fontSize: 11, fontWeight: '700', color: '#22a06b', letterSpacing: 0.1 },
+    savingsText: { fontSize: 11, fontWeight: Typography.weight.bold, color: '#22a06b', letterSpacing: 0.1 },
 
     /* ── Error banner ── */
     errorBanner: {
       backgroundColor: c.isDark ? 'rgba(220,38,38,0.10)' : '#fff2f2',
-      borderRadius: 16, padding: 14, marginBottom: 16,
+      borderRadius: Radius.lg, padding: 14, marginBottom: Spacing.lg,
       flexDirection: 'row', gap: 10, alignItems: 'flex-start',
       borderWidth: 1, borderColor: c.isDark ? 'rgba(220,38,38,0.28)' : '#fecaca',
     },
@@ -327,7 +330,7 @@ export default function ReviewConfirmScreen() {
     /* ── CTA ── */
     cta: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
-      paddingHorizontal: 16, paddingTop: 14, paddingBottom: insets.bottom + 16,
+      paddingHorizontal: Spacing.lg, paddingTop: 14, paddingBottom: insets.bottom + 16,
       backgroundColor: c.isDark ? c.background : '#f2f2f7',
       borderTopWidth: 1, borderTopColor: c.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
     },
@@ -337,11 +340,11 @@ export default function ReviewConfirmScreen() {
       ...S.float,
     },
     ctaBtnDisabled: { opacity: 0.45 },
-    ctaBtnText: { color: c.isDark ? c.background : '#ffffff', fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
-    ctaSub: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 },
+    ctaBtnText: { color: c.isDark ? c.background : '#ffffff', fontSize: Typography.size.md, fontWeight: '800', letterSpacing: -0.3 },
+    ctaSub: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: 10 },
     ctaSubText: { fontSize: 12.5, color: c.inkSoft },
     ctaSubDivider: { width: 3, height: 3, borderRadius: 2, backgroundColor: c.silver },
-    ctaSubFinal:   { fontSize: 12.5, fontWeight: '700', color: hasDiscount ? '#22a06b' : c.inkSoft },
+    ctaSubFinal:   { fontSize: 12.5, fontWeight: Typography.weight.bold, color: hasDiscount ? '#22a06b' : c.inkSoft },
 
   }), [c, gs, insets, hasDiscount]);
 
