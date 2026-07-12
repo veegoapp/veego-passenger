@@ -15,6 +15,7 @@ import { Spacing } from '@/constants/spacing';
 
 const LANG_KEY = '@veego_lang_selected';
 const SESSION_KEY = '@veego_session_v1';
+const ONBOARDING_KEY = '@veego_has_seen_onboarding';
 const { width } = Dimensions.get('window');
 
 function decodeJwtPayload(token: string): { exp?: number } | null {
@@ -23,6 +24,20 @@ function decodeJwtPayload(token: string): { exp?: number } | null {
   } catch {
     return null;
   }
+}
+
+async function markOnboardingSeen(): Promise<void> {
+  try { await AsyncStorage.setItem(ONBOARDING_KEY, '1'); } catch {}
+}
+
+/**
+ * Onboarding is a first-install-only screen. Once a device has seen it (or
+ * has ever been authenticated) it must never resurface — logout, expiry, and
+ * failed refresh should all land on /auth instead.
+ */
+async function routeUnauthenticated(): Promise<void> {
+  const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
+  router.replace(seen === '1' ? '/auth' : '/onboarding');
 }
 
 async function attemptTokenRefresh(): Promise<boolean> {
@@ -45,10 +60,10 @@ async function checkAuthAndNavigate() {
     if (!langSelected) { router.replace('/lang-select'); return; }
 
     const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
-    if (!token) { router.replace('/onboarding'); return; }
+    if (!token) { await routeUnauthenticated(); return; }
 
     const payload = decodeJwtPayload(token);
-    if (!payload) { router.replace('/onboarding'); return; }
+    if (!payload) { await routeUnauthenticated(); return; }
 
     if ((payload.exp ?? 0) <= Math.floor(Date.now() / 1000)) {
       const refreshed = await attemptTokenRefresh();
@@ -56,11 +71,14 @@ async function checkAuthAndNavigate() {
         await tokenStore.removeToken(tokenStore.TOKEN_KEY);
         await tokenStore.removeToken(tokenStore.REFRESH_KEY);
         await SecureStore.deleteItemAsync(SESSION_KEY);
-        router.replace('/onboarding');
+        await routeUnauthenticated();
         return;
       }
     }
 
+    // A device that reaches the app with a valid session has clearly moved
+    // past first-run — make sure a later logout on this device skips onboarding too.
+    await markOnboardingSeen();
     router.replace('/(tabs)');
   } catch {
     router.replace('/lang-select');
@@ -72,7 +90,7 @@ export function useAuthOnResume() {
     const subscription = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (nextState === 'active') {
         const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
-        if (!token) { router.replace('/onboarding'); return; }
+        if (!token) { await routeUnauthenticated(); return; }
         const payload = decodeJwtPayload(token);
         if (!payload || (payload.exp ?? 0) <= Math.floor(Date.now() / 1000)) {
           const refreshed = await attemptTokenRefresh();
@@ -80,7 +98,7 @@ export function useAuthOnResume() {
             await tokenStore.removeToken(tokenStore.TOKEN_KEY);
             await tokenStore.removeToken(tokenStore.REFRESH_KEY);
             await SecureStore.deleteItemAsync(SESSION_KEY);
-            router.replace('/onboarding');
+            await routeUnauthenticated();
           }
         }
       }
