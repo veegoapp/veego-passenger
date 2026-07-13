@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, TextInput,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, TextInput, RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -149,7 +149,7 @@ export default function HomeScreen() {
   const { colors: c, glassStyle: gs, t, isRTL, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
-  const { routes } = useRoutes();
+  const { routes, refresh: refreshRoutes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
   const { debt } = useMyDebt();
@@ -168,10 +168,10 @@ export default function HomeScreen() {
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [nominatimResults, setNominatimResults] = useState<SavedLocation[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch saved locations on mount
-  useEffect(() => {
-    api.get('/user/locations')
+  const fetchSavedLocations = useCallback(() => {
+    return api.get('/user/locations')
       .then(({ data }) => {
         const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
         setSavedLocations(raw.map((item: any) => ({
@@ -184,18 +184,41 @@ export default function HomeScreen() {
           isDefault: item.isDefault ?? false,
         })));
       })
-      .catch(() => {});
+      .catch((err) => {
+        // Saved locations are a convenience shortcut — failing to load them
+        // should never block the home screen, but we log in dev so a
+        // recurring failure isn't invisible.
+        if (__DEV__) console.warn('[Home] failed to load saved locations:', err?.message);
+      });
   }, []);
 
-  // Fetch unread notification count
-  useEffect(() => {
-    api.get('/notifications?limit=20')
+  const fetchUnreadCount = useCallback(() => {
+    return api.get('/notifications?limit=20')
       .then(({ data }) => {
         const list: any[] = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
         setUnreadCount(list.filter((n) => !n.isRead && !n.read).length);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (__DEV__) console.warn('[Home] failed to load notification count:', err?.message);
+      });
   }, []);
+
+  // Fetch saved locations on mount
+  useEffect(() => {
+    fetchSavedLocations();
+  }, [fetchSavedLocations]);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    Haptics.selectionAsync();
+    await Promise.allSettled([refreshRoutes(), fetchSavedLocations(), fetchUnreadCount()]);
+    setRefreshing(false);
+  }, [refreshRoutes, fetchSavedLocations, fetchUnreadCount]);
 
   // تحديث لـ 5 خطوط في الـ Most Booked
   const mostBookedRoutes = useMemo(() => {
@@ -545,6 +568,14 @@ export default function HomeScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={c.ink}
+              colors={[c.ink]}
+            />
+          }
         >
           {activeBooking && (
             <TouchableOpacity activeOpacity={0.92} onPress={() => router.push('/ticket')}>

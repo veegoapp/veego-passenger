@@ -1,0 +1,190 @@
+You are working on the VeeGo Passenger App (React Native + Expo Router).
+
+Goal:
+Implement ONLY the fixes listed in this task based on the Production UX Audit.
+
+STRICT RULES:
+- Make minimal targeted changes only.
+- Do NOT refactor unrelated code.
+- Do NOT rename files, components, hooks, variables, APIs, or folders unless required for the fix.
+- Do NOT change backend code.
+- Do NOT change business logic unless the audit item requires it.
+- Do NOT redesign UI.
+- Do NOT add new libraries.
+- Preserve existing architecture and coding style.
+- Do NOT fix old issues that are not listed here.
+- If you find unrelated issues, mention them only in the final report and do not modify them.
+- Before editing, inspect the current implementation because some audit findings may already be fixed.
+- Only modify files where the issue still exists.
+
+After completing changes:
+1. Run TypeScript check.
+2. Confirm whether new TypeScript errors were introduced.
+3. Provide:
+   - Files modified
+   - Audit items fixed
+   - Any remaining risks
+
+Implement these fixes only:
+
+1) ConfirmSheet booking protection
+File:
+components/shuttle/ConfirmSheet.tsx
+
+Add:
+- loading/submitting state
+- disable confirm button during request
+- prevent duplicate taps
+- spinner while submitting
+- reset state in finally
+
+Do not change booking logic.
+
+---
+
+2) Favorites error handling
+Files:
+app/(tabs)/favorites.tsx
+src/hooks/shared/useFavoriteDestinations.ts
+
+Only:
+- expose existing fetch errors
+- render error state
+- add retry action
+
+Do not change favorites API behavior.
+
+---
+
+3) Notifications error handling
+Files:
+app/notifications.tsx
+src/hooks/shared/useNotifications.ts
+
+Only:
+- show fetch error
+- add retry
+- keep empty state separate from error state
+
+---
+
+4) Debt check state
+File:
+src/hooks/shared/useMyDebt.ts
+
+Only:
+- replace silent failure with explicit error state
+- allow UI to distinguish error vs no debt
+
+Do not change debt calculation.
+
+---
+
+5) Home silent catches
+File:
+app/(tabs)/index.tsx
+
+Only handle:
+- locations loading failure
+- notifications loading failure
+- geocode search failure
+
+Do not change home flow.
+
+---
+
+6) Receipt error/loading
+File:
+app/receipt.tsx
+
+Only add:
+- loading state
+- error state
+- retry
+- submit button protection
+
+---
+
+7) Ride polling
+File:
+src/hooks/car/useRide.ts
+
+Only:
+- expose polling failure safely
+- keep socket behavior unchanged
+
+---
+
+8) Socket connection status
+Files:
+src/api/socket.ts
+and related live screens only if needed
+
+Only:
+- expose connection state
+- show reconnecting indicator
+
+Do not modify socket event contracts.
+
+---
+
+9) Profile save protection
+File:
+app/(tabs)/profile.tsx
+
+Only:
+- add saving state
+- disable save button during request
+- prevent duplicate submissions
+
+---
+
+10) Wallet empty state
+File:
+app/(tabs)/wallet.tsx
+
+Only:
+- add empty transactions message
+
+Do not change wallet logic.
+
+---
+
+11) Refresh
+Add Pull-to-Refresh only to:
+- Home
+- Profile
+
+Do not modify existing refresh implementations.
+
+---
+
+12) Rating submission
+Files:
+RatingSheet.tsx
+review-confirm.tsx
+receipt.tsx
+
+Only:
+- real submitting state
+- disable buttons
+- prevent duplicate submissions
+
+---
+
+13) Storage failures
+Files:
+- lang-select.tsx
+- auth.tsx
+- verify-phone.tsx
+- onboarding.tsx
+
+Only:
+- improve silent failures with safe logging/non-blocking feedback
+
+Do not change authentication flow.
+
+---
+
+Final requirement:
+If any requested item is already fixed in the current code, do not touch it. Mention it as already resolved.

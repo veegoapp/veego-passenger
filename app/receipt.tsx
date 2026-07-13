@@ -79,17 +79,28 @@ export default function ReceiptScreen() {
 
   const [ratingVisible, setRatingVisible] = useState(false);
   const [alreadyRated, setAlreadyRated] = useState(false);
+  const [rateCheckError, setRateCheckError] = useState(false);
 
   // Check passengerRating from the ride to know if rating was already submitted
-  useEffect(() => {
+  const checkAlreadyRated = useCallback(() => {
     if (!params.rideId) return;
+    setRateCheckError(false);
     api.get(`/rides/${params.rideId}`)
       .then((res) => {
         const d = res.data?.data ?? res.data;
         if (d?.passengerRating != null) setAlreadyRated(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        // If we can't confirm rating status, fail open (still offer the Rate
+        // button) but let the user know the check didn't succeed, with a
+        // retry so a stale "already rated" state doesn't linger silently.
+        setRateCheckError(true);
+      });
   }, [params.rideId]);
+
+  useEffect(() => {
+    checkAlreadyRated();
+  }, [checkAlreadyRated]);
 
   const parsedFare = parseFloat(params.fare ?? '0') || 0;
   const parsedRating = parseFloat(params.driverRating ?? '0') || 0;
@@ -230,6 +241,11 @@ export default function ReceiptScreen() {
             <Text style={[styles.rateBtnText, { color: c.isDark ? c.background : '#fff' }]}>
               {t('rate_driver')}
             </Text>
+          </TouchableOpacity>
+        )}
+        {rateCheckError && (
+          <TouchableOpacity onPress={checkAlreadyRated} activeOpacity={0.7} style={{ alignItems: 'center', paddingVertical: 4 }}>
+            <Text style={[styles.doneBtnText, { color: c.inkSoft }]}>{t('rate_status_check_failed')}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.doneBtn} onPress={handleDone} activeOpacity={0.7}>

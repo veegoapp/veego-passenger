@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated,  TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, TextInput } from 'react-native';
 import { Calendar, Clock, Users, Check, Tag, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -53,6 +53,7 @@ function makeStyles(c: ThemeColors, gs: object) {
     promoSuccessText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: '#22a06b', flex: 1 },
     promoError: { fontSize: 12.5, color: '#e0584a', paddingHorizontal: 2 },
     confirmBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, ...S.float, marginTop: Spacing.xs },
+    confirmBtnDisabled: { opacity: 0.6 },
     confirmBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
     editBtn: { height: 44, alignItems: 'center', justifyContent: 'center' },
     editBtnText: { fontSize: 13, color: c.inkSoft, fontWeight: Typography.weight.medium },
@@ -73,6 +74,7 @@ export function ConfirmSheet() {
   const [promoDiscount, setPromoDiscount] = useState('');
   const [promoError, setPromoError] = useState('');
   const [appliedCode, setAppliedCode] = useState('');
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (confirmSheetOpen) {
@@ -81,6 +83,7 @@ export function ConfirmSheet() {
       setPromoDiscount('');
       setPromoError('');
       setAppliedCode('');
+      setConfirming(false);
       setVisible(true);
       Animated.parallel([
         Animated.spring(slideAnim, { toValue: 1, useNativeDriver: true, ...Animation.spring.sheet }),
@@ -119,6 +122,17 @@ export function ConfirmSheet() {
     setPromoError('');
     setAppliedCode('');
   }, []);
+
+  const onConfirmPress = useCallback(async () => {
+    if (confirming) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setConfirming(true);
+    try {
+      await handleConfirm(appliedCode || undefined);
+    } finally {
+      setConfirming(false);
+    }
+  }, [confirming, appliedCode, handleConfirm]);
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [700, 0] });
   if (!visible || !pendingBooking) return null;
@@ -243,11 +257,22 @@ export function ConfirmSheet() {
               )}
             </View>
 
-            <TouchableOpacity style={styles.confirmBtn} activeOpacity={0.9} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); handleConfirm(appliedCode || undefined); }}>
-              <Check size={16} color={c.isDark ? c.background : c.white} />
-              <Text style={styles.confirmBtnText}>{t('confirm_booking')}</Text>
+            <TouchableOpacity
+              style={[styles.confirmBtn, confirming && styles.confirmBtnDisabled]}
+              activeOpacity={0.9}
+              onPress={onConfirmPress}
+              disabled={confirming}
+            >
+              {confirming ? (
+                <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+              ) : (
+                <>
+                  <Check size={16} color={c.isDark ? c.background : c.white} />
+                  <Text style={styles.confirmBtnText}>{t('confirm_booking')}</Text>
+                </>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={closeConfirmSheet} style={styles.editBtn} activeOpacity={0.7}>
+            <TouchableOpacity onPress={closeConfirmSheet} style={styles.editBtn} activeOpacity={0.7} disabled={confirming}>
               <Text style={styles.editBtnText}>{t('edit_details')}</Text>
             </TouchableOpacity>
           </View>

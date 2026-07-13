@@ -25,7 +25,10 @@ export default function LangSelectScreen() {
     setLanguage(lang, true);
     try {
       await AsyncStorage.setItem(LANG_SELECTED_KEY, '1');
-    } catch {}
+    } catch (err) {
+      // Non-fatal — the app just re-shows this screen next launch.
+      if (__DEV__) console.warn('[LangSelect] failed to persist language choice:', err);
+    }
     setTimeout(() => router.replace('/onboarding'), 320);
   };
 

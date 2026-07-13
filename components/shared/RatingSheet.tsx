@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Animated, Platform, Keyboard,
@@ -30,6 +30,9 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const checkScale = useRef(new Animated.Value(0)).current;
+  // Guards against a rapid double-tap firing handleSubmit twice before the
+  // `submitted` state re-render hides the submit button.
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -42,6 +45,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
       setStars(0);
       setComment('');
       setSubmitted(false);
+      submittingRef.current = false;
       checkScale.setValue(0);
     }
   }, [visible]);
@@ -55,14 +59,20 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
     ]).start();
   };
 
-  const handleSubmit = () => {
-    if (stars === 0) return;
+  const handleSubmit = useCallback(() => {
+    if (stars === 0 || submittingRef.current) return;
+    submittingRef.current = true;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Keyboard.dismiss();
     setSubmitted(true);
     Animated.spring(checkScale, { toValue: 1, useNativeDriver: true, damping: 10, stiffness: 180 }).start();
     setTimeout(() => onSubmit(stars, comment), 1400);
-  };
+  }, [stars, comment, onSubmit, checkScale]);
+
+  const handleSkip = useCallback(() => {
+    if (submittingRef.current) return;
+    onSkip();
+  }, [onSkip]);
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] });
   const sheetBg = c.isDark ? 'rgba(14,14,28,0.99)' : 'rgba(250,250,252,0.99)';
@@ -134,7 +144,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
             >
               <Text style={[styles.submitText, { color: stars > 0 ? '#ffffff' : c.inkSoft }]}>{t('submit_rating')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.skipBtn} onPress={onSkip} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.7}>
               <Text style={[styles.skipText, { color: c.inkSoft }]}>{t('skip')}</Text>
             </TouchableOpacity>
           </View>

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, CheckCheck, Navigation, Sparkles, Settings, Bell } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, CheckCheck, Navigation, Sparkles, Settings, Bell, TriangleAlert } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -32,6 +32,10 @@ function makeStyles(c: ThemeColors) {
     notifBody: { fontSize: Typography.size.xs, color: c.inkSoft, lineHeight: 17 },
     notifTime: { fontSize: 10.5, color: c.silver, marginTop: 2 },
     loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
+    stateWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60, paddingHorizontal: 40, gap: Spacing.md },
+    stateText: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center' },
+    retryBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: Radius.md, backgroundColor: c.ink },
+    retryBtnText: { color: c.isDark ? c.background : c.white, fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
   });
 }
 
@@ -48,7 +52,7 @@ export default function NotificationsScreen() {
   const { colors: c, glassStyle: gs, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const iconBg = c.isDark ? ICON_BG_DARK : ICON_BG_LIGHT;
-  const { notifications, unreadCount, loading, markAllRead } = useNotifications();
+  const { notifications, unreadCount, loading, error, markAllRead, refresh } = useNotifications();
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
@@ -70,6 +74,19 @@ export default function NotificationsScreen() {
       {loading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={c.ink} />
+        </View>
+      ) : error ? (
+        <View style={styles.stateWrap}>
+          <TriangleAlert size={28} color={c.inkSoft} />
+          <Text style={styles.stateText}>{t('notif_load_error')}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={refresh} activeOpacity={0.85}>
+            <Text style={styles.retryBtnText}>{t('retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : notifications.length === 0 ? (
+        <View style={styles.stateWrap}>
+          <Bell size={28} color={c.inkSoft} />
+          <Text style={styles.stateText}>{t('no_notifications')}</Text>
         </View>
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>

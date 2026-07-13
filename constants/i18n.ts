@@ -231,6 +231,11 @@ const en = {
   no_routes: 'No routes available',
   routes_empty_msg: 'Check back later or pull to refresh.',
   retry: 'Retry',
+  fav_load_error: "Couldn't load your destinations.",
+  notif_load_error: "Couldn't load notifications.",
+  no_notifications: "You're all caught up — no notifications yet.",
+  no_transactions: 'No transactions yet.',
+  rate_status_check_failed: "Couldn't verify rating status — tap to retry",
 
   personal_info_title: 'Personal Information',
   email_address: 'Email address',
@@ -893,6 +898,11 @@ const ar: typeof en = {
   no_routes: 'لا توجد خطوط متاحة',
   routes_empty_msg: 'تحقق لاحقاً أو اسحب للتحديث.',
   retry: 'إعادة المحاولة',
+  fav_load_error: 'تعذر تحميل وجهاتك.',
+  notif_load_error: 'تعذر تحميل الإشعارات.',
+  no_notifications: 'لا توجد إشعارات حتى الآن.',
+  no_transactions: 'لا توجد معاملات حتى الآن.',
+  rate_status_check_failed: 'تعذر التحقق من حالة التقييم — اضغط للمحاولة مرة أخرى',
 
   personal_info_title: 'المعلومات الشخصية',
   email_address: 'البريد الإلكتروني',

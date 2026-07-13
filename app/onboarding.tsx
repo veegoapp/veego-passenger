@@ -21,7 +21,13 @@ const { width } = Dimensions.get('window');
 const ONBOARDING_KEY = '@veego_has_seen_onboarding';
 
 async function finishOnboarding() {
-  try { await AsyncStorage.setItem(ONBOARDING_KEY, '1'); } catch {}
+  try {
+    await AsyncStorage.setItem(ONBOARDING_KEY, '1');
+  } catch (err) {
+    // Non-fatal — onboarding would just show again next launch. Navigation
+    // must proceed regardless.
+    if (__DEV__) console.warn('[Onboarding] failed to persist onboarding-seen flag:', err);
+  }
   router.replace('/auth');
 }
 

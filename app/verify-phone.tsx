@@ -104,7 +104,13 @@ export default function VerifyPhoneScreen() {
       emitAuthEvent('auth:login');
       if (termsVersion) {
         const v = parseInt(termsVersion, 10);
-        if (!isNaN(v)) acceptTerms(v).catch(() => {});
+        if (!isNaN(v)) {
+          acceptTerms(v).catch((err) => {
+            // Fire-and-forget — login must proceed even if this fails; log
+            // in dev so a recurring failure to record acceptance isn't invisible.
+            if (__DEV__) console.warn('[VerifyPhone] failed to record terms acceptance:', err);
+          });
+        }
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');

@@ -19,6 +19,27 @@ const SOCKET_URL = _apiBase.replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;
 
+export type SocketConnectionState = 'connected' | 'connecting' | 'disconnected';
+let connectionState: SocketConnectionState = 'disconnected';
+const connectionListeners = new Set<(state: SocketConnectionState) => void>();
+
+function setConnectionState(next: SocketConnectionState) {
+  if (connectionState === next) return;
+  connectionState = next;
+  connectionListeners.forEach((listener) => listener(connectionState));
+}
+
+/** Current socket connection state, for screens that want to show a "reconnecting" indicator. */
+export function getSocketConnectionState(): SocketConnectionState {
+  return connectionState;
+}
+
+/** Subscribe to socket connection-state changes. Returns an unsubscribe function. */
+export function onSocketConnectionChange(listener: (state: SocketConnectionState) => void): () => void {
+  connectionListeners.add(listener);
+  return () => connectionListeners.delete(listener);
+}
+
 export async function getSocket(): Promise<Socket> {
   if (socket && socket.connected) return socket;
 
@@ -39,7 +60,12 @@ export async function getSocket(): Promise<Socket> {
     timeout: 10000,
   });
 
+  setConnectionState('connecting');
+  socket.on('connect', () => setConnectionState('connected'));
+  socket.on('disconnect', () => setConnectionState('disconnected'));
+  socket.on('reconnect_attempt', () => setConnectionState('connecting'));
   socket.on('connect_error', (err) => {
+    setConnectionState('disconnected');
     if (__DEV__) console.warn('[Socket] connection error:', err.message);
   });
 
@@ -55,6 +81,7 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+  setConnectionState('disconnected');
 }
 
 // ✅ Call this after token refresh to reconnect with new token

@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert,
+  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert, RefreshControl,
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -175,7 +175,7 @@ function makeStyles(c: ThemeColors) {
   });
 }
 
-function ModalHeader({ title, onClose, actionLabel, onAction }: { title: string; onClose: () => void; actionLabel?: string; onAction?: () => void }) {
+function ModalHeader({ title, onClose, actionLabel, onAction, actionDisabled }: { title: string; onClose: () => void; actionLabel?: string; onAction?: () => void; actionDisabled?: boolean }) {
   const { colors: c, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   return (
@@ -185,8 +185,8 @@ function ModalHeader({ title, onClose, actionLabel, onAction }: { title: string;
       </TouchableOpacity>
       <Text style={styles.modalTitle}>{title}</Text>
       {actionLabel && onAction && (
-        <TouchableOpacity onPress={onAction} activeOpacity={0.8}>
-          <Text style={styles.modalHeaderAction}>{actionLabel}</Text>
+        <TouchableOpacity onPress={onAction} activeOpacity={0.8} disabled={actionDisabled}>
+          <Text style={[styles.modalHeaderAction, actionDisabled && { opacity: 0.5 }]}>{actionLabel}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -195,7 +195,7 @@ function ModalHeader({ title, onClose, actionLabel, onAction }: { title: string;
 
 // ✅ useProfileInfo delegates to useProfile which fetches from GET /users/me
 export function useProfileInfo() {
-  const { profile, loading, saveProfile: apiSave } = useProfile();
+  const { profile, loading, saveProfile: apiSave, refresh } = useProfile();
 
   const saveProfile = useCallback(async (n: string, em: string, d: string) => {
     await apiSave({ name: n, email: em, dob: d });
@@ -208,6 +208,7 @@ export function useProfileInfo() {
     phone: profile.phone || '',
     loaded: !loading,
     saveProfile,
+    refresh,
   };
 }
 
@@ -229,6 +230,7 @@ function PersonalInfoModal({
   const [email, setEmail] = useState(savedEmail);
   const [dob, setDob] = useState(savedDob);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -241,6 +243,7 @@ function PersonalInfoModal({
       setEmail(savedEmail);
       setDob(savedDob);
       setSaved(false);
+      setSaving(false);
       setPwOpen(false);
       setCurrentPw('');
       setNewPw('');
@@ -249,11 +252,17 @@ function PersonalInfoModal({
   }, [visible, savedEmail, savedDob]);
 
   const handleSave = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await saveProfile(savedName, email, dob);
-    onSaved?.(savedName);
-    setSaved(true);
-    setTimeout(() => { setSaved(false); onClose(); }, 900);
+    if (saving) return;
+    setSaving(true);
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await saveProfile(savedName, email, dob);
+      onSaved?.(savedName);
+      setSaved(true);
+      setTimeout(() => { setSaved(false); onClose(); }, 900);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -284,6 +293,7 @@ function PersonalInfoModal({
           onClose={onClose}
           actionLabel={saved ? t('saved') : t('save_changes')}
           onAction={handleSave}
+          actionDisabled={saving}
         />
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.modalScroll}>
@@ -419,8 +429,17 @@ function PersonalInfoModal({
               )}
             </View>
 
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleSave} activeOpacity={0.9}>
-              <Text style={styles.primaryBtnText}>{saved ? t('saved') : t('save_changes')}</Text>
+            <TouchableOpacity
+              style={[styles.primaryBtn, saving && { opacity: 0.6 }]}
+              onPress={handleSave}
+              activeOpacity={0.9}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+              ) : (
+                <Text style={styles.primaryBtnText}>{saved ? t('saved') : t('save_changes')}</Text>
+              )}
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -959,25 +978,43 @@ export default function ProfileScreen() {
       setActiveModal('terms');
     }
   }, [openTerms]);
-  const { name: profileName, email: profileEmail } = useProfileInfo();
+  const { name: profileName, email: profileEmail, refresh: refreshProfile } = useProfileInfo();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Live stats — bound to real API data
-  const { upcomingTrips, pastTrips } = useTrips();
+  const { upcomingTrips, pastTrips, refresh: refreshTrips } = useTrips();
   const totalTrips = upcomingTrips.length + pastTrips.length;
   const [savedAmount, setSavedAmount] = useState<number | null>(null);
   const [overallRating, setOverallRating] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchStats = useCallback(() => {
+    return Promise.allSettled([
+      api.get('/users/me/stats').then(({ data }) => {
+        if (typeof data.savedAmount === 'number') setSavedAmount(data.savedAmount);
+      }).catch((err) => {
+        if (__DEV__) console.warn('[Profile] failed to load stats:', err?.message);
+      }),
+      api.get('/user/me/passenger-rating').then(({ data }) => {
+        if (typeof data.averageRating === 'number') setOverallRating(data.averageRating);
+      }).catch((err) => {
+        if (__DEV__) console.warn('[Profile] failed to load rating:', err?.message);
+      }),
+    ]);
+  }, []);
 
   useEffect(() => {
-    api.get('/users/me/stats').then(({ data }) => {
-      if (typeof data.savedAmount === 'number') setSavedAmount(data.savedAmount);
-    }).catch(() => {});
-    api.get('/user/me/passenger-rating').then(({ data }) => {
-      if (typeof data.averageRating === 'number') setOverallRating(data.averageRating);
-    }).catch(() => {});
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    Haptics.selectionAsync();
+    await Promise.allSettled([refreshProfile(), refreshTrips(), fetchStats()]);
+    setRefreshing(false);
+  }, [refreshProfile, refreshTrips, fetchStats]);
 
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -1032,7 +1069,19 @@ export default function ProfileScreen() {
         <Text style={styles.headerTitle}>{t('profile_title')}</Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={c.ink}
+            colors={[c.ink]}
+          />
+        }
+      >
         <View style={[gs, styles.heroCard]}>
           <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3a']} style={styles.heroGrad}>
             <View style={styles.heroGlow} />

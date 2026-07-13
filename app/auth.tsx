@@ -134,7 +134,11 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
       SecureStore.getItemAsync(tokenStore.REFRESH_KEY),
     ]).then(([hasHardware, isEnrolled, refreshToken]) => {
       setBiometricAvailable(hasHardware && isEnrolled && !!refreshToken);
-    }).catch(() => {});
+    }).catch((err) => {
+      // Availability check failing just means biometric sign-in stays hidden
+      // (safe default) — log in dev so a recurring failure isn't invisible.
+      if (__DEV__) console.warn('[Auth] biometric availability check failed:', err);
+    });
   }, []);
 
   const handleBiometric = async () => {
@@ -276,7 +280,11 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
     setTermsFetching(true);
     fetchPassengerTerms()
       .then(setTermsData)
-      .catch(() => {})
+      .catch((err) => {
+        // Terms modal gating (`termsFetching`) already keeps sign-up blocked
+        // until this settles; just log so a recurring failure is visible in dev.
+        if (__DEV__) console.warn('[Auth] failed to fetch passenger terms:', err);
+      })
       .finally(() => setTermsFetching(false));
   }, []);
 
@@ -306,7 +314,9 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       const { accessToken } = await persistTokens(data);
       await saveSession(email.trim(), name.trim());
       if (accessToken && termsData) {
-        acceptTerms(termsData.version).catch(() => {});
+        acceptTerms(termsData.version).catch((err) => {
+          if (__DEV__) console.warn('[Auth] failed to record terms acceptance:', err);
+        });
       }
       emitAuthEvent('auth:login');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

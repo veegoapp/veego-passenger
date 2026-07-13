@@ -98,7 +98,7 @@ export default function FavoritesScreen() {
   const favoriteRoutes = useMemo(() => routes.filter((r) => isFavorite(r.id)), [routes, isFavorite]);
 
   // Frequent destinations derived from booking history
-  const { destinations, loading: destLoading, refresh: refreshDest } = useFavoriteDestinations();
+  const { destinations, loading: destLoading, error: destError, refresh: refreshDest } = useFavoriteDestinations();
   const carDest = useMemo(() => destinations.filter((d) => d.type === 'car'), [destinations]);
   const scooterDest = useMemo(() => destinations.filter((d) => d.type === 'scooter'), [destinations]);
 
@@ -235,6 +235,16 @@ export default function FavoritesScreen() {
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={c.ink} />
             </View>
+          ) : destError ? (
+            <View style={styles.emptyShuttle}>
+              <View style={styles.emptyIcon}>
+                <Car size={22} color={c.silver} />
+              </View>
+              <Text style={styles.emptyTitle}>{t('fav_load_error')}</Text>
+              <TouchableOpacity style={styles.emptyBtn} onPress={refreshDest} activeOpacity={0.85}>
+                <Text style={styles.emptyBtnText}>{t('retry')}</Text>
+              </TouchableOpacity>
+            </View>
           ) : carDest.length === 0 ? (
             <View style={styles.emptyShuttle}>
               <View style={styles.emptyIcon}>
@@ -294,6 +304,16 @@ export default function FavoritesScreen() {
           {destLoading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={c.ink} />
+            </View>
+          ) : destError ? (
+            <View style={styles.emptyShuttle}>
+              <View style={styles.emptyIcon}>
+                <ScooterIcon size={22} color={c.silver} />
+              </View>
+              <Text style={styles.emptyTitle}>{t('fav_load_error')}</Text>
+              <TouchableOpacity style={styles.emptyBtn} onPress={refreshDest} activeOpacity={0.85}>
+                <Text style={styles.emptyBtnText}>{t('retry')}</Text>
+              </TouchableOpacity>
             </View>
           ) : scooterDest.length === 0 ? (
             <View style={styles.emptyShuttle}>

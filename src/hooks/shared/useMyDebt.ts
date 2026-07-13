@@ -12,21 +12,27 @@ import type { DebtInfo } from '@/constants/data';
 export interface UseMyDebtResult {
   debt: DebtInfo | null;
   loading: boolean;
+  error: boolean;
   refresh: () => void;
 }
 
 export function useMyDebt(): UseMyDebtResult {
   const [debt, setDebt] = useState<DebtInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const fetchDebt = useCallback(async () => {
     setLoading(true);
     try {
       const info = await getMyDebt();
       setDebt(info);
+      setError(false);
     } catch {
-      // Silent — a network error on this optional check should never block the app
+      // A network error on this optional check should never block the app —
+      // we still surface `error` so callers can distinguish "no debt" from
+      // "fetch failed" without changing the debt-blocking behavior itself.
       setDebt(null);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -36,5 +42,5 @@ export function useMyDebt(): UseMyDebtResult {
     fetchDebt();
   }, [fetchDebt]);
 
-  return { debt, loading, refresh: fetchDebt };
+  return { debt, loading, error, refresh: fetchDebt };
 }

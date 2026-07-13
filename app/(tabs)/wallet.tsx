@@ -48,6 +48,8 @@ function makeStyles(c: ThemeColors) {
     confirmChargeBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
     txList: { paddingHorizontal: 20, gap: 10 },
     txCard: { borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: c.white },
+    txEmpty: { marginHorizontal: 20, borderRadius: 20, padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm, backgroundColor: c.white },
+    txEmptyText: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center' },
     txIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     txMeta: { flex: 1, gap: 2 },
     txTitle: { fontSize: 13.5, fontWeight: Typography.weight.semibold, color: c.ink },
@@ -357,6 +359,12 @@ export default function WalletScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('tx_history')}</Text>
+          {transactions.length === 0 ? (
+            <View style={[gs, styles.txEmpty]}>
+              <Clock size={22} color={c.inkSoft} />
+              <Text style={styles.txEmptyText}>{t('no_transactions')}</Text>
+            </View>
+          ) : (
           <View style={styles.txList}>
             {transactions.map((tx) => (
               <TouchableOpacity key={tx.id} style={[gs, styles.txCard]} activeOpacity={0.85} onPress={() => { Haptics.selectionAsync(); }}>
@@ -374,6 +382,7 @@ export default function WalletScreen() {
               </TouchableOpacity>
             ))}
           </View>
+          )}
         </View>
       </ScrollView>
 

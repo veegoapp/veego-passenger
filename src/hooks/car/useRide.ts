@@ -155,6 +155,8 @@ interface UseRideResult {
   clearDeviationWarning: () => void;
   resetRide: () => void;
   resumeActiveRide: () => Promise<ResumedRide | null>;
+  /** True when the status-polling fallback (used alongside sockets) is currently failing to reach the server. */
+  pollingStale: boolean;
 }
 
 const DEFAULT_STATE: RideState = {
@@ -178,6 +180,7 @@ const POLL_INTERVAL_MS = 5000;
 export function useRide(): UseRideResult {
   const [rideState, setRideState] = useState<RideState>(DEFAULT_STATE);
   const [requesting, setRequesting] = useState(false);
+  const [pollingStale, setPollingStale] = useState(false);
   const socketListening = useRef(false);
   const socketRef = useRef<Awaited<ReturnType<typeof getSocket>> | null>(null);
   const socketCleanupRef = useRef<(() => void) | null>(null);
@@ -199,6 +202,7 @@ export function useRide(): UseRideResult {
       if (!activeRideIdRef.current) return;
       try {
         const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
+        setPollingStale(false);
         const ride = data?.data ?? data;
         const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
         if (!status) return;
@@ -219,7 +223,10 @@ export function useRide(): UseRideResult {
           stopPolling();
         }
       } catch {
-        // Polling failures are silent — socket events remain the primary source
+        // Polling failures don't interrupt the ride — socket events remain the
+        // primary source — but we surface `pollingStale` so the UI can show a
+        // lightweight "reconnecting" hint without changing socket behavior.
+        setPollingStale(true);
       }
     }, POLL_INTERVAL_MS);
   }, [stopPolling]);
@@ -592,5 +599,5 @@ export function useRide(): UseRideResult {
     rideId: rideState.rideId,
   });
 
-  return { rideState, requesting, requestRide, cancelRide, clearDeviationWarning, resetRide, resumeActiveRide };
+  return { rideState, requesting, requestRide, cancelRide, clearDeviationWarning, resetRide, resumeActiveRide, pollingStale };
 }
