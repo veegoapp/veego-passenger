@@ -3,6 +3,7 @@ import {
   View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform, Alert, RefreshControl,
   Switch, Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, ChevronRight, ChevronLeft, Megaphone, Bus, Tag, Lightbulb, User, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Eye, EyeOff, KeyRound, Banknote, Wallet, ImagePlus, X, CircleAlert } from 'lucide-react-native';
@@ -926,7 +927,7 @@ function RatingHistoryModal({ visible, onClose }: { visible: boolean; onClose: (
         <ModalHeader title={t('my_ratings')} onClose={onClose} />
         <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40, gap: Spacing.md }]}>
           {loading && !ratings ? (
-            <ActivityIndicator color={c.ink} style={{ marginTop: 40 }} />
+            <AppLoader size={80} style={{ marginTop: 40 }} />
           ) : !ratings || ratings.length === 0 ? (
             <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingVertical: 40 }}>
               {t('ratings_given_empty')}

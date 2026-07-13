@@ -1,5 +1,6 @@
 import { useMemo, useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Heart, Clock, GitCommit, Navigation, Ticket, Car, Bus, RefreshCw, Bike as ScooterIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -147,7 +148,7 @@ export default function FavoritesScreen() {
 
           {routesLoading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator color={c.ink} />
+              <AppLoader size={80} />
             </View>
           ) : favoriteRoutes.length === 0 ? (
             <View style={styles.emptyShuttle}>
@@ -233,7 +234,7 @@ export default function FavoritesScreen() {
 
           {destLoading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator color={c.ink} />
+              <AppLoader size={80} />
             </View>
           ) : destError ? (
             <View style={styles.emptyShuttle}>
@@ -303,7 +304,7 @@ export default function FavoritesScreen() {
 
           {destLoading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator color={c.ink} />
+              <AppLoader size={80} />
             </View>
           ) : destError ? (
             <View style={styles.emptyShuttle}>

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { I18nManager, View, Text, Animated, StyleSheet } from 'react-native';
+import { I18nManager, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { LIGHT, DARK, makeGlassStyle, ThemeColors } from '@/constants/colors';
 import { translations, LangKey, Lang } from '@/constants/i18n';
 
@@ -27,19 +28,14 @@ const SWITCH_DURATION = 750; // ms the overlay stays visible
 function LangSwitchOverlay({ visible, darkMode }: { visible: boolean; darkMode: boolean }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.4)).current;
-  const checkAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      // Reset then animate in
       scaleAnim.setValue(0.4);
-      checkAnim.setValue(0);
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
         Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, damping: 14, stiffness: 180 }),
-      ]).start(() => {
-        Animated.timing(checkAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-      });
+      ]).start();
     } else {
       Animated.timing(fadeAnim, { toValue: 0, duration: 220, useNativeDriver: true }).start();
     }
@@ -54,15 +50,7 @@ function LangSwitchOverlay({ visible, darkMode }: { visible: boolean; darkMode: 
         style={StyleSheet.absoluteFill}
       />
       <Animated.View style={[overlayStyles.card, { backgroundColor: c.isDark ? 'rgba(30,32,54,0.98)' : 'rgba(255,255,255,0.98)', transform: [{ scale: scaleAnim }] }]}>
-        {/* Outer glow ring */}
-        <View style={[overlayStyles.glowRing, { borderColor: c.accentMint }]}>
-          {/* Inner filled circle */}
-          <View style={[overlayStyles.innerCircle, { backgroundColor: c.accentMint }]}>
-            <Animated.Text style={[overlayStyles.checkIcon, { opacity: checkAnim, transform: [{ scale: checkAnim }] }]}>
-              ✓
-            </Animated.Text>
-          </View>
-        </View>
+        <AppLoader size={80} />
       </Animated.View>
     </Animated.View>
   );
@@ -86,33 +74,6 @@ const overlayStyles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 32,
     elevation: 20,
-  },
-  glowRing: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    borderWidth: 2.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    opacity: 0.9,
-  },
-  innerCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkIcon: {
-    fontSize: 30,
-    color: '#ffffff',
-    fontWeight: '800',
-    lineHeight: 34,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 4,
   },
 });
 

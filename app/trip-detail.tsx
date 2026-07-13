@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Share, ActivityIndicator,
+  View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Share,
   Alert, Modal, Pressable,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -605,7 +606,7 @@ export default function TripDetailScreen() {
           <View style={styles.shareBtn} />
         </View>
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={c.ink} />
+          <AppLoader />
           <Text style={styles.loadingText}>{t('loading')}</Text>
         </View>
       </LinearGradient>

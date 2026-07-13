@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Animated, Modal, Alert, ActivityIndicator,
+  TextInput, Animated, Modal, Alert,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -261,7 +262,7 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
       {/* Resume overlay — shown briefly while checking for an active ride */}
       {resuming && (
         <View style={styles.resumeOverlay}>
-          <ActivityIndicator size="large" color="#55c49a" />
+          <AppLoader />
           <Text style={styles.resumeText}>{t('checking_active_ride')}</Text>
         </View>
       )}

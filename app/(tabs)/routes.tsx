@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteCard } from '@/components/shuttle/RouteCard';
@@ -102,7 +103,7 @@ export default function RoutesScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={c.ink} size="large" />
+          <AppLoader />
         </View>
       ) : error || filtered.length === 0 ? (
         <View style={styles.emptyWrap}>

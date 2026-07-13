@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, CheckCheck, Navigation, Sparkles, Settings, Bell, TriangleAlert } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,7 +74,7 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={c.ink} />
+          <AppLoader size={80} />
         </View>
       ) : error ? (
         <View style={styles.stateWrap}>

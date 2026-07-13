@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, Star } from 'lucide-react-native';
@@ -211,7 +212,7 @@ export default function TripTrackingScreen() {
   if (deepLinkLoading) {
     return (
       <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <AppLoader />
         <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: Spacing.md, fontSize: Typography.size.sm }}>{t('loading_ride')}</Text>
       </View>
     );

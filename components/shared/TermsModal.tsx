@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, SafeAreaView, Platform,
+  StyleSheet, SafeAreaView, Platform,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/context/ThemeContext';
@@ -144,7 +145,7 @@ export default function TermsModal({
         {/* Body */}
         {loading ? (
           <View style={styles.loader}>
-            <ActivityIndicator color={c.ink} />
+            <AppLoader size={60} />
             <Text style={[styles.loadingText, { color: c.inkSoft }]}>{t('terms_loading')}</Text>
           </View>
         ) : fetchError ? (

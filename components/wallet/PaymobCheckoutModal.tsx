@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Platform } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -134,7 +135,7 @@ export function PaymobCheckoutModal({ visible, iframeUrl, merchantOrderId, onClo
 
         {loading && (
           <View style={styles.loadingOverlay} pointerEvents="none">
-            <ActivityIndicator size="large" color={c.ink} />
+            <AppLoader />
           </View>
         )}
       </View>

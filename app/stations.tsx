@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet,  ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, MapPin, RefreshCw, WifiOff, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -174,7 +175,7 @@ export default function StationsScreen() {
 
       {loading && (
         <View style={styles.centered}>
-          <ActivityIndicator color={c.ink} size="large" />
+          <AppLoader />
         </View>
       )}
 

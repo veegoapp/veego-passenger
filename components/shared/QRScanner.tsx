@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
-  Platform, ActivityIndicator, Alert,
+  Platform, Alert,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, QrCode, Check, Camera } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -91,7 +92,7 @@ export function QRScanner({ onScanned, onClose, title, subtitle }: QRScannerProp
   if (!permission) {
     return (
       <View style={[styles.container, { backgroundColor: '#0d0e22', alignItems: 'center', justifyContent: 'center' }]}>
-        <ActivityIndicator color="#55c49a" size="large" />
+        <AppLoader />
       </View>
     );
   }
