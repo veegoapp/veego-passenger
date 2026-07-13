@@ -190,17 +190,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     switchTimerRef.current = setTimeout(() => setLangSwitching(false), SWITCH_DURATION);
 
     setLanguageState(l);
+    const shouldBeRTL = l === 'ar';
+    const rtlChanged = I18nManager.isRTL !== shouldBeRTL;
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
         const existing = raw ? JSON.parse(raw) : {};
         return AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existing, language: l }));
       })
+      .then(() => {
+        if (rtlChanged) {
+          I18nManager.forceRTL(shouldBeRTL);
+          triggerAppRestart();
+        }
+      })
       .catch(() => {});
-    const shouldBeRTL = l === 'ar';
-    if (I18nManager.isRTL !== shouldBeRTL) {
-      I18nManager.forceRTL(shouldBeRTL);
-      triggerAppRestart();
-    }
   }, []);
 
   const t = useCallback(
