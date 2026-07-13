@@ -69,9 +69,10 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
     const x = tabOffsets.current[index];
     const w = tabWidths.current[index];
     if (x === undefined || !(w > 0)) return;
-    // Position runs on the native thread via `transform: translateX` (unlike `left`,
-    // translateX can be natively driven) for a jump-free, jank-free slide.
-    Animated.spring(pillX, { toValue: x, useNativeDriver: true, ...Animation.spring.tabBar }).start();
+    // Both pillX and pillW animate the same Animated.View (width + translateX).
+    // Mixing useNativeDriver true/false on the same view causes a crash, so
+    // pillX uses false to match pillW which cannot be natively driven.
+    Animated.spring(pillX, { toValue: x, useNativeDriver: false, ...Animation.spring.tabBar }).start();
     // Width cannot be natively driven by classic Animated; kept on the JS thread
     // with the same spring tuning so both motions feel like one unit.
     Animated.spring(pillW, { toValue: w, useNativeDriver: false, ...Animation.spring.tabBar }).start();

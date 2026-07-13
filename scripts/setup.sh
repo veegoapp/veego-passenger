@@ -29,4 +29,4 @@ export EXPO_NO_TELEMETRY=1
 export NODE_OPTIONS=--max-old-space-size=4096
 
 # ── Start Metro (mobile only) ─────────────────────────────────────
-exec pnpm exec expo start --port 8081
+exec pnpm exec expo start --tunnel --port 8081
