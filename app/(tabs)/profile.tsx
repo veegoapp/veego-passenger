@@ -6,7 +6,7 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, ChevronRight, ChevronLeft, Megaphone, Bus, Tag, Lightbulb, User, ShieldCheck, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Eye, EyeOff, KeyRound, Banknote, Wallet, ImagePlus, X, CircleAlert } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, CreditCard, ChevronRight, ChevronLeft, Megaphone, Bus, Tag, Lightbulb, User, ShieldCheck, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, ChevronUp, ChevronDown, Eye, EyeOff, KeyRound, Banknote, Wallet, ImagePlus, X, CircleAlert } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,6 +23,7 @@ import { emitAuthEvent } from '@/src/api/authEvents';
 import { compressImageForUpload } from '@/src/utils/imageCompression';
 import { ThemeColors, S } from '@/constants/colors';
 import TermsModal from '@/components/shared/TermsModal';
+import EmergencyContactModal from '@/components/shared/EmergencyContactModal';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -36,6 +37,7 @@ type ProfileScreen =
   | 'rating_details'
   | 'ratings_history'
   | 'terms'
+  | 'emergency_contact'
   | null;
 
 function makeStyles(c: ThemeColors) {
@@ -1130,6 +1132,7 @@ export default function ProfileScreen() {
               { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileScreen },
               { icon: Star, label: t('my_ratings'), value: undefined as string | undefined, screen: 'ratings_history' as ProfileScreen },
+              { icon: Shield, label: t('emergency_contact_section'), value: undefined as string | undefined, screen: 'emergency_contact' as ProfileScreen },
             ].map((item, i) => (
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
@@ -1281,6 +1284,7 @@ export default function ProfileScreen() {
         onClose={close}
         checkForUpdates
       />
+      <EmergencyContactModal visible={activeModal === 'emergency_contact'} onClose={close} />
     </LinearGradient>
   );
 }
