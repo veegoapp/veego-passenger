@@ -424,6 +424,7 @@ const en = {
 
   debt_banner_title: 'Outstanding balance',
   debt_banner_body: 'You have an outstanding debt. Please clear it before booking a new trip.',
+  debt_check_failed: "Couldn't check your account balance status.",
   payment_paid: 'Paid',
   payment_pending: 'Payment pending',
   payment_refunded: 'Refunded',
@@ -1091,6 +1092,7 @@ const ar: typeof en = {
 
   debt_banner_title: 'رصيد مستحق',
   debt_banner_body: 'لديك رصيد مستحق السداد. يرجى سداده قبل حجز رحلة جديدة.',
+  debt_check_failed: 'تعذر التحقق من حالة رصيد حسابك.',
   payment_paid: 'مدفوع',
   payment_pending: 'في انتظار الدفع',
   payment_refunded: 'مُسترد',

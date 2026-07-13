@@ -152,7 +152,7 @@ export default function HomeScreen() {
   const { routes, refresh: refreshRoutes } = useRoutes();
   const { setVisible: setTabBarVisible } = useTabBar();
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
-  const { debt } = useMyDebt();
+  const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
   const { profile } = useProfile();
   const { promos } = usePromos();
 
@@ -405,6 +405,30 @@ export default function HomeScreen() {
                   {t('debt_banner_body')}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {/* Debt check failed — distinct from "no debt" / "has debt" states, with retry */}
+          {!debt?.hasDebt && debtError && (
+            <View style={{
+              marginHorizontal: 20,
+              marginBottom: Spacing.sm,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              borderRadius: 14,
+              padding: Spacing.md,
+            }}>
+              <AlertCircle size={16} color={c.inkSoft} />
+              <Text style={{ flex: 1, fontSize: Typography.size.xs, color: c.inkSoft, lineHeight: 17 }}>
+                {t('debt_check_failed')}
+              </Text>
+              <TouchableOpacity onPress={refreshDebt} activeOpacity={0.75}>
+                <Text style={{ fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: c.ink }}>
+                  {t('retry')}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 

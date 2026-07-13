@@ -82,6 +82,13 @@ function makeStyles(c: ThemeColors) {
     debtBannerTitleDark: { color: '#fcd34d' },
     debtBannerBody: { fontSize: 12.5, color: '#78350f', lineHeight: 18 },
     debtBannerBodyDark: { color: '#fde68a' },
+    debtCheckErrorBanner: {
+      marginHorizontal: 20, marginBottom: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 14, padding: Spacing.md,
+    },
+    debtCheckErrorBannerDark: { backgroundColor: 'rgba(255,255,255,0.06)' },
+    debtCheckErrorText: { flex: 1, fontSize: Typography.size.xs, lineHeight: 17 },
+    debtCheckErrorRetry: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
     rechargeStatusBanner: {
       marginHorizontal: 20, marginTop: Spacing.xs, marginBottom: Spacing.lg, borderRadius: 18,
       paddingHorizontal: Spacing.lg, paddingVertical: 14,
@@ -101,7 +108,7 @@ export default function WalletScreen() {
   const isAr = language === 'ar';
 
   const { balance, spent, transactions, refresh: refreshWallet } = useWallet();
-  const { debt } = useMyDebt();
+  const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
   const { walletFeature, paymentMethods } = usePaymentConfig();
   const paymobEnabled = paymentMethods.some((m) => m.key === 'paymob');
   const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
@@ -233,6 +240,17 @@ export default function WalletScreen() {
                 </Text>
               )}
             </View>
+          </View>
+        )}
+
+        {/* Debt check failed — distinct from "no debt" / "has debt" states, with retry */}
+        {!debt?.hasDebt && debtError && (
+          <View style={[styles.debtCheckErrorBanner, c.isDark && styles.debtCheckErrorBannerDark]}>
+            <AlertTriangle size={16} color={c.inkSoft} />
+            <Text style={[styles.debtCheckErrorText, { color: c.inkSoft }]}>{t('debt_check_failed')}</Text>
+            <TouchableOpacity onPress={refreshDebt} activeOpacity={0.75}>
+              <Text style={[styles.debtCheckErrorRetry, { color: c.ink }]}>{t('retry')}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
