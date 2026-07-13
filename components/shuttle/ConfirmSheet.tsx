@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, TextInput, BackHandler } from 'react-native';
 import { Calendar, Clock, Users, Check, Tag, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -95,6 +95,15 @@ export function ConfirmSheet() {
         Animated.timing(overlayAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
       ]).start(() => setVisible(false));
     }
+  }, [confirmSheetOpen]);
+
+  useEffect(() => {
+    if (!confirmSheetOpen) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeConfirmSheet();
+      return true;
+    });
+    return () => sub.remove();
   }, [confirmSheetOpen]);
 
   const handleApplyPromo = useCallback(async () => {

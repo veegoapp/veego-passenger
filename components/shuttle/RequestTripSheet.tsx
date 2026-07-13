@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Animated, ScrollView, ActivityIndicator, Alert,
+  Animated, ScrollView, ActivityIndicator, Alert, BackHandler,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { CheckCircle, X, ArrowRight, ArrowLeft, Clock, RotateCcw } from 'lucide-react-native';
@@ -143,6 +143,15 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
         Animated.timing(overlayAnim, { toValue: 0, duration: Animation.duration.fast, useNativeDriver: true }),
       ]).start();
     }
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
   }, [visible]);
 
   const isValid = outboundTime !== null && (direction === 'one_way' || returnTime !== null);

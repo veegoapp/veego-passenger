@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Animated, Platform, ActivityIndicator, Alert,
+  Animated, Platform, ActivityIndicator, Alert, BackHandler,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -404,6 +404,15 @@ export function TripSheet() {
         Animated.timing(overlayAnim, { toValue: 0, duration: 240, useNativeDriver: true }),
       ]).start(() => setVisible(false));
     }
+  }, [tripSheetOpen]);
+
+  useEffect(() => {
+    if (!tripSheetOpen) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeTripSheet();
+      return true;
+    });
+    return () => sub.remove();
   }, [tripSheetOpen]);
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [900, 0] });
