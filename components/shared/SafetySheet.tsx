@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
-  Platform, ActivityIndicator, Linking, I18nManager,
+  Platform, Linking, I18nManager,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { ShieldAlert, Phone, MessageCircle, AlertTriangle, X, CheckCircle } from 'lucide-react-native';
@@ -167,7 +168,7 @@ export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, pla
                 activeOpacity={0.85}
               >
                 {sosLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <AppLoader size={24} />
                 ) : (
                   <>
                     <View style={[styles.optionIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>

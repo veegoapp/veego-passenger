@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -269,7 +270,7 @@ export default function WalletScreen() {
             }}
           >
             {rechargeBusy ? (
-              <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+              <AppLoader size={24} />
             ) : (
               <Plus size={20} color={c.isDark ? c.background : c.white} />
             )}

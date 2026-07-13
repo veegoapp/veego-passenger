@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
-  Platform, ActivityIndicator, I18nManager,
+  Platform, I18nManager,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import { X, CircleDot, Circle } from 'lucide-react-native';
 import { C, ThemeColors } from '@/constants/colors';
@@ -130,7 +131,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
             activeOpacity={0.85}
           >
             {loading
-              ? <ActivityIndicator color="#fff" size="small" />
+              ? <AppLoader size={24} />
               : <Text style={styles.confirmBtnText}>{t('confirm_cancel')}</Text>
             }
           </TouchableOpacity>

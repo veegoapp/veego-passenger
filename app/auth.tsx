@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation, User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail, Shield, Check } from 'lucide-react-native';
@@ -239,7 +240,7 @@ function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; i
         disabled={!email.trim() || !password.trim() || loading}
       >
         {loading ? (
-          <ActivityIndicator color={c.white} size="small" />
+          <AppLoader size={24} />
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('sign_in')}</Text>
@@ -436,7 +437,7 @@ function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         disabled={!canSubmit}
       >
         {loading ? (
-          <ActivityIndicator color={c.white} size="small" />
+          <AppLoader size={24} />
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('sign_up')}</Text>
@@ -605,7 +606,7 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
           disabled={!phone.trim() || loading}
         >
           {loading ? (
-            <ActivityIndicator color={c.white} size="small" />
+            <AppLoader size={24} />
           ) : (
             <>
               <Text style={styles.primaryBtnText}>{t('send_code')}</Text>
@@ -724,7 +725,7 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
         disabled={otp.length < OTP_LENGTH || !password.trim() || !confirm.trim() || loading || locked}
       >
         {loading ? (
-          <ActivityIndicator color={c.white} size="small" />
+          <AppLoader size={24} />
         ) : (
           <>
             <Text style={styles.primaryBtnText}>{t('reset_password')}</Text>
@@ -744,7 +745,7 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
         activeOpacity={0.7}
       >
         {resending ? (
-          <ActivityIndicator color={c.inkSoft} size="small" />
+          <AppLoader size={24} />
         ) : (
           <Text style={[styles.resendBtnText, locked && styles.resendTextEmphasized]}>
             {countdown > 0 ? t('resend_in').replace('{s}', String(countdown)) : t('resend_otp')}

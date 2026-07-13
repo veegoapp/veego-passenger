@@ -437,7 +437,7 @@ function PersonalInfoModal({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+                <AppLoader size={24} />
               ) : (
                 <Text style={styles.primaryBtnText}>{saved ? t('saved') : t('save_changes')}</Text>
               )}
@@ -806,7 +806,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
                 </View>
                 <TouchableOpacity style={[styles.primaryBtn, loading && { opacity: 0.6 }]} onPress={handleSend} activeOpacity={0.9} disabled={loading}>
                   {loading
-                    ? <ActivityIndicator color={c.isDark ? c.background : c.white} size="small" />
+                    ? <AppLoader size={24} />
                     : <Text style={styles.primaryBtnText}>{t('send_message')}</Text>
                   }
                 </TouchableOpacity>

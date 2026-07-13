@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Platform, Alert, KeyboardAvoidingView, ActivityIndicator,
+  StyleSheet, Platform, Alert, KeyboardAvoidingView,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, Check, MessageCircle, Phone } from 'lucide-react-native';
@@ -227,7 +228,7 @@ export default function SupportScreen() {
               disabled={sending}
             >
               {sending
-                ? <ActivityIndicator color={c.isDark ? c.background : c.white} />
+                ? <AppLoader size={24} />
                 : <Text style={styles.primaryBtnText}>{t('send_message')}</Text>
               }
             </TouchableOpacity>

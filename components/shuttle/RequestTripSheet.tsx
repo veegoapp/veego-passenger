@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Animated, ScrollView, ActivityIndicator, Alert, BackHandler,
+  Animated, ScrollView, Alert, BackHandler,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import { CheckCircle, X, ArrowRight, ArrowLeft, Clock, RotateCcw } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
@@ -309,7 +310,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
                 activeOpacity={0.85}
               >
                 {loading ? (
-                  <ActivityIndicator color={c.isDark ? c.background : '#ffffff'} />
+                  <AppLoader size={24} />
                 ) : (
                   <>
                     <Text style={styles.ctaBtnText}>{t('send_request')}</Text>

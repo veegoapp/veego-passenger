@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated,  ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { MapPin, ChevronDown, Clock, Users, CheckCircle2, Car, Sparkles } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -154,7 +155,7 @@ export function RideOptionsSheet({
         activeOpacity={0.9}
       >
         {confirming ? (
-          <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+          <AppLoader size={24} />
         ) : (
           <>
             <CheckCircle2 size={18} color={c.isDark ? c.background : c.white} />

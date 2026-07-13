@@ -1,8 +1,9 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Platform, Animated, Alert, ActivityIndicator,
+  StyleSheet, Platform, Animated, Alert,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
@@ -223,7 +224,7 @@ export default function PromoScreen() {
                 disabled={validating}
               >
                 {validating
-                  ? <ActivityIndicator color={c.white} size="small" />
+                  ? <AppLoader size={24} />
                   : <Text style={[styles.applyBtnText, { color: code.trim() ? (c.isDark ? c.background : '#ffffff') : c.inkSoft }]}>
                       {t('promo_apply')}
                     </Text>

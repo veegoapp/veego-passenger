@@ -1,6 +1,5 @@
 import { cloneElement, isValidElement, ReactElement, ReactNode } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { useTheme } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
@@ -135,7 +135,7 @@ export function VeeGoButton({
   );
 
   const content = loading ? (
-    <ActivityIndicator size="small" color={variantStyle.text.color as string} />
+    <AppLoader size={24} />
   ) : iconPosition === 'right' ? (
     <>
       {titleElement}

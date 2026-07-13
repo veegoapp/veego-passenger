@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Platform, ActivityIndicator, TextInput,
+  Platform, TextInput,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -485,7 +486,7 @@ export default function ReviewConfirmScreen() {
               activeOpacity={0.82}
             >
               {promoStatus === 'loading'
-                ? <ActivityIndicator size="small" color={c.isDark ? c.background : '#ffffff'} />
+                ? <AppLoader size={24} />
                 : <Text style={[styles.promoApplyText, isApplyDisabled && styles.promoApplyTextDisabled]}>
                     {t('apply')}
                   </Text>}
@@ -560,7 +561,7 @@ export default function ReviewConfirmScreen() {
           onPress={onConfirm}
         >
           {confirming
-            ? <ActivityIndicator size="small" color={c.isDark ? c.background : '#ffffff'} />
+            ? <AppLoader size={24} />
             : <>
                 <Check size={18} color={c.isDark ? c.background : '#ffffff'} strokeWidth={3} />
                 <Text style={styles.ctaBtnText}>{t('confirm_book')}</Text>

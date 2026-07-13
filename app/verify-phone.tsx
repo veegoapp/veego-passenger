@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react-native';
@@ -209,7 +210,7 @@ export default function VerifyPhoneScreen() {
             disabled={otp.length < OTP_LENGTH || loading || locked}
           >
             {loading ? (
-              <ActivityIndicator color={c.white} size="small" />
+              <AppLoader size={24} />
             ) : (
               <>
                 <Text style={styles.primaryBtnText}>{t('verify')}</Text>
@@ -229,7 +230,7 @@ export default function VerifyPhoneScreen() {
             activeOpacity={0.7}
           >
             {resending ? (
-              <ActivityIndicator color={c.inkSoft} size="small" />
+              <AppLoader size={24} />
             ) : (
               <Text style={[styles.resendText, locked && styles.resendTextEmphasized]}>
                 {countdown > 0 ? t('resend_in').replace('{s}', String(countdown)) : t('resend')}

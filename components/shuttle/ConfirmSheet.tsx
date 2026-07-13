@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, TextInput, BackHandler } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, TextInput, BackHandler } from 'react-native';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { Calendar, Clock, Users, Check, Tag, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -273,7 +274,7 @@ export function ConfirmSheet() {
               disabled={confirming}
             >
               {confirming ? (
-                <ActivityIndicator size="small" color={c.isDark ? c.background : c.white} />
+                <AppLoader size={24} />
               ) : (
                 <>
                   <Check size={16} color={c.isDark ? c.background : c.white} />
