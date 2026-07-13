@@ -50,21 +50,19 @@ function LangSwitchOverlay({ visible, darkMode }: { visible: boolean; darkMode: 
   return (
     <Animated.View style={[overlayStyles.root, { opacity: fadeAnim }]} pointerEvents={visible ? 'auto' : 'none'}>
       <LinearGradient
-        colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0.6)']}
+        colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.72)']}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.View style={[overlayStyles.card, { backgroundColor: c.white, transform: [{ scale: scaleAnim }] }]}>
-        {/* Animated ring */}
-        <View style={[overlayStyles.ring, { borderColor: `${c.accentMint}30`, backgroundColor: `${c.accentMint}12` }]}>
-          <View style={[overlayStyles.innerCircle, { backgroundColor: c.ink }]}>
+      <Animated.View style={[overlayStyles.card, { backgroundColor: c.isDark ? 'rgba(30,32,54,0.98)' : 'rgba(255,255,255,0.98)', transform: [{ scale: scaleAnim }] }]}>
+        {/* Outer glow ring */}
+        <View style={[overlayStyles.glowRing, { borderColor: c.accentMint }]}>
+          {/* Inner filled circle */}
+          <View style={[overlayStyles.innerCircle, { backgroundColor: c.accentMint }]}>
             <Animated.Text style={[overlayStyles.checkIcon, { opacity: checkAnim, transform: [{ scale: checkAnim }] }]}>
               ✓
             </Animated.Text>
           </View>
         </View>
-        <Text style={[overlayStyles.label, { color: c.inkSoft }]}>
-          {'‎'}
-        </Text>
       </Animated.View>
     </Animated.View>
   );
@@ -78,38 +76,38 @@ const overlayStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    width: 120,
-    height: 120,
-    borderRadius: 32,
+    width: 136,
+    height: 136,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
+    elevation: 20,
   },
-  ring: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 2,
+  glowRing: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    borderWidth: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
+    opacity: 0.9,
   },
   innerCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkIcon: {
-    fontSize: 26,
+    fontSize: 30,
     color: '#ffffff',
-    fontWeight: '700',
-    lineHeight: 30,
+    fontWeight: '800',
+    lineHeight: 34,
   },
   label: {
     fontSize: 12,

@@ -106,7 +106,7 @@ function makeStyles(c: ThemeColors) {
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: Radius.lg,
-      backgroundColor: 'transparent',
+      backgroundColor: c.isDark ? 'rgba(26,28,50,0.5)' : 'rgba(255,255,255,0.5)',
       borderWidth: 1.5,
       borderColor: c.isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.2)',
     },
