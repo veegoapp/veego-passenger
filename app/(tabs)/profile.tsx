@@ -286,7 +286,7 @@ function PersonalInfoModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader
           title={t('personal_info_title')}
@@ -464,7 +464,7 @@ function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: 
   const isAr = language === 'ar';
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('payment_title')} onClose={onClose} />
         <ScrollView contentContainerStyle={styles.modalScroll}>
@@ -545,7 +545,7 @@ function NotificationsModal({ visible, onClose }: { visible: boolean; onClose: (
   ];
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('notif_settings_title')} onClose={onClose} />
         <ScrollView contentContainerStyle={styles.modalScroll}>
@@ -576,7 +576,7 @@ function HelpFaqModal({ visible, onClose }: { visible: boolean; onClose: () => v
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('help_title')} onClose={onClose} />
         <ScrollView contentContainerStyle={styles.modalScroll}>
@@ -708,7 +708,7 @@ function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: 
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('contact_title')} onClose={handleClose} />
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -841,7 +841,7 @@ function RatingDetailsModal({ visible, onClose, onOpenHistory }: { visible: bool
   }, [visible]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('rating_details')} onClose={onClose} />
         <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40 }]}>
@@ -921,7 +921,7 @@ function RatingHistoryModal({ visible, onClose }: { visible: boolean; onClose: (
   }, [visible]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('my_ratings')} onClose={onClose} />
         <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40, gap: Spacing.md }]}>

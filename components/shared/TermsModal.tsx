@@ -116,7 +116,7 @@ export default function TermsModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.root, { backgroundColor: c.isDark ? c.background : c.snow }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: c.border, backgroundColor: c.white }]}>
