@@ -1,43 +1,68 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, TextInput } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
-import { MapPin, ChevronDown, Clock, Users, CheckCircle2, Car, Sparkles } from 'lucide-react-native';
+import { MapPin, ChevronDown, Clock, Users, CheckCircle2, Car, Sparkles, Bike as ScooterIcon, Package } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 interface RideEstimate {
   economy: { price: number; eta: number };
   premium: { price: number; eta: number };
 }
 
+interface SingleEstimate { price: number; eta: number }
+
 const RIDE_DEFAULTS = {
   economy: { id: 'economy' as const, labelKey: 'economy' as const, descKey: 'economy_desc' as const, icon: Car, color: '#55c49a', bgColor: 'rgba(85,196,154,0.12)' },
   premium: { id: 'premium' as const, labelKey: 'premium' as const, descKey: 'premium_desc' as const, icon: Car, color: '#8B6FD4', bgColor: 'rgba(139,111,212,0.12)' },
 };
 
+// Single-tier option shown for services with no economy/premium split
+// (scooter and delivery pricing is single-rate on the backend).
+const SINGLE_OPTION_META: Record<'scooter' | 'delivery', { icon: typeof Car; color: string; bgColor: string }> = {
+  scooter:  { icon: ScooterIcon, color: '#55c49a', bgColor: 'rgba(85,196,154,0.12)' },
+  delivery: { icon: Package,     color: '#8B6FD4', bgColor: 'rgba(139,111,212,0.12)' },
+};
+
+type RideOptionId = 'economy' | 'premium' | 'standard';
+
 interface RideOptionsSheetProps {
   visible: boolean;
   destination: string | null;
-  selected: 'economy' | 'premium' | null;
-  onSelect: (id: 'economy' | 'premium') => void;
+  selected: RideOptionId | null;
+  onSelect: (id: RideOptionId) => void;
   onConfirm: () => void;
   onDismiss: () => void;
   estimate?: RideEstimate | null;
   estimateLoading?: boolean;
   confirming?: boolean;
+  /** Defaults to 'car' — preserves the existing economy/premium UI unchanged. */
+  serviceType?: 'car' | 'scooter' | 'delivery';
+  /** Single-rate estimate used when serviceType !== 'car'. */
+  singleEstimate?: SingleEstimate | null;
+  recipientName?: string;
+  recipientPhone?: string;
+  onRecipientNameChange?: (value: string) => void;
+  onRecipientPhoneChange?: (value: string) => void;
 }
 
 export function RideOptionsSheet({
   visible, destination, selected, onSelect, onConfirm, onDismiss,
   estimate, estimateLoading, confirming,
+  serviceType = 'car', singleEstimate,
+  recipientName, recipientPhone, onRecipientNameChange, onRecipientPhoneChange,
 }: RideOptionsSheetProps) {
   const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const isDelivery = serviceType === 'delivery';
+  const recipientReady = !isDelivery || (!!recipientName?.trim() && !!recipientPhone?.trim());
+  const canConfirm = !!selected && recipientReady;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -83,71 +108,142 @@ export function RideOptionsSheet({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.options}>
-        {(['economy', 'premium'] as const).map((id) => {
-          const opt = RIDE_DEFAULTS[id];
-          const price = estimate?.[id]?.price;
-          const eta   = estimate?.[id]?.eta;
-          const isSelected = selected === id;
-          return (
-            <TouchableOpacity
-              key={id}
-              style={[
-                styles.option,
-                {
-                  backgroundColor: isSelected ? opt.bgColor : c.isDark ? 'rgba(255,255,255,0.04)' : c.white,
-                  borderColor: isSelected ? opt.color : c.border,
-                  borderWidth: isSelected ? 2 : 1,
-                },
-              ]}
-              onPress={() => {
-                Haptics.selectionAsync();
-                onSelect(id);
-              }}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.optionIcon, { backgroundColor: opt.bgColor }]}>
-                <opt.icon size={24} color={opt.color} />
-                {id === 'premium' && (
-                  <View style={[styles.premiumBadge, { borderColor: opt.color }]}>
-                    <Sparkles size={10} color={opt.color} fill={opt.color} />
-                  </View>
-                )}
-              </View>
-              <View style={styles.optionMeta}>
-                <Text style={[styles.optionName, { color: c.ink }]}>{t(opt.labelKey)}</Text>
-                <Text style={[styles.optionDesc, { color: c.inkSoft }]}>{t(opt.descKey)}</Text>
-                <View style={styles.optionStats}>
-                  <Clock size={11} color={c.inkSoft} />
-                  <Text style={[styles.optionEta, { color: c.inkSoft }]}>
-                    {estimateLoading ? '...' : eta != null ? `${eta} ${t('min')}` : `— ${t('min')}`}
-                  </Text>
-                  <View style={[styles.statDot, { backgroundColor: c.silver }]} />
-                  <Users size={11} color={c.inkSoft} />
-                  <Text style={[styles.optionEta, { color: c.inkSoft }]}>1-4</Text>
+      {serviceType === 'car' ? (
+        <View style={styles.options}>
+          {(['economy', 'premium'] as const).map((id) => {
+            const opt = RIDE_DEFAULTS[id];
+            const price = estimate?.[id]?.price;
+            const eta   = estimate?.[id]?.eta;
+            const isSelected = selected === id;
+            return (
+              <TouchableOpacity
+                key={id}
+                style={[
+                  styles.option,
+                  {
+                    backgroundColor: isSelected ? opt.bgColor : c.isDark ? 'rgba(255,255,255,0.04)' : c.white,
+                    borderColor: isSelected ? opt.color : c.border,
+                    borderWidth: isSelected ? 2 : 1,
+                  },
+                ]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  onSelect(id);
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.optionIcon, { backgroundColor: opt.bgColor }]}>
+                  <opt.icon size={24} color={opt.color} />
+                  {id === 'premium' && (
+                    <View style={[styles.premiumBadge, { borderColor: opt.color }]}>
+                      <Sparkles size={10} color={opt.color} fill={opt.color} />
+                    </View>
+                  )}
                 </View>
-              </View>
-              <View style={styles.priceBlock}>
-                <Text style={[styles.priceLabel, { color: c.inkSoft }]}>{t('egp')}</Text>
-                {estimateLoading ? (
-                  <ActivityIndicator size="small" color={opt.color} style={{ marginTop: Spacing.xs }} />
-                ) : (
-                  <Text style={[styles.price, { color: isSelected ? opt.color : c.ink }]}>
-                    {price != null ? price.toFixed(0) : '—'}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <View style={styles.optionMeta}>
+                  <Text style={[styles.optionName, { color: c.ink }]}>{t(opt.labelKey)}</Text>
+                  <Text style={[styles.optionDesc, { color: c.inkSoft }]}>{t(opt.descKey)}</Text>
+                  <View style={styles.optionStats}>
+                    <Clock size={11} color={c.inkSoft} />
+                    <Text style={[styles.optionEta, { color: c.inkSoft }]}>
+                      {estimateLoading ? '...' : eta != null ? `${eta} ${t('min')}` : `— ${t('min')}`}
+                    </Text>
+                    <View style={[styles.statDot, { backgroundColor: c.silver }]} />
+                    <Users size={11} color={c.inkSoft} />
+                    <Text style={[styles.optionEta, { color: c.inkSoft }]}>1-4</Text>
+                  </View>
+                </View>
+                <View style={styles.priceBlock}>
+                  <Text style={[styles.priceLabel, { color: c.inkSoft }]}>{t('egp')}</Text>
+                  {estimateLoading ? (
+                    <ActivityIndicator size="small" color={opt.color} style={{ marginTop: Spacing.xs }} />
+                  ) : (
+                    <Text style={[styles.price, { color: isSelected ? opt.color : c.ink }]}>
+                      {price != null ? price.toFixed(0) : '—'}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : (
+        <View style={styles.options}>
+          {(() => {
+            const meta = SINGLE_OPTION_META[serviceType];
+            const isSelected = selected === 'standard';
+            const price = singleEstimate?.price;
+            const eta   = singleEstimate?.eta;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  {
+                    backgroundColor: isSelected ? meta.bgColor : c.isDark ? 'rgba(255,255,255,0.04)' : c.white,
+                    borderColor: isSelected ? meta.color : c.border,
+                    borderWidth: isSelected ? 2 : 1,
+                  },
+                ]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  onSelect('standard');
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.optionIcon, { backgroundColor: meta.bgColor }]}>
+                  <meta.icon size={24} color={meta.color} />
+                </View>
+                <View style={styles.optionMeta}>
+                  <Text style={[styles.optionName, { color: c.ink }]}>{t(serviceType)}</Text>
+                  <View style={styles.optionStats}>
+                    <Clock size={11} color={c.inkSoft} />
+                    <Text style={[styles.optionEta, { color: c.inkSoft }]}>
+                      {estimateLoading ? '...' : eta != null ? `${eta} ${t('min')}` : `— ${t('min')}`}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.priceBlock}>
+                  <Text style={[styles.priceLabel, { color: c.inkSoft }]}>{t('egp')}</Text>
+                  {estimateLoading ? (
+                    <ActivityIndicator size="small" color={meta.color} style={{ marginTop: Spacing.xs }} />
+                  ) : (
+                    <Text style={[styles.price, { color: isSelected ? meta.color : c.ink }]}>
+                      {price != null ? price.toFixed(0) : '—'}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })()}
+
+          {isDelivery && (
+            <View style={styles.recipientBlock}>
+              <TextInput
+                style={[styles.recipientInput, { borderColor: c.border, backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.white, color: c.ink }]}
+                value={recipientName}
+                onChangeText={onRecipientNameChange}
+                placeholder={t('recipient_name')}
+                placeholderTextColor={c.inkSoft}
+              />
+              <TextInput
+                style={[styles.recipientInput, { borderColor: c.border, backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.white, color: c.ink }]}
+                value={recipientPhone}
+                onChangeText={onRecipientPhoneChange}
+                placeholder={t('recipient_phone')}
+                placeholderTextColor={c.inkSoft}
+                keyboardType="phone-pad"
+              />
+            </View>
+          )}
+        </View>
+      )}
 
       <TouchableOpacity
         style={[
           styles.confirmBtn,
-          { backgroundColor: selected && !confirming ? c.ink : c.silver, opacity: selected && !confirming ? 1 : 0.5 },
+          { backgroundColor: canConfirm && !confirming ? c.ink : c.silver, opacity: canConfirm && !confirming ? 1 : 0.5 },
         ]}
-        disabled={!selected || !!confirming}
+        disabled={!canConfirm || !!confirming}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           onConfirm();
@@ -196,6 +292,8 @@ const styles = StyleSheet.create({
   optionStats: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.xs },
   optionEta: { fontSize: 11 },
   statDot: { width: 3, height: 3, borderRadius: 2 },
+  recipientBlock: { gap: Spacing.sm, marginTop: Spacing.xs },
+  recipientInput: { height: 46, borderRadius: Radius.lg, borderWidth: 1, paddingHorizontal: Spacing.md, fontSize: 13.5 },
   priceBlock: { alignItems: 'flex-end', minWidth: 44 },
   priceLabel: { fontSize: 10, fontWeight: Typography.weight.medium },
   price: { fontSize: 20, fontWeight: Typography.weight.bold, letterSpacing: -0.5 },

@@ -16,7 +16,6 @@ import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarServiceScreen, CarServiceScreenHandle } from '@/components/car/CarServiceScreen';
-import { CarMap } from '@/components/car/CarMap';
 import { ScooterMap } from '@/components/scooter/ScooterMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
@@ -616,11 +615,10 @@ export default function HomeScreen() {
                       handleSelectLocation(item);
                       if (wasDestination) {
                         setSearchScreenOpen(false);
-                        // Ride is the only mode with a real booking flow today
-                        // (fare estimate → ride options → request). Hand the
-                        // selected address to it unchanged; Scooter/Delivery
-                        // have no equivalent flow to connect to yet.
-                        if (mode === 'car') carServiceRef.current?.selectDestination(item.name);
+                        // Ride, Scooter, and Delivery all route through
+                        // CarServiceScreen (parameterized by serviceType) and
+                        // share the same fare-estimate → confirm flow.
+                        if (mode !== 'shuttle') carServiceRef.current?.selectDestination(item.name);
                       }
                     }}
                   >
@@ -721,14 +719,14 @@ export default function HomeScreen() {
       {/* Scooter */}
       {mode === 'scooter' && (
         <View style={{ flex: 1 }}>
-          <CarMap />
+          <CarServiceScreen ref={carServiceRef} serviceType="scooter" onBack={() => setDestinationLocation('')} />
         </View>
       )}
 
       {/* Delivery */}
       {mode === 'delivery' && (
         <View style={{ flex: 1 }}>
-          <CarMap />
+          <CarServiceScreen ref={carServiceRef} serviceType="delivery" onBack={() => setDestinationLocation('')} />
         </View>
       )}
 

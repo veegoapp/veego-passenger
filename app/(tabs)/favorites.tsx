@@ -2,7 +2,7 @@ import { useMemo, useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Heart, Clock, GitCommit, Navigation, Ticket, Car, Bus, RefreshCw, Bike as ScooterIcon } from 'lucide-react-native';
+import { Heart, Clock, GitCommit, Navigation, Ticket, Car, Bus, RefreshCw, Bike as ScooterIcon, Package } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -21,12 +21,14 @@ const TYPE_ICON: Record<TripType, React.ComponentType<{ size?: number; color?: s
   shuttle: Bus,
   car: Car,
   scooter: ScooterIcon,
+  delivery: Package,
 };
 
 const TYPE_COLOR: Record<TripType, string> = {
   shuttle: '#d8ecf7',
   car: '#fde8d8',
   scooter: '#d8f5e8',
+  delivery: '#e3daf5',
 };
 
 function makeStyles(c: ThemeColors) {

@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Bus, Car, Bike as ScooterIcon, Ticket, User, X, ChevronDown, Wifi } from 'lucide-react-native';
+import { Bus, Car, Bike as ScooterIcon, Package, Ticket, User, X, ChevronDown, Wifi } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { type TripType, shuttleStatusLabel, isShuttleTripUpcoming } from '@/constants/data';
@@ -39,6 +39,7 @@ const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: 
   shuttle: Bus,
   car: Car,
   scooter: ScooterIcon,
+  delivery: Package,
 };
 
 function isActiveStatus(status: string): boolean {

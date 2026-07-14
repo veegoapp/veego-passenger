@@ -145,11 +145,13 @@ interface UseRideResult {
   rideState: RideState;
   requesting: boolean;
   requestRide: (payload: {
-    type: 'car' | 'scooter';
+    type: 'car' | 'scooter' | 'delivery';
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
     notes?: string;
     promoCode?: string;
+    recipientName?: string;
+    recipientPhone?: string;
   }) => Promise<{ success: boolean; rideId?: string; error?: string }>;
   cancelRide: (reason?: string) => Promise<void>;
   clearDeviationWarning: () => void;
@@ -486,11 +488,13 @@ export function useRide(): UseRideResult {
   }, [stopPolling]);
 
   const requestRide = useCallback(async (payload: {
-    type: 'car' | 'scooter';
+    type: 'car' | 'scooter' | 'delivery';
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
     notes?: string;
     promoCode?: string;
+    recipientName?: string;
+    recipientPhone?: string;
   }) => {
     setRequesting(true);
     setRideState(DEFAULT_STATE);
@@ -507,6 +511,8 @@ export function useRide(): UseRideResult {
         notes:              payload.notes,
         paymentMethod:      'cash',
         ...(payload.promoCode ? { promoCode: payload.promoCode } : {}),
+        ...(payload.recipientName ? { recipientName: payload.recipientName } : {}),
+        ...(payload.recipientPhone ? { recipientPhone: payload.recipientPhone } : {}),
       });
       const rideId = String(data?.data?.id ?? data?.rideId ?? data?.id ?? data?._id ?? Date.now());
       setRideState((prev) => ({ ...prev, rideId, status: 'searching' }));

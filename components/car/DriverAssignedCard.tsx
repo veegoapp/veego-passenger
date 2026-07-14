@@ -17,7 +17,7 @@ import { Radius } from '@/constants/radius';
 
 interface DriverAssignedCardProps {
   visible: boolean;
-  rideType: 'economy' | 'premium' | null;
+  rideType: 'economy' | 'premium' | 'standard' | null;
   destination: string | null;
   driver?: DriverInfo | null;
   rideId?: string | null;

@@ -29,6 +29,8 @@ type CarPhase = 'idle' | 'selecting' | 'ride_options' | 'in_ride' | 'completed' 
 
 interface CarServiceScreenProps {
   onBack: () => void;
+  /** Defaults to 'car' — preserves existing Ride behavior unchanged. */
+  serviceType?: 'car' | 'scooter' | 'delivery';
 }
 
 // Lets a parent (the home screen's destination search) hand off a selected
@@ -121,7 +123,7 @@ function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good
   return 'good_evening';
 }
 
-export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScreenProps>(function CarServiceScreen({ onBack }, ref) {
+export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScreenProps>(function CarServiceScreen({ onBack, serviceType = 'car' }, ref) {
   const { colors: c, t, isRTL } = useTheme();
   const insets    = useSafeAreaInsets();
   const insetTop  = insets.top;
@@ -132,9 +134,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [destCoords, setDestCoords]     = useState<Coords | null>(null);
   const [userCoords, setUserCoords]     = useState<Coords | null>(null);
   const [searchQuery, setSearchQuery]   = useState('');
-  const [selectedRide, setSelectedRide] = useState<'economy' | 'premium' | null>(null);
+  const [selectedRide, setSelectedRide] = useState<'economy' | 'premium' | 'standard' | null>(null);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
+  const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
   const [estimateLoading, setEstLoading]= useState(false);
+  const [recipientName, setRecipientName]   = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
   const userCoordsRef = useRef<Coords | null>(null);
 
   const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide } = useRide();
@@ -173,18 +178,26 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         params: {
           pickupLat: pickup.latitude, pickupLng: pickup.longitude,
           dropoffLat: dropoff.latitude, dropoffLng: dropoff.longitude,
+          serviceType,
         },
       });
-      setEstimate({
-        economy: { price: data.economy?.price ?? 0, eta: data.economy?.eta ?? 5 },
-        premium: { price: data.premium?.price ?? 0, eta: data.premium?.eta ?? 8 },
-      });
+      if (serviceType === 'car') {
+        setEstimate({
+          economy: { price: data.economy?.price ?? 0, eta: data.economy?.eta ?? 5 },
+          premium: { price: data.premium?.price ?? 0, eta: data.premium?.eta ?? 8 },
+        });
+      } else {
+        // Scooter/delivery pricing is single-rate on the backend — no
+        // economy/premium split, just one estimatedPrice.
+        setSingleEstimate({ price: data.estimatedPrice ?? 0, eta: data.durationMinutes ?? 5 });
+      }
     } catch {
       setEstimate(null);
+      setSingleEstimate(null);
     } finally {
       setEstLoading(false);
     }
-  }, []);
+  }, [serviceType]);
 
   const handleUserLocation = useCallback((loc: Coords) => {
     setUserCoords(loc);
@@ -195,6 +208,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     Haptics.selectionAsync();
     setDestination(loc);
     setPhase('ride_options');
+    // Scooter/delivery have a single pricing tier — no economy/premium pick
+    // required, so pre-select it (car keeps requiring an explicit choice).
+    if (serviceType !== 'car') setSelectedRide('standard');
 
     try {
       const results = await Location.geocodeAsync(loc);
@@ -205,10 +221,11 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         if (pickup) fetchEstimate(pickup, coords);
       }
     } catch {}
-  }, [fetchEstimate]);
+  }, [fetchEstimate, serviceType]);
 
   const handleConfirmRide = useCallback(async () => {
     if (!selectedRide) return;
+    if (serviceType === 'delivery' && (!recipientName.trim() || !recipientPhone.trim())) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const pickup = userCoordsRef.current;
@@ -233,16 +250,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     }
 
     const result = await requestRide({
-      type: 'car',
+      type: serviceType,
       pickup:  { ...pickup,  address: pickupAddress },
       dropoff: { ...dropoff, address: destination ?? '' },
       notes: selectedRide,
+      ...(serviceType === 'delivery' ? { recipientName: recipientName.trim(), recipientPhone: recipientPhone.trim() } : {}),
     });
 
     if (!result.success) {
       Alert.alert(t('error'), result.error ?? t('request_ride_failed'));
     }
-  }, [selectedRide, destCoords, destination, requestRide, t]);
+  }, [selectedRide, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone]);
 
   const handleReset = useCallback(() => {
     resetRide();
@@ -251,6 +269,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setDestCoords(null);
     setSelectedRide(null);
     setEstimate(null);
+    setSingleEstimate(null);
+    setRecipientName('');
+    setRecipientPhone('');
     setSearchQuery('');
   }, [resetRide]);
 
@@ -342,8 +363,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         onConfirm={handleConfirmRide}
         onDismiss={handleReset}
         estimate={estimate}
+        singleEstimate={singleEstimate}
         estimateLoading={estimateLoading}
         confirming={requesting}
+        serviceType={serviceType}
+        recipientName={recipientName}
+        recipientPhone={recipientPhone}
+        onRecipientNameChange={setRecipientName}
+        onRecipientPhoneChange={setRecipientPhone}
       />
 
       {/* Searching */}

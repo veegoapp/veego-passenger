@@ -4,7 +4,7 @@
 
 // ── Enums / union types ──────────────────────────────────────────
 
-export type TripType = 'shuttle' | 'car' | 'scooter';
+export type TripType = 'shuttle' | 'car' | 'scooter' | 'delivery';
 
 export type ShuttleTripStatus =
   | 'waiting_driver'
