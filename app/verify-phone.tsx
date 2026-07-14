@@ -8,29 +8,21 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as SecureStore from 'expo-secure-store';
 import { S } from '@/constants/colors';
 import type { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
-import api, { tokenStore } from '@/src/api/client';
+import api from '@/src/api/client';
+import { persistTokens, saveSession } from '@/src/api/session';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { acceptTerms } from '@/components/shared/TermsModal';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
-const SESSION_KEY = '@veego_session_v1';
 const OTP_LENGTH = 6;
 
 type OtpChannel = 'whatsapp' | 'sms';
 interface OtpChannelsResponse { whatsappEnabled: boolean; smsEnabled: boolean; defaultChannel: OtpChannel; }
-
-async function persistTokens(data: any) {
-  const accessToken = data.accessToken ?? data.access_token ?? data.token;
-  const refreshToken = data.refreshToken ?? data.refresh_token;
-  if (accessToken) await tokenStore.setToken(tokenStore.TOKEN_KEY, accessToken);
-  if (refreshToken) await tokenStore.setToken(tokenStore.REFRESH_KEY, refreshToken);
-}
 
 export default function VerifyPhoneScreen() {
   const { phone, maskedPhone, termsVersion } = useLocalSearchParams<{ phone: string; maskedPhone?: string; termsVersion?: string }>();
@@ -113,11 +105,7 @@ export default function VerifyPhoneScreen() {
       const { data } = await api.post('/auth/verify-otp', { phone, otp });
       await persistTokens(data);
       if (data.user) {
-        await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({
-          identifier: data.user.email ?? data.user.phone ?? phone,
-          name: data.user.name ?? '',
-          loggedInAt: Date.now(),
-        }));
+        await saveSession(data.user.email ?? data.user.phone ?? phone, data.user.name ?? '');
       }
       emitAuthEvent('auth:login');
       if (termsVersion) {

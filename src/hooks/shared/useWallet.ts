@@ -30,14 +30,40 @@ const ICON_MAP: Record<string, ComponentType<{ size?: number; color?: string; st
   ride: Car,
 };
 
-function detectCredit(t: any): boolean {
+// Raw shape of a wallet transaction as returned by GET /wallet/transactions.
+// Field-name fallbacks below are unchanged existing behavior — this type
+// only documents the boundary, it does not enforce a stricter shape.
+interface RawTransaction {
+  id?: string | number;
+  _id?: string | number;
+  transactionType?: string;
+  transaction_type?: string;
+  category?: string;
+  type?: string;
+  amount?: number;
+  createdAt?: string;
+  created_at?: string;
+  date?: string;
+  description?: string;
+  descriptionAr?: string;
+  title?: string;
+  titleEn?: string;
+  titleAr?: string;
+  subDescription?: string;
+  subDescriptionAr?: string;
+  subtitleEn?: string;
+  subtitleAr?: string;
+  note?: string;
+}
+
+function detectCredit(t: RawTransaction): boolean {
   const type = (t.transactionType ?? t.transaction_type ?? t.type ?? '').toLowerCase();
   if (type.includes('credit') || type.includes('recharge') || type.includes('top') || type.includes('refund')) return true;
   if (type.includes('debit') || type.includes('payment') || type.includes('booking')) return false;
   return (t.amount ?? 0) > 0;
 }
 
-function iconForTx(t: any): ComponentType<{ size?: number; color?: string; strokeWidth?: number }> {
+function iconForTx(t: RawTransaction): ComponentType<{ size?: number; color?: string; strokeWidth?: number }> {
   const type = (t.transactionType ?? t.transaction_type ?? t.category ?? t.type ?? '').toLowerCase();
   for (const key of Object.keys(ICON_MAP)) {
     if (type.includes(key)) return ICON_MAP[key];
@@ -45,7 +71,7 @@ function iconForTx(t: any): ComponentType<{ size?: number; color?: string; strok
   return detectCredit(t) ? PlusCircle : CreditCard;
 }
 
-function formatDate(raw: string): { en: string; ar: string } {
+function formatDate(raw: string | undefined): { en: string; ar: string } {
   if (!raw) return { en: '—', ar: '—' };
   const d = new Date(raw);
   if (isNaN(d.getTime())) return { en: raw, ar: raw };
@@ -61,7 +87,7 @@ function formatDate(raw: string): { en: string; ar: string } {
   };
 }
 
-function mapTransaction(t: any): Transaction {
+function mapTransaction(t: RawTransaction): Transaction {
   const isCredit = detectCredit(t);
   const date = formatDate(t.createdAt ?? t.created_at ?? t.date ?? '');
   return {

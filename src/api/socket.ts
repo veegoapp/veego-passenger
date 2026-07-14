@@ -123,6 +123,10 @@ export interface DriverLocation {
   heading?: number;
 }
 
+// Note: this interface documents known socket event payload shapes for
+// reference — it is not currently passed as a generic to `Socket<...>`, so
+// it does not constrain any `socket.on`/`socket.off` call site today. Adding
+// or widening entries here is inert with respect to existing behavior.
 export interface RideSocketEvents {
   'ride:driver_assigned': (data: { rideId: string; driver: { name: string; phone: string; vehicle: string; rating: number }; eta: number }) => void;
   'ride:driver_location': (data: { rideId: string; location: DriverLocation }) => void;
@@ -134,5 +138,11 @@ export interface RideSocketEvents {
   'ride:no_show_cancelled': (data: { rideId?: string; reason?: string }) => void;
   'ride:timeout': (data: { rideId: string }) => void;
   'notification:new': (data: { id: string; type: string; title: string; body: string; createdAt: string }) => void;
-  'booking:boarded': (data: { bookingId: string; passengerId?: string; timestamp: string }) => void;
+  'booking:boarded': (data: { bookingId: string | number; passengerId?: string | number; userId?: number; tripId?: number; timestamp?: string }) => void;
+  // Shuttle live-tracking events (used by app/trip-detail.tsx, app/ticket.tsx,
+  // app/(tabs)/trips.tsx) — shape reflects the superset of fields actually
+  // read across those handlers.
+  'shuttle:driver:location': (data: { tripId: string | number; driverId?: string | number; lat: number; lng: number; heading?: number }) => void;
+  'shuttle:trip:status': (data: { tripId: string | number; status?: string; passengerCount?: number }) => void;
+  'trip:activated': (data: { tripId: string | number; activatedAt?: string }) => void;
 }

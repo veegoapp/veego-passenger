@@ -1,0 +1,96 @@
+You are a senior React Native / Expo engineer.
+
+We need to apply ONLY safe maintenance fixes in the Passenger App based on the previous audit report.
+
+IMPORTANT RULES:
+- Do NOT refactor large files.
+- Do NOT change business logic.
+- Do NOT change UI, navigation, screens, flows, API endpoints, socket events, or user behavior.
+- Do NOT touch the backend.
+- Do NOT modify useRide.ts logic.
+- Do NOT modify TripSheet.tsx or trip-detail.tsx structure.
+- Do NOT perform cleanup unrelated to the tasks below.
+- Keep the diff as small as possible.
+- Before changing anything, inspect the relevant files and explain exactly what will be changed.
+- After changes, provide a complete diff summary.
+
+Tasks allowed:
+
+1) Session / Token persistence consolidation
+Audit these duplicated implementations:
+- SESSION_KEY definitions
+- persistTokens()
+- token/session storage helpers
+
+Find all duplicated copies inside the Passenger App.
+
+Create ONE shared session helper module only if needed.
+
+Move the duplicated logic into the shared helper and update existing imports/usages to use it.
+
+Requirements:
+- Keep the same storage keys.
+- Keep the same data format.
+- Keep the same login/logout behavior.
+- Do not change authentication flow.
+- Verify token restore still works.
+
+2) Location storage security improvement
+Audit:
+- src/hooks/shared/usePassengerTracking.ts
+- src/hooks/shared/backgroundLocationTask.ts
+
+Find where passenger location snapshots are stored.
+
+Improve storage security WITHOUT changing tracking behavior.
+
+Requirements:
+- Do not change location permissions.
+- Do not change tracking intervals.
+- Do not change socket tracking.
+- Do not change API payloads.
+- Preserve existing functionality.
+
+If moving storage is not fully safe because of Expo limitations or app lifecycle behavior, do NOT force the change. Report the limitation instead.
+
+3) Offline detection foundation
+Audit current network handling.
+
+Add only a minimal offline detection layer if it can be introduced safely.
+
+Requirements:
+- Do not rewrite API handling.
+- Do not modify every screen.
+- Do not add unnecessary UI changes.
+- Do not change existing error handling behavior.
+
+If adding offline handling requires large architectural changes, do not implement it. Report the recommended approach only.
+
+4) API/socket type safety improvement (limited scope only)
+Do NOT convert the whole project.
+
+Only inspect high-risk untyped boundaries:
+- notifications
+- wallet
+- shuttle tracking
+
+Do not modify behavior.
+
+Only add safe typing/validation where it does not change runtime behavior.
+
+Verification required:
+Run:
+- TypeScript check
+- Expo build/export check if available
+
+Final report must include:
+
+1. Files changed.
+2. Exact reason for each change.
+3. Confirmation that no other files were modified.
+4. Verification results.
+5. Any task that was NOT implemented and why.
+
+Remember:
+The goal is not refactoring.
+The goal is only small, production-safety improvements with minimum risk.

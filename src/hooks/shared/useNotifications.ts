@@ -13,7 +13,30 @@ interface UseNotificationsResult {
   refresh: () => void;
 }
 
-function mapApiNotif(n: any): Notification {
+// Raw shape of a notification as it may arrive from either the REST list
+// endpoint or the `notification:new` socket event. Field-name fallbacks
+// below are intentionally kept (existing behavior) — this type only
+// documents the boundary, it does not enforce a stricter shape.
+interface RawNotification {
+  id?: string | number;
+  _id?: string | number;
+  type?: string;
+  category?: string;
+  title?: string;
+  subject?: string;
+  body?: string;
+  message?: string;
+  content?: string;
+  createdAt?: string;
+  created_at?: string;
+  time?: string;
+  timestamp?: string;
+  unread?: boolean;
+  isRead?: boolean;
+  is_read?: boolean;
+}
+
+function mapApiNotif(n: RawNotification): Notification {
   const cat = (n.type ?? n.category ?? 'system').toLowerCase();
   return {
     id: String(n.id ?? n._id ?? Math.random()),

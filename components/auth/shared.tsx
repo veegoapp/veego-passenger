@@ -1,27 +1,15 @@
 import { StyleSheet } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { tokenStore } from '@/src/api/client';
 import { S } from '@/constants/colors';
 import type { ThemeColors } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
-const SESSION_KEY = '@veego_session_v1';
-
-export async function saveSession(identifier: string, name?: string) {
-  try {
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify({ identifier, name: name || '', loggedInAt: Date.now() }));
-  } catch {}
-}
-
-export async function persistTokens(data: any) {
-  const accessToken = data.accessToken ?? data.access_token ?? data.token;
-  const refreshToken = data.refreshToken ?? data.refresh_token;
-  if (accessToken) await tokenStore.setToken(tokenStore.TOKEN_KEY, accessToken);
-  if (refreshToken) await tokenStore.setToken(tokenStore.REFRESH_KEY, refreshToken);
-  return { accessToken, refreshToken };
-}
+// Session/token persistence now lives in src/api/session.ts (single shared
+// module — was previously duplicated here, in app/index.tsx, and in
+// app/verify-phone.tsx). Re-exported so existing imports of
+// `saveSession`/`persistTokens` from './shared' keep working unchanged.
+export { saveSession, persistTokens } from '@/src/api/session';
 
 export function makeStyles(c: ThemeColors) {
   return StyleSheet.create({

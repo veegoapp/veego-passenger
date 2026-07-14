@@ -5,16 +5,15 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import type { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import { tokenStore } from '@/src/api/client';
 import api from '@/src/api/client';
+import { clearSession } from '@/src/api/session';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
 const LANG_KEY = '@veego_lang_selected';
-const SESSION_KEY = '@veego_session_v1';
 const ONBOARDING_KEY = '@veego_has_seen_onboarding';
 const { width } = Dimensions.get('window');
 
@@ -70,7 +69,7 @@ async function checkAuthAndNavigate() {
       if (!refreshed) {
         await tokenStore.removeToken(tokenStore.TOKEN_KEY);
         await tokenStore.removeToken(tokenStore.REFRESH_KEY);
-        await SecureStore.deleteItemAsync(SESSION_KEY);
+        await clearSession();
         await routeUnauthenticated();
         return;
       }
@@ -97,7 +96,7 @@ export function useAuthOnResume() {
           if (!refreshed) {
             await tokenStore.removeToken(tokenStore.TOKEN_KEY);
             await tokenStore.removeToken(tokenStore.REFRESH_KEY);
-            await SecureStore.deleteItemAsync(SESSION_KEY);
+            await clearSession();
             await routeUnauthenticated();
           }
         }
