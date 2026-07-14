@@ -16,7 +16,7 @@ import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { Animation } from '@/constants/animations';
-import { calcSegmentPrice, DATES } from '@/constants/data';
+import { calcSegmentPrice, DATES, formatCairoTime } from '@/constants/data';
 import { SectionLabel } from '@/components/shared/Shared';
 import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
 import { useEnabledTripRequestRoutes } from '@/src/hooks/shuttle/useEnabledTripRequestRoutes';
@@ -64,23 +64,6 @@ function shuttleStatusColor(trip: any): string {
     case 'boarding':        return '#7c3aed'; // purple — boarding now
     case 'cancelled':       return '#dc2626'; // red
     default:                return '#6b7280'; // gray
-  }
-}
-
-/** §21.9: Display departure times in Africa/Cairo timezone, not UTC */
-function formatTripTimeUTC(raw: string): string {
-  if (!raw) return '';
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return raw;
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Africa/Cairo',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(d);
-  } catch {
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false });
   }
 }
 
@@ -679,7 +662,7 @@ export function TripSheet() {
                 const disabled = !bookable;
                 const statusColor = shuttleStatusColor(trip);
                 const statusLbl = shuttleStatusLabel(trip, t as (key: string) => string);
-                const time = formatTripTimeUTC(trip.departureTime ?? trip.departure_time ?? '');
+                const time = formatCairoTime(trip.departureTime ?? trip.departure_time ?? '');
                 const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
                 const bookedSeats: number = trip.bookedSeats ?? 0;
                 const totalSeats: number = trip.totalSeats ?? 14;
@@ -916,7 +899,7 @@ export function TripSheet() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               const trip = visibleTrips[safeTimeIdx];
               const tripDate = formatTripDateUTC(trip?.departureTime ?? '');
-              const tripTime = formatTripTimeUTC(trip?.departureTime ?? '');
+              const tripTime = formatCairoTime(trip?.departureTime ?? '');
               const boardingStation = isAr
                 ? (route.path[safeFrom]?.nameAr ?? route.path[safeFrom]?.name ?? '')
                 : (route.path[safeFrom]?.name ?? '');
