@@ -1,0 +1,252 @@
+You are a Senior Mobile Software Engineer taking over this Passenger App project for the first time.
+
+Your task is to perform a complete engineering audit of the project as if you have just joined the team and need to understand, maintain, improve, and safely continue development.
+
+IMPORTANT:
+- Do not modify any files.
+- Do not refactor anything.
+- Do not fix anything.
+- Do not change code.
+- This is analysis and reporting only.
+
+Your goal is to answer:
+"If a senior engineer joins this project tomorrow, can they understand it, maintain it, and safely develop new features?"
+
+Perform a complete audit covering the following areas:
+
+==================================================
+1. PROJECT UNDERSTANDING & ARCHITECTURE
+==================================================
+
+Analyze:
+- Project structure
+- Folder organization
+- Naming conventions
+- Separation of concerns
+- Component architecture
+- Hook architecture
+- Context/provider architecture
+- API layer organization
+- Navigation structure
+- State management approach
+- Shared utilities/constants organization
+
+Explain:
+- How the app works from startup until user interaction.
+- Main user flows:
+  - Authentication
+  - Registration
+  - Booking
+  - Trip lifecycle
+  - Tracking
+  - Notifications
+  - Profile
+  - Payments/wallet if present
+  - Shuttle flow if present
+
+Rate:
+- Easy to understand
+- Acceptable
+- Difficult to maintain
+
+Explain why.
+
+==================================================
+2. CODE QUALITY AUDIT
+==================================================
+
+Review:
+
+- Large files/components
+- Duplicate logic
+- Missing abstractions
+- Bad coupling
+- Complex components
+- Repeated API calls
+- Repeated business logic
+- Naming issues
+- Dead code
+- Technical debt
+
+For every finding provide:
+
+- File path
+- Line number if possible
+- Problem
+- Why it matters
+- Severity:
+  Low / Medium / High / Critical
+- Recommended improvement (proposal only)
+
+==================================================
+3. NEW ENGINEER ONBOARDING TEST
+==================================================
+
+Imagine a senior engineer joins today.
+
+Answer:
+
+- How many days would they need to understand the project?
+- Are there enough documents?
+- Is the architecture clear?
+- Are there hidden assumptions?
+- What files would they need to read first?
+
+Identify:
+- Missing documentation
+- Missing comments
+- Missing architecture diagrams
+- Missing developer guides
+
+==================================================
+4. SECURITY AUDIT
+==================================================
+
+Analyze only security-related issues.
+
+Check:
+
+Authentication:
+- Token handling
+- Refresh token handling
+- Session management
+- Secure storage
+- Logout behavior
+
+API:
+- Sensitive data exposure
+- Missing validation
+- Unsafe API usage
+- Error leakage
+
+Mobile security:
+- AsyncStorage usage for sensitive data
+- SecureStore usage
+- Screenshots/security concerns
+- Debug code
+- Hardcoded secrets
+- Environment variables
+
+Permissions:
+- Location permissions
+- Notification permissions
+- Camera/files permissions
+
+Report:
+- Issue
+- File
+- Severity
+- Risk
+- Recommendation
+
+==================================================
+5. PERFORMANCE AUDIT
+==================================================
+
+Check:
+
+- Unnecessary re-renders
+- Heavy screens
+- Large components
+- Expensive calculations
+- FlatList optimization
+- Image optimization
+- Memory leaks
+- Socket/event listeners cleanup
+- Background tasks
+- Map performance
+
+==================================================
+6. ERROR HANDLING & RELIABILITY
+==================================================
+
+Review:
+
+- API error handling
+- Offline behavior
+- Network failures
+- Loading states
+- Empty states
+- Retry mechanisms
+- Crash risks
+- Unexpected backend responses
+
+==================================================
+7. BACKEND/API INTEGRATION QUALITY
+==================================================
+
+Review:
+
+- API organization
+- Service layer usage
+- Direct API calls inside screens
+- Type safety
+- Response handling
+- Duplicate endpoints usage
+- API contract consistency
+
+Identify areas that could break if backend changes.
+
+==================================================
+8. REAL PRODUCTION READINESS SCORE
+==================================================
+
+Give scores from 10:
+
+Architecture:
+Code quality:
+Security:
+Performance:
+Maintainability:
+Documentation:
+Production readiness:
+
+Then provide:
+
+Overall score:
+Example:
+7.5/10
+
+Explain the reason.
+
+==================================================
+9. PRIORITY ROADMAP
+==================================================
+
+Create a practical improvement roadmap:
+
+Phase 1:
+Critical issues before production
+
+Phase 2:
+Important improvements
+
+Phase 3:
+Nice-to-have improvements
+
+For each item:
+- Expected impact
+- Difficulty:
+Easy / Medium / Hard
+
+==================================================
+10. FINAL ENGINEERING VERDICT
+==================================================
+
+Answer clearly:
+
+1. If you joined this project as a senior engineer, would you feel comfortable owning it?
+YES/NO and why.
+
+2. Is the codebase professionally structured?
+YES/NO and why.
+
+3. What are the top 10 things you would improve first?
+
+4. What is the biggest technical risk in this project?
+
+Remember:
+This is an audit report only.
+Do not make any changes.
+Do not assume previous knowledge.
+Analyze the repository exactly as it exists now.
