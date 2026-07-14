@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import api from '@/src/api/client';
+import { getTripAvailability } from '@/src/api/shuttleService';
 
 interface LiveAvailability {
   availableSeats: number;
@@ -17,7 +17,7 @@ export function useShuttleSeatAvailability(tripId: string | null | undefined): L
 
   useEffect(() => {
     if (!tripId) { setLiveAvailability(null); return; }
-    api.get(`/shuttle/trips/${tripId}/availability`).then(({ data }) => {
+    getTripAvailability(tripId).then((data) => {
       setLiveAvailability({
         availableSeats: data.availableSeats ?? 0,
         bookedSeats: data.bookedSeats ?? 0,

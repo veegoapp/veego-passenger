@@ -156,3 +156,9 @@ export async function getMyDebt(): Promise<DebtInfo> {
   const { data } = await api.get('/shuttle/my-debt');
   return data;
 }
+
+/** GET /shuttle/trips/:id/availability — live seat availability for a shuttle trip. */
+export async function getTripAvailability(tripId: string | number) {
+  const { data } = await api.get(`/shuttle/trips/${tripId}/availability`);
+  return data;
+}
