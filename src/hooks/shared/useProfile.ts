@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/client';
+import { ProfileResponseSchema, checkContract } from '../../api/schemas';
 
 export interface UserProfile {
   id: number | null;
@@ -31,13 +32,13 @@ interface UseProfileResult {
 
 function mapApiProfile(d: any): UserProfile {
   return {
-    id: d.id ?? d.userId ?? d.user_id ?? null,
+    id: d.id ?? d.userId ?? null,
     name: d.name ?? d.fullName ?? d.displayName ?? '',
     email: d.email ?? d.emailAddress ?? '',
     dob: d.dob ?? d.dateOfBirth ?? d.birthdate ?? '',
     phone: d.phone ?? d.phoneNumber ?? d.mobile ?? '',
-    biometricEnabled: d.biometricEnabled ?? d.biometric_enabled ?? false,
-    twoFactorEnabled: d.twoFactorEnabled ?? d.two_factor_enabled ?? d.twoFA ?? false,
+    biometricEnabled: d.biometricEnabled ?? false,
+    twoFactorEnabled: d.twoFactorEnabled ?? d.twoFA ?? false,
   };
 }
 
@@ -55,6 +56,7 @@ export function useProfile(): UseProfileResult {
     try {
       const { data } = await api.get('/users/me');
       const d = data.user ?? data.profile ?? data;
+      checkContract('Profile', d, ProfileResponseSchema);
       setProfile(mapApiProfile(d));
     } catch (e: any) {
       setError(e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? 'Failed to load profile');

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ComponentType } from 'react';
 import api from '../../api/client';
+import { WalletBalanceSchema, TransactionItemSchema, checkContract } from '../../api/schemas';
 import { Bus, Car, Bike as ScooterIcon, PlusCircle, RefreshCw, ArrowUp, Tag, Ticket, CreditCard } from 'lucide-react-native';
 
 export interface Transaction {
@@ -35,14 +36,11 @@ const ICON_MAP: Record<string, ComponentType<{ size?: number; color?: string; st
 // only documents the boundary, it does not enforce a stricter shape.
 interface RawTransaction {
   id?: string | number;
-  _id?: string | number;
   transactionType?: string;
-  transaction_type?: string;
   category?: string;
   type?: string;
   amount?: number;
   createdAt?: string;
-  created_at?: string;
   date?: string;
   description?: string;
   descriptionAr?: string;
@@ -57,14 +55,14 @@ interface RawTransaction {
 }
 
 function detectCredit(t: RawTransaction): boolean {
-  const type = (t.transactionType ?? t.transaction_type ?? t.type ?? '').toLowerCase();
+  const type = (t.transactionType ?? t.type ?? '').toLowerCase();
   if (type.includes('credit') || type.includes('recharge') || type.includes('top') || type.includes('refund')) return true;
   if (type.includes('debit') || type.includes('payment') || type.includes('booking')) return false;
   return (t.amount ?? 0) > 0;
 }
 
 function iconForTx(t: RawTransaction): ComponentType<{ size?: number; color?: string; strokeWidth?: number }> {
-  const type = (t.transactionType ?? t.transaction_type ?? t.category ?? t.type ?? '').toLowerCase();
+  const type = (t.transactionType ?? t.category ?? t.type ?? '').toLowerCase();
   for (const key of Object.keys(ICON_MAP)) {
     if (type.includes(key)) return ICON_MAP[key];
   }
@@ -89,9 +87,9 @@ function formatDate(raw: string | undefined): { en: string; ar: string } {
 
 function mapTransaction(t: RawTransaction): Transaction {
   const isCredit = detectCredit(t);
-  const date = formatDate(t.createdAt ?? t.created_at ?? t.date ?? '');
+  const date = formatDate(t.createdAt ?? t.date ?? '');
   return {
-    id: String(t.id ?? t._id ?? Math.random()),
+    id: String(t.id ?? Math.random()),
     type: isCredit ? 'credit' : 'debit',
     titleEn: t.description ?? t.title ?? t.titleEn ?? (isCredit ? 'Wallet recharge' : 'Trip payment'),
     titleAr: t.descriptionAr ?? t.titleAr ?? t.description ?? (isCredit ? 'شحن رصيد' : 'دفع رحلة'),
@@ -131,9 +129,10 @@ export function useWallet(): UseWalletResult {
 
       if (walletRes.status === 'fulfilled') {
         const d = walletRes.value.data;
-        const bal = d.balance ?? d.walletBalance ?? d.wallet_balance ?? d.amount ?? 0;
+        checkContract('Wallet balance', d, WalletBalanceSchema);
+        const bal = d.balance ?? d.walletBalance ?? d.amount ?? 0;
         setBalance(typeof bal === 'number' ? bal : parseFloat(bal) || 0);
-        const spentVal = d.spent ?? d.monthlySpent ?? d.spentThisMonth ?? d.total_spent ?? 0;
+        const spentVal = d.spent ?? d.monthlySpent ?? d.spentThisMonth ?? 0;
         setSpent(typeof spentVal === 'number' ? spentVal : parseFloat(spentVal) || 0);
       }
 
@@ -142,6 +141,7 @@ export function useWallet(): UseWalletResult {
         const list: any[] = Array.isArray(d)
           ? d
           : d.transactions ?? d.data ?? d.items ?? [];
+        if (__DEV__ && list.length > 0) checkContract('Wallet transaction', list[0], TransactionItemSchema);
         setTransactions(list.map(mapTransaction));
       }
     } catch (e: any) {

@@ -16,10 +16,10 @@ function formatTime(dateStr?: string): string {
 
 function normalizeMessages(raw: any[]): ChatMessage[] {
   return raw.map((m, i) => ({
-    id: m.id ?? m._id ?? String(i),
+    id: m.id ?? String(i),
     text: m.text ?? m.message ?? m.content ?? '',
-    isDriver: m.senderRole === 'driver' || m.sender_role === 'driver' || m.isDriver === true,
-    time: formatTime(m.sentAt ?? m.createdAt ?? m.created_at),
+    isDriver: m.senderRole === 'driver' || m.isDriver === true,
+    time: formatTime(m.sentAt ?? m.createdAt),
   }));
 }
 
@@ -45,7 +45,7 @@ export function useRideChat(tripId: string | null) {
 
     const handler = (data: any) => {
       if (String(data.rideId) !== String(tripId)) return;
-      const isDriver = data.senderRole === 'driver' || data.sender_role === 'driver' || data.isDriver === true;
+      const isDriver = data.senderRole === 'driver' || data.isDriver === true;
       // A ride has exactly one passenger — any non-driver message on this ride's
       // socket event is always an echo of a message this same user already
       // added optimistically in sendMessage(), so skip it to avoid a duplicate.
@@ -53,10 +53,10 @@ export function useRideChat(tripId: string | null) {
       setMessages((prev) => [
         ...prev,
         {
-          id: data.id ?? data._id ?? String(Date.now()),
+          id: data.id ?? String(Date.now()),
           text: data.text ?? data.message ?? data.content ?? '',
           isDriver,
-          time: formatTime(data.sentAt ?? data.createdAt ?? data.created_at),
+          time: formatTime(data.sentAt ?? data.createdAt),
         },
       ]);
     };

@@ -78,17 +78,17 @@ function mapStations(rawStations: any[]): Route['path'] {
     .slice()
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((s) => ({
-      id:           String(s.id ?? s._id ?? Math.random()),
-      name:         s.name         ?? s.stationName  ?? s.station_name ?? '',
-      nameAr:       s.nameAr       ?? s.name_ar      ?? null,   // §3, §21.5
+      id:           String(s.id ?? Math.random()),
+      name:         s.name         ?? s.stationName  ?? '',
+      nameAr:       s.nameAr       ?? null,   // §3, §21.5
       area:         s.area         ?? s.district      ?? '',
       distance:     s.distance     ?? '—',
       eta:          s.eta          ?? '—',
-      latitude:     s.latitude     ?? s.lat           ?? undefined,
-      longitude:    s.longitude    ?? s.lng           ?? undefined,
+      latitude:     s.latitude     ?? undefined,
+      longitude:    s.longitude    ?? undefined,
       order:        s.order        ?? undefined,
       direction:    s.direction    ?? undefined,
-      segmentPrice: s.segmentPrice ?? s.segment_price ?? null,   // §21.6
+      segmentPrice: s.segmentPrice ?? null,   // §21.6
     }));
 }
 

@@ -36,25 +36,23 @@ function mapApiRoute(r: any, idx: number): Route {
 
     // English name fields
     name: r.name ?? '',
-    from: r.fromLocation ?? r.from_location ?? r.from ?? '',
-    to:   r.toLocation   ?? r.to_location   ?? r.to   ?? '',
+    from: r.fromLocation ?? r.from ?? '',
+    to:   r.toLocation   ?? r.to   ?? '',
 
     // Arabic name fields (§3, §21.5)
-    nameAr: r.nameAr          ?? r.name_ar           ?? null,
-    fromAr: r.fromLocationAr  ?? r.from_location_ar  ?? null,
-    toAr:   r.toLocationAr    ?? r.to_location_ar    ?? null,
+    nameAr: r.nameAr          ?? null,
+    fromAr: r.fromLocationAr  ?? null,
+    toAr:   r.toLocationAr    ?? null,
 
-    stations: r.stationCount ?? r.station_count ?? r.stations ?? 0,
+    stations: r.stationCount ?? r.stations ?? 0,
     duration: r.estimatedDuration
       ? `${r.estimatedDuration} min`
-      : r.estimated_duration
-      ? `${r.estimated_duration} min`
       : r.duration ?? '—',
 
     seatsLeft:    r.availableSeats ?? (hasActiveTrips ? totalSeats : hasOpenTrips ? totalSeats : 0),
     totalSeats,
-    price:        r.basePrice ?? r.base_price ?? r.price ?? 0,
-    nextDeparture: r.nextDeparture ?? r.next_departure ?? '—',
+    price:        r.basePrice ?? r.price ?? 0,
+    nextDeparture: r.nextDeparture ?? '—',
     color:        r.color ?? ROUTE_COLORS[idx % ROUTE_COLORS.length],
 
     // Shuttle line computed fields (§2.9)
@@ -65,24 +63,24 @@ function mapApiRoute(r: any, idx: number): Route {
     upcomingWeekStart: r.upcomingWeekStart ?? null,
     timeslots,
 
-    requestsEnabled: r.requestsEnabled ?? r.requests_enabled ?? false,
+    requestsEnabled: r.requestsEnabled ?? false,
 
     path: Array.isArray(r.stations)
       ? r.stations
           .slice()
           .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
           .map((s: any) => ({
-            id:           String(s.id ?? s._id ?? Math.random()),
-            name:         s.name         ?? s.stationName  ?? s.station_name ?? '',
-            nameAr:       s.nameAr       ?? s.name_ar      ?? null,
+            id:           String(s.id ?? Math.random()),
+            name:         s.name         ?? s.stationName  ?? '',
+            nameAr:       s.nameAr       ?? null,
             area:         s.area         ?? '',
             distance:     s.distance     ?? '—',
             eta:          s.eta          ?? '—',
-            latitude:     s.latitude     ?? s.lat          ?? undefined,
-            longitude:    s.longitude    ?? s.lng          ?? undefined,
+            latitude:     s.latitude     ?? undefined,
+            longitude:    s.longitude    ?? undefined,
             order:        s.order        ?? undefined,
             direction:    s.direction    ?? undefined,
-            segmentPrice: s.segmentPrice ?? s.segment_price ?? null,
+            segmentPrice: s.segmentPrice ?? null,
           }))
       : [],
   };

@@ -28,15 +28,15 @@ interface StationItem {
 
 function mapApiStation(s: any): StationItem {
   return {
-    id:           String(s.id ?? s._id ?? Math.random()),
-    name:         s.name         ?? s.stationName  ?? s.station_name ?? '',
-    nameAr:       s.nameAr       ?? s.name_ar      ?? null,
+    id:           String(s.id ?? Math.random()),
+    name:         s.name         ?? s.stationName  ?? '',
+    nameAr:       s.nameAr       ?? null,
     area:         s.area         ?? s.district      ?? s.zone ?? '',
     distance:     s.distance     ?? '—',
     eta:          s.eta          ?? '—',
-    latitude:     s.latitude     ?? s.lat           ?? undefined,
-    longitude:    s.longitude    ?? s.lng           ?? s.lon ?? undefined,
-    segmentPrice: s.segmentPrice ?? s.segment_price ?? null,
+    latitude:     s.latitude     ?? undefined,
+    longitude:    s.longitude    ?? undefined,
+    segmentPrice: s.segmentPrice ?? null,
   };
 }
 

@@ -80,9 +80,9 @@ export function usePromos(): UsePromosResult {
   const validateCode = useCallback(async (code: string, _orderAmount?: number) => {
     try {
       const { data } = await api.post('/promo/validate', { code });
-      const valid = data.valid ?? data.isValid ?? data.is_valid ?? data.success ?? true;
-      const discountValue = data.discountValue ?? data.discount_value ?? data.discount ?? data.value ?? '';
-      const discountType = data.discountType ?? data.discount_type ?? data.type ?? '';
+      const valid = data.valid ?? data.isValid ?? data.success ?? true;
+      const discountValue = data.discountValue ?? data.discount ?? data.value ?? '';
+      const discountType = data.discountType ?? data.type ?? '';
       const discountStr =
         typeof discountValue === 'number'
           ? discountType === 'percentage' || discountType === 'percent'

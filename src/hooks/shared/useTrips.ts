@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../../api/client';
+import { BookingItemSchema, checkContract } from '../../api/schemas';
 import type { Trip, TripType, ShuttleTripStatus, BookingStatus, PaymentStatus } from '@/constants/data';
 import { isShuttleTripUpcoming, formatCairoDateTime } from '@/constants/data';
 
@@ -15,8 +16,8 @@ interface UseTripsResult {
 
 function detectType(b: any): TripType {
   const raw = (
-    b.type ?? b.bookingType ?? b.booking_type ??
-    b.serviceType ?? b.service_type ?? b.category ?? ''
+    b.type ?? b.bookingType ??
+    b.serviceType ?? b.category ?? ''
   ).toLowerCase();
   if (raw === 'car'     || raw === 'ride'   || raw === 'car_ride')     return 'car';
   if (raw === 'scooter' || raw === 'scooter_ride')                     return 'scooter';
@@ -49,26 +50,26 @@ function mapApiBooking(b: any): Trip {
   // Booking status (raw) — §2.4, §21.1
   const rawBookingStatus = (b.status ?? '').toLowerCase() as BookingStatus;
   // Trip status — drives upcoming/past classification
-  const rawTripStatus    = (trip.shuttleStatus ?? trip.shuttle_status ?? trip.status ?? '').toLowerCase();
+  const rawTripStatus    = (trip.shuttleStatus ?? trip.status ?? '').toLowerCase();
   const status: ShuttleTripStatus = mapBackendStatus(rawTripStatus || rawBookingStatus);
 
   const type = detectType(b);
 
   const departureIso =
-    trip.departureTime ?? trip.departure_time ?? b.scheduledAt ?? b.scheduled_at ?? '';
+    trip.departureTime ?? b.scheduledAt ?? '';
 
   // §21.9: display in Africa/Cairo, not UTC
   const { date, time } = formatCairoDateTime(departureIso);
 
   // English + Arabic route names (§3)
-  const routeName   = route.name          ?? trip.name     ?? b.destinationName ?? b.destination_name ?? (type === 'car' ? 'Car Ride' : type === 'scooter' ? 'Scooter Ride' : '—');
-  const routeNameAr = route.nameAr        ?? route.name_ar ?? null;
+  const routeName   = route.name          ?? trip.name     ?? b.destinationName ?? (type === 'car' ? 'Car Ride' : type === 'scooter' ? 'Scooter Ride' : '—');
+  const routeNameAr = route.nameAr        ?? null;
 
-  const from   = route.fromLocation   ?? route.from_location  ?? route.from  ?? b.pickupAddress     ?? b.pickup_name     ?? b.origin ?? '—';
-  const fromAr = route.fromLocationAr ?? route.from_location_ar ?? null;
+  const from   = route.fromLocation   ?? route.from  ?? b.pickupAddress     ?? b.origin ?? '—';
+  const fromAr = route.fromLocationAr ?? null;
 
-  const to     = route.toLocation     ?? route.to_location    ?? route.to    ?? b.destinationAddress ?? b.destination_name ?? b.destination ?? '—';
-  const toAr   = route.toLocationAr   ?? route.to_location_ar   ?? null;
+  const to     = route.toLocation     ?? route.to    ?? b.destinationAddress ?? b.destinationName ?? b.destination ?? '—';
+  const toAr   = route.toLocationAr   ?? null;
 
   const routeCode = route.code ??
     (trip.lineId ? `L${trip.lineId}` : null) ??
@@ -77,7 +78,7 @@ function mapApiBooking(b: any): Trip {
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
 
   return {
-    id:   String(b.id ?? b._id ?? Math.random()),
+    id:   String(b.id ?? Math.random()),
     type,
     routeCode,
     routeName,
@@ -89,22 +90,22 @@ function mapApiBooking(b: any): Trip {
     date,
     time,
     departureIso,
-    seat: b.seatNumber ?? b.seat_number ?? b.seat ?? '—',
+    seat: b.seatNumber ?? b.seat ?? '—',
     status,
     bookingStatus: rawBookingStatus || undefined,
-    paymentStatus: (b.paymentStatus ?? b.payment_status) as PaymentStatus | undefined,
-    price:         b.totalPrice ?? b.total_price ?? trip.price ?? b.price ?? b.fare ?? 0,
-    tripId:        trip.id ?? trip._id ?? b.tripId ?? b.trip_id ?? null,
-    bookingId:     String(b.id ?? b._id ?? ''),
-    pickupLat:     pickupStation?.latitude ?? pickupStation?.lat ?? null,
-    pickupLng:     pickupStation?.longitude ?? pickupStation?.lng ?? null,
-    passengerCount: trip.passengerCount ?? trip.passenger_count ?? null,
-    minPassengers:  trip.minPassengers  ?? trip.min_passengers  ?? null,
-    seatCount:      b.seatCount         ?? b.seat_count         ?? 1,
-    promoCodeId:    b.promoCodeId       ?? b.promo_code_id      ?? null,
-    vehicleType:    trip.vehicleType    ?? trip.vehicle_type     ?? undefined,
-    totalSeats:     trip.totalSeats     ?? trip.total_seats      ?? undefined,
-    availableSeats: trip.availableSeats ?? trip.available_seats  ?? undefined,
+    paymentStatus: b.paymentStatus as PaymentStatus | undefined,
+    price:         b.totalPrice ?? trip.price ?? b.price ?? b.fare ?? 0,
+    tripId:        trip.id ?? b.tripId ?? null,
+    bookingId:     String(b.id ?? ''),
+    pickupLat:     pickupStation?.latitude ?? null,
+    pickupLng:     pickupStation?.longitude ?? null,
+    passengerCount: trip.passengerCount ?? null,
+    minPassengers:  trip.minPassengers  ?? null,
+    seatCount:      b.seatCount         ?? 1,
+    promoCodeId:    b.promoCodeId       ?? null,
+    vehicleType:    trip.vehicleType    ?? undefined,
+    totalSeats:     trip.totalSeats     ?? undefined,
+    availableSeats: trip.availableSeats ?? undefined,
   };
 }
 
@@ -144,6 +145,7 @@ export function useTrips(): UseTripsResult {
         ? ridesRes.data
         : ridesRes.data?.rides ?? ridesRes.data?.data ?? [];
 
+      if (__DEV__ && shuttleBookings.length > 0) checkContract('Shuttle booking', shuttleBookings[0], BookingItemSchema);
       const mapped = [...shuttleBookings, ...rides].map(mapApiBooking);
 
       const upcoming = mapped.filter((t) => isShuttleTripUpcoming(t.status));

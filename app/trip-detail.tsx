@@ -75,32 +75,32 @@ function mapApiToDetail(b: any): TripDetail {
   const trip = b.trip ?? {};
   const route = trip.route ?? trip.shuttleLine ?? trip.line ?? {};
   const departureIso =
-    trip.departureTime ?? trip.departure_time ?? b.scheduledAt ?? b.scheduled_at ?? '';
+    trip.departureTime ?? b.scheduledAt ?? '';
   // §21.9: display in Africa/Cairo, not UTC
   const { date, time } = formatCairoDateTime(departureIso);
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
   return {
-    id: trip.id ?? trip._id ?? b.id ?? b._id ?? '',
+    id: trip.id ?? b.id ?? '',
     // Distinct from `id` above (which resolves to the trip id when available) —
     // cancellation must target the booking's own id, not the trip's.
-    bookingId: b.id ?? b._id ?? null,
-    routeId: trip.routeId ?? trip.route_id ?? route.id ?? null,
-    status: (b.status ?? trip.shuttleStatus ?? trip.shuttle_status ?? trip.status ?? '').toLowerCase(),
+    bookingId: b.id ?? null,
+    routeId: trip.routeId ?? route.id ?? null,
+    status: (b.status ?? trip.shuttleStatus ?? trip.status ?? '').toLowerCase(),
     departureIso,
     routeName:   route.name   ?? trip.name  ?? '—',
-    routeNameAr: route.nameAr ?? route.name_ar ?? null,
-    from:   route.fromLocation   ?? route.from_location   ?? route.from  ?? b.pickupName     ?? b.origin      ?? '—',
-    fromAr: route.fromLocationAr ?? route.from_location_ar ?? null,
-    to:   route.toLocation   ?? route.to_location   ?? route.to  ?? b.destinationName ?? b.destination ?? '—',
-    toAr: route.toLocationAr ?? route.to_location_ar ?? null,
+    routeNameAr: route.nameAr ?? null,
+    from:   route.fromLocation   ?? route.from  ?? b.pickupName     ?? b.origin      ?? '—',
+    fromAr: route.fromLocationAr ?? null,
+    to:   route.toLocation   ?? route.to  ?? b.destinationName ?? b.destination ?? '—',
+    toAr: route.toLocationAr ?? null,
     date,
     time,
-    seat: b.seatNumber ?? b.seat_number ?? b.seat ?? '—',
-    price: b.totalPrice ?? b.total_price ?? trip.price ?? b.price ?? 0,
-    passengerCount: trip.passengerCount ?? trip.passenger_count ?? null,
-    minPassengers: trip.minPassengers ?? trip.min_passengers ?? null,
-    pickupLat: pickupStation?.latitude ?? pickupStation?.lat ?? null,
-    pickupLng: pickupStation?.longitude ?? pickupStation?.lng ?? null,
+    seat: b.seatNumber ?? b.seat ?? '—',
+    price: b.totalPrice ?? trip.price ?? b.price ?? 0,
+    passengerCount: trip.passengerCount ?? null,
+    minPassengers: trip.minPassengers ?? null,
+    pickupLat: pickupStation?.latitude ?? null,
+    pickupLng: pickupStation?.longitude ?? null,
     pickupStationId: pickupStation?.id ?? null,
     driverName: trip.driver?.name ?? b.driver?.name ?? null,
     driverUserId: trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
@@ -255,8 +255,8 @@ export default function TripDetailScreen() {
           const d = listRes.data;
           const items: any[] = Array.isArray(d) ? d : d.trips ?? d.bookings ?? d.data ?? [];
           const match = items.find((b: any) => {
-            const bTripId = String(b.trip?.id ?? b.trip?._id ?? b.tripId ?? b.trip_id ?? b.id ?? '');
-            const bBookingId = String(b.id ?? b._id ?? '');
+            const bTripId = String(b.trip?.id ?? b.tripId ?? b.id ?? '');
+            const bBookingId = String(b.id ?? '');
             return bTripId === String(id) || bBookingId === String(id);
           });
           if (match) detail = mapApiToDetail(match);
@@ -297,8 +297,8 @@ export default function TripDetailScreen() {
         id:        s.id,
         name:      s.name ?? s.stationName ?? '',
         order:     s.order ?? s.stationOrder ?? 0,
-        latitude:  s.latitude ?? s.lat ?? 0,
-        longitude: s.longitude ?? s.lng ?? 0,
+        latitude:  s.latitude ?? 0,
+        longitude: s.longitude ?? 0,
         status:    (s.progress?.status ?? s.status ?? 'pending') as Station['status'],
       })));
     } catch {

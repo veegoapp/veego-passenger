@@ -198,11 +198,11 @@ export default function HomeScreen() {
       .then(({ data }) => {
         const raw = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
         setSavedLocations(raw.map((item: any) => ({
-          id: String(item.id ?? item._id ?? Math.random()),
+          id: String(item.id ?? Math.random()),
           name: item.name ?? item.label ?? '',
           address: item.address ?? '',
-          latitude: item.latitude ?? item.lat ?? 0,
-          longitude: item.longitude ?? item.lng ?? 0,
+          latitude: item.latitude ?? 0,
+          longitude: item.longitude ?? 0,
           label: item.label,
           isDefault: item.isDefault ?? false,
         })));

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import api from '../../api/client';
 import { getSocket } from '../../api/socket';
+import { NotificationItemSchema, checkContract } from '../../api/schemas';
 import type { Notification } from '@/constants/data';
 
 interface UseNotificationsResult {
@@ -19,7 +20,6 @@ interface UseNotificationsResult {
 // documents the boundary, it does not enforce a stricter shape.
 interface RawNotification {
   id?: string | number;
-  _id?: string | number;
   type?: string;
   category?: string;
   title?: string;
@@ -28,25 +28,20 @@ interface RawNotification {
   message?: string;
   content?: string;
   createdAt?: string;
-  created_at?: string;
   time?: string;
   timestamp?: string;
   unread?: boolean;
   isRead?: boolean;
-  is_read?: boolean;
 }
 
 function mapApiNotif(n: RawNotification): Notification {
   const cat = (n.type ?? n.category ?? 'system').toLowerCase();
   return {
-    id: String(n.id ?? n._id ?? Math.random()),
+    id: String(n.id ?? Math.random()),
     type: (cat === 'trip' || cat === 'promo' || cat === 'system') ? cat as any : 'system',
     title: n.title ?? n.subject ?? '',
     body: n.body ?? n.message ?? n.content ?? '',
-    createdAt: n.createdAt ?? n.created_at ?? n.time ?? n.timestamp ?? '',
-    // `(n.isRead === false)` always yields a boolean, which is never nullish,
-    // so `??` never falls through to the `is_read`/`false` segments that
-    // followed it — they were dead code. Removed; identical result for every input.
+    createdAt: n.createdAt ?? n.time ?? n.timestamp ?? '',
     unread: n.unread ?? (n.isRead === false),
   };
 }
@@ -63,6 +58,7 @@ export function useNotifications(): UseNotificationsResult {
     try {
       const { data } = await api.get('/notifications');
       const list = Array.isArray(data) ? data : data.notifications ?? data.data ?? data.items ?? [];
+      if (__DEV__ && list.length > 0) checkContract('Notification', list[0], NotificationItemSchema);
       setNotifications(list.map(mapApiNotif));
     } catch (e: any) {
       const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? 'Failed to load notifications';
@@ -84,9 +80,12 @@ export function useNotifications(): UseNotificationsResult {
     if (socketSetup.current) return;
     socketSetup.current = true;
 
-    // Named handlers defined here so cleanup can reference them synchronously
-    const onNotificationNew = (data: any) => {
-      setNotifications((prev) => [mapApiNotif({ ...data, unread: true }), ...prev]);
+    // Named handlers defined here so cleanup can reference them synchronously.
+    // REST GET /notifications remains the source of truth for full notification
+    // objects — the socket event only signals that something changed, so we
+    // re-fetch rather than splice a partial socket payload into the list.
+    const onNotificationNew = () => {
+      fetchNotifications();
     };
 
     const onBoarded = (data: any) => {

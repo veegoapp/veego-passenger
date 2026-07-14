@@ -6,6 +6,7 @@
 // this file is a move, not a redesign.
 import * as SecureStore from 'expo-secure-store';
 import { tokenStore } from './client';
+import { AuthTokenResponseSchema, checkContract } from './schemas';
 
 export const SESSION_KEY = '@veego_session_v1';
 
@@ -34,6 +35,7 @@ export async function clearSession(): Promise<void> {
  * match the previous per-screen copies exactly.
  */
 export async function persistTokens(data: any): Promise<{ accessToken?: string; refreshToken?: string }> {
+  checkContract('Auth token', data, AuthTokenResponseSchema);
   const accessToken = data.accessToken ?? data.access_token ?? data.token;
   const refreshToken = data.refreshToken ?? data.refresh_token;
   if (accessToken) await tokenStore.setToken(tokenStore.TOKEN_KEY, accessToken);

@@ -41,7 +41,7 @@ const BALANCE_EPSILON = 0.01;
 
 async function fetchBalance(): Promise<number> {
   const { data } = await api.get('/wallet');
-  const bal = data?.balance ?? data?.walletBalance ?? data?.wallet_balance ?? 0;
+  const bal = data?.balance ?? data?.walletBalance ?? 0;
   return typeof bal === 'number' ? bal : parseFloat(bal) || 0;
 }
 
