@@ -22,7 +22,7 @@ export default function LangSelectScreen() {
   const handleSelect = async (lang: 'en' | 'ar') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelected(lang);
-    setLanguage(lang, true);
+    setLanguage(lang);
     try {
       await AsyncStorage.setItem(LANG_SELECTED_KEY, '1');
     } catch (err) {

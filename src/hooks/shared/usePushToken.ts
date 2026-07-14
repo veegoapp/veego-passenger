@@ -8,6 +8,10 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    // Newer expo-notifications types require these; kept true to match the
+    // existing "always show" behavior of shouldShowAlert above.
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 

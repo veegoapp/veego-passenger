@@ -60,6 +60,9 @@ export function PassengerTrackingMap({
 
   useEffect(() => {
     if (!driverLocation) return;
+    // Cast: AnimatedRegion.timing()'s type incorrectly requires Animated's
+    // `toValue` field (from Animated.TimingAnimationConfig); the actual runtime
+    // API takes the region-shaped config below. Preserves existing behavior.
     animatedCoord.timing({
       latitude:        driverLocation.latitude,
       longitude:       driverLocation.longitude,
@@ -67,7 +70,7 @@ export function PassengerTrackingMap({
       longitudeDelta:  0,
       duration:        800,
       useNativeDriver: false,
-    }).start();
+    } as any).start();
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
   // ── Camera follow ────────────────────────────────────────────────────────────

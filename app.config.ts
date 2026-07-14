@@ -1,4 +1,6 @@
-export default ({ config }) => ({
+import type { ConfigContext } from 'expo/config';
+
+export default ({ config }: ConfigContext) => ({
   ...config,
 
   ios: {

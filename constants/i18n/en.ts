@@ -538,7 +538,6 @@ export const en = {
   invalid_promo_code: 'Invalid promo code',
   location_error: 'Location error',
   location_error_msg: 'Could not determine coordinates for selected location.',
-  enter_promo: 'Enter promo code',
   requesting: 'Requesting…',
   calculating_fare: 'Calculating fare…',
   wallet_fare: 'Wallet · EGP {p}',

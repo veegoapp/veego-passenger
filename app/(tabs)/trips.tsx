@@ -389,7 +389,10 @@ export default function TripsScreen() {
           if (!trip || !hasValidRoute || !hasValidStations) return null;
 
           const patch = trip.tripId ? (liveUpdates[String(trip.tripId)] ?? {}) : {};
-          const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status;
+          // Widened to include 'pending': patch.status comes from the live socket
+          // payload (untyped string) and can carry raw backend values not present
+          // in the ShuttleTripStatus union used for `trip.status`.
+          const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status | 'pending';
           const effectivePassCount =
             patch.passengerCount !== undefined ? patch.passengerCount : trip.passengerCount;
           const isLive = !!patch.status || patch.passengerCount !== undefined;

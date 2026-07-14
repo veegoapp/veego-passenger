@@ -67,6 +67,8 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
         style={StyleSheet.absoluteFillObject}
         initialRegion={{ ...userLocation, latitudeDelta: 0.015, longitudeDelta: 0.015 }}
         showsUserLocation={false}
+        // @ts-expect-error react-native-maps@1.20.1 types no longer declare
+        // compassEnabled, but the native view still supports and uses it.
         compassEnabled={false}
       >
         {routeCoords.length > 0 && (
