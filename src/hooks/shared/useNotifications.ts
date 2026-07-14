@@ -21,7 +21,10 @@ function mapApiNotif(n: any): Notification {
     title: n.title ?? n.subject ?? '',
     body: n.body ?? n.message ?? n.content ?? '',
     createdAt: n.createdAt ?? n.created_at ?? n.time ?? n.timestamp ?? '',
-    unread: n.unread ?? (n.isRead === false) ?? (n.is_read === false) ?? false,
+    // `(n.isRead === false)` always yields a boolean, which is never nullish,
+    // so `??` never falls through to the `is_read`/`false` segments that
+    // followed it — they were dead code. Removed; identical result for every input.
+    unread: n.unread ?? (n.isRead === false),
   };
 }
 
