@@ -15,7 +15,7 @@ import { usePromos } from '@/src/hooks/shared/usePromos';
 import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
-import { CarServiceScreen } from '@/components/car/CarServiceScreen';
+import { CarServiceScreen, CarServiceScreenHandle } from '@/components/car/CarServiceScreen';
 import { CarMap } from '@/components/car/CarMap';
 import { ScooterMap } from '@/components/scooter/ScooterMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
@@ -192,6 +192,7 @@ export default function HomeScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [searchScreenOpen, setSearchScreenOpen] = useState(false);
+  const carServiceRef = useRef<CarServiceScreenHandle>(null);
 
   const fetchSavedLocations = useCallback(() => {
     return api.get('/user/locations')
@@ -613,7 +614,14 @@ export default function HomeScreen() {
                     onPress={() => {
                       const wasDestination = activeSearchField === 'to';
                       handleSelectLocation(item);
-                      if (wasDestination) setSearchScreenOpen(false);
+                      if (wasDestination) {
+                        setSearchScreenOpen(false);
+                        // Ride is the only mode with a real booking flow today
+                        // (fare estimate → ride options → request). Hand the
+                        // selected address to it unchanged; Scooter/Delivery
+                        // have no equivalent flow to connect to yet.
+                        if (mode === 'car') carServiceRef.current?.selectDestination(item.name);
+                      }
                     }}
                   >
                     <Navigation size={15} color={c.inkSoft} />
@@ -706,7 +714,7 @@ export default function HomeScreen() {
       {/* Car */}
       {mode === 'car' && (
         <View style={{ flex: 1 }}>
-          <CarServiceScreen onBack={() => setDestinationLocation('')} />
+          <CarServiceScreen ref={carServiceRef} onBack={() => setDestinationLocation('')} />
         </View>
       )}
 

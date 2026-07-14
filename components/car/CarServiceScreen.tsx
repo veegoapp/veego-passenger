@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
   TextInput, Animated, Modal, Alert,
@@ -29,6 +29,13 @@ type CarPhase = 'idle' | 'selecting' | 'ride_options' | 'in_ride' | 'completed' 
 
 interface CarServiceScreenProps {
   onBack: () => void;
+}
+
+// Lets a parent (the home screen's destination search) hand off a selected
+// destination to the ride flow without duplicating handleSelectDestination's
+// geocode/estimate/phase logic.
+export interface CarServiceScreenHandle {
+  selectDestination: (address: string) => void;
 }
 
 function makeStyles(c: ThemeColors, insetTop: number) {
@@ -114,7 +121,7 @@ function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good
   return 'good_evening';
 }
 
-export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
+export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScreenProps>(function CarServiceScreen({ onBack }, ref) {
   const { colors: c, t, isRTL } = useTheme();
   const insets    = useSafeAreaInsets();
   const insetTop  = insets.top;
@@ -254,6 +261,10 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
     }
     handleReset();
   }, [phase, rideState.rideId, cancelRide, handleReset]);
+
+  useImperativeHandle(ref, () => ({
+    selectDestination: handleSelectDestination,
+  }), [handleSelectDestination]);
 
   const showDriverMarker = ['driver_assigned', 'arrived', 'started'].includes(rideState.status);
 
@@ -404,4 +415,4 @@ export function CarServiceScreen({ onBack }: CarServiceScreenProps) {
       )}
     </View>
   );
-}
+});
