@@ -32,17 +32,18 @@ app/                        Expo Router screens (file-based routing)
 components/                 UI components, grouped by domain
   car/                        Car (and shared car/scooter/delivery) ride flow UI
   shuttle/                    Shuttle booking flow UI
-  scooter/                    Scooter map + service screen
-  shared/                     Cross-domain UI (maps, rating, safety, QR, terms)
+  shared/                     Cross-domain UI (maps, rating, cancel-reason, emergency contact, terms)
   profile/                    Profile screen's extracted modals + shared styles/hook
   auth/                       Auth screen's extracted forms + shared styles/helpers
-  ui/                         Design-system primitives (Button, Card, Chip, Input, Badge, Loader)
+  ui/                         Design-system primitives (AppLoader, VeeGoButton, VeeGoCard)
   wallet/                     Wallet-specific components (Paymob checkout modal)
 
 src/api/                    All backend API access
   client.ts                   Axios instance, auth token attach/refresh, global error handling
   shuttleService.ts           Shuttle/booking REST calls (service-layer pattern)
   socket.ts                   Socket.IO connection lifecycle + ride status normalization
+  session.ts                   Shared session/token persistence helpers (SESSION_KEY, saveSession, persistTokens)
+  schemas.ts                   Dev-only zod "contract check" schemas for REST responses (diagnostic warnings, non-blocking)
   authEvents.ts                Lightweight pub/sub for auth:login / auth:logout
   normalizeApiUrl.ts           Sanitizes EXPO_PUBLIC_API_URL
 
@@ -51,10 +52,16 @@ src/hooks/                  Reusable stateful logic, grouped by domain
   shuttle/                     useRoutes, useShuttleSeatAvailability, useEnabledTripRequestRoutes
   shared/                      Cross-domain hooks (wallet, trips, notifications, tracking, profile, promos, push token, debt, favorites, background location)
 
+src/utils/                  Small shared helpers
+  errorMessages.ts, geoHelpers.ts, googleDirections.ts, imageCompression.ts
+
 constants/                  Static config and design tokens
   colors.ts, typography.ts, spacing.ts, radius.ts, shadows.ts, animations.ts   Design tokens
   data.ts                      Shared TypeScript types (Route, Booking, ShuttleBookingMeta, DebtInfo, etc.)
-  i18n.ts                      English/Arabic translation strings (t() lookup table)
+  i18n.ts                      Thin barrel re-exporting translations from i18n/en.ts + i18n/ar.ts (t() lookup table)
+  i18n/                        en.ts / ar.ts translation string tables
+  socketEvents.ts              SOCKET_EVENTS name constants — mirrors the backend's socket-events file, keep in sync
+  config.ts                    Map/API key notes (Directions API is proxied via backend)
 
 context/                    App-wide React Context providers
   ThemeContext, TabBarContext, ServiceControlContext, PaymentConfigContext,
@@ -76,7 +83,7 @@ VeeGo offers four services, surfaced from the same Home screen (`app/(tabs)/inde
 |---|---|---|---|---|
 | **Car** | Reached via Home; ride flow rendered inline (no dedicated `app/` route) | `components/car/CarServiceScreen.tsx` (root flow), `CarMap`, `RideOptionsSheet`, `DriverSearching`, `DriverAssignedCard`, `ChatModal` | `src/hooks/car/useRide.ts`, `useRideChat.ts` | Ride endpoints via `src/api/client.ts` directly + realtime via `src/api/socket.ts` (`ride:*` events) |
 | **Shuttle** | `app/(tabs)/routes.tsx`, `app/stations.tsx`, `app/trip-detail.tsx`, `app/ticket.tsx`, `app/trip-tracking.tsx` | `components/shuttle/RouteCard.tsx`, `TripSheet.tsx`, `ConfirmSheet.tsx`, `RequestTripSheet.tsx` | `src/hooks/shuttle/useRoutes.ts`, `useShuttleSeatAvailability.ts`, `useEnabledTripRequestRoutes.ts` | `src/api/shuttleService.ts` (dedicated service module — see §4) |
-| **Scooter** | Reached via Home; rendered inline | `components/scooter/ScooterServiceScreen.tsx`, `ScooterMap.tsx`, `scooterMapData.ts` | Reuses `src/hooks/car/useRide.ts` (see below) | Same ride endpoints as Car, via `client.ts`/`socket.ts` |
+| **Scooter** | Reached via Home; rendered inline (no dedicated screen/component folder) | Handled inside `components/car/CarServiceScreen.tsx` via its `serviceType` prop | Reuses `src/hooks/car/useRide.ts` (see below) | Same ride endpoints as Car, via `client.ts`/`socket.ts` |
 | **Delivery** | Reached via Home; rendered inline (no dedicated screen/component folder) | Handled inside `components/car/CarServiceScreen.tsx` via its `serviceType` prop (`'car' \| 'scooter' \| 'delivery'`) | Reuses `src/hooks/car/useRide.ts` | Same ride endpoints as Car/Scooter |
 
 **Important:** Car, Scooter, and Delivery are **not three separate implementations** — they share one
@@ -148,6 +155,11 @@ Two patterns currently coexist:
 There is currently no `carService.ts`, `scooterService.ts`, or `deliveryService.ts` — those domains
 call `client.ts` directly from `useRide.ts` and `CarServiceScreen.tsx`. This is a known inconsistency
 (see §6), not a bug.
+
+Additionally, `src/api/schemas.ts` provides dev-only zod "contract checks" for some REST responses
+(auth tokens, profile, notifications, wallet, bookings): a failed `safeParse` logs a warning in dev
+builds but never blocks or alters the response. This is diagnostic tooling, distinct from the
+*enforcing* zod validation of socket events inside `useRide.ts`.
 
 ### Navigation structure
 
@@ -243,17 +255,18 @@ Recommended reading order:
 9. Skim **`constants/data.ts`** for the shared domain types (`Route`, `Booking`,
    `ShuttleBookingMeta`, `DebtInfo`) referenced throughout.
 
-Don't start by reading `constants/i18n.ts` top to bottom — it's the largest file in the repo but it's
-just a translation string table, not logic.
+Don't start by reading the translation tables (`constants/i18n/en.ts` + `ar.ts`, ~686 lines each,
+re-exported via the thin `constants/i18n.ts` barrel) top to bottom — they're the largest files in the
+repo but they're just string tables, not logic.
 
 ---
 
 ## 6. Known Risks
 
 **Large files** (may be worth splitting further in future work, not touched here):
-- `constants/i18n.ts` (~1,377 lines) — flat English/Arabic string table; large but low-risk, purely
-  data.
-- `components/shuttle/TripSheet.tsx` (~976 lines) — the largest *logic* file in the repo; owns trip
+- `constants/i18n/en.ts` + `constants/i18n/ar.ts` (~686 lines each) — flat English/Arabic string
+  tables behind the `constants/i18n.ts` barrel; large but low-risk, purely data.
+- `components/shuttle/TripSheet.tsx` (~959 lines) — the largest *logic* file in the repo; owns trip
   time selection, seat picking, pricing display, and the insufficient-balance gate. High-traffic file
   for shuttle bugs.
 - `app/trip-detail.tsx` (~825 lines), `app/(tabs)/index.tsx` (~735 lines), `src/hooks/car/useRide.ts`
@@ -264,10 +277,9 @@ just a translation string table, not logic.
   module. Car, scooter, delivery, wallet, and most contexts call `client.ts` directly inline. This is
   the single biggest structural inconsistency in the codebase — don't assume a `*Service.ts` file
   exists for a domain just because one exists for shuttle.
-- **Session/token helper duplication**: small helpers like `SESSION_KEY`/`persistTokens` exist as
-  independent, near-identical copies in more than one screen file (e.g. `app/index.tsx`,
-  `app/verify-phone.tsx`, and previously `app/auth.tsx` before its extraction). They are not
-  currently unified into a single shared module.
+- **Session/token helpers are now unified** in `src/api/session.ts` (`SESSION_KEY`, `saveSession`,
+  `persistTokens`) — the previous per-screen copies were consolidated there. Auth form components
+  still import them via a compatibility re-export in `components/auth/shared.tsx`.
 - **Car/Scooter/Delivery share one implementation** (`CarServiceScreen.tsx` + `useRide.ts`)
   parameterized by `serviceType` — this is intentional reuse, not accidental duplication, but it means
   a "scooter-only" bug report may require reading car-named files.
@@ -285,7 +297,9 @@ just a translation string table, not logic.
   time are both deliberate safety checks, not incidental code.
 - `src/api/socket.ts` and any `ride:*`/`service:control:changed`/`passenger:join:trip` socket event
   names — these are a live contract with the backend; renaming or restructuring payloads here is a
-  cross-service change, not a local refactor.
+  cross-service change, not a local refactor. Event names are centralized as constants in
+  `constants/socketEvents.ts`, which mirrors the backend's socket-events file and must be kept in
+  sync with it.
 - `src/hooks/car/useRide.ts` — ride state machine validated with `zod` schemas per socket event; this
   is the most complex single hook in the app and backs three of the four service domains.
 
