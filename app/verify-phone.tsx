@@ -22,6 +22,9 @@ import { Radius } from '@/constants/radius';
 const SESSION_KEY = '@veego_session_v1';
 const OTP_LENGTH = 6;
 
+type OtpChannel = 'whatsapp' | 'sms';
+interface OtpChannelsResponse { whatsappEnabled: boolean; smsEnabled: boolean; defaultChannel: OtpChannel; }
+
 async function persistTokens(data: any) {
   const accessToken = data.accessToken ?? data.access_token ?? data.token;
   const refreshToken = data.refreshToken ?? data.refresh_token;
@@ -43,7 +46,21 @@ export default function VerifyPhoneScreen() {
   const [locked, setLocked] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+  const [availableChannels, setAvailableChannels] = useState<OtpChannel[]>(['whatsapp']);
+  const [channel, setChannel] = useState<OtpChannel>('whatsapp');
   const inputRef = useRef<any>(null);
+
+  useEffect(() => {
+    api.get('/auth/otp-channels')
+      .then(({ data }: { data: OtpChannelsResponse }) => {
+        const channels: OtpChannel[] = [];
+        if (data.whatsappEnabled) channels.push('whatsapp');
+        if (data.smsEnabled) channels.push('sms');
+        if (channels.length > 0) setAvailableChannels(channels);
+        setChannel(data.defaultChannel);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -66,7 +83,7 @@ export default function VerifyPhoneScreen() {
     setError('');
     setSuccessMsg('');
     try {
-      await api.post('/auth/send-otp', { phone });
+      await api.post('/auth/send-otp', { phone, channel });
       setLocked(false);
       setLockCountdown(0);
       setAttemptsRemaining(null);
@@ -203,6 +220,23 @@ export default function VerifyPhoneScreen() {
           )}
           {!!successMsg && !error && <Text style={styles.successText}>{successMsg}</Text>}
 
+          {availableChannels.length > 1 && (
+            <View style={styles.channelRow}>
+              {availableChannels.map((ch) => (
+                <TouchableOpacity
+                  key={ch}
+                  style={[styles.channelChip, channel === ch && styles.channelChipActive]}
+                  onPress={() => setChannel(ch)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.channelChipText, channel === ch && styles.channelChipTextActive]}>
+                    {ch === 'whatsapp' ? t('otp_channel_whatsapp') : t('otp_channel_sms')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           <TouchableOpacity
             style={[styles.primaryBtn, (otp.length < OTP_LENGTH || loading || locked) && { opacity: 0.5 }]}
             activeOpacity={0.9}
@@ -297,6 +331,15 @@ function makeStyles(c: ThemeColors) {
       fontSize: 13, color: c.accentMint, fontWeight: Typography.weight.semibold,
       textAlign: 'center', marginTop: -4,
     },
+    channelRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+    channelChip: {
+      paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
+      borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.border,
+      backgroundColor: 'rgba(255,255,255,0.75)',
+    },
+    channelChipActive: { borderColor: c.ink, backgroundColor: c.ink },
+    channelChipText: { fontSize: 13, fontWeight: Typography.weight.medium, color: c.inkSoft },
+    channelChipTextActive: { color: c.white, fontWeight: Typography.weight.semibold },
     primaryBtn: {
       width: '100%', height: 56, borderRadius: 20,
       backgroundColor: c.ink,

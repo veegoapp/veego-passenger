@@ -641,6 +641,8 @@ const en = {
   otp_code_sent: 'Code sent!',
   otp_attempts_remaining: '{n} attempts remaining',
   otp_locked_out: 'Too many incorrect attempts. Please request a new code.',
+  otp_channel_whatsapp: 'WhatsApp',
+  otp_channel_sms: 'SMS',
 
   tagline: 'Your daily route, simplified',
   lang_english: 'English',
@@ -1324,6 +1326,8 @@ const ar: typeof en = {
   otp_code_sent: 'تم إرسال الرمز!',
   otp_attempts_remaining: 'باقي {n} محاولات',
   otp_locked_out: 'محاولات خاطئة كثيرة. يرجى طلب رمز جديد.',
+  otp_channel_whatsapp: 'واتساب',
+  otp_channel_sms: 'رسالة نصية',
 
   tagline: 'طريقك اليومي، ببساطة',
   lang_english: 'الإنجليزية',

@@ -18,6 +18,7 @@ import { emitAuthEvent } from '@/src/api/authEvents';
 import TermsModal, { fetchPassengerTerms, acceptTerms, type TermsData } from '@/components/shared/TermsModal';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
+import { Radius } from '@/constants/radius';
 
 const SESSION_KEY = '@veego_session_v1';
 
@@ -475,7 +476,21 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
   const [locked, setLocked] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+  const [availableChannels, setAvailableChannels] = useState<Array<'whatsapp' | 'sms'>>(['whatsapp']);
+  const [channel, setChannel] = useState<'whatsapp' | 'sms'>('whatsapp');
   const inputRef = useRef<any>(null);
+
+  useEffect(() => {
+    api.get('/auth/otp-channels')
+      .then(({ data }: { data: { whatsappEnabled: boolean; smsEnabled: boolean; defaultChannel: 'whatsapp' | 'sms' } }) => {
+        const channels: Array<'whatsapp' | 'sms'> = [];
+        if (data.whatsappEnabled) channels.push('whatsapp');
+        if (data.smsEnabled) channels.push('sms');
+        if (channels.length > 0) setAvailableChannels(channels);
+        setChannel(data.defaultChannel);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -500,7 +515,7 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
     setError('');
     setSuccessMsg('');
     try {
-      await api.post('/auth/forgot-password', { phone: phone.trim() });
+      await api.post('/auth/forgot-password', { phone: phone.trim(), channel });
       setLocked(false);
       setLockCountdown(0);
       setAttemptsRemaining(null);
@@ -596,6 +611,23 @@ function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
             textAlign={isRTL ? 'right' : 'left'}
           />
         </View>
+
+        {availableChannels.length > 1 && (
+          <View style={styles.channelRow}>
+            {availableChannels.map((ch) => (
+              <TouchableOpacity
+                key={ch}
+                style={[styles.channelChip, channel === ch && styles.channelChipActive]}
+                onPress={() => setChannel(ch)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.channelChipText, channel === ch && styles.channelChipTextActive]}>
+                  {ch === 'whatsapp' ? t('otp_channel_whatsapp') : t('otp_channel_sms')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {!!error && <Text style={styles.fieldError}>{error}</Text>}
 
@@ -810,6 +842,15 @@ function makeStyles(c: ThemeColors) {
       marginTop: -4,
       paddingHorizontal: Spacing.xs,
     },
+    channelRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: -Spacing.xs },
+    channelChip: {
+      paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
+      borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.border,
+      backgroundColor: 'rgba(255,255,255,0.75)',
+    },
+    channelChipActive: { borderColor: c.ink, backgroundColor: c.ink },
+    channelChipText: { fontSize: 13, fontWeight: Typography.weight.medium, color: c.inkSoft },
+    channelChipTextActive: { color: c.white, fontWeight: Typography.weight.semibold },
     successText: {
       fontSize: 12.5,
       color: c.accentMint,
