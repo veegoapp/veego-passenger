@@ -219,7 +219,7 @@ export default function HomeScreen() {
     return api.get('/notifications?limit=20')
       .then(({ data }) => {
         const list: any[] = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-        setUnreadCount(list.filter((n) => !n.isRead && !n.read).length);
+        setUnreadCount(list.filter((n) => n.isRead === false).length);
       })
       .catch((err) => {
         if (__DEV__) console.warn('[Home] failed to load notification count:', err?.message);
