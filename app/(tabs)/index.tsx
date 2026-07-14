@@ -16,7 +16,6 @@ import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarServiceScreen, CarServiceScreenHandle } from '@/components/car/CarServiceScreen';
-import { ScooterMap } from '@/components/scooter/ScooterMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
