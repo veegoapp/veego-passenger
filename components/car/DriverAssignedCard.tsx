@@ -10,7 +10,7 @@ import { ChatModal } from './ChatModal';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
 import api from '@/src/api/client';
 import { getSocketSync } from '@/src/api/socket';
-import { SOCKET_EVENTS } from '@/src/constants/socketEvents';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';

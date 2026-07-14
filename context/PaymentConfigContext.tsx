@@ -6,7 +6,7 @@ import api from '@/src/api/client';
 import { tokenStore } from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { onAuthEvent } from '@/src/api/authEvents';
-import { SOCKET_EVENTS } from '@/src/constants/socketEvents';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
 export interface WalletFeature {
   isEnabled: boolean;
