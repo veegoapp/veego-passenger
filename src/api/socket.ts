@@ -1,20 +1,14 @@
 import { io, Socket } from 'socket.io-client';
 import { tokenStore, registerSocketReconnect } from './client';
+import { normalizeApiUrl } from './normalizeApiUrl';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
   console.warn('[VeeGo] EXPO_PUBLIC_API_URL is not set. Socket will not connect until BACKEND_URL is added to Replit Secrets.');
 }
 
-// ✅ Same KEY=VALUE normalization as client.ts
-const _normalized = (_rawApiUrl ?? '').includes('=')
-  ? (_rawApiUrl ?? '').split('=').slice(1).join('=').trim()
-  : (_rawApiUrl ?? '').trim();
-const _apiBase: string = _normalized.startsWith('http')
-  ? _normalized
-  : _normalized
-    ? `https://${_normalized}`
-    : 'http://localhost:3000';
+const _apiBase: string = normalizeApiUrl(_rawApiUrl);
+// Socket-only: strip a trailing /api since socket.io connects at the host root.
 const SOCKET_URL = _apiBase.replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;

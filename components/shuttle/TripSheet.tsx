@@ -18,9 +18,9 @@ import { useServiceControl } from '@/context/ServiceControlContext';
 import { Animation } from '@/constants/animations';
 import { calcSegmentPrice, DATES } from '@/constants/data';
 import { SectionLabel } from '@/components/shared/Shared';
-import api from '@/src/api/client';
 import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
 import { useEnabledTripRequestRoutes } from '@/src/hooks/shuttle/useEnabledTripRequestRoutes';
+import { useShuttleSeatAvailability } from '@/src/hooks/shuttle/useShuttleSeatAvailability';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -437,21 +437,7 @@ export function TripSheet() {
   const safeTimeIdx = Math.min(timeIdx, Math.max(0, visibleTrips.length - 1));
   const selectedTrip = visibleTrips[safeTimeIdx] ?? null;
 
-  const [liveAvailability, setLiveAvailability] = useState<{
-    availableSeats: number; bookedSeats: number; totalSeats: number;
-  } | null>(null);
-
-  useEffect(() => {
-    const tripId = selectedTrip?.id;
-    if (!tripId) { setLiveAvailability(null); return; }
-    api.get(`/shuttle/trips/${tripId}/availability`).then(({ data }) => {
-      setLiveAvailability({
-        availableSeats: data.availableSeats ?? 0,
-        bookedSeats: data.bookedSeats ?? 0,
-        totalSeats: data.totalSeats ?? 0,
-      });
-    }).catch(() => setLiveAvailability(null));
-  }, [selectedTrip?.id]);
+  const liveAvailability = useShuttleSeatAvailability(selectedTrip?.id);
 
   const selectedTripSeats: number = useMemo(() => {
     if (liveAvailability) return liveAvailability.availableSeats;

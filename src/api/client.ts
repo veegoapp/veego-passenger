@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
+import { normalizeApiUrl } from './normalizeApiUrl';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
@@ -9,14 +10,7 @@ if (!_rawApiUrl) {
     'Add BACKEND_URL to Replit Secrets to connect to a real backend.'
   );
 }
-const _normalizedUrl = (_rawApiUrl ?? '').includes('=')
-  ? (_rawApiUrl ?? '').split('=').slice(1).join('=').trim()
-  : (_rawApiUrl ?? '').trim();
-const BASE_URL: string = _normalizedUrl.startsWith('http')
-  ? _normalizedUrl
-  : _normalizedUrl
-    ? `https://${_normalizedUrl}`
-    : 'http://localhost:3000';
+const BASE_URL: string = normalizeApiUrl(_rawApiUrl);
 
 const TOKEN_KEY = 'veego_access_token';
 const REFRESH_KEY = 'veego_refresh_token';
