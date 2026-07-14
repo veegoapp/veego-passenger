@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, TextInput, RefreshControl,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, TextInput, RefreshControl, Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -118,6 +118,28 @@ function makeStyles(c: ThemeColors) {
     dotGreen: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' },
     dotRed: { width: 6, height: 6, borderRadius: 1.5, backgroundColor: c.badge },
 
+    whereToBar: {
+      position: 'absolute', left: 20, right: 20,
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      height: 52, borderRadius: 26, paddingHorizontal: Spacing.lg,
+      backgroundColor: c.white, borderWidth: 1, borderColor: c.border,
+      zIndex: 999, ...S.float,
+    },
+    whereToBarText: { flex: 1, fontSize: 13.5, color: c.inkSoft, fontWeight: Typography.weight.medium },
+
+    searchScreenRoot: { flex: 1, backgroundColor: c.background },
+    searchScreenHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md,
+    },
+    searchScreenBackBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
+    searchScreenTitle: { fontSize: 17, fontWeight: Typography.weight.semibold, color: c.ink },
+    savedSectionLabel: {
+      fontSize: 12, fontWeight: Typography.weight.semibold, color: c.inkSoft,
+      textTransform: 'uppercase', letterSpacing: 0.6,
+      paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.xs,
+    },
+
     scrollContent: { paddingHorizontal: 20, paddingTop: 0, gap: 0 },
     heroCard: { borderRadius: 28, padding: 20, marginBottom: Spacing.sm, overflow: 'hidden', ...S.float },
     heroGlow: { position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)' },
@@ -169,6 +191,7 @@ export default function HomeScreen() {
   const [nominatimResults, setNominatimResults] = useState<SavedLocation[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchScreenOpen, setSearchScreenOpen] = useState(false);
 
   const fetchSavedLocations = useCallback(() => {
     return api.get('/user/locations')
@@ -284,6 +307,21 @@ export default function HomeScreen() {
     setActiveSearchField(null);
     setTypedText('');
   }, [activeSearchField]);
+
+  // Opens the dedicated destination search screen. Destination is the
+  // default focused field so the keyboard appears only once the screen is
+  // shown, never on the home screen itself.
+  const handleOpenSearch = useCallback(() => {
+    setActiveSearchField('to');
+    setTypedText('');
+    setSearchScreenOpen(true);
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setActiveSearchField(null);
+    setTypedText('');
+    setSearchScreenOpen(false);
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -481,107 +519,114 @@ export default function HomeScreen() {
         </LinearGradient>
       </View>
 
-      {/* ═══ Search card + suggestions — absolute فوق الخريطة ═══ */}
+      {/* ═══ "Where to?" entry bar — sits directly above the bottom nav ═══ */}
       {mode !== 'shuttle' && (
-        <View style={{
-          position: 'absolute',
-          top: headerHeight,
-          left: 0,
-          right: 0,
-          zIndex: 999,
-          paddingHorizontal: Spacing.md,
-        }}>
-          {/* Transparent search card */}
-          <View style={styles.mapSearchBox}>
-            {/* Pickup */}
-            <TouchableOpacity
-              style={[styles.mapInputRow, activeSearchField === 'from' && styles.mapInputRowActive]}
-              onPress={() => { setActiveSearchField('from'); setTypedText(''); }}
-            >
-              <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotGreen} /></View>
-              {activeSearchField === 'from' ? (
-                <TextInput
-                  style={styles.mapInputText}
-                  value={typedText}
-                  onChangeText={setTypedText}
-                  placeholder={t('enter_pickup')}
-                  placeholderTextColor={c.inkSoft}
-                  textAlign={isRTL ? 'right' : 'left'}
-                  autoFocus
-                />
-              ) : (
-                <Text style={styles.mapInputText} numberOfLines={1}>{pickupLocation || t('current_location')}</Text>
-              )}
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.whereToBar, { bottom: insets.bottom + 78 }]}
+          activeOpacity={0.85}
+          onPress={handleOpenSearch}
+        >
+          <Search size={16} color={c.inkSoft} />
+          <Text style={styles.whereToBarText} numberOfLines={1}>
+            {destinationLocation || t('where_to_short')}
+          </Text>
+        </TouchableOpacity>
+      )}
 
-            <View style={styles.mapInputDivider} />
-
-            {/* Destination */}
-            <TouchableOpacity
-              style={[styles.mapInputRow, activeSearchField === 'to' && styles.mapInputRowActive]}
-              onPress={() => { setActiveSearchField('to'); setTypedText(''); }}
-            >
-              <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotRed} /></View>
-              {activeSearchField === 'to' ? (
-                <TextInput
-                  style={styles.mapInputText}
-                  value={typedText}
-                  onChangeText={setTypedText}
-                  placeholder={t('where_to')}
-                  placeholderTextColor={c.inkSoft}
-                  textAlign={isRTL ? 'right' : 'left'}
-                  autoFocus
-                />
-              ) : (
-                <Text
-                  style={[styles.mapInputText, !destinationLocation && styles.mapInputPlaceholder]}
-                  numberOfLines={1}
-                >
-                  {destinationLocation || t('where_to')}
-                </Text>
-              )}
-              <Search size={14} color={c.inkSoft} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Suggestions dropdown — right below the card */}
-          {activeSearchField && (
-            <View style={{
-              marginTop: 6,
-              backgroundColor: c.white,
-              borderRadius: Radius.lg,
-              maxHeight: 260,
-              borderWidth: 1,
-              borderColor: c.border,
-              overflow: 'hidden',
-              ...S.float,
-            }}>
-              <ScrollView keyboardShouldPersistTaps="handled">
-                {filteredSuggestions.length === 0 ? (
-                  <View style={{ padding: 20, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', lineHeight: 19 }}>
-                      {typedText.trim().length >= 2 ? t('no_results_found') : t('no_saved_locations')}
-                    </Text>
-                  </View>
-                ) : (
-                  filteredSuggestions.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 1, borderBottomColor: c.border }}
-                      onPress={() => handleSelectLocation(item)}
-                    >
-                      <Navigation size={15} color={c.inkSoft} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13.5, fontWeight: Typography.weight.medium, color: c.ink }}>{item.name}</Text>
-                        {!!item.address && <Text style={{ fontSize: 11.5, color: c.inkSoft }} numberOfLines={1}>{item.address}</Text>}
-                      </View>
-                    </TouchableOpacity>
-                  ))
-                )}
-              </ScrollView>
+      {/* ═══ Dedicated destination search screen ═══ */}
+      {searchScreenOpen && (
+        <Modal visible animationType="slide" onRequestClose={handleCloseSearch}>
+          <View style={[styles.searchScreenRoot, { paddingTop: top + 8 }]}>
+            <View style={styles.searchScreenHeader}>
+              <TouchableOpacity style={styles.searchScreenBackBtn} onPress={handleCloseSearch} activeOpacity={0.8}>
+                {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+              </TouchableOpacity>
+              <Text style={styles.searchScreenTitle}>{t('choose_dest')}</Text>
             </View>
-          )}
-        </View>
+
+            <View style={[styles.mapSearchBox, { marginHorizontal: Spacing.md }]}>
+              {/* A) Current pickup location */}
+              <TouchableOpacity
+                style={[styles.mapInputRow, activeSearchField === 'from' && styles.mapInputRowActive]}
+                onPress={() => { setActiveSearchField('from'); setTypedText(''); }}
+              >
+                <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotGreen} /></View>
+                {activeSearchField === 'from' ? (
+                  <TextInput
+                    style={styles.mapInputText}
+                    value={typedText}
+                    onChangeText={setTypedText}
+                    placeholder={t('enter_pickup')}
+                    placeholderTextColor={c.inkSoft}
+                    textAlign={isRTL ? 'right' : 'left'}
+                    autoFocus
+                  />
+                ) : (
+                  <Text style={styles.mapInputText} numberOfLines={1}>{pickupLocation || t('current_location')}</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.mapInputDivider} />
+
+              {/* B) Destination input field */}
+              <TouchableOpacity
+                style={[styles.mapInputRow, activeSearchField === 'to' && styles.mapInputRowActive]}
+                onPress={() => { setActiveSearchField('to'); setTypedText(''); }}
+              >
+                <View style={{ width: 20, alignItems: 'center' }}><View style={styles.dotRed} /></View>
+                {activeSearchField === 'to' ? (
+                  <TextInput
+                    style={styles.mapInputText}
+                    value={typedText}
+                    onChangeText={setTypedText}
+                    placeholder={t('where_to')}
+                    placeholderTextColor={c.inkSoft}
+                    textAlign={isRTL ? 'right' : 'left'}
+                    autoFocus
+                  />
+                ) : (
+                  <Text
+                    style={[styles.mapInputText, !destinationLocation && styles.mapInputPlaceholder]}
+                    numberOfLines={1}
+                  >
+                    {destinationLocation || t('where_to')}
+                  </Text>
+                )}
+                <Search size={14} color={c.inkSoft} />
+              </TouchableOpacity>
+            </View>
+
+            {/* C) Previously used destinations */}
+            <Text style={styles.savedSectionLabel}>{t('saved_locations')}</Text>
+            <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+              {filteredSuggestions.length === 0 ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', lineHeight: 19 }}>
+                    {typedText.trim().length >= 2 ? t('no_results_found') : t('no_saved_locations')}
+                  </Text>
+                </View>
+              ) : (
+                filteredSuggestions.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 1, borderBottomColor: c.border }}
+                    onPress={() => {
+                      const wasDestination = activeSearchField === 'to';
+                      handleSelectLocation(item);
+                      if (wasDestination) setSearchScreenOpen(false);
+                    }}
+                  >
+                    <Navigation size={15} color={c.inkSoft} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13.5, fontWeight: Typography.weight.medium, color: c.ink }}>{item.name}</Text>
+                      {!!item.address && <Text style={{ fontSize: 11.5, color: c.inkSoft }} numberOfLines={1}>{item.address}</Text>}
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </Modal>
       )}
 
       {/* ═══ المحتوى ═══ */}
