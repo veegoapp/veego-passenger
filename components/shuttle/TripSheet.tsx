@@ -3,12 +3,9 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, Platform, ActivityIndicator, Alert, BackHandler,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
-  Users, Heart, Clock, MapPin, AlertCircle,
-  Ticket, ArrowRight, ArrowLeft, Wallet, ChevronRight, ChevronLeft, AlertTriangle,
-  Minus, Plus, Bus,
+  AlertCircle, Ticket, ArrowRight, ArrowLeft, AlertTriangle, Minus, Plus,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -17,7 +14,6 @@ import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { Animation } from '@/constants/animations';
 import { calcSegmentPrice, DATES, formatCairoTime } from '@/constants/data';
-import { SectionLabel } from '@/components/shared/Shared';
 import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
 import { useEnabledTripRequestRoutes } from '@/src/hooks/shuttle/useEnabledTripRequestRoutes';
 import { useShuttleSeatAvailability } from '@/src/hooks/shuttle/useShuttleSeatAvailability';
@@ -26,62 +22,10 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { Shadows } from '@/constants/shadows';
 
-/**
- * §21.2: statuses that mean the trip is ahead and accepting new bookings.
- * Expanded from the old 'open'/'active' check to include all pre-departure states.
- */
-const BOOKABLE_STATUSES = ['scheduled', 'waiting_driver', 'driver_assigned', 'open', 'active'];
-const ACTIVE_STATUSES   = ['active', 'driver_assigned', 'boarding'];
-
-function isTripBookable(trip: any): boolean {
-  const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
-  return BOOKABLE_STATUSES.includes(status) && (trip?.availableSeats ?? 0) > 0;
-}
-
-function shuttleStatusLabel(trip: any, t: (key: string) => string): string {
-  const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
-  switch (status) {
-    case 'scheduled':       return t('status_confirmed');
-    case 'waiting_driver':  return t('status_searching');
-    case 'driver_assigned': return t('status_driver_assigned');
-    case 'open':            return t('status_open');
-    case 'active':          return t('status_active_trip');
-    case 'boarding':        return t('status_boarding');
-    case 'completed':       return t('status_completed');
-    case 'cancelled':       return t('status_cancelled_trip');
-    default:                return status || t('status_upcoming');
-  }
-}
-
-function shuttleStatusColor(trip: any): string {
-  const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
-  switch (status) {
-    case 'scheduled':       return '#2563eb'; // blue — confirmed, waiting min pax
-    case 'waiting_driver':  return '#d97706'; // amber — searching
-    case 'driver_assigned': return '#059669'; // green — driver found
-    case 'open':            return '#d97706'; // amber
-    case 'active':          return '#16a34a'; // green — en route
-    case 'boarding':        return '#7c3aed'; // purple — boarding now
-    case 'cancelled':       return '#dc2626'; // red
-    default:                return '#6b7280'; // gray
-  }
-}
-
-/** §21.9: Display departure dates in Africa/Cairo timezone, not UTC */
-function formatTripDateUTC(raw: string): string {
-  if (!raw) return '';
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return '';
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Africa/Cairo',
-      month: 'short',
-      day: 'numeric',
-    }).format(d);
-  } catch {
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  }
-}
+import { BOOKABLE_STATUSES, formatTripDateUTC } from './tripSheetHelpers';
+import {
+  RouteHero, StatsRow, DateSelector, TripCard, StationPicker, PriceSummary,
+} from './TripSheetSections';
 
 function makeStyles(c: ThemeColors, gs: object) {
   return StyleSheet.create({
@@ -472,71 +416,7 @@ export function TripSheet() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* ── Route Hero ── */}
-          <View style={styles.routeHero}>
-            <View style={styles.heroGlow} />
-            <View style={styles.heroTopRow}>
-              <View style={styles.heroCodeBox}>
-                <Text style={styles.heroCodeText}>{route.code}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.heroFavBtn}
-                activeOpacity={0.7}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <Heart size={16} color="rgba(255,255,255,0.7)" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.heroRouteName}>
-              {isAr ? (route.nameAr ?? route.name) : route.name}
-            </Text>
-            <Text style={styles.heroRoutePath}>
-              {isAr ? (route.fromAr ?? route.from) : route.from}
-              {isAr ? ' ← ' : ' → '}
-              {isAr ? (route.toAr ?? route.to) : route.to}
-            </Text>
-
-            {/* Journey track visualization */}
-            <View style={styles.journeyWrap}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.journeyScroll}
-              >
-                <View style={styles.journeyRow}>
-                  {route.path.map((s, i) => {
-                    const isActive = i >= lo && i <= hi;
-                    const isFirst = i === 0;
-                    const isLast = i === route.path.length - 1;
-                    return (
-                      <React.Fragment key={s.id}>
-                        <TouchableOpacity style={styles.journeyStop} onPress={() => pickStation(i)} activeOpacity={0.7}>
-                          <View style={styles.journeyPin}>
-                            <MapPin
-                              size={isFirst || isLast ? 22 : 18}
-                              color={isActive ? '#ffffff' : 'rgba(255,255,255,0.35)'}
-                              strokeWidth={isActive ? 2.5 : 1.5}
-                              fill={isActive ? 'rgba(255,255,255,0.15)' : 'transparent'}
-                            />
-                          </View>
-                          <Text style={[styles.journeyLabel, isActive && styles.journeyLabelActive]} numberOfLines={2}>
-                            {isAr ? (s.nameAr ?? s.name) : s.name}
-                          </Text>
-                        </TouchableOpacity>
-                        {!isLast && (
-                          <View style={[
-                            styles.journeyConnector,
-                            (i >= lo && i < hi) && styles.journeyConnectorActive,
-                          ]} />
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            </View>
-          </View>
+          <RouteHero styles={styles} route={route} isAr={isAr} lo={lo} hi={hi} pickStation={pickStation} />
 
           {/* ── Request a Trip button ── */}
           {tripRequestEnabledIds.has(Number(route.id)) && (
@@ -556,79 +436,21 @@ export function TripSheet() {
           )}
 
           {/* ── Info stat cards (compact horizontal) ── */}
-          <View style={styles.statsRow}>
-            <LinearGradient
-              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-              style={styles.statCard}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.statIconBox}>
-                <Bus size={13} color={c.ink} />
-              </View>
-              <View>
-                <Text style={styles.statValue}>{(route.departureCount ?? visibleTrips.length) || route.stations}</Text>
-                <Text style={styles.statLabel}>{t('departure')}</Text>
-              </View>
-            </LinearGradient>
-            <LinearGradient
-              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-              style={styles.statCard}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.statIconBox}>
-                <Clock size={13} color={c.ink} />
-              </View>
-              <View>
-                <Text style={styles.statValue}>{route.duration ?? '—'}</Text>
-                <Text style={styles.statLabel}>{t('trip_duration')}</Text>
-              </View>
-            </LinearGradient>
-            <LinearGradient
-              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-              style={styles.statCard}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.statIconBox}>
-                <Ticket size={13} color={c.ink} />
-              </View>
-              <View>
-                <Text style={styles.statValue}>{route.price}</Text>
-                <Text style={styles.statLabel}>{t('egp')}</Text>
-              </View>
-            </LinearGradient>
-          </View>
+          <StatsRow
+            styles={styles} c={c} t={t as (key: string) => string}
+            route={route} visibleTripsCount={visibleTrips.length}
+          />
 
           {/* ── Date selector strip ── */}
-          <View style={styles.dateSelectorWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingEnd: 12 }}
-            >
-              {DATES.map((d, i) => {
-                const active = i === selectedDateIdx;
-                return (
-                  <TouchableOpacity
-                    key={d.id}
-                    style={[styles.dateItem, active ? styles.dateItemActive : styles.dateItemInactive]}
-                    onPress={() => {
-                      setSelectedDateIdx(i);
-                      setTimeIdx(0);
-                      Haptics.selectionAsync();
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={[styles.dateDayLabel, active ? styles.dateDayLabelActive : styles.dateDayLabelInactive]}>
-                      {d.label}
-                    </Text>
-                    <Text style={[styles.dateDayNum, active ? styles.dateDayNumActive : styles.dateDayNumInactive]}>
-                      {d.day}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
+          <DateSelector
+            styles={styles}
+            selectedDateIdx={selectedDateIdx}
+            onSelectDate={(i) => {
+              setSelectedDateIdx(i);
+              setTimeIdx(0);
+              Haptics.selectionAsync();
+            }}
+          />
 
           {/* Service disabled banner */}
           {!shuttleServiceEnabled && (
@@ -656,179 +478,25 @@ export function TripSheet() {
                 <Text style={styles.noTripsText}>{t('no_upcoming_trips_route')}</Text>
               </View>
             ) : (
-              visibleTrips.map((trip: any, i: number) => {
-                const active = i === safeTimeIdx;
-                const bookable = isTripBookable(trip);
-                const disabled = !bookable;
-                const statusColor = shuttleStatusColor(trip);
-                const statusLbl = shuttleStatusLabel(trip, t as (key: string) => string);
-                const time = formatCairoTime(trip.departureTime ?? trip.departure_time ?? '');
-                const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
-                const bookedSeats: number = trip.bookedSeats ?? 0;
-                const totalSeats: number = trip.totalSeats ?? 14;
-                const availableSeats: number = trip.availableSeats ?? 0;
-                const minRequired: number = trip.minRequired ?? 7;
-                const message: string = trip.message ?? '';
-                const tripNum = String(i + 1).padStart(2, '0');
-
-                const fillPct = totalSeats > 0 ? (bookedSeats / totalSeats) * 100 : 0;
-                const activationPct = minRequired > 0 ? Math.min(100, (bookedSeats / minRequired) * 100) : 100;
-
-                const tripStatus = (trip.status ?? trip.shuttleStatus ?? '').toLowerCase();
-                const barColor = ACTIVE_STATUSES.includes(tripStatus)
-                  ? '#16a34a'
-                  : tripStatus === 'cancelled'
-                  ? '#dc2626'
-                  : '#d97706';
-
-                return (
-                  <TouchableOpacity
-                    key={`${trip.id ?? i}`}
-                    onPress={() => { setTimeIdx(i); Haptics.selectionAsync(); }}
-                    disabled={disabled}
-                    style={[
-                      styles.tripCard,
-                      active && styles.tripCardActive,
-                      disabled && styles.tripCardDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                  >
-                    {/* Top row: time + trip number */}
-                    <View style={styles.tripCardTopRow}>
-                      <View>
-                        <Text style={[styles.tripTime, active && styles.tripTimeActive]}>{time}</Text>
-                        <Text style={[styles.tripDateText, active && styles.tripDateTextActive]}>{date}</Text>
-                      </View>
-                      <View style={[styles.tripNumberBox, active && styles.tripNumberBoxActive]}>
-                        <Text style={[styles.tripNumberText, active && styles.tripNumberTextActive]}>
-                          #{tripNum}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Status badge */}
-                    <View style={styles.tripStatusRow}>
-                      <View style={[styles.tripStatusDot, { backgroundColor: active ? '#fff' : statusColor }]} />
-                      <Text style={[styles.tripStatusText, { color: active ? 'rgba(255,255,255,0.8)' : statusColor }]}>
-                        {statusLbl}
-                      </Text>
-                    </View>
-
-                    {/* Seat bar */}
-                    <View style={styles.tripSeatsRow}>
-                      <Text style={[styles.tripSeatsFraction, active && styles.tripSeatsFractionActive]}>
-                        {bookedSeats} / {totalSeats}
-                      </Text>
-                      <Text style={[styles.tripSeatsLabel, active && styles.tripSeatsLabelActive]}>
-                        {t('seats_left').replace(/\d+/, String(availableSeats))}
-                      </Text>
-                    </View>
-                    <View style={styles.progressBarWrap}>
-                      <View
-                        style={[
-                          styles.progressBarFill,
-                          {
-                            width: `${ACTIVE_STATUSES.includes(tripStatus) ? fillPct : activationPct}%` as any,
-                            backgroundColor: active ? (c.isDark ? c.background : '#fff') : barColor,
-                          },
-                        ]}
-                      />
-                    </View>
-
-                    {/* Available seats pill */}
-                    <View style={styles.tripAvailRow}>
-                      <View style={[styles.tripAvailDot, { backgroundColor: active ? 'rgba(255,255,255,0.7)' : (availableSeats <= 3 ? '#dc2626' : '#16a34a') }]} />
-                      <Text style={[
-                        styles.tripAvailText,
-                        { color: active ? 'rgba(255,255,255,0.75)' : (availableSeats <= 3 ? '#dc2626' : '#16a34a') },
-                      ]}>
-                        {availableSeats} available
-                      </Text>
-                    </View>
-
-                    {!!message && (
-                      <Text style={[styles.tripMessage, active && styles.tripMessageActive]} numberOfLines={2}>
-                        {message}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })
+              visibleTrips.map((trip: any, i: number) => (
+                <TripCard
+                  key={`${trip.id ?? i}`}
+                  styles={styles} c={c} t={t as (key: string) => string}
+                  trip={trip} index={i} active={i === safeTimeIdx}
+                  onPress={() => { setTimeIdx(i); Haptics.selectionAsync(); }}
+                />
+              ))
             )}
           </View>
 
           {/* ── Station picker ── */}
-          <View style={styles.sectionWrap}>
-            <Text style={styles.sectionTitle}>{t('boarding_dropoff')}</Text>
-
-            {routeLoading ? (
-              <View style={styles.loadingWrap}>
-                <ActivityIndicator size="small" color={c.ink} />
-                <Text style={styles.loadingText}>{t('loading_stops')}</Text>
-              </View>
-            ) : !hasPath ? (
-              <View style={styles.loadingWrap}>
-                <AlertCircle size={28} color={c.silver} />
-                <Text style={styles.errorText}>{t('stops_unavailable')}</Text>
-                <TouchableOpacity style={styles.retryBtn} onPress={() => openRoute(route)} activeOpacity={0.8}>
-                  <Text style={styles.retryBtnText}>{t('retry')}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <View style={[gs, styles.pickTabWrap]}>
-                  {(['from', 'to'] as const).map((p) => {
-                    const active = pick === p;
-                    const stationName = p === 'from'
-                      ? (isAr
-                          ? (route.path[safeFrom]?.nameAr ?? route.path[safeFrom]?.name ?? route.fromAr ?? route.from)
-                          : (route.path[safeFrom]?.name ?? route.from))
-                      : (isAr
-                          ? (route.path[safeTo]?.nameAr ?? route.path[safeTo]?.name ?? route.toAr ?? route.to)
-                          : (route.path[safeTo]?.name ?? route.to));
-                    return (
-                      <TouchableOpacity key={p} style={[styles.pickTab, active && styles.pickTabActive]} onPress={() => setPick(p)} activeOpacity={0.8}>
-                        <Text style={[styles.pickTabText, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]} numberOfLines={1}>
-                          {p === 'from' ? t('from') : t('to')} · {stationName}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <View style={styles.timeline}>
-                  {route.path.map((s, i) => {
-                    const inSegment = i >= lo && i <= hi;
-                    const isFrom = i === safeFrom;
-                    const isTo = i === safeTo;
-                    return (
-                      <TouchableOpacity key={s.id} style={styles.timelineRow} onPress={() => pickStation(i)} activeOpacity={0.7}>
-                        <View style={styles.timelineLeft}>
-                          <View style={[styles.tlDot, isFrom || isTo ? styles.tlDotActive : inSegment ? styles.tlDotSeg : styles.tlDotInactive]} />
-                          {i < route.path.length - 1 && (
-                            <View style={[styles.tlLine, i >= lo && i < hi ? styles.tlLineActive : styles.tlLineInactive]} />
-                          )}
-                        </View>
-                        <View style={styles.timelineRight}>
-                          <View style={styles.timelineTextRow}>
-                            <Text style={[styles.tlName, { color: inSegment ? c.ink : c.inkSoft }]}>
-                            {isAr ? (s.nameAr ?? s.name) : s.name}
-                          </Text>
-                            {(isFrom || isTo) && (
-                              <View style={styles.tlBadge}>
-                                <Text style={styles.tlBadgeText}>{isFrom ? t('from') : t('to')}</Text>
-                              </View>
-                            )}
-                          </View>
-                          <Text style={styles.tlArea}>{s.area}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </>
-            )}
-          </View>
+          <StationPicker
+            styles={styles} gs={gs} c={c} t={t as (key: string) => string} isAr={isAr}
+            route={route} routeLoading={routeLoading} hasPath={hasPath}
+            pick={pick} setPick={setPick} safeFrom={safeFrom} safeTo={safeTo}
+            lo={lo} hi={hi} pickStation={pickStation}
+            onRetry={() => openRoute(route)}
+          />
 
           {/* ── Seat selector ── */}
           {hasPath && scheduledTrips.length > 0 && (
@@ -858,33 +526,12 @@ export function TripSheet() {
           )}
 
           {/* ── Price summary ── */}
-          <View style={[styles.priceSummary, { marginHorizontal: Spacing.md, marginTop: Spacing.md }]}>
-            <View style={styles.priceIcon}>
-              <Ticket size={22} color={c.isDark ? c.background : c.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.priceSegLabel}>
-                {isAr
-                  ? (route.path[safeFrom]?.nameAr ?? route.path[safeFrom]?.name ?? route.fromAr ?? route.from)
-                  : (route.path[safeFrom]?.name ?? route.from)}
-                {' → '}
-                {isAr
-                  ? (route.path[safeTo]?.nameAr ?? route.path[safeTo]?.name ?? route.toAr ?? route.to)
-                  : (route.path[safeTo]?.name ?? route.to)}
-                {seatCount > 1 ? ` · ${seatCount} ${t('seat_count')}` : ''}
-              </Text>
-              <Text style={styles.priceTotal}>{total} {t('egp')}</Text>
-              <View style={styles.walletRow}>
-                <Wallet size={11} color={walletLow ? '#e53e3e' : '#38a169'} />
-                <Text style={[styles.walletText, walletLow ? styles.walletLow : styles.walletOk]}>
-                  {walletBalance !== null
-                    ? `${isAr ? 'المحفظة' : 'Wallet'}: ${walletBalance.toFixed(2)} ${t('egp')}`
-                    : t('wallet_loading')}
-                </Text>
-              </View>
-            </View>
-            {isRTL ? <ChevronLeft size={16} color={c.inkSoft} /> : <ChevronRight size={16} color={c.inkSoft} />}
-          </View>
+          <PriceSummary
+            styles={styles} c={c} t={t as (key: string) => string} isAr={isAr} isRTL={isRTL}
+            route={route} safeFrom={safeFrom} safeTo={safeTo}
+            seatCount={seatCount} total={total}
+            walletBalance={walletBalance} walletLow={walletLow}
+          />
 
           <View style={{ height: 120 }} />
         </ScrollView>
