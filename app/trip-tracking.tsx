@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, ShieldAlert, Star } from 'lucide-react-native';
 import { SafetySheet } from '@/components/shared/SafetySheet';
+import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useTheme } from '@/context/ThemeContext';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import { getSocket, getSocketSync } from '@/src/api/socket';
@@ -280,6 +281,9 @@ export default function TripTrackingScreen() {
         vehicle={driverInfo.vehicle}
         fallbackCoords={pickup}
       />
+
+      {/* Realtime connection indicator */}
+      <ConnectionBanner style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', zIndex: 40 }} />
 
       {/* Bottom card */}
       <View style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>

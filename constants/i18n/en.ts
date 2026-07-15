@@ -345,6 +345,7 @@ export const en = {
   call_123: 'Call 123',
   call_123_sub: 'Ambulance',
   sos_alert_sending: 'Alerting the operations team…',
+  reconnecting: 'Reconnecting…',
   share_trip: 'Share trip on WhatsApp',
   share_trip_sub: 'Send trip details to a contact',
   report_emergency: 'Report emergency',

@@ -19,6 +19,7 @@ import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import type { Station } from '@/components/shared/PassengerTrackingMap';
 import { RatingSheet } from '@/components/shared/RatingSheet';
 import { SafetySheet } from '@/components/shared/SafetySheet';
+import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -698,6 +699,9 @@ export default function TripDetailScreen() {
                 <Text style={styles.sosBtnText}>SOS</Text>
               </TouchableOpacity>
             )}
+
+            {/* Realtime connection indicator */}
+            <ConnectionBanner style={{ position: 'absolute', bottom: 12, alignSelf: 'center' }} />
           </View>
         )}
 

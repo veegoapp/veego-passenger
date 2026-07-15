@@ -346,6 +346,7 @@ export const ar: typeof en = {
   call_123: 'اتصل بـ 123',
   call_123_sub: 'الإسعاف',
   sos_alert_sending: 'جارٍ تنبيه فريق العمليات…',
+  reconnecting: 'جارٍ إعادة الاتصال…',
   share_trip: 'شارك الرحلة على واتساب',
   share_trip_sub: 'أرسل تفاصيل الرحلة لشخص تثق به',
   report_emergency: 'الإبلاغ عن طارئ',

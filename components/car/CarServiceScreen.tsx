@@ -17,6 +17,8 @@ import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
 import { SafetySheet } from '@/components/shared/SafetySheet';
+import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
+import { useRecentSearches } from '@/src/hooks/shared/useRecentSearches';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -91,6 +93,11 @@ function makeStyles(c: ThemeColors, insetTop: number) {
     locIcon: { width: 36, height: 36, borderRadius: Radius.md, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     locText: { flex: 1, fontSize: 13.5, color: c.ink, fontWeight: Typography.weight.medium },
     emptyTip: { paddingHorizontal: 20, paddingTop: 40, alignItems: 'center', gap: 10 },
+    recentsHeader: {
+      fontSize: 12, fontWeight: Typography.weight.bold, color: c.inkSoft,
+      textTransform: 'uppercase', letterSpacing: 0.6,
+      paddingHorizontal: 20, paddingTop: Spacing.md, paddingBottom: Spacing.xs,
+    },
     emptyTipText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     card: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -137,6 +144,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [searchQuery, setSearchQuery]   = useState('');
   const [selectedRide, setSelectedRide] = useState<'economy' | 'premium' | 'standard' | null>(null);
   const [safetyOpen, setSafetyOpen]     = useState(false);
+  const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
   const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
   const [estimateLoading, setEstLoading]= useState(false);
@@ -208,6 +216,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   const handleSelectDestination = useCallback(async (loc: string) => {
     Haptics.selectionAsync();
+    addRecent(loc);
     setDestination(loc);
     setPhase('ride_options');
     // Scooter/delivery have a single pricing tier — no economy/premium pick
@@ -223,7 +232,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         if (pickup) fetchEstimate(pickup, coords);
       }
     } catch {}
-  }, [fetchEstimate, serviceType]);
+  }, [fetchEstimate, serviceType, addRecent]);
 
   const handleConfirmRide = useCallback(async () => {
     if (!selectedRide) return;
@@ -308,6 +317,11 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         onUserLocation={handleUserLocation}
       />
 
+      {/* Realtime connection indicator — live phases only */}
+      {phase === 'in_ride' && (
+        <ConnectionBanner style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50 }} />
+      )}
+
 
       {/* Destination modal */}
       <Modal visible={phase === 'selecting'} animationType="slide" onRequestClose={() => setPhase('idle')}>
@@ -347,6 +361,19 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
               <Text style={styles.locText}>{searchQuery.trim()}</Text>
               {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
             </TouchableOpacity>
+          ) : recents.length > 0 ? (
+            <View>
+              <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
+              {recents.map((loc) => (
+                <TouchableOpacity key={loc} style={styles.locItem} onPress={() => handleSelectDestination(loc)} activeOpacity={0.8}>
+                  <View style={styles.locIcon}>
+                    <Search size={16} color={c.inkSoft} />
+                  </View>
+                  <Text style={styles.locText}>{loc}</Text>
+                  {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                </TouchableOpacity>
+              ))}
+            </View>
           ) : (
             <View style={styles.emptyTip}>
               <Search size={28} color={c.silver} />
