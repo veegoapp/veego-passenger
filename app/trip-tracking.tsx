@@ -10,7 +10,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import { getSocket, getSocketSync } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
-import api, { tokenStore } from '@/src/api/client';
+import { tokenStore } from '@/src/api/client';
+import { getRide } from '@/src/api/rideService';
 import { getErrorMessage } from '@/src/utils/errorMessages';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -78,9 +79,9 @@ export default function TripTrackingScreen() {
     if (!deepId) return;
 
     setDeepLinkLoading(true);
-    api.get(`/rides/${deepId}`)
+    getRide(deepId)
       .then(async (res) => {
-        const d = res.data?.data ?? res.data;
+        const d = res?.data ?? res;
         const rideStatus: string = d?.status ?? d?.rideStatus ?? '';
         const normalized = rideStatus.toLowerCase();
 
@@ -139,8 +140,8 @@ export default function TripTrackingScreen() {
   useEffect(() => {
     const rideId = params.rideId;
     if (!rideId) return;
-    api.get(`/rides/${rideId}`).then((res) => {
-      const d = res.data?.data ?? res.data;
+    getRide(rideId).then((res) => {
+      const d = res?.data ?? res;
       if (d?.driver) {
         setDriverInfo({
           name: d.driver.name,

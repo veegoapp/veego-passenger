@@ -4,7 +4,7 @@ import { Megaphone, Bus, Tag, Lightbulb } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { getNotificationPrefs, updateNotificationPrefs } from '@/src/api/userService';
 import { makeStyles, ModalHeader } from './shared';
 
 const NOTIF_KEY = '@veego_notif_v1';
@@ -19,7 +19,7 @@ export function NotificationsModal({ visible, onClose }: { visible: boolean; onC
 
   useEffect(() => {
     if (!visible) return;
-    api.get('/users/me/notifications').then(({ data }) => {
+    getNotificationPrefs().then((data) => {
       if (typeof data.notifTrips === 'boolean') setTrips(data.notifTrips);
       if (typeof data.notifPromos === 'boolean') setPromos(data.notifPromos);
       if (typeof data.notifSystem === 'boolean') setSystem(data.notifSystem);
@@ -39,7 +39,7 @@ export function NotificationsModal({ visible, onClose }: { visible: boolean; onC
   }, [visible]);
 
   const syncNotif = (apiField: string, localKey: string, value: boolean) => {
-    api.patch('/users/me/notifications', { [apiField]: value }).catch(() => {});
+    updateNotificationPrefs({ [apiField]: value }).catch(() => {});
     AsyncStorage.getItem(NOTIF_KEY).then((raw) => {
       const current = raw ? JSON.parse(raw) : {};
       AsyncStorage.setItem(NOTIF_KEY, JSON.stringify({ ...current, [localKey]: value }));

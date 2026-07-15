@@ -9,7 +9,9 @@ import * as Location from 'expo-location';
 import { ShieldAlert, Phone, Cross, MessageCircle, X, CheckCircle } from 'lucide-react-native';
 import { C, ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { sendRideSos } from '@/src/api/rideService';
+import { sendTripSos } from '@/src/api/shuttleService';
+import { getEmergencyContact } from '@/src/api/userService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -56,8 +58,8 @@ export function SafetySheet({
   useEffect(() => {
     if (!visible) return;
     setAlertState('idle');
-    api.get('/users/me/emergency-contact')
-      .then(({ data }) => setContact((data ?? null) as EmergencyContact | null))
+    getEmergencyContact()
+      .then((data) => setContact((data ?? null) as EmergencyContact | null))
       .catch(() => setContact(null));
   }, [visible]);
 
@@ -88,11 +90,11 @@ export function SafetySheet({
     try {
       if (tripId != null) {
         // Shuttle: coords are nullable — a missing GPS fix must never block an SOS.
-        await api.post(`/trips/${tripId}/sos`, { latitude: lat, longitude: lng, action });
+        await sendTripSos(tripId, { latitude: lat, longitude: lng, action });
       } else {
         // Ride: backend requires numeric lat/lng; omit only if truly unavailable
         // (the request will fail and the failure state tells the user to call directly).
-        await api.post(`/rides/${rideId}/sos`, {
+        await sendRideSos(rideId!, {
           ...(lat != null ? { latitude: lat } : {}),
           ...(lng != null ? { longitude: lng } : {}),
           action,

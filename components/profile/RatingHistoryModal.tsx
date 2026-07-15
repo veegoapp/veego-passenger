@@ -3,7 +3,7 @@ import { View, Text, ScrollView, SafeAreaView, Modal } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { getGivenRatings } from '@/src/api/userService';
 import { S } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -29,7 +29,7 @@ export function RatingHistoryModal({ visible, onClose }: { visible: boolean; onC
   useEffect(() => {
     if (!visible) return;
     setLoading(true);
-    api.get('/user/ratings/given').then(({ data }) => {
+    getGivenRatings().then((data) => {
       setRatings(Array.isArray(data?.data) ? data.data : []);
     }).catch(() => {
       setRatings([]);

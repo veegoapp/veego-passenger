@@ -162,3 +162,17 @@ export async function getTripAvailability(tripId: string | number) {
   const { data } = await api.get(`/shuttle/trips/${tripId}/availability`);
   return data;
 }
+
+/** POST /trips/:id/sos — durable passenger SOS on a shuttle trip (coords nullable). */
+export async function sendTripSos(
+  tripId: string | number,
+  body: { latitude?: number | null; longitude?: number | null; notes?: string; action?: string },
+): Promise<any> {
+  const { data } = await api.post(`/trips/${tripId}/sos`, body);
+  return data;
+}
+
+/** POST /shuttle/ratings — rate the driver after a completed shuttle trip. */
+export async function submitShuttleRating(body: { tripId: number; rateeId: number; stars: number }): Promise<void> {
+  await api.post('/shuttle/ratings', body);
+}

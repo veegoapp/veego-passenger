@@ -7,7 +7,7 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import { Camera, Eye, EyeOff, KeyRound, ChevronUp, ChevronDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { updatePassword } from '@/src/api/userService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { makeStyles, ModalHeader, useProfileInfo } from './shared';
@@ -75,7 +75,7 @@ export function PersonalInfoModal({
       return;
     }
     try {
-      await api.patch('/users/me/password', { currentPassword: currentPw, newPassword: newPw });
+      await updatePassword(currentPw, newPw);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(t('saved'), t('password_updated'));
       setPwOpen(false);

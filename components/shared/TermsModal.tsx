@@ -7,7 +7,7 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { getPassengerTerms, acceptPassengerTerms } from '@/src/api/userService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -23,12 +23,12 @@ export interface TermsData {
 }
 
 export async function fetchPassengerTerms(): Promise<TermsData> {
-  const { data } = await api.get('/terms/passenger');
+  const data = await getPassengerTerms();
   return data as TermsData;
 }
 
 export async function acceptTerms(version: number): Promise<void> {
-  await api.post('/terms/accept', { app: 'passenger', version });
+  await acceptPassengerTerms(version);
   await storeAcceptedVersion(version);
 }
 

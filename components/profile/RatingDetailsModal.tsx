@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Modal } from 'r
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { getPassengerRating } from '@/src/api/userService';
 import { S } from '@/constants/colors';
 import { Radius } from '@/constants/radius';
 import { makeStyles, ModalHeader } from './shared';
@@ -18,7 +18,7 @@ export function RatingDetailsModal({ visible, onClose, onOpenHistory }: { visibl
 
   useEffect(() => {
     if (!visible) return;
-    api.get('/user/me/passenger-rating').then(({ data }) => {
+    getPassengerRating().then((data) => {
       setRatingData({
         averageRating: typeof data.averageRating === 'number' ? data.averageRating : null,
         totalRatings: data.totalRatings ?? 0,

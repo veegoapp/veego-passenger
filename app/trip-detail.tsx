@@ -12,7 +12,8 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
-import { cancelBooking } from '@/src/api/shuttleService';
+import { cancelBooking, submitShuttleRating } from '@/src/api/shuttleService';
+import { getGivenRatings } from '@/src/api/userService';
 import { getSocket } from '@/src/api/socket';
 import api, { tokenStore } from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
@@ -322,9 +323,9 @@ export default function TripDetailScreen() {
     const status = liveStatus ?? trip?.status ?? '';
     if (status !== 'completed' || !trip?.id) return;
 
-    api.get('/user/ratings/given')
+    getGivenRatings()
       .then((res) => {
-        const items: any[] = res.data?.data ?? res.data ?? [];
+        const items: any[] = res?.data ?? res ?? [];
         const tripIdStr = String(trip.id);
         const alreadyRated = items.some(
           (r: any) => r.tripId != null && String(r.tripId) === tripIdStr,
@@ -531,7 +532,7 @@ export default function TripDetailScreen() {
       return;
     }
     try {
-      await api.post('/shuttle/ratings', {
+      await submitShuttleRating({
         tripId: Number(trip.id),
         rateeId: trip.driverUserId,
         stars: Math.round(stars),

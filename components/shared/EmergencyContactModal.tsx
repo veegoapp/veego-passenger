@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { ArrowLeft, ArrowRight, User, Phone, MessageCircle, Save } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { getEmergencyContact, updateEmergencyContact } from '@/src/api/userService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -34,8 +34,8 @@ export default function EmergencyContactModal({ visible, onClose }: EmergencyCon
     if (!visible) return;
     setSaved(false);
     setLoading(true);
-    api.get('/users/me/emergency-contact')
-      .then(({ data }) => {
+    getEmergencyContact()
+      .then((data) => {
         const contact = data as EmergencyContact | null;
         setSavedContact(contact);
         setName(contact?.name ?? '');
@@ -52,7 +52,7 @@ export default function EmergencyContactModal({ visible, onClose }: EmergencyCon
     }
     setSaving(true);
     try {
-      const { data } = await api.patch('/users/me/emergency-contact', { name: name.trim(), phone: phone.trim() });
+      const data = await updateEmergencyContact({ name: name.trim(), phone: phone.trim() });
       setSavedContact(data as EmergencyContact);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);

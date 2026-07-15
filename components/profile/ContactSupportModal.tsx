@@ -8,7 +8,7 @@ import { Check, ImagePlus, X, CircleAlert } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
-import api from '@/src/api/client';
+import { createSupportTicket, uploadSupportAttachment } from '@/src/api/userService';
 import { compressImageForUpload } from '@/src/utils/imageCompression';
 import { Spacing } from '@/constants/spacing';
 import { makeStyles, ModalHeader } from './shared';
@@ -73,7 +73,7 @@ export function ContactSupportModal({ visible, onClose }: { visible: boolean; on
         const compressed = await compressImageForUpload(att.uri);
         const form = new FormData();
         form.append('file', { uri: compressed.uri, name: compressed.name, type: compressed.type } as any);
-        await api.post(`/support/tickets/${ticketId}/attachments`, form);
+        await uploadSupportAttachment(ticketId, form);
         setAttachments((prev) => prev.map((a) => (a.id === att.id ? { ...a, status: 'done' } : a)));
       } catch {
         anyFailed = true;
@@ -90,10 +90,7 @@ export function ContactSupportModal({ visible, onClose }: { visible: boolean; on
     }
     setLoading(true);
     try {
-      const { data: ticket } = await api.post('/support/tickets', {
-        issueType: selectedIssue,
-        message: message.trim(),
-      });
+      const ticket = await createSupportTicket(selectedIssue, message.trim());
       const ticketId = ticket?.id;
       const anyFailed = ticketId && attachments.length > 0 ? await uploadAttachments(ticketId) : false;
       setHadAttachmentError(anyFailed);
