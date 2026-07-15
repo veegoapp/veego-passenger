@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   Platform, Linking, I18nManager,
@@ -6,7 +6,7 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { ShieldAlert, Phone, MessageCircle, AlertTriangle, X, CheckCircle } from 'lucide-react-native';
+import { ShieldAlert, Phone, Cross, MessageCircle, X, CheckCircle } from 'lucide-react-native';
 import { C, ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
@@ -14,113 +14,147 @@ import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
+// Backend SOS action taxonomy — any of the three sheet actions raises the
+// same durable admin alert (one open sos_event per ride/trip; later actions
+// append to it server-side, so firing several in a row is safe).
+type SosAction = 'call_police' | 'call_ambulance' | 'share_trip';
+
 interface SafetySheetProps {
   visible: boolean;
   onClose: () => void;
-  rideId: string | null;
-  driverName?: string;
-  vehicle?: string;
-  plate?: string;
+  /** Car/scooter/delivery ride — alerts via POST /rides/:id/sos (coords REQUIRED by backend). */
+  rideId?: string | null;
+  /** Shuttle trip — alerts via POST /trips/:id/sos (coords nullable). Exactly one of rideId/tripId should be set. */
+  tripId?: string | number | null;
+  driverName?: string | null;
+  vehicle?: string | null;
+  plate?: string | null;
+  routeName?: string | null;
+  /**
+   * Last-resort coordinates (e.g. the ride's pickup point) used when no GPS
+   * fix is available — the ride SOS endpoint rejects a body without lat/lng.
+   */
+  fallbackCoords?: { latitude: number; longitude: number } | null;
 }
 
-export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, plate }: SafetySheetProps) {
+type AlertState = 'idle' | 'sending' | 'sent' | 'failed';
+
+interface EmergencyContact { name?: string | null; phone?: string | null; }
+
+export function SafetySheet({
+  visible, onClose, rideId, tripId, driverName, vehicle, plate, routeName, fallbackCoords,
+}: SafetySheetProps) {
   const { t, colors: c } = useTheme();
   const isRTL = I18nManager.isRTL;
   const styles = useMemo(() => makeSheetStyles(c), [c]);
 
-  const [sosLoading, setSosLoading] = useState(false);
-  const [sosSuccess, setSosSuccess] = useState(false);
-  const [sosError, setSosError] = useState('');
+  const [alertState, setAlertState] = useState<AlertState>('idle');
+  const [contact, setContact] = useState<EmergencyContact | null>(null);
 
-  const handleClose = useCallback(() => {
-    setSosSuccess(false);
-    setSosError('');
-    setSosLoading(false);
-    onClose();
-  }, [onClose]);
+  // Prefetch the saved emergency contact so the WhatsApp share opens
+  // instantly on tap. Best-effort — no contact just means a generic share.
+  useEffect(() => {
+    if (!visible) return;
+    setAlertState('idle');
+    api.get('/users/me/emergency-contact')
+      .then(({ data }) => setContact((data ?? null) as EmergencyContact | null))
+      .catch(() => setContact(null));
+  }, [visible]);
 
-  const handleCall122 = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    Linking.openURL('tel:122');
-  }, []);
-
-  const handleWhatsApp = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    let lat: number | null = null;
-    let lng: number | null = null;
-
+  const getCoords = useCallback(async (): Promise<{ lat: number | null; lng: number | null }> => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        lat = loc.coords.latitude;
-        lng = loc.coords.longitude;
+        const last = await Location.getLastKnownPositionAsync();
+        if (last) return { lat: last.coords.latitude, lng: last.coords.longitude };
+        const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        return { lat: cur.coords.latitude, lng: cur.coords.longitude };
       }
     } catch {}
+    return {
+      lat: fallbackCoords?.latitude ?? null,
+      lng: fallbackCoords?.longitude ?? null,
+    };
+  }, [fallbackCoords]);
 
-    const mapsLink = lat != null && lng != null
-      ? `https://maps.google.com/?q=${lat},${lng}`
-      : '';
+  /**
+   * Fire-and-forget durable alert to operations. Never blocks or delays the
+   * local action (dialer/WhatsApp) — the passenger's own call comes first.
+   */
+  const sendSos = useCallback(async (action: SosAction) => {
+    if (rideId == null && tripId == null) return;
+    setAlertState((s) => (s === 'sent' ? 'sent' : 'sending'));
+    const { lat, lng } = await getCoords();
+    try {
+      if (tripId != null) {
+        // Shuttle: coords are nullable — a missing GPS fix must never block an SOS.
+        await api.post(`/trips/${tripId}/sos`, { latitude: lat, longitude: lng, action });
+      } else {
+        // Ride: backend requires numeric lat/lng; omit only if truly unavailable
+        // (the request will fail and the failure state tells the user to call directly).
+        await api.post(`/rides/${rideId}/sos`, {
+          ...(lat != null ? { latitude: lat } : {}),
+          ...(lng != null ? { longitude: lng } : {}),
+          action,
+        });
+      }
+      setAlertState('sent');
+    } catch {
+      setAlertState((s) => (s === 'sent' ? 'sent' : 'failed'));
+    }
+  }, [rideId, tripId, getCoords]);
+
+  const handleCallPolice = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    sendSos('call_police');
+    Linking.openURL('tel:122');
+  }, [sendSos]);
+
+  const handleCallAmbulance = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    sendSos('call_ambulance');
+    Linking.openURL('tel:123');
+  }, [sendSos]);
+
+  const handleShareTrip = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    sendSos('share_trip');
+
+    const { lat, lng } = await getCoords();
+    const mapsLink = lat != null && lng != null ? `https://maps.google.com/?q=${lat},${lng}` : '';
 
     const lines: string[] = [t('safety_whatsapp_intro')];
+    if (routeName)  lines.push(routeName);
     if (driverName) lines.push(`${t('driver_name_label')}: ${driverName}`);
     if (vehicle)    lines.push(`${t('vehicle_type')}: ${vehicle}`);
     if (plate)      lines.push(`${t('plate_number')}: ${plate}`);
     if (mapsLink)   lines.push(`${t('safety_location')}: ${mapsLink}`);
-
     const message = encodeURIComponent(lines.join('\n'));
-    Linking.openURL(`whatsapp://send?text=${message}`).catch(() => {
-      Linking.openURL(`https://wa.me/?text=${message}`);
-    });
-  }, [t, driverName, vehicle, plate]);
 
-  const handleReportEmergency = useCallback(async () => {
-    if (!rideId) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Linking.openURL('tel:123');
-
-    setSosLoading(true);
-    setSosError('');
-
-    let lat: number | null = null;
-    let lng: number | null = null;
-
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-        lat = loc.coords.latitude;
-        lng = loc.coords.longitude;
-      }
-    } catch {}
-
-    try {
-      await api.post(`/rides/${rideId}/sos`, {
-        ...(lat != null ? { latitude: lat } : {}),
-        ...(lng != null ? { longitude: lng } : {}),
-        notes: 'SOS triggered by passenger',
+    // Open the chat with the saved emergency contact when one exists, so the
+    // passenger only has to press Send; otherwise fall back to a generic share.
+    const phoneClean = contact?.phone ? contact.phone.replace(/\D/g, '') : '';
+    if (phoneClean) {
+      Linking.openURL(`whatsapp://send?phone=${phoneClean}&text=${message}`).catch(() => {
+        Linking.openURL(`https://wa.me/${phoneClean}?text=${message}`);
       });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setSosSuccess(true);
-      setTimeout(() => handleClose(), 2500);
-    } catch {
-      setSosError(t('sos_error'));
-    } finally {
-      setSosLoading(false);
+    } else {
+      Linking.openURL(`whatsapp://send?text=${message}`).catch(() => {
+        Linking.openURL(`https://wa.me/?text=${message}`);
+      });
     }
-  }, [rideId, t, handleClose]);
+  }, [sendSos, getCoords, contact, routeName, driverName, vehicle, plate, t]);
 
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={handleClose}
+      onRequestClose={onClose}
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.handle} />
 
@@ -129,64 +163,58 @@ export function SafetySheet({ visible, onClose, rideId, driverName, vehicle, pla
               <ShieldAlert size={22} color="#dc2626" />
             </View>
             <Text style={styles.title}>{t('safety_title')}</Text>
-            <TouchableOpacity style={styles.closeBtn} onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <X size={18} color={C.inkSoft} />
             </TouchableOpacity>
           </View>
 
-          {sosSuccess ? (
-            <View style={styles.successBlock}>
-              <CheckCircle size={36} color="#22a06b" />
-              <Text style={styles.successText}>{t('emergency_notified')}</Text>
-            </View>
-          ) : (
-            <View style={styles.options}>
-              <TouchableOpacity style={[styles.optionBtn, styles.optionCall]} onPress={handleCall122} activeOpacity={0.85}>
-                <View style={[styles.optionIcon, { backgroundColor: 'rgba(220,38,38,0.12)' }]}>
-                  <Phone size={20} color="#dc2626" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.optionLabel, { color: '#dc2626' }]}>{t('call_122')}</Text>
-                  <Text style={styles.optionSub}>{t('call_122_sub')}</Text>
-                </View>
-              </TouchableOpacity>
+          <View style={styles.options}>
+            <TouchableOpacity style={[styles.optionBtn, styles.optionCall]} onPress={handleCallPolice} activeOpacity={0.85}>
+              <View style={[styles.optionIcon, { backgroundColor: 'rgba(220,38,38,0.12)' }]}>
+                <Phone size={20} color="#dc2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionLabel, { color: '#dc2626' }]}>{t('call_122')}</Text>
+                <Text style={styles.optionSub}>{t('call_122_sub')}</Text>
+              </View>
+            </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.optionBtn, styles.optionWhatsApp]} onPress={handleWhatsApp} activeOpacity={0.85}>
-                <View style={[styles.optionIcon, { backgroundColor: 'rgba(37,211,102,0.12)' }]}>
-                  <MessageCircle size={20} color="#25d366" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.optionLabel, { color: '#25d366' }]}>{t('share_trip')}</Text>
-                  <Text style={styles.optionSub}>{t('share_trip_sub')}</Text>
-                </View>
-              </TouchableOpacity>
+            <TouchableOpacity style={[styles.optionBtn, styles.optionCall]} onPress={handleCallAmbulance} activeOpacity={0.85}>
+              <View style={[styles.optionIcon, { backgroundColor: 'rgba(234,88,12,0.12)' }]}>
+                <Cross size={20} color="#ea580c" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionLabel, { color: '#ea580c' }]}>{t('call_123')}</Text>
+                <Text style={styles.optionSub}>{t('call_123_sub')}</Text>
+              </View>
+            </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.optionBtn, styles.optionSOS, sosLoading && { opacity: 0.7 }]}
-                onPress={handleReportEmergency}
-                disabled={sosLoading || !rideId}
-                activeOpacity={0.85}
-              >
-                {sosLoading ? (
-                  <AppLoader size={24} />
-                ) : (
-                  <>
-                    <View style={[styles.optionIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                      <AlertTriangle size={20} color="#fff" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.optionLabel, { color: '#fff' }]}>{t('report_emergency')}</Text>
-                      <Text style={[styles.optionSub, { color: 'rgba(255,255,255,0.75)' }]}>{t('report_emergency_sub')}</Text>
-                    </View>
-                  </>
-                )}
-              </TouchableOpacity>
+            <TouchableOpacity style={[styles.optionBtn, styles.optionWhatsApp]} onPress={handleShareTrip} activeOpacity={0.85}>
+              <View style={[styles.optionIcon, { backgroundColor: 'rgba(37,211,102,0.12)' }]}>
+                <MessageCircle size={20} color="#25d366" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionLabel, { color: '#25d366' }]}>{t('share_trip')}</Text>
+                <Text style={styles.optionSub}>{t('share_trip_sub')}</Text>
+              </View>
+            </TouchableOpacity>
 
-              {!!sosError && (
-                <Text style={styles.errorText}>{sosError}</Text>
-              )}
-            </View>
-          )}
+            {alertState === 'sending' && (
+              <View style={[styles.statusRow, isRTL && styles.rowRTL]}>
+                <AppLoader size={18} />
+                <Text style={styles.statusSending}>{t('sos_alert_sending')}</Text>
+              </View>
+            )}
+            {alertState === 'sent' && (
+              <View style={[styles.statusRow, isRTL && styles.rowRTL]}>
+                <CheckCircle size={18} color="#22a06b" />
+                <Text style={styles.statusSent}>{t('emergency_notified')}</Text>
+              </View>
+            )}
+            {alertState === 'failed' && (
+              <Text style={styles.errorText}>{t('sos_error')}</Text>
+            )}
+          </View>
         </View>
       </View>
     </Modal>
@@ -221,12 +249,10 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 20,
+    gap: Spacing.md,
+    marginBottom: 18,
   },
-  rowRTL: {
-    flexDirection: 'row-reverse',
-  },
+  rowRTL: { flexDirection: 'row-reverse' },
   shieldIcon: {
     width: 40,
     height: 40,
@@ -240,71 +266,70 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     fontSize: Typography.size.lg,
     fontWeight: Typography.weight.bold,
     color: c.ink,
-    letterSpacing: -0.4,
   },
   closeBtn: {
     width: 32,
     height: 32,
-    borderRadius: Radius.lg,
-    backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#f4f4f6',
+    borderRadius: 16,
+    backgroundColor: c.mist,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  options: {
-    gap: 10,
-  },
+  options: { gap: Spacing.md },
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
   },
   optionCall: {
-    backgroundColor: c.isDark ? 'rgba(220,38,38,0.12)' : '#fff5f5',
-    borderColor: c.isDark ? 'rgba(220,38,38,0.22)' : 'rgba(220,38,38,0.15)',
+    backgroundColor: c.isDark ? 'rgba(220,38,38,0.08)' : 'rgba(220,38,38,0.04)',
+    borderColor: 'rgba(220,38,38,0.35)',
   },
   optionWhatsApp: {
-    backgroundColor: c.isDark ? 'rgba(37,211,102,0.10)' : '#f0fff4',
-    borderColor: c.isDark ? 'rgba(37,211,102,0.18)' : 'rgba(37,211,102,0.2)',
-  },
-  optionSOS: {
-    backgroundColor: '#dc2626',
-    borderColor: 'transparent',
+    backgroundColor: c.isDark ? 'rgba(37,211,102,0.08)' : 'rgba(37,211,102,0.05)',
+    borderColor: 'rgba(37,211,102,0.4)',
   },
   optionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   optionLabel: {
-    fontSize: 15,
+    fontSize: Typography.size.md,
     fontWeight: Typography.weight.bold,
   },
   optionSub: {
-    fontSize: 11.5,
-    color: c.inkSoft,
+    fontSize: Typography.size.xs,
+    color: C.inkSoft,
     marginTop: 2,
   },
-  successBlock: {
+  statusRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    gap: 14,
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
   },
-  successText: {
-    fontSize: Typography.size.md,
+  statusSending: {
+    fontSize: Typography.size.sm,
+    color: C.inkSoft,
     fontWeight: Typography.weight.semibold,
+  },
+  statusSent: {
+    fontSize: Typography.size.sm,
     color: '#22a06b',
-    textAlign: 'center',
+    fontWeight: Typography.weight.bold,
   },
   errorText: {
-    fontSize: 12.5,
-    color: '#dc2626',
     textAlign: 'center',
-    marginTop: Spacing.xs,
+    fontSize: Typography.size.sm,
+    color: '#dc2626',
+    fontWeight: Typography.weight.semibold,
+    paddingTop: Spacing.sm,
   },
 }); }

@@ -1,16 +1,12 @@
 import { useRef, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Linking, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Linking } from 'react-native';
 import { Star, Clock, MessageCircle, Phone, X, AlertTriangle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
-import api from '@/src/api/client';
-import { getSocketSync } from '@/src/api/socket';
-import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -26,17 +22,18 @@ interface DriverAssignedCardProps {
   waitingChargeStatus?: 'none' | 'active' | 'capped';
   onCancel: () => void;
   onStart?: () => void;
+  /** Opens the unified SafetySheet — the button itself only renders once the ride has started. */
+  onSOS?: () => void;
 }
 
 export function DriverAssignedCard({
   visible, rideType, destination, driver, rideId, rideStatus,
-  waitingCharge, waitingChargeStatus, onCancel, onStart,
+  waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const [chatOpen, setChatOpen] = useState(false);
-  const [sosBusy, setSosBusy] = useState(false);
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -52,44 +49,6 @@ export function DriverAssignedCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const url = `tel:${driver.phone}`;
     Linking.canOpenURL(url).then((ok: boolean) => { if (ok) Linking.openURL(url); }).catch(() => {});
-  };
-
-  // Mirrors Driver App's handleSOS in app/ride/[rideId].tsx: best-effort
-  // location, socket if connected else REST fallback, same busy/error handling.
-  const handleSOS = async () => {
-    if (sosBusy) return;
-    setSosBusy(true);
-    try {
-      let latitude = 0;
-      let longitude = 0;
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          latitude = pos.coords.latitude;
-          longitude = pos.coords.longitude;
-        }
-      } catch {
-        // location unavailable — backend will use last known position
-      }
-
-      const socket = getSocketSync();
-      if (socket) {
-        const numericRideId = rideId ? Number(rideId) : undefined;
-        socket.emit(SOCKET_EVENTS.PASSENGER_SOS, {
-          ...(numericRideId != null && !isNaN(numericRideId) ? { rideId: numericRideId } : {}),
-          latitude,
-          longitude,
-        });
-      } else {
-        await api.post(`/rides/${rideId ?? ''}/sos`, { latitude, longitude });
-      }
-      Alert.alert(t('sos_sent_title'), t('sos_sent_msg'));
-    } catch {
-      Alert.alert(t('sos_failed_title'), t('sos_failed_msg'));
-    } finally {
-      setSosBusy(false);
-    }
   };
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
@@ -207,15 +166,19 @@ export function DriverAssignedCard({
             <X size={20} color="#eb5a5a" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.iconBtn, styles.sosBtn, { opacity: sosBusy ? 0.6 : 1 }]}
-            activeOpacity={0.8}
-            onPress={handleSOS}
-            disabled={sosBusy}
-            accessibilityLabel="Send SOS"
-          >
-            <AlertTriangle size={18} color="#ffffff" />
-          </TouchableOpacity>
+          {rideStatus === 'started' && (
+            <TouchableOpacity
+              style={[styles.iconBtn, styles.sosBtn]}
+              activeOpacity={0.8}
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                onSOS?.();
+              }}
+              accessibilityLabel="Send SOS"
+            >
+              <AlertTriangle size={18} color="#ffffff" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

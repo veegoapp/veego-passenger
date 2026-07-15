@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, 
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, Star } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, ShieldAlert, Star } from 'lucide-react-native';
+import { SafetySheet } from '@/components/shared/SafetySheet';
 import { useTheme } from '@/context/ThemeContext';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import { getSocket, getSocketSync } from '@/src/api/socket';
@@ -66,6 +67,7 @@ export default function TripTrackingScreen() {
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [status, setStatus] = useState<TripStatus>('driver_assigned');
   const [deepLinkLoading, setDeepLinkLoading] = useState(false);
+  const [safetyOpen, setSafetyOpen] = useState(false);
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
   const socketListening = useRef(false);
 
@@ -256,7 +258,28 @@ export default function TripTrackingScreen() {
           )}
           <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
         </View>
+        {/* SOS — only once the ride is underway */}
+        {status === 'started' && (
+          <TouchableOpacity
+            style={styles.sosBtn}
+            onPress={() => setSafetyOpen(true)}
+            activeOpacity={0.85}
+            accessibilityLabel="Send SOS"
+          >
+            <ShieldAlert size={16} color="#fff" />
+            <Text style={styles.sosBtnText}>SOS</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      <SafetySheet
+        visible={safetyOpen}
+        onClose={() => setSafetyOpen(false)}
+        rideId={params.rideId ?? params.id ?? null}
+        driverName={driverInfo.name}
+        vehicle={driverInfo.vehicle}
+        fallbackCoords={pickup}
+      />
 
       {/* Bottom card */}
       <View style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>
@@ -356,6 +379,14 @@ const styles = StyleSheet.create({
   },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusText: { fontSize: 13, fontWeight: Typography.weight.semibold },
+  sosBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#dc2626', borderRadius: 99,
+    paddingHorizontal: Spacing.md, paddingVertical: 8,
+    shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45, shadowRadius: 8, elevation: 6,
+  },
+  sosBtnText: { fontSize: Typography.size.xs, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 
   card: {
     position: 'absolute', bottom: 0, left: 0, right: 0,

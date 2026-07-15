@@ -16,6 +16,7 @@ import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
+import { SafetySheet } from '@/components/shared/SafetySheet';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -135,6 +136,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [userCoords, setUserCoords]     = useState<Coords | null>(null);
   const [searchQuery, setSearchQuery]   = useState('');
   const [selectedRide, setSelectedRide] = useState<'economy' | 'premium' | 'standard' | null>(null);
+  const [safetyOpen, setSafetyOpen]     = useState(false);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
   const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
   const [estimateLoading, setEstLoading]= useState(false);
@@ -395,6 +397,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
             { text: t('yes_cancel'), style: 'destructive', onPress: handleCancel },
           ]);
         }}
+        onSOS={() => setSafetyOpen(true)}
+      />
+
+      <SafetySheet
+        visible={safetyOpen}
+        onClose={() => setSafetyOpen(false)}
+        rideId={rideState.rideId}
+        driverName={rideState.driver?.name}
+        vehicle={rideState.driver?.vehicle}
+        plate={rideState.driver?.plateNumber}
+        fallbackCoords={userCoordsRef.current}
       />
 
       {/* Completed */}

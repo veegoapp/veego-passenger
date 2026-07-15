@@ -341,7 +341,10 @@ export const en = {
 
   safety_title: 'Safety',
   call_122: 'Call 122',
-  call_122_sub: 'Emergency services',
+  call_122_sub: 'Police emergency',
+  call_123: 'Call 123',
+  call_123_sub: 'Ambulance',
+  sos_alert_sending: 'Alerting the operations team…',
   share_trip: 'Share trip on WhatsApp',
   share_trip_sub: 'Send trip details to a contact',
   report_emergency: 'Report emergency',

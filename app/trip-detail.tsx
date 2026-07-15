@@ -4,7 +4,6 @@ import {
   Alert, Modal, Pressable,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
-import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users } from 'lucide-react-native';
@@ -19,6 +18,7 @@ import api, { tokenStore } from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import type { Station } from '@/components/shared/PassengerTrackingMap';
 import { RatingSheet } from '@/components/shared/RatingSheet';
+import { SafetySheet } from '@/components/shared/SafetySheet';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -211,6 +211,7 @@ export default function TripDetailScreen() {
   const [shuttleAlreadyRated, setShuttleAlreadyRated] = useState(false);
   const [stations, setStations] = useState<Station[]>([]);
   const [boarded, setBoarded] = useState(false);
+  const [safetyOpen, setSafetyOpen] = useState(false);
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
 
   const tripIdRef = useRef<string | number | null>(null);
@@ -545,40 +546,7 @@ export default function TripDetailScreen() {
 
   const handleSOS = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    Alert.alert(
-      '🚨 SOS',
-      'هل تحتاج إلى مساعدة طارئة؟',
-      [
-        { text: 'إلغاء', style: 'cancel' },
-        {
-          text: 'إرسال تنبيه', style: 'destructive',
-          onPress: async () => {
-            const currentRideId = tripIdRef.current;
-            try {
-              const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-              getSocket().then((socket) => {
-                socket.emit('passenger:sos', {
-                  tripId: currentRideId,
-                  latitude: loc.coords.latitude,
-                  longitude: loc.coords.longitude,
-                  notes: 'Passenger SOS',
-                });
-              }).catch(() => {});
-            } catch {
-              getSocket().then((socket) => {
-                socket.emit('passenger:sos', {
-                  tripId: currentRideId,
-                  latitude: null,
-                  longitude: null,
-                  notes: 'Passenger SOS — location unavailable',
-                });
-              }).catch(() => {});
-            }
-            Alert.alert('تم الإرسال', 'تم إرسال تنبيه الطوارئ إلى فريق الدعم.');
-          },
-        },
-      ],
-    );
+    setSafetyOpen(true);
   };
 
   const deepLink = `veego://shuttle/trip/${id}`;
@@ -723,11 +691,13 @@ export default function TripDetailScreen() {
               style={{ borderRadius: Radius.xl }}
             />
 
-            {/* SOS floating button */}
-            <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
-              <ShieldAlert size={14} color="#fff" />
-              <Text style={styles.sosBtnText}>SOS</Text>
-            </TouchableOpacity>
+            {/* SOS floating button — only once the trip is underway */}
+            {(boarded || effectiveStatus === 'active') && (
+              <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
+                <ShieldAlert size={14} color="#fff" />
+                <Text style={styles.sosBtnText}>SOS</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -818,6 +788,17 @@ export default function TripDetailScreen() {
         driverColor="#2563eb"
         onSubmit={(stars) => handleShuttleRatingSubmit(stars)}
         onSkip={() => setShuttleRatingVisible(false)}
+      />
+
+      <SafetySheet
+        visible={safetyOpen}
+        onClose={() => setSafetyOpen(false)}
+        tripId={trip?.id ?? tripIdRef.current}
+        routeName={trip?.routeName}
+        driverName={trip?.driverName}
+        fallbackCoords={trip?.pickupLat != null && trip?.pickupLng != null
+          ? { latitude: trip.pickupLat, longitude: trip.pickupLng }
+          : null}
       />
 
     </LinearGradient>
