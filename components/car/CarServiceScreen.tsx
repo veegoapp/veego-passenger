@@ -11,7 +11,7 @@ import { CheckCircle2, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLe
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useRide } from '@/src/hooks/car/useRide';
-import api from '@/src/api/client';
+import { getRideEstimate } from '@/src/api/rideService';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
@@ -184,13 +184,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const fetchEstimate = useCallback(async (pickup: Coords, dropoff: Coords) => {
     setEstLoading(true);
     try {
-      const { data } = await api.get('/rides/estimate', {
-        params: {
-          pickupLat: pickup.latitude, pickupLng: pickup.longitude,
-          dropoffLat: dropoff.latitude, dropoffLng: dropoff.longitude,
-          serviceType,
-        },
-      });
+      const data = await getRideEstimate(pickup, dropoff, serviceType);
       if (serviceType === 'car') {
         setEstimate({
           economy: { price: data.economy?.price ?? 0, eta: data.economy?.eta ?? 5 },

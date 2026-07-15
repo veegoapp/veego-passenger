@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import api from '../../api/client';
+import { getRideMessages, sendRideMessage } from '../../api/rideService';
 import { getSocket } from '../../api/socket';
 
 export interface ChatMessage {
@@ -30,8 +30,8 @@ export function useRideChat(tripId: string | null) {
 
   useEffect(() => {
     if (!tripId) { setMessages([]); return; }
-    api.get(`/rides/${tripId}/messages`)
-      .then(({ data }) => {
+    getRideMessages(tripId)
+      .then((data) => {
         const raw: any[] =
           data?.data ?? data?.messages ?? (Array.isArray(data) ? data : []);
         setMessages(normalizeMessages(raw));
@@ -83,7 +83,7 @@ export function useRideChat(tripId: string | null) {
     setMessages((prev) => [...prev, { id: tempId, text: text.trim(), isDriver: false, time: timeStr }]);
 
     try {
-      await api.post(`/rides/${tripId}/messages`, { text: text.trim() });
+      await sendRideMessage(tripId, text.trim());
       return true;
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));

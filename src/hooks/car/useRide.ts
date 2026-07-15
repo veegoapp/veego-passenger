@@ -1,6 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
-import api from '../../api/client';
+import {
+  getRide as getRideApi,
+  getActiveRide as getActiveRideApi,
+  requestRide as requestRideApi,
+  cancelRide as cancelRideApi,
+} from '../../api/rideService';
 import { getSocket, type RideStatus, type DriverLocation, normalizeRideStatus } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
 
@@ -203,7 +208,7 @@ export function useRide(): UseRideResult {
     pollIntervalRef.current = setInterval(async () => {
       if (!activeRideIdRef.current) return;
       try {
-        const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
+        const data = await getRideApi(activeRideIdRef.current);
         setPollingStale(false);
         const ride = data?.data ?? data;
         const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
@@ -469,7 +474,7 @@ export function useRide(): UseRideResult {
       reconnectHandler = async () => {
         if (!activeRideIdRef.current) return;
         try {
-          const { data } = await api.get(`/rides/${activeRideIdRef.current}`);
+          const data = await getRideApi(activeRideIdRef.current);
           const ride = data?.data ?? data;
           const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
           if (!status) return;
@@ -500,20 +505,7 @@ export function useRide(): UseRideResult {
     setRideState(DEFAULT_STATE);
     stopPolling();
     try {
-      const { data } = await api.post('/rides/request', {
-        vehicleType:        payload.type,
-        pickupLatitude:     payload.pickup.latitude,
-        pickupLongitude:    payload.pickup.longitude,
-        pickupAddress:      payload.pickup.address ?? '',
-        dropoffLatitude:    payload.dropoff.latitude,
-        dropoffLongitude:   payload.dropoff.longitude,
-        dropoffAddress:     payload.dropoff.address ?? '',
-        notes:              payload.notes,
-        paymentMethod:      'cash',
-        ...(payload.promoCode ? { promoCode: payload.promoCode } : {}),
-        ...(payload.recipientName ? { recipientName: payload.recipientName } : {}),
-        ...(payload.recipientPhone ? { recipientPhone: payload.recipientPhone } : {}),
-      });
+      const data = await requestRideApi(payload);
       const rideId = String(data?.data?.id ?? data?.rideId ?? data?.id ?? data?._id ?? Date.now());
       setRideState((prev) => ({ ...prev, rideId, status: 'searching' }));
       await setupSocketListeners(rideId);
@@ -532,7 +524,7 @@ export function useRide(): UseRideResult {
     const { rideId } = rideState;
     if (rideId) {
       try {
-        await api.patch(`/rides/${rideId}/cancel`, reason ? { reason } : {});
+        await cancelRideApi(rideId, reason);
       } catch {}
     }
     stopPolling();
@@ -558,7 +550,7 @@ export function useRide(): UseRideResult {
 
   const resumeActiveRide = useCallback(async (): Promise<ResumedRide | null> => {
     try {
-      const { data } = await api.get('/rides/active');
+      const data = await getActiveRideApi();
       const ride = data?.data ?? data;
       if (!ride?.id) return null;
 
