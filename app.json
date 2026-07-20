@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "veego",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "updates": {
@@ -16,6 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#f8f8fb"
       },
       "package": "com.veego.app"
@@ -42,6 +44,15 @@
           "locationAlwaysAndWhenInUsePermission": "Allow VeeGo to use your location during your trip.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#f8f8fb",
+          "defaultChannel": "default",
+          "sounds": []
         }
       ]
     ],
