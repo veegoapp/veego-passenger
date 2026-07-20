@@ -64,5 +64,5 @@ localPort = 11001
 externalPort = 3002
 
 [nix]
-packages = ["lsof"]
+packages = ["lsof", "eas-cli"]
 channel = "stable-25_05"
