@@ -166,6 +166,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const { drivers: nearbyDrivers } = useNearbyDrivers({
     isActive: nearbyDriversActive,
     location: userCoords,
+    serviceType,
   });
 
   // On mount: check if there's an active ride in the backend and resume it
