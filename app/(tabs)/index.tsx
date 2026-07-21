@@ -21,6 +21,7 @@ import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
 import api from '@/src/api/client';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken } from '@/src/api/placesService';
+import { onSavedLocationsEvent } from '@/src/api/savedLocationsEvents';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -218,6 +219,15 @@ export default function HomeScreen() {
   // Fetch saved locations on mount
   useEffect(() => {
     fetchSavedLocations();
+  }, [fetchSavedLocations]);
+
+  // Re-fetch whenever a saved location is created/updated/deleted elsewhere
+  // (e.g. Profile's SavedLocationsModal) — Home stays mounted across tab
+  // switches, so this is the only way it learns about the change.
+  useEffect(() => {
+    return onSavedLocationsEvent('savedLocations:changed', () => {
+      fetchSavedLocations();
+    });
   }, [fetchSavedLocations]);
 
   // Fetch unread notification count

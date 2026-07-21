@@ -11,6 +11,7 @@ import {
   getSavedLocations, createSavedLocation, updateSavedLocation, deleteSavedLocation,
   type SavedLocationRecord,
 } from '@/src/api/savedLocationsService';
+import { emitSavedLocationsEvent } from '@/src/api/savedLocationsEvents';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -157,6 +158,7 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
         await createSavedLocation(payload);
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      emitSavedLocationsEvent('savedLocations:changed');
       await refresh();
       setView('list');
     } catch (e: any) {
@@ -182,6 +184,7 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
         onPress: async () => {
           try {
             await deleteSavedLocation(loc.id);
+            emitSavedLocationsEvent('savedLocations:changed');
             await refresh();
           } catch (e: any) {
             Alert.alert(t('error'), e?.response?.data?.message ?? t('saved_location_save_failed'));
