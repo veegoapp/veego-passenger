@@ -34,6 +34,9 @@ export interface SavedLocation {
   longitude: number;
   label?: string;
   isDefault?: boolean;
+  /** Present on unresolved Google Places suggestions — latitude/longitude are
+   * placeholders until /places/details resolves them (see app/(tabs)/index.tsx). */
+  placeId?: string;
 }
 
 /** ── Greeting + notification/profile icons ── */

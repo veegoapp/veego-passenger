@@ -11,6 +11,7 @@ import { CheckCircle2, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLe
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useRide } from '@/src/hooks/car/useRide';
+import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
@@ -38,9 +39,11 @@ interface CarServiceScreenProps {
 
 // Lets a parent (the home screen's destination search) hand off a selected
 // destination to the ride flow without duplicating handleSelectDestination's
-// geocode/estimate/phase logic.
+// geocode/estimate/phase logic. `coordinates` lets a caller that already
+// resolved the address (e.g. Google Places Details) skip the internal
+// re-geocode entirely.
 export interface CarServiceScreenHandle {
-  selectDestination: (address: string) => void;
+  selectDestination: (address: string, coordinates?: { latitude: number; longitude: number }) => void;
 }
 
 function makeStyles(c: ThemeColors, insetTop: number) {
@@ -154,6 +157,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide } = useRide();
   const [resuming, setResuming] = useState(false);
+
+  // Nearby-driver markers — pre-booking only. Stops the moment a ride is
+  // requested or the phase moves past ride_options; CarServiceScreen itself
+  // unmounts when the passenger leaves this service on Home, which tears the
+  // hook's interval down via its own cleanup.
+  const nearbyDriversActive = ['idle', 'selecting', 'ride_options'].includes(phase) && !requesting;
+  const { drivers: nearbyDrivers } = useNearbyDrivers({
+    isActive: nearbyDriversActive,
+    location: userCoords,
+  });
 
   // On mount: check if there's an active ride in the backend and resume it
   useEffect(() => {
@@ -323,6 +336,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         destCoords={destCoords}
         showDriverMarker={showDriverMarker}
         onUserLocation={handleUserLocation}
+        nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
       />
 
       {/* Realtime connection indicator — live phases only */}

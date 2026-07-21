@@ -4,6 +4,8 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Car, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
+import { NearbyDriversLayer } from './NearbyDriversLayer';
+import type { NearbyDriver } from '@/src/hooks/car/useNearbyDrivers';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -12,11 +14,13 @@ interface CarMapProps {
   destCoords?: Coords | null;
   showDriverMarker?: boolean;
   onUserLocation?: (loc: Coords) => void;
+  /** Pre-booking nearby-driver markers — pass undefined/empty once a real driver is assigned. */
+  nearbyDrivers?: NearbyDriver[];
 }
 
 const CAIRO_DEFAULT: Coords = { latitude: 30.0444, longitude: 31.2357 };
 
-export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation }: CarMapProps) {
+export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers }: CarMapProps) {
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<Coords>(CAIRO_DEFAULT);
   const onUserLocationRef = useRef(onUserLocation);
@@ -113,6 +117,10 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
               <Car size={14} color="#ffffff" />
             </View>
           </Marker>
+        )}
+
+        {nearbyDrivers && nearbyDrivers.length > 0 && (
+          <NearbyDriversLayer drivers={nearbyDrivers} />
         )}
       </MapView>
 

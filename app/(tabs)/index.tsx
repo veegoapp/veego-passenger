@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +20,7 @@ import { useServiceControl, ServiceType } from '@/context/ServiceControlContext'
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
 import api from '@/src/api/client';
+import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken } from '@/src/api/placesService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -174,7 +175,8 @@ export default function HomeScreen() {
   const [typedText, setTypedText] = useState('');
   const [headerHeight, setHeaderHeight] = useState(220);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
-  const [nominatimResults, setNominatimResults] = useState<SavedLocation[]>([]);
+  const [placesResults, setPlacesResults] = useState<SavedLocation[]>([]);
+  const [placesSessionToken, setPlacesSessionToken] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [searchScreenOpen, setSearchScreenOpen] = useState(false);
@@ -251,29 +253,35 @@ export default function HomeScreen() {
     });
   };
 
-  // Geocoding suggestions when typing — proxied through the backend
-  // (GET /geocode/search) instead of calling Nominatim directly.
+  // Destination-search suggestions while typing — proxied through the
+  // backend Google Places Autocomplete endpoint. Each result only carries a
+  // placeId at this stage; real coordinates are resolved via /places/details
+  // once the passenger taps a suggestion (see onPickSuggestion below).
   useEffect(() => {
-    if (!typedText || typedText.trim().length < 2) { setNominatimResults([]); return; }
+    if (!typedText || typedText.trim().length < 2) { setPlacesResults([]); return; }
+    if (!placesSessionToken) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const { data } = await api.get('/geocode/search', {
-          params: { q: typedText, lang: language === 'ar' ? 'ar' : 'en' },
-          signal: controller.signal,
-        });
-        const results: any[] = Array.isArray(data?.data) ? data.data : [];
-        setNominatimResults(results.map((item: any, i: number) => ({
-          id: `nom-${i}`,
-          name: item.name ?? item.address,
-          address: item.address,
-          latitude: item.latitude,
-          longitude: item.longitude,
+        const suggestions = await getPlaceAutocomplete(
+          typedText,
+          placesSessionToken,
+          language === 'ar' ? 'ar' : 'en',
+          undefined,
+          controller.signal,
+        );
+        setPlacesResults(suggestions.map((s) => ({
+          id: `place-${s.placeId}`,
+          name: s.mainText || s.description,
+          address: s.secondaryText || s.description,
+          latitude: 0,
+          longitude: 0,
+          placeId: s.placeId,
         })));
       } catch {}
     }, 400);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [typedText, language]);
+  }, [typedText, language, placesSessionToken]);
 
   const filteredSuggestions = useMemo(() => {
     if (!typedText) return savedLocations;
@@ -281,8 +289,8 @@ export default function HomeScreen() {
     const saved = savedLocations.filter(
       loc => loc.name.toLowerCase().includes(lower) || loc.address.toLowerCase().includes(lower),
     );
-    return [...saved, ...nominatimResults.filter(n => !saved.some(s => s.name === n.name))];
-  }, [typedText, savedLocations, nominatimResults]);
+    return [...saved, ...placesResults.filter(n => !saved.some(s => s.name === n.name))];
+  }, [typedText, savedLocations, placesResults]);
 
   const handleSelectLocation = useCallback((location: SavedLocation) => {
     if (activeSearchField === 'from') {
@@ -301,12 +309,17 @@ export default function HomeScreen() {
   const handleOpenSearch = useCallback(() => {
     setActiveSearchField('to');
     setTypedText('');
+    // New Places Autocomplete session for this search visit — reused across
+    // keystrokes and the eventual /places/details call, discarded on close
+    // or selection below.
+    setPlacesSessionToken(generateSessionToken());
     setSearchScreenOpen(true);
   }, []);
 
   const handleCloseSearch = useCallback(() => {
     setActiveSearchField(null);
     setTypedText('');
+    setPlacesSessionToken(null);
     setSearchScreenOpen(false);
   }, []);
 
@@ -403,15 +416,61 @@ export default function HomeScreen() {
           pickupLocation={pickupLocation} destinationLocation={destinationLocation}
           filteredSuggestions={filteredSuggestions}
           onClose={handleCloseSearch}
-          onPickSuggestion={(item) => {
+          onPickSuggestion={async (item) => {
             const wasDestination = activeSearchField === 'to';
+
+            // Places-autocomplete result (no coordinates yet) — resolve the
+            // real ones via /places/details using the same session token
+            // before handing anything off. Never use autocomplete's own
+            // (nonexistent) coordinates.
+            if (item.placeId) {
+              const token = placesSessionToken;
+              let details = null;
+              try {
+                details = token ? await getPlaceDetails(item.placeId, token) : null;
+              } catch {
+                details = null;
+              }
+              if (!details) {
+                Alert.alert(t('location_error'), t('location_error_msg'));
+                return;
+              }
+              const resolved: SavedLocation = {
+                id: item.id,
+                name: details.name || item.name,
+                address: details.address || item.address,
+                latitude: details.latitude,
+                longitude: details.longitude,
+              };
+              handleSelectLocation(resolved);
+              setPlacesSessionToken(null);
+              if (wasDestination) {
+                setSearchScreenOpen(false);
+                // Ride, Scooter, and Delivery all route through
+                // CarServiceScreen (parameterized by serviceType) and
+                // share the same fare-estimate → confirm flow. Coordinates
+                // are already resolved above, so no re-geocode happens there.
+                if (mode !== 'shuttle') {
+                  carServiceRef.current?.selectDestination(resolved.name, {
+                    latitude: resolved.latitude,
+                    longitude: resolved.longitude,
+                  });
+                }
+              }
+              return;
+            }
+
+            // Saved location — coordinates already known, no lookup needed.
             handleSelectLocation(item);
+            setPlacesSessionToken(null);
             if (wasDestination) {
               setSearchScreenOpen(false);
-              // Ride, Scooter, and Delivery all route through
-              // CarServiceScreen (parameterized by serviceType) and
-              // share the same fare-estimate → confirm flow.
-              if (mode !== 'shuttle') carServiceRef.current?.selectDestination(item.name);
+              if (mode !== 'shuttle') {
+                carServiceRef.current?.selectDestination(item.name, {
+                  latitude: item.latitude,
+                  longitude: item.longitude,
+                });
+              }
             }
           }}
         />
