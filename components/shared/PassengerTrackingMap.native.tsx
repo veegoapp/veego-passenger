@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, AnimatedRegion, MarkerAnimated, PROVIDER_GOO
 import { Car, Bike as ScooterIcon } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
-import { estimateEtaMinutes } from '@/src/utils/geoHelpers';
+import { estimateEtaMinutes, haversineMeters } from '@/src/utils/geoHelpers';
 
 interface LatLng {
   latitude: number;
@@ -34,10 +34,17 @@ export interface TrackingMapProps {
   style?: object;
   /** Driver marker icon. Defaults to 'shuttle' (bus) — preserves existing behavior for shuttle tracking. */
   vehicleType?: 'car' | 'scooter' | 'shuttle';
+  /** Called whenever the internally-computed ETA changes — lets the parent
+   * screen display it without computing its own separate ETA. */
+  onEtaChange?: (minutes: number | null) => void;
 }
 
 const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
 const FOLLOW_DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
+// Directions route/ETA refresh cadence — refetch at most this often, or
+// sooner if the driver has moved a meaningful distance since the last fetch.
+const ROUTE_REFRESH_INTERVAL_MS = 75_000;
+const SIGNIFICANT_MOVE_METERS = 300;
 
 function stationFill(status: Station['status']): string {
   if (status === 'completed') return '#22c55e';
@@ -48,7 +55,7 @@ function stationFill(status: Station['status']): string {
 export function PassengerTrackingMap({
   pickup, dropoff, driverLocation,
   stations = [], passengerStationId, style,
-  vehicleType = 'shuttle',
+  vehicleType = 'shuttle', onEtaChange,
 }: TrackingMapProps) {
   const { t } = useTheme();
 
@@ -88,32 +95,62 @@ export function PassengerTrackingMap({
     );
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
-  // ── Google Directions route — fetched ONCE when trip initialises ─────────────
+  // ── ETA/route target station ─────────────────────────────────────────────────
+  // The passenger's own boarding station if it's still upcoming; otherwise the
+  // next station the bus will reach. Both the Directions route below and the
+  // ETA are scoped to "how long until MY stop", not "until the end of the line".
+  const targetStation = useMemo(() => {
+    const remaining = sorted.filter((s) => s.status !== 'completed');
+    if (remaining.length === 0) return null;
+    if (passengerStationId != null) {
+      const match = remaining.find((s) => s.id === passengerStationId);
+      if (match) return match;
+    }
+    return remaining[0];
+  }, [sorted, passengerStationId]);
+
+  const waypointsToTarget = useMemo(() => {
+    if (!targetStation) return [];
+    const remaining = sorted.filter((s) => s.status !== 'completed');
+    const idx = remaining.findIndex((s) => s.id === targetStation.id);
+    const upToTarget = idx >= 0 ? remaining.slice(0, idx + 1) : [targetStation];
+    return upToTarget.map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
+  }, [sorted, targetStation]);
+
+  // ── Google Directions route — refreshed periodically while the trip is live ──
   const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
   const [routeDurationSeconds, setRouteDurationSeconds] = useState<number | null>(null);
-  const hasFetchedRouteRef = useRef(false);
+  const lastFetchOriginRef = useRef<LatLng | null>(null);
+  const lastFetchAtRef = useRef(0);
 
   useEffect(() => {
-    if (hasFetchedRouteRef.current) return;
-    if (!driverLocation || sorted.length === 0) return;
+    if (!driverLocation || waypointsToTarget.length === 0) return;
 
-    const remaining = sorted
-      .filter((s) => s.status !== 'completed')
-      .map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
+    const now = Date.now();
+    const elapsed = now - lastFetchAtRef.current;
+    const movedSignificantly = lastFetchOriginRef.current
+      ? haversineMeters(lastFetchOriginRef.current, driverLocation) >= SIGNIFICANT_MOVE_METERS
+      : true; // always fetch the first time
 
-    if (remaining.length === 0) return;
+    if (elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
 
-    hasFetchedRouteRef.current = true;
+    lastFetchOriginRef.current = { latitude: driverLocation.latitude, longitude: driverLocation.longitude };
+    lastFetchAtRef.current = now;
 
-    fetchGoogleRoute(driverLocation, remaining).then((result) => {
+    fetchGoogleRoute(driverLocation, waypointsToTarget).then((result) => {
       if (result) {
         setRouteCoords(result.coords);
+        // Only overwrite the duration when a real one comes back — preserves
+        // the previous valid ETA rather than dropping to the haversine
+        // fallback if a refresh returns coords but no duration.
         if (result.durationSeconds !== null) {
           setRouteDurationSeconds(result.durationSeconds);
         }
       }
+      // On failure, keep whatever route/duration is already in state — the
+      // existing straight-line fallback below still renders regardless.
     });
-  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length]);
+  }, [driverLocation?.latitude, driverLocation?.longitude, waypointsToTarget]);
 
   // ── ETA ─────────────────────────────────────────────────────────────────────
   // Prefer Google Directions duration (more accurate); fall back to distance-based
@@ -121,11 +158,13 @@ export function PassengerTrackingMap({
     if (routeDurationSeconds !== null) {
       return Math.max(1, Math.ceil(routeDurationSeconds / 60));
     }
-    if (!driverLocation) return null;
-    const nextStation = sorted.find((s) => s.status !== 'completed');
-    if (!nextStation) return null;
-    return estimateEtaMinutes(driverLocation, nextStation);
-  }, [routeDurationSeconds, driverLocation?.latitude, driverLocation?.longitude, sorted]);
+    if (!driverLocation || !targetStation) return null;
+    return estimateEtaMinutes(driverLocation, targetStation);
+  }, [routeDurationSeconds, driverLocation?.latitude, driverLocation?.longitude, targetStation]);
+
+  useEffect(() => {
+    onEtaChange?.(etaMinutes);
+  }, [etaMinutes, onEtaChange]);
 
   // ── Straight-line fallback coords (used until Google route loads) ────────────
   const completedCoords = useMemo((): LatLng[] => {

@@ -32,16 +32,6 @@ const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled', 'active', 'boarding']
 const HIDE_MAP_STATUSES = ['completed', 'cancelled'];
 const MINUTES_BEFORE_DEPARTURE = 20;
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 interface TripDetail {
   id: string | number;
   bookingId?: string | number | null;
@@ -415,16 +405,8 @@ export default function TripDetailScreen() {
     };
   }, [id]);
 
-  // Recalculate ETA to passenger's pickup station on every driver location update
-  useEffect(() => {
-    if (!driverLocation || boarded) { setEtaMinutes(null); return; }
-    const target = trip?.pickupLat != null && trip?.pickupLng != null
-      ? { lat: trip.pickupLat, lng: trip.pickupLng }
-      : null;
-    if (!target) return;
-    const distKm = haversineKm(driverLocation.lat, driverLocation.lng, target.lat, target.lng);
-    setEtaMinutes(Math.max(1, Math.round((distKm / 30) * 60)));
-  }, [driverLocation?.lat, driverLocation?.lng, trip?.pickupLat, trip?.pickupLng, boarded]);
+  // ETA is now computed inside PassengerTrackingMap (single source of truth)
+  // and reported back via onEtaChange below — no local calculation here.
 
   // Fallback poll every 2 minutes — real-time socket handles instant updates;
   // polling only catches drift (e.g., socket reconnect gap)
@@ -691,6 +673,7 @@ export default function TripDetailScreen() {
               stations={stations}
               passengerStationId={trip.pickupStationId ?? undefined}
               style={{ borderRadius: Radius.xl }}
+              onEtaChange={setEtaMinutes}
             />
 
             {/* SOS floating button — only once the trip is underway */}
