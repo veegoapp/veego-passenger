@@ -34,6 +34,10 @@ export async function getPlaceAutocomplete(
   lang: 'en' | 'ar',
   bias?: PlaceAutocompleteBias,
   signal?: AbortSignal,
+  /** Current passenger service (car/scooter/delivery/shuttle) — lets the
+   * backend apply per-service feature flags on Places later. Optional so
+   * existing callers keep working unchanged. */
+  serviceType?: 'car' | 'scooter' | 'delivery' | 'shuttle',
 ): Promise<PlaceSuggestion[]> {
   const { data } = await api.get('/places/autocomplete', {
     params: {
@@ -43,6 +47,7 @@ export async function getPlaceAutocomplete(
       ...(bias?.lat != null ? { lat: bias.lat } : {}),
       ...(bias?.lng != null ? { lng: bias.lng } : {}),
       ...(bias?.radius != null ? { radius: bias.radius } : {}),
+      ...(serviceType ? { serviceType } : {}),
     },
     signal,
   });
@@ -50,9 +55,20 @@ export async function getPlaceAutocomplete(
 }
 
 /** GET /places/details — resolves a placeId (same session as the autocomplete call) to final coordinates. */
-export async function getPlaceDetails(placeId: string, sessionToken: string): Promise<PlaceDetails | null> {
+export async function getPlaceDetails(
+  placeId: string,
+  sessionToken: string,
+  /** Current passenger service (car/scooter/delivery/shuttle) — lets the
+   * backend apply per-service feature flags on Places later. Optional so
+   * existing callers keep working unchanged. */
+  serviceType?: 'car' | 'scooter' | 'delivery' | 'shuttle',
+): Promise<PlaceDetails | null> {
   const { data } = await api.get('/places/details', {
-    params: { placeId, sessiontoken: sessionToken },
+    params: {
+      placeId,
+      sessiontoken: sessionToken,
+      ...(serviceType ? { serviceType } : {}),
+    },
   });
   return data?.data ?? null;
 }

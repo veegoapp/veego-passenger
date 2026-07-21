@@ -279,6 +279,7 @@ export default function HomeScreen() {
           language === 'ar' ? 'ar' : 'en',
           undefined,
           controller.signal,
+          mode,
         );
         setPlacesResults(suggestions.map((s) => ({
           id: `place-${s.placeId}`,
@@ -291,7 +292,7 @@ export default function HomeScreen() {
       } catch {}
     }, 400);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [typedText, language, placesSessionToken]);
+  }, [typedText, language, placesSessionToken, mode]);
 
   const filteredSuggestions = useMemo(() => {
     if (!typedText) return savedLocations;
@@ -437,7 +438,7 @@ export default function HomeScreen() {
               const token = placesSessionToken;
               let details = null;
               try {
-                details = token ? await getPlaceDetails(item.placeId, token) : null;
+                details = token ? await getPlaceDetails(item.placeId, token, mode) : null;
               } catch {
                 details = null;
               }
