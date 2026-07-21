@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
 import { PASSENGER_LOCATION_TASK } from './backgroundLocationTask';
 
-const TRACKING_INTERVAL_MS = 5 * 60 * 1000;
+const TRACKING_INTERVAL_MS = 15 * 1000;
 const OFFLINE_STORE_KEY = 'veego_offline_location_snapshots';
 const MAX_BATCH_SIZE = 500;
 const MAX_OFFLINE_SNAPSHOTS = 50;
