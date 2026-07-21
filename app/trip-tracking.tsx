@@ -39,6 +39,14 @@ const STATUS_COLORS: Record<string, string> = {
 
 type TripStatus = keyof typeof STATUS_LABEL_KEYS;
 
+// Mirrors the `vehicleType` field the backend echoes back on a ride record
+// (see rideService.ts's POST /rides/request body and useTrips.ts's
+// `trip.vehicleType`) — only 'scooter' gets its own marker today, everything
+// else (car/delivery/unknown) keeps the existing car marker.
+function normalizeVehicleType(raw: unknown): 'car' | 'scooter' {
+  return raw === 'scooter' ? 'scooter' : 'car';
+}
+
 export default function TripTrackingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -67,6 +75,10 @@ export default function TripTrackingScreen() {
   }>({});
 
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
+  // This screen only ever tracks car/scooter/delivery rides (shuttle uses
+  // trip-detail.tsx instead) — default to 'car', refine to 'scooter' below
+  // once the ride's vehicleType is known.
+  const [vehicleType, setVehicleType] = useState<'car' | 'scooter'>('car');
   const [status, setStatus] = useState<TripStatus>('driver_assigned');
   const [deepLinkLoading, setDeepLinkLoading] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
@@ -122,6 +134,9 @@ export default function TripTrackingScreen() {
         if (d?.driverLocation) {
           setDriverLocation(d.driverLocation);
         }
+        if (d?.vehicleType != null || d?.type != null || d?.serviceType != null) {
+          setVehicleType(normalizeVehicleType(d.vehicleType ?? d.type ?? d.serviceType));
+        }
         if (normalized && normalized in STATUS_LABEL_KEYS) {
           setStatus(normalized as TripStatus);
         }
@@ -156,6 +171,9 @@ export default function TripTrackingScreen() {
       }
       if (d?.dropoffLatitude != null && d?.dropoffLongitude != null) {
         setDropoff({ latitude: d.dropoffLatitude, longitude: d.dropoffLongitude });
+      }
+      if (d?.vehicleType != null || d?.type != null || d?.serviceType != null) {
+        setVehicleType(normalizeVehicleType(d.vehicleType ?? d.type ?? d.serviceType));
       }
     }).catch(() => {});
   }, [params.rideId]);
@@ -244,6 +262,7 @@ export default function TripTrackingScreen() {
         pickup={pickup}
         dropoff={dropoff}
         driverLocation={driverLocation}
+        vehicleType={vehicleType}
       />
 
       {/* Top bar */}

@@ -208,24 +208,38 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     userCoordsRef.current = loc;
   }, []);
 
-  const handleSelectDestination = useCallback(async (loc: string) => {
+  const handleSelectDestination = useCallback(async (loc: string, knownCoords?: Coords) => {
     Haptics.selectionAsync();
-    addRecent(loc);
     setDestination(loc);
     setPhase('ride_options');
     // Scooter/delivery have a single pricing tier — no economy/premium pick
     // required, so pre-select it (car keeps requiring an explicit choice).
     if (serviceType !== 'car') setSelectedRide('standard');
 
+    // A previously-resolved recent search already has coordinates — skip
+    // re-geocoding and use them directly.
+    if (knownCoords) {
+      setDestCoords(knownCoords);
+      addRecent(loc, knownCoords);
+      const pickup = userCoordsRef.current;
+      if (pickup) fetchEstimate(pickup, knownCoords);
+      return;
+    }
+
     try {
       const results = await Location.geocodeAsync(loc);
       if (results.length > 0) {
         const coords: Coords = { latitude: results[0].latitude, longitude: results[0].longitude };
         setDestCoords(coords);
+        addRecent(loc, coords);
         const pickup = userCoordsRef.current;
         if (pickup) fetchEstimate(pickup, coords);
+      } else {
+        addRecent(loc);
       }
-    } catch {}
+    } catch {
+      addRecent(loc);
+    }
   }, [fetchEstimate, serviceType, addRecent]);
 
   const handleConfirmRide = useCallback(async () => {
@@ -359,11 +373,21 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
             <View>
               <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
               {recents.map((loc) => (
-                <TouchableOpacity key={loc} style={styles.locItem} onPress={() => handleSelectDestination(loc)} activeOpacity={0.8}>
+                <TouchableOpacity
+                  key={loc.address}
+                  style={styles.locItem}
+                  onPress={() => handleSelectDestination(
+                    loc.address,
+                    loc.latitude != null && loc.longitude != null
+                      ? { latitude: loc.latitude, longitude: loc.longitude }
+                      : undefined,
+                  )}
+                  activeOpacity={0.8}
+                >
                   <View style={styles.locIcon}>
                     <Search size={16} color={c.inkSoft} />
                   </View>
-                  <Text style={styles.locText}>{loc}</Text>
+                  <Text style={styles.locText}>{loc.address}</Text>
                   {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
                 </TouchableOpacity>
               ))}

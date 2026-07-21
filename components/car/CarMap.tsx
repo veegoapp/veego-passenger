@@ -1,8 +1,9 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Car, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
+import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -48,15 +49,32 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
     }, 400);
   }, [destCoords, showDriverMarker, userLocation]);
 
-  const routeCoords = useMemo(() => {
-    if (!destCoords) return [];
-    return Array.from({ length: 16 }, (_, i) => {
-      const t = i / 15;
-      const lat = userLocation.latitude  + (destCoords.latitude  - userLocation.latitude)  * t;
-      const lon = userLocation.longitude + (destCoords.longitude - userLocation.longitude) * t;
-      const offset = Math.sin(t * Math.PI) * 0.001;
-      return { latitude: lat + offset, longitude: lon - offset };
+  const [routeCoords, setRouteCoords] = useState<Coords[]>([]);
+  const routeFetchKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!destCoords) {
+      setRouteCoords([]);
+      routeFetchKeyRef.current = null;
+      return;
+    }
+
+    // Fetch once per pickup/destination pair (mirrors the shuttle map's
+    // "fetch once per trip" behavior) — avoids re-requesting on every
+    // unrelated re-render.
+    const key = `${userLocation.latitude},${userLocation.longitude}->${destCoords.latitude},${destCoords.longitude}`;
+    if (routeFetchKeyRef.current === key) return;
+    routeFetchKeyRef.current = key;
+
+    let cancelled = false;
+    fetchGoogleRoute(userLocation, [destCoords]).then((result) => {
+      if (cancelled) return;
+      // Fall back to a straight line if the backend directions request fails
+      // or returns no path — keeps the polyline rendering without crashing.
+      setRouteCoords(result?.coords?.length ? result.coords : [userLocation, destCoords]);
     });
+
+    return () => { cancelled = true; };
   }, [destCoords, userLocation]);
 
   return (

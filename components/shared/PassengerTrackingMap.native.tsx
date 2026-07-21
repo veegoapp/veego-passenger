@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Polyline, AnimatedRegion, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Car, Bike as ScooterIcon } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 import { estimateEtaMinutes } from '@/src/utils/geoHelpers';
@@ -31,6 +32,8 @@ export interface TrackingMapProps {
   stations?: Station[];
   passengerStationId?: number | null;
   style?: object;
+  /** Driver marker icon. Defaults to 'shuttle' (bus) — preserves existing behavior for shuttle tracking. */
+  vehicleType?: 'car' | 'scooter' | 'shuttle';
 }
 
 const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
@@ -45,6 +48,7 @@ function stationFill(status: Station['status']): string {
 export function PassengerTrackingMap({
   pickup, dropoff, driverLocation,
   stations = [], passengerStationId, style,
+  vehicleType = 'shuttle',
 }: TrackingMapProps) {
   const { t } = useTheme();
 
@@ -223,7 +227,7 @@ export function PassengerTrackingMap({
           </Marker>
         )}
 
-        {/* Animated bus marker — rotates according to socket heading */}
+        {/* Animated driver marker — rotates according to socket heading */}
         {(driverLocation ?? pickup) && (
           <MarkerAnimated
             coordinate={animatedCoord}
@@ -231,11 +235,17 @@ export function PassengerTrackingMap({
             rotation={heading}
             title={t('driver_label')}
           >
-            {/* Arrow + bus body: arrow tip always points in the direction of travel */}
+            {/* Arrow + body: arrow tip always points in the direction of travel */}
             <View style={styles.busWrapper}>
               <View style={styles.busArrowHead} />
               <View style={styles.busBody}>
-                <Text style={styles.busTxt}>🚌</Text>
+                {vehicleType === 'car' ? (
+                  <Car size={18} color="#fff" />
+                ) : vehicleType === 'scooter' ? (
+                  <ScooterIcon size={18} color="#fff" />
+                ) : (
+                  <Text style={styles.busTxt}>🚌</Text>
+                )}
               </View>
             </View>
           </MarkerAnimated>

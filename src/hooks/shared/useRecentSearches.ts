@@ -5,24 +5,43 @@ const MAX_RECENTS = 5;
 
 type RecentService = 'car' | 'scooter' | 'delivery';
 
+export interface RecentLocation {
+  address: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 function key(service: RecentService) {
   return `@veego_recent_${service}_v1`;
 }
 
+// Earlier versions persisted a plain string[] (address text only, no
+// coordinates) — coerce those into RecentLocation objects so existing saved
+// recents keep working unchanged after this upgrade.
+function normalize(raw: unknown): RecentLocation[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => (typeof item === 'string' ? { address: item } : item))
+    .filter((item): item is RecentLocation => !!item && typeof item.address === 'string');
+}
+
 export function useRecentSearches(service: RecentService) {
-  const [recents, setRecents] = useState<string[]>([]);
+  const [recents, setRecents] = useState<RecentLocation[]>([]);
 
   useEffect(() => {
     AsyncStorage.getItem(key(service)).then((raw) => {
       if (raw) {
-        try { setRecents(JSON.parse(raw)); } catch {}
+        try { setRecents(normalize(JSON.parse(raw))); } catch {}
       }
     });
   }, [service]);
 
-  const addRecent = useCallback(async (location: string) => {
+  const addRecent = useCallback(async (address: string, coords?: { latitude: number; longitude: number }) => {
     setRecents((prev) => {
-      const deduped = [location, ...prev.filter((r) => r !== location)].slice(0, MAX_RECENTS);
+      const deduped = [
+        { address, ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}) },
+        ...prev.filter((r) => r.address !== address),
+      ].slice(0, MAX_RECENTS);
       AsyncStorage.setItem(key(service), JSON.stringify(deduped));
       return deduped;
     });
