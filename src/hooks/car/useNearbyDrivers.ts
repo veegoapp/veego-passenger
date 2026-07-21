@@ -74,7 +74,7 @@ export function useNearbyDrivers({ isActive, location, serviceType }: UseNearbyD
         .filter((d): d is NearbyDriver => d !== null)
         // Backend returns all online drivers regardless of service — only
         // show the ones matching what the passenger is currently booking.
-        .filter((d) => d.vehicleType.toLowerCase() === wantedType)
+        .filter((d) => d.vehicleType?.toLowerCase() === wantedType)
         .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity))
         .slice(0, MAX_RENDERED_DRIVERS);
       setDrivers(normalized);
