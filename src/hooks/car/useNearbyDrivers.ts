@@ -64,11 +64,11 @@ export function useNearbyDrivers({ isActive, location, serviceType }: UseNearbyD
     const loc = locationRef.current;
     if (!loc) return;
     try {
+      const wantedType = serviceTypeRef.current;
       const { data } = await api.get('/nearby-drivers', {
-        params: { lat: loc.latitude, lng: loc.longitude },
+        params: { lat: loc.latitude, lng: loc.longitude, serviceType: wantedType },
       });
       const raw: any[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-      const wantedType = serviceTypeRef.current;
       const normalized = raw
         .map(normalizeDriver)
         .filter((d): d is NearbyDriver => d !== null)
