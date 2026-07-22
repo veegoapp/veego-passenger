@@ -311,10 +311,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const handleCancel = useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     if (phase === 'in_ride' && rideState.rideId) {
-      await cancelRide('Cancelled by passenger');
+      const result = await cancelRide('Cancelled by passenger');
+      if (!result.success) {
+        Alert.alert(t('error'), result.error ?? t('cancel_error'));
+        return;
+      }
     }
     handleReset();
-  }, [phase, rideState.rideId, cancelRide, handleReset]);
+  }, [phase, rideState.rideId, cancelRide, handleReset, t]);
 
   useImperativeHandle(ref, () => ({
     selectDestination: handleSelectDestination,
