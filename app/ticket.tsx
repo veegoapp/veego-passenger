@@ -493,6 +493,12 @@ export default function TicketScreen() {
               </View>
             </View>
 
+            {!!booking.direction && (
+              <Text style={[styles.ticketStationText, { textAlign: 'center', opacity: 0.7 }]}>
+                {booking.direction === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}
+              </Text>
+            )}
+
             {/* Departure time — prominent */}
             <View style={styles.ticketTimeRow}>
               <Text style={styles.ticketTime}>{booking.time}</Text>

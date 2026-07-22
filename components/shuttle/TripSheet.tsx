@@ -14,6 +14,7 @@ import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { Animation } from '@/constants/animations';
 import { calcSegmentPrice, DATES, formatCairoTime } from '@/constants/data';
+import type { ShuttleDirection } from '@/constants/data';
 import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
 import { useEnabledTripRequestRoutes } from '@/src/hooks/shuttle/useEnabledTripRequestRoutes';
 import { useShuttleSeatAvailability } from '@/src/hooks/shuttle/useShuttleSeatAvailability';
@@ -363,6 +364,27 @@ export function TripSheet() {
 
   const safeTimeIdx = Math.min(timeIdx, Math.max(0, visibleTrips.length - 1));
   const selectedTrip = visibleTrips[safeTimeIdx] ?? null;
+  const selectedTripDirection = selectedTrip?.direction as ShuttleDirection | undefined;
+
+  // ── Direction guard: if the selected departure has a known direction and the
+  // currently-picked boarding/drop-off stations don't match it (e.g. the
+  // passenger switched to a departure running the opposite way), snap the
+  // selection back to the first/last station of that direction. Left alone
+  // when direction data isn't available — never fabricated.
+  useEffect(() => {
+    if (!selectedRoute || selectedRoute.path.length < 2) return;
+    if (!selectedTripDirection) return;
+    const path = selectedRoute.path;
+    const matchesDirection = (idx: number) =>
+      !path[idx]?.direction || path[idx].direction === selectedTripDirection;
+    if (matchesDirection(fromIdx) && matchesDirection(toIdx)) return;
+    const validIdxs = path.map((_, i) => i).filter(matchesDirection);
+    if (validIdxs.length >= 2) {
+      setFromIdx(validIdxs[0]);
+      setToIdx(validIdxs[validIdxs.length - 1]);
+      setPick('from');
+    }
+  }, [selectedRoute, selectedTripDirection]);
 
   const liveAvailability = useShuttleSeatAvailability(selectedTrip?.id);
 
@@ -386,17 +408,42 @@ export function TripSheet() {
   const lo = Math.min(safeFrom, safeTo);
   const hi = Math.max(safeFrom, safeTo);
 
+  // ── Direction-filtered station indices ──────────────────────────────────
+  // Indices into the ORIGINAL route.path (fromIdx/toIdx, pricing, and every
+  // downstream consumer keep indexing route.path directly — only the
+  // rendered list is narrowed). Falls back to every station when the
+  // selected trip or a station is missing direction data — never assumes one.
+  const visibleStationIndices = hasPath
+    ? route.path
+        .map((_, i) => i)
+        .filter((i) => !selectedTripDirection || !route.path[i].direction || route.path[i].direction === selectedTripDirection)
+    : [];
+
+  const fromStationDirection = route.path[safeFrom]?.direction;
+  const toStationDirection = route.path[safeTo]?.direction;
+  const stationsMatchTripDirection =
+    !selectedTripDirection ||
+    ((!fromStationDirection || fromStationDirection === selectedTripDirection) &&
+      (!toStationDirection || toStationDirection === selectedTripDirection));
+
   const pricePerSeat = hasPath ? calcSegmentPrice(route, safeFrom, safeTo, 1) : route.price;
   const total = pricePerSeat * seatCount;
   const seatsOk = seatCount >= 1 && seatCount <= Math.min(2, selectedTripSeats);
-  const valid = hasPath && safeFrom !== safeTo && !routeLoading && visibleTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled && seatsOk;
+  const valid = hasPath && safeFrom !== safeTo && !routeLoading && visibleTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled && seatsOk && stationsMatchTripDirection;
   const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
+    // Defense-in-depth: the UI below only ever renders indices from
+    // visibleStationIndices, but guard here too in case of stale renders.
+    if (visibleStationIndices.length > 0 && !visibleStationIndices.includes(idx)) return;
     Haptics.selectionAsync();
     if (pick === 'from') {
       setFromIdx(idx);
-      if (idx === toIdx) setToIdx(Math.min(route.path.length - 1, idx + 1));
+      if (idx === toIdx) {
+        const rest = visibleStationIndices.filter((i) => i !== idx);
+        const nextIdx = rest.find((i) => i > idx) ?? rest[rest.length - 1] ?? Math.min(route.path.length - 1, idx + 1);
+        setToIdx(nextIdx);
+      }
       setPick('to');
     } else {
       if (idx === fromIdx) return;
@@ -416,7 +463,10 @@ export function TripSheet() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* ── Route Hero ── */}
-          <RouteHero styles={styles} route={route} isAr={isAr} lo={lo} hi={hi} pickStation={pickStation} />
+          <RouteHero
+            styles={styles} route={route} isAr={isAr} lo={lo} hi={hi} pickStation={pickStation}
+            visibleStationIndices={visibleStationIndices}
+          />
 
           {/* ── Request a Trip button ── */}
           {tripRequestEnabledIds.has(Number(route.id)) && (
@@ -495,6 +545,7 @@ export function TripSheet() {
             route={route} routeLoading={routeLoading} hasPath={hasPath}
             pick={pick} setPick={setPick} safeFrom={safeFrom} safeTo={safeTo}
             lo={lo} hi={hi} pickStation={pickStation}
+            visibleStationIndices={visibleStationIndices}
             onRetry={() => openRoute(route)}
           />
 
@@ -543,6 +594,10 @@ export function TripSheet() {
             activeOpacity={0.88}
             onPress={() => {
               if (!valid) return;
+              // Last-line guard: don't let a stale render through to booking
+              // if the boarding/drop-off stations don't match the trip's
+              // direction (the picker above should already prevent this).
+              if (!stationsMatchTripDirection) return;
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               const trip = visibleTrips[safeTimeIdx];
               const tripDate = formatTripDateUTC(trip?.departureTime ?? '');
@@ -561,8 +616,10 @@ export function TripSheet() {
                 date: tripDate,
                 time: tripTime,
                 price: total,
-                tripId: trip?.id ?? null,
+                tripId: trip?.id != null ? Number(trip.id) : null,
                 seatCount,
+                direction: selectedTripDirection,
+                boardingStationId: route.path[safeFrom]?.id,
               });
               closeTripSheet();
               router.push({

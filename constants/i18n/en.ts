@@ -704,4 +704,7 @@ export const en = {
   trip_request_error: 'Failed to send request. Please try again.',
   select_outbound_time: 'Select outbound time',
   select_return_time: 'Select return time',
+
+  shuttle_direction_outbound: 'Outbound',
+  shuttle_direction_return: 'Return',
 };

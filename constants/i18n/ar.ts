@@ -706,4 +706,7 @@ export const ar: typeof en = {
   trip_request_error: 'فشل إرسال الطلب. حاول مجدداً.',
   select_outbound_time: 'اختر موعد الذهاب',
   select_return_time: 'اختر موعد العودة',
+
+  shuttle_direction_outbound: 'ذهاب',
+  shuttle_direction_return: 'عودة',
 };

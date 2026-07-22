@@ -77,6 +77,9 @@ function mapApiBooking(b: any): Trip {
 
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
 
+  // Only present when the backend actually provides it — never fabricated.
+  const direction = trip.direction ?? b.direction ?? undefined;
+
   return {
     id:   String(b.id ?? Math.random()),
     type,
@@ -106,6 +109,7 @@ function mapApiBooking(b: any): Trip {
     vehicleType:    trip.vehicleType    ?? undefined,
     totalSeats:     trip.totalSeats     ?? undefined,
     availableSeats: trip.availableSeats ?? undefined,
+    direction,
   };
 }
 

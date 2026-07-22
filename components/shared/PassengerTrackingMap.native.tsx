@@ -23,6 +23,9 @@ export interface Station {
   latitude: number;
   longitude: number;
   status: 'completed' | 'active' | 'pending';
+  /** Carried through for callers that pre-filter by direction; unused internally
+   *  (this component receives an already direction-scoped list from its caller). */
+  direction?: 'outbound' | 'return';
 }
 
 export interface TrackingMapProps {

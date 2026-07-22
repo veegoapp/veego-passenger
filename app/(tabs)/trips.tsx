@@ -314,6 +314,7 @@ export default function TripsScreen() {
         seat: 'B4',
         status: 'upcoming' as const, price: activeBooking.price,
         tripId: null,
+        direction: activeBooking.direction,
       }, ...filteredUpcoming]
     : filteredUpcoming;
 
@@ -473,6 +474,13 @@ export default function TripsScreen() {
                       {isAr ? (trip.toAr ?? trip.to) : trip.to}
                     </Text>
                   </View>
+                  {!!trip.direction && (
+                    <View style={styles.typeBadge}>
+                      <Text style={styles.typeBadgeText}>
+                        {trip.direction === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.tripBottom}>

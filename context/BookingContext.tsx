@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
-import type { Booking, Route, ShuttleBookingMeta } from '@/constants/data';
+import type { Booking, Route, ShuttleBookingMeta, ShuttleTripSlot } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
@@ -21,7 +21,7 @@ type BookingContextType = {
   shuttleInfo: ShuttleBookingMeta | null;
   routeLoading: boolean;
   tripsLoading: boolean;
-  scheduledTrips: any[];
+  scheduledTrips: ShuttleTripSlot[];
   tripsTotal: number;
   tripsPage: number;
   walletBalance: number | null;
@@ -101,7 +101,7 @@ async function fetchWalletBalance(): Promise<number | null> {
   }
 }
 
-async function fetchLineTrips(routeId: string): Promise<any[]> {
+async function fetchLineTrips(routeId: string): Promise<ShuttleTripSlot[]> {
   try {
     const { data } = await api.get(`/shuttle/lines/${routeId}`);
     const full = data?.data ?? data;
@@ -128,7 +128,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [confirmedTripId, setConfirmedTripId] = useState<number | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [tripsLoading, setTripsLoading] = useState(false);
-  const [scheduledTrips, setScheduledTrips] = useState<any[]>([]);
+  const [scheduledTrips, setScheduledTrips] = useState<ShuttleTripSlot[]>([]);
   const [tripsTotal, setTripsTotal] = useState(0);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -265,6 +265,23 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // ── Direction guard: re-verify the boarding station still matches the
+    // trip's direction right before booking. TripSheet already filters the
+    // station picker by direction, so this should never trip in practice —
+    // it's a last-line defense against stale/edited pendingBooking state.
+    // Only enforced when both values are actually known (never fabricated).
+    const boardingStation = pendingBooking.route?.path?.[pendingBooking.fromIdx];
+    if (
+      pendingBooking.direction &&
+      boardingStation?.direction &&
+      boardingStation.direction !== pendingBooking.direction
+    ) {
+      setBookingError('Selected boarding station does not match this trip’s direction. Please choose a station again.');
+      setActiveBooking(null);
+      confirmingRef.current = false;
+      return;
+    }
+
     let bookingSuccess = false;
 
     try {
@@ -274,6 +291,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         paymentMethod: 'cash',
       };
       if (promoCode) body.promoCode = promoCode;
+      // Pass along the boarding station the passenger actually selected —
+      // previously the station picker's choice never reached the backend.
+      if (pendingBooking.boardingStationId) body.boardingStationId = pendingBooking.boardingStationId;
 
       const { data } = await api.post('/bookings', body);
       const bookingId = data?.id ?? data?.booking?.id ?? null;

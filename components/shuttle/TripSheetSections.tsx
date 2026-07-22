@@ -25,9 +25,11 @@ import {
 type T = (key: string) => string;
 
 /** ── Route Hero: code box, favourite, route name, journey track ── */
-export function RouteHero({ styles, route, isAr, lo, hi, pickStation }: {
+export function RouteHero({ styles, route, isAr, lo, hi, pickStation, visibleStationIndices }: {
   styles: any; route: Route; isAr: boolean; lo: number; hi: number;
   pickStation: (idx: number) => void;
+  /** Indices into route.path to render, already filtered to the selected trip's direction. */
+  visibleStationIndices: number[];
 }) {
   return (
     <View style={styles.routeHero}>
@@ -63,10 +65,11 @@ export function RouteHero({ styles, route, isAr, lo, hi, pickStation }: {
           contentContainerStyle={styles.journeyScroll}
         >
           <View style={styles.journeyRow}>
-            {route.path.map((s, i) => {
+            {visibleStationIndices.map((i, pos) => {
+              const s = route.path[i];
               const isActive = i >= lo && i <= hi;
-              const isFirst = i === 0;
-              const isLast = i === route.path.length - 1;
+              const isFirst = pos === 0;
+              const isLast = pos === visibleStationIndices.length - 1;
               return (
                 <React.Fragment key={s.id}>
                   <TouchableOpacity style={styles.journeyStop} onPress={() => pickStation(i)} activeOpacity={0.7}>
@@ -198,6 +201,7 @@ export function TripCard({ styles, c, t, trip, index, active, onPress }: {
   const minRequired: number = trip.minRequired ?? 7;
   const message: string = trip.message ?? '';
   const tripNum = String(index + 1).padStart(2, '0');
+  const direction: 'outbound' | 'return' | undefined = trip.direction;
 
   const fillPct = totalSeats > 0 ? (bookedSeats / totalSeats) * 100 : 0;
   const activationPct = minRequired > 0 ? Math.min(100, (bookedSeats / minRequired) * 100) : 100;
@@ -239,6 +243,11 @@ export function TripCard({ styles, c, t, trip, index, active, onPress }: {
         <Text style={[styles.tripStatusText, { color: active ? 'rgba(255,255,255,0.8)' : statusColor }]}>
           {statusLbl}
         </Text>
+        {!!direction && (
+          <Text style={[styles.tripStatusText, { color: active ? 'rgba(255,255,255,0.55)' : c.inkSoft }]}>
+            {' · '}{direction === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}
+          </Text>
+        )}
       </View>
 
       {/* Seat bar */}
@@ -285,12 +294,15 @@ export function TripCard({ styles, c, t, trip, index, active, onPress }: {
 /** ── Station picker: from/to tabs + station timeline ── */
 export function StationPicker({
   styles, gs, c, t, isAr, route, routeLoading, hasPath,
-  pick, setPick, safeFrom, safeTo, lo, hi, pickStation, onRetry,
+  pick, setPick, safeFrom, safeTo, lo, hi, pickStation, visibleStationIndices, onRetry,
 }: {
   styles: any; gs: object; c: ThemeColors; t: T; isAr: boolean; route: Route;
   routeLoading: boolean; hasPath: boolean; pick: 'from' | 'to';
   setPick: (p: 'from' | 'to') => void; safeFrom: number; safeTo: number;
-  lo: number; hi: number; pickStation: (idx: number) => void; onRetry: () => void;
+  lo: number; hi: number; pickStation: (idx: number) => void;
+  /** Indices into route.path to render, already filtered to the selected trip's direction. */
+  visibleStationIndices: number[];
+  onRetry: () => void;
 }) {
   return (
     <View style={styles.sectionWrap}>
@@ -332,15 +344,17 @@ export function StationPicker({
           </View>
 
           <View style={styles.timeline}>
-            {route.path.map((s, i) => {
+            {visibleStationIndices.map((i, pos) => {
+              const s = route.path[i];
               const inSegment = i >= lo && i <= hi;
               const isFrom = i === safeFrom;
               const isTo = i === safeTo;
+              const isLast = pos === visibleStationIndices.length - 1;
               return (
                 <TouchableOpacity key={s.id} style={styles.timelineRow} onPress={() => pickStation(i)} activeOpacity={0.7}>
                   <View style={styles.timelineLeft}>
                     <View style={[styles.tlDot, isFrom || isTo ? styles.tlDotActive : inSegment ? styles.tlDotSeg : styles.tlDotInactive]} />
-                    {i < route.path.length - 1 && (
+                    {!isLast && (
                       <View style={[styles.tlLine, i >= lo && i < hi ? styles.tlLineActive : styles.tlLineInactive]} />
                     )}
                   </View>

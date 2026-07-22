@@ -12,7 +12,7 @@ interface LiveAvailability {
  * /shuttle/trips/:id/availability). Re-fetches whenever tripId changes;
  * resets to null when there is no trip selected or the request fails.
  */
-export function useShuttleSeatAvailability(tripId: string | null | undefined): LiveAvailability | null {
+export function useShuttleSeatAvailability(tripId: string | number | null | undefined): LiveAvailability | null {
   const [liveAvailability, setLiveAvailability] = useState<LiveAvailability | null>(null);
 
   useEffect(() => {

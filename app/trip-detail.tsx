@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
+import type { ShuttleDirection } from '@/constants/data';
 import { cancelBooking, submitShuttleRating } from '@/src/api/shuttleService';
 import { getGivenRatings } from '@/src/api/userService';
 import { getSocket } from '@/src/api/socket';
@@ -55,6 +56,8 @@ interface TripDetail {
   pickupStationId?: number | null;
   driverName?: string | null;
   driverUserId?: number | null;
+  /** This trip's physical direction, when the backend provides it — never fabricated. */
+  direction?: ShuttleDirection;
 }
 
 interface DriverLocation {
@@ -96,6 +99,7 @@ function mapApiToDetail(b: any): TripDetail {
     pickupStationId: pickupStation?.id ?? null,
     driverName: trip.driver?.name ?? b.driver?.name ?? null,
     driverUserId: trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
+    direction: trip.direction ?? b.direction ?? undefined,
   };
 }
 
@@ -281,19 +285,27 @@ export default function TripDetailScreen() {
     fetchTrip();
   }, [fetchTrip]);
 
-  // Fetch all stations for this trip's route — poll every 30 s during live phases
-  const fetchStations = useCallback(async (routeId: string | number) => {
+  // Fetch all stations for this trip's route — poll every 30 s during live phases.
+  // When the trip's direction is known, it's both passed as a query param (in
+  // case the endpoint supports it) and used to filter client-side afterward —
+  // defense-in-depth, since we can't assume the backend honors the param.
+  const fetchStations = useCallback(async (routeId: string | number, direction?: ShuttleDirection) => {
     try {
-      const res = await api.get(`/routes/${routeId}/stations`);
+      const res = await api.get(`/routes/${routeId}/stations`, direction ? { params: { direction } } : undefined);
       const raw: any[] = res.data?.data ?? res.data ?? [];
-      setStations(raw.map((s: any) => ({
+      const mapped = raw.map((s: any) => ({
         id:        s.id,
         name:      s.name ?? s.stationName ?? '',
         order:     s.order ?? s.stationOrder ?? 0,
         latitude:  s.latitude ?? 0,
         longitude: s.longitude ?? 0,
         status:    (s.progress?.status ?? s.status ?? 'pending') as Station['status'],
-      })));
+        direction: (s.direction ?? undefined) as ShuttleDirection | undefined,
+      }));
+      const filtered = direction
+        ? mapped.filter((s) => !s.direction || s.direction === direction)
+        : mapped;
+      setStations(filtered);
     } catch {
       // Station data is optional — map still works with pickup/dropoff fallback
     }
@@ -303,10 +315,10 @@ export default function TripDetailScreen() {
     const currentStatus = (liveStatus ?? trip?.status ?? '').toLowerCase();
     const livePhase = ['driver_assigned', 'scheduled', 'active', 'boarding'].includes(currentStatus);
     if (!trip?.routeId || !livePhase) return;
-    fetchStations(trip.routeId);
-    const interval = setInterval(() => fetchStations(trip.routeId!), 30_000);
+    fetchStations(trip.routeId, trip.direction);
+    const interval = setInterval(() => fetchStations(trip.routeId!, trip.direction), 30_000);
     return () => clearInterval(interval);
-  }, [trip?.routeId, liveStatus, trip?.status, fetchStations]);
+  }, [trip?.routeId, trip?.direction, liveStatus, trip?.status, fetchStations]);
 
   // When trip is completed, check if passenger already rated via GET /user/ratings/given
   useEffect(() => {
@@ -628,6 +640,11 @@ export default function TripDetailScreen() {
             <Text style={[styles.statusText, { color: resolvedStatusColor }]}>
               {shuttleStatusLabel(effectiveStatus, isAr ? 'ar' : 'en')}
             </Text>
+            {!!trip.direction && (
+              <Text style={{ fontSize: 13, color: c.inkSoft, marginStart: 6 }}>
+                · {trip.direction === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}
+              </Text>
+            )}
             {liveStatus !== null && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginStart: 6 }}>
                 <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#55c49a' }} />

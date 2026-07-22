@@ -44,6 +44,36 @@ export interface DebtInfo {
   offenceCount: number;
 }
 
+/**
+ * Physical direction of a specific shuttle departure/trip along its route.
+ * Distinct from `TripRequestDirection` ('one_way' | 'round_trip') in
+ * shuttleService.ts, which describes a trip-request submission, not a
+ * station/trip's direction of travel.
+ */
+export type ShuttleDirection = 'outbound' | 'return';
+
+/**
+ * Raw scheduled/active trip slot as returned inside GET /shuttle/lines/:id
+ * (the `activeTrips`/`trips` array). Kept intentionally permissive — screens
+ * have always treated these as loosely-typed backend payloads — but gives
+ * `direction` a real type so it can be read safely where the backend
+ * provides it, instead of falling back to `any`.
+ */
+export interface ShuttleTripSlot {
+  id?: number | string;
+  departureTime?: string;
+  availableSeats?: number;
+  totalSeats?: number;
+  bookedSeats?: number;
+  minRequired?: number;
+  status?: string;
+  shuttleStatus?: string;
+  message?: string;
+  /** Only present when the backend includes it; never fabricated client-side. */
+  direction?: ShuttleDirection;
+  [key: string]: any;
+}
+
 /** `shuttle` metadata block returned with POST /bookings (§2.10) */
 export interface ShuttleBookingMeta {
   totalSeats: number;
@@ -67,7 +97,7 @@ export type Station = {
   latitude?: number;
   longitude?: number;
   order?: number;                // 1-based position in route
-  direction?: 'outbound' | 'return';
+  direction?: ShuttleDirection;
   segmentPrice?: number | null;  // partial-route pricing (§21.6)
 };
 
@@ -132,6 +162,8 @@ export type Trip = {
   vehicleType?: 'hiace' | 'minibus'; // (§2.3, §4)
   totalSeats?: number;           // from trip, not bus.capacity (§21.4)
   availableSeats?: number;
+  /** This booking's specific trip direction, when the backend provides it. */
+  direction?: ShuttleDirection;
 };
 
 /** Pending booking held in BookingContext while user reviews in ConfirmSheet */
@@ -147,6 +179,10 @@ export type Booking = {
   seatCount?: number;
   paymentStatus?: PaymentStatus;
   promoCodeId?: number | null;
+  /** The selected trip's direction, carried through from TripSheet when known. */
+  direction?: ShuttleDirection;
+  /** id of the station the passenger picked as boarding point (fromIdx's station). */
+  boardingStationId?: string;
 };
 
 export type Notification = {
