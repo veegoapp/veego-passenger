@@ -8,6 +8,7 @@ import {
 } from '../../api/rideService';
 import { getSocket, type RideStatus, type DriverLocation, normalizeRideStatus } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
+import { SOCKET_EVENTS } from '../../../constants/socketEvents';
 
 const DriverAssignedSchema = z.object({
   rideId: z.string().or(z.number()),
@@ -250,7 +251,7 @@ export function useRide(): UseRideResult {
       if (s) {
         s.off('ride:driver_assigned');
         s.off('ride:driver_location');
-        s.off('ride:arrived');
+        s.off(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED);
         s.off('ride:started');
         s.off('ride:completed');
         s.off('ride:cancelled');
@@ -303,9 +304,9 @@ export function useRide(): UseRideResult {
         setRideState((prev) => ({ ...prev, driverLocation: parsed.data.location }));
       });
 
-      socket.on('ride:arrived', (raw: unknown) => {
+      socket.on(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, (raw: unknown) => {
         const parsed = RideIdSchema.safeParse(raw);
-        if (!parsed.success) { console.warn('[Socket] Invalid ride:arrived payload'); return; }
+        if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_arrived payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'arrived' }));
       });
