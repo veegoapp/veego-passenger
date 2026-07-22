@@ -240,7 +240,9 @@ export const ar: typeof en = {
 
   personal_info_title: 'المعلومات الشخصية',
   email_address: 'البريد الإلكتروني',
-  date_of_birth: 'تاريخ الميلاد',
+  gender: 'الجنس',
+  gender_male: 'ذكر',
+  gender_female: 'أنثى',
   save_changes: 'حفظ التغييرات',
   edit: 'تعديل',
   done: 'تم',
@@ -452,8 +454,6 @@ export const ar: typeof en = {
   select_trip: 'اختر رحلة',
   book_now: 'احجز الآن',
   stations_load_error: 'تعذر تحميل المحطات. يرجى التحقق من اتصالك والمحاولة مجدداً.',
-  biometric_verify_prompt: 'تحقق من هويتك لتفعيل تسجيل الدخول بالبصمة',
-  biometric_not_available: 'المصادقة بالبصمة غير متاحة على هذا الجهاز',
   toggle_save_failed: 'فشل حفظ الإعداد. يرجى المحاولة مجدداً.',
 
   debt_banner_title: 'رصيد مستحق',
@@ -672,7 +672,6 @@ export const ar: typeof en = {
   lang_english: 'الإنجليزية',
   lang_arabic: 'العربية',
   lang_change_hint: 'يمكنك تغيير هذا في أي وقت من الإعدادات',
-  dob_placeholder: 'DD/MM/YYYY',
   date_placeholder: 'يي/شش/سسسس',
   terms_browser_msg: 'ستُفتح الشروط في المتصفح.',
   privacy_browser_msg: 'ستُفتح سياسة الخصوصية في المتصفح.',

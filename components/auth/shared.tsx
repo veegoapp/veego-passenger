@@ -45,8 +45,6 @@ export function makeStyles(c: ThemeColors) {
     inputField: { flex: 1, fontSize: Typography.size.sm, color: c.ink },
     primaryBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.xs, ...S.luxe },
     primaryBtnText: { color: c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
-    biometricBtn: { height: 52, borderRadius: 20, backgroundColor: c.mist, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: c.border },
-    biometricBtnText: { color: c.ink, fontSize: 15, fontWeight: Typography.weight.semibold },
     termsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: Spacing.xs },
     termsText: { fontSize: 11, color: c.inkSoft, flex: 1 },
     termsLink: { color: c.ink, fontWeight: Typography.weight.semibold, textDecorationLine: 'underline' },

@@ -6,16 +6,16 @@ export interface UserProfile {
   id: number | null;
   name: string;
   email: string;
-  dob: string;
   phone: string;
+  gender: 'male' | 'female' | null;
 }
 
 const EMPTY_PROFILE: UserProfile = {
   id: null,
   name: '',
   email: '',
-  dob: '',
   phone: '',
+  gender: null,
 };
 
 interface UseProfileResult {
@@ -31,8 +31,8 @@ function mapApiProfile(d: any): UserProfile {
     id: d.id ?? d.userId ?? null,
     name: d.name ?? d.fullName ?? d.displayName ?? '',
     email: d.email ?? d.emailAddress ?? '',
-    dob: d.dob ?? d.dateOfBirth ?? d.birthdate ?? '',
     phone: d.phone ?? d.phoneNumber ?? d.mobile ?? '',
+    gender: d.gender === 'male' || d.gender === 'female' ? d.gender : null,
   };
 }
 

@@ -1,13 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { router } from 'expo-router';
-import { User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Shield } from 'lucide-react-native';
-import * as SecureStore from 'expo-secure-store';
+import { User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as LocalAuthentication from 'expo-local-authentication';
 import { useTheme } from '@/context/ThemeContext';
-import api, { tokenStore } from '@/src/api/client';
+import api from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { makeStyles, saveSession, persistTokens } from './shared';
 
@@ -18,40 +16,6 @@ export function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => 
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-
-  useEffect(() => {
-    Promise.all([
-      LocalAuthentication.hasHardwareAsync(),
-      LocalAuthentication.isEnrolledAsync(),
-      SecureStore.getItemAsync(tokenStore.REFRESH_KEY),
-    ]).then(([hasHardware, isEnrolled, refreshToken]) => {
-      setBiometricAvailable(hasHardware && isEnrolled && !!refreshToken);
-    }).catch((err) => {
-      // Availability check failing just means biometric sign-in stays hidden
-      // (safe default) — log in dev so a recurring failure isn't invisible.
-      if (__DEV__) console.warn('[Auth] biometric availability check failed:', err);
-    });
-  }, []);
-
-  const handleBiometric = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    try {
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Sign in to VeeGo',
-        fallbackLabel: 'Use Password',
-        cancelLabel: 'Cancel',
-        disableDeviceFallback: false,
-      });
-      if (result.success) {
-        emitAuthEvent('auth:login');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        onSuccess();
-      }
-    } catch {
-      // biometric unavailable — user falls back to manual entry
-    }
-  };
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) return;
@@ -140,17 +104,6 @@ export function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => 
           </>
         )}
       </TouchableOpacity>
-
-      {biometricAvailable && (
-        <TouchableOpacity
-          style={styles.biometricBtn}
-          activeOpacity={0.9}
-          onPress={handleBiometric}
-        >
-          <Shield size={18} color={c.ink} />
-          <Text style={styles.biometricBtnText}>Sign in with Biometrics</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }

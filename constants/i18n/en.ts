@@ -239,7 +239,9 @@ export const en = {
 
   personal_info_title: 'Personal Information',
   email_address: 'Email address',
-  date_of_birth: 'Date of birth',
+  gender: 'Gender',
+  gender_male: 'Male',
+  gender_female: 'Female',
   save_changes: 'Save changes',
   edit: 'Edit',
   done: 'Done',
@@ -451,8 +453,6 @@ export const en = {
   select_trip: 'Select a trip',
   book_now: 'Book now',
   stations_load_error: 'Could not load stations. Please check your connection and try again.',
-  biometric_verify_prompt: 'Verify your identity to enable biometric login',
-  biometric_not_available: 'Biometric authentication is not available on this device',
   toggle_save_failed: 'Failed to save setting. Please try again.',
 
   debt_banner_title: 'Outstanding balance',
@@ -670,7 +670,6 @@ export const en = {
   lang_english: 'English',
   lang_arabic: 'Arabic',
   lang_change_hint: 'You can change this anytime in Settings',
-  dob_placeholder: 'DD/MM/YYYY',
   date_placeholder: 'DD/MM/YYYY',
   terms_browser_msg: 'Terms would open in a browser.',
   privacy_browser_msg: 'Privacy policy would open in a browser.',

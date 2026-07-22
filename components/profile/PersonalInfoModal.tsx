@@ -26,8 +26,7 @@ export function PersonalInfoModal({
 }) {
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const { name: savedName, email: savedEmail, dob: savedDob, phone: savedPhone, saveProfile } = useProfileInfo();
-  const [dob, setDob] = useState(savedDob);
+  const { name: savedName, email: savedEmail, phone: savedPhone, gender: savedGender, saveProfile } = useProfileInfo();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
@@ -39,7 +38,6 @@ export function PersonalInfoModal({
 
   useEffect(() => {
     if (visible) {
-      setDob(savedDob);
       setSaved(false);
       setSaving(false);
       setPwOpen(false);
@@ -47,14 +45,14 @@ export function PersonalInfoModal({
       setNewPw('');
       setConfirmPw('');
     }
-  }, [visible, savedDob]);
+  }, [visible]);
 
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await saveProfile(savedName, savedEmail, dob);
+      await saveProfile(savedName, savedEmail);
       onSaved?.(savedName);
       setSaved(true);
       setTimeout(() => { setSaved(false); onClose(); }, 900);
@@ -148,16 +146,17 @@ export function PersonalInfoModal({
               </View>
             </View>
 
-            {/* Date of birth — editable */}
+            {/* Gender — read-only */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('date_of_birth')}</Text>
-              <TextInput
-                style={styles.input}
-                value={dob}
-                onChangeText={setDob}
-                placeholder={t('dob_placeholder')}
-                placeholderTextColor={c.silver}
-              />
+              <Text style={styles.inputLabel}>{t('gender')}</Text>
+              <View style={{ position: 'relative' }}>
+                <Text style={styles.readOnlyInput}>
+                  {savedGender === 'male' ? t('gender_male') : savedGender === 'female' ? t('gender_female') : '—'}
+                </Text>
+                <View style={styles.readOnlyBadge}>
+                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                </View>
+              </View>
             </View>
 
             {/* ── Change Password section ── */}

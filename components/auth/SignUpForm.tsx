@@ -17,6 +17,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [termsChecked, setTermsChecked] = useState(false);
@@ -36,7 +37,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       .finally(() => setTermsFetching(false));
   }, []);
 
-  const canSubmit = !!(name.trim() && phone.trim() && email.trim() && password.trim() && termsChecked && !loading);
+  const canSubmit = !!(name.trim() && phone.trim() && email.trim() && password.trim() && gender && termsChecked && !loading);
 
   const handleSignUp = async () => {
     if (!canSubmit) return;
@@ -52,6 +53,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         phone: phone.trim(),
         email: email.trim(),
         password,
+        gender,
       });
       if (data.requiresOtp) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -151,6 +153,31 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
           {showPass ? <EyeOff size={16} color={c.inkSoft} /> : <Eye size={16} color={c.inkSoft} />}
         </TouchableOpacity>
+      </View>
+
+      {/* Gender — required */}
+      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', gap: 10 }}>
+        {(['male', 'female'] as const).map((g) => (
+          <TouchableOpacity
+            key={g}
+            onPress={() => { Haptics.selectionAsync(); setGender(g); }}
+            activeOpacity={0.8}
+            style={{
+              flex: 1,
+              height: 52,
+              borderRadius: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: gender === g ? c.ink : c.border,
+              backgroundColor: gender === g ? c.ink : c.mist,
+            }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: '600', color: gender === g ? c.white : c.ink }}>
+              {g === 'male' ? t('gender_male') : t('gender_female')}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Terms checkbox */}

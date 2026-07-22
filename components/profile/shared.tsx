@@ -168,15 +168,15 @@ export function ModalHeader({ title, onClose, actionLabel, onAction, actionDisab
 export function useProfileInfo() {
   const { profile, loading, saveProfile: apiSave, refresh } = useProfile();
 
-  const saveProfile = useCallback(async (n: string, em: string, d: string) => {
-    await apiSave({ name: n, email: em, dob: d });
+  const saveProfile = useCallback(async (n: string, em: string) => {
+    await apiSave({ name: n, email: em });
   }, [apiSave]);
 
   return {
     name: profile.name || 'User',
     email: profile.email || '',
-    dob: profile.dob || '',
     phone: profile.phone || '',
+    gender: profile.gender,
     loaded: !loading,
     saveProfile,
     refresh,
