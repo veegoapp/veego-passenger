@@ -158,7 +158,7 @@ interface UseRideResult {
     recipientName?: string;
     recipientPhone?: string;
   }) => Promise<{ success: boolean; rideId?: string; error?: string }>;
-  cancelRide: (reason?: string) => Promise<void>;
+  cancelRide: (reason?: string) => Promise<{ success: boolean; error?: string }>;
   clearDeviationWarning: () => void;
   resetRide: () => void;
   resumeActiveRide: () => Promise<ResumedRide | null>;
@@ -506,7 +506,11 @@ export function useRide(): UseRideResult {
     stopPolling();
     try {
       const data = await requestRideApi(payload);
-      const rideId = String(data?.data?.id ?? data?.rideId ?? data?.id ?? data?._id ?? Date.now());
+      const rawId = data?.data?.id ?? data?.rideId ?? data?.id ?? data?._id;
+      if (rawId == null) {
+        throw new Error('Ride request did not return a valid ride id');
+      }
+      const rideId = String(rawId);
       setRideState((prev) => ({ ...prev, rideId, status: 'searching' }));
       await setupSocketListeners(rideId);
       startPolling(rideId);
@@ -520,32 +524,63 @@ export function useRide(): UseRideResult {
     }
   }, [setupSocketListeners, startPolling, stopPolling]);
 
-  const cancelRide = useCallback(async (reason?: string) => {
+  const cancelRide = useCallback(async (reason?: string): Promise<{ success: boolean; error?: string }> => {
     const { rideId } = rideState;
-    if (rideId) {
-      try {
-        await cancelRideApi(rideId, reason);
-      } catch {}
+    if (!rideId) {
+      return { success: false, error: 'No active ride to cancel' };
     }
-    stopPolling();
+
+    try {
+      await cancelRideApi(rideId, reason);
+    } catch (e: any) {
+      // The cancel call failed — don't assume the ride was cancelled. Resync
+      // with the backend's actual status instead of guessing, and leave the
+      // passenger in their current ride flow either way.
+      try {
+        const data = await getRideApi(rideId);
+        const ride = data?.data ?? data;
+        const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
+        if (status) {
+          setRideState((prev) => ({
+            ...prev,
+            status,
+            cancelReason: status === 'cancelled' ? (reason ?? 'Cancelled by user') : prev.cancelReason,
+          }));
+          if (TERMINAL_STATUSES.includes(status)) {
+            activeRideIdRef.current = null;
+            socketCleanupRef.current?.();
+            socketCleanupRef.current = null;
+          }
+        }
+      } catch {}
+      const error = e?.response?.data?.message ?? e?.message ?? 'Failed to cancel ride';
+      return { success: false, error };
+    }
+
     activeRideIdRef.current = null;
+    socketCleanupRef.current?.();
+    socketCleanupRef.current = null;
     setRideState((prev) => ({
       ...prev,
       status: 'cancelled',
       cancelReason: reason ?? 'Cancelled by user',
     }));
-    socketListening.current = false;
-  }, [rideState, stopPolling]);
+    return { success: true };
+  }, [rideState]);
 
   const clearDeviationWarning = useCallback(() => {
     setRideState((prev) => ({ ...prev, deviationWarning: false }));
   }, []);
 
   const resetRide = useCallback(() => {
-    stopPolling();
+    if (socketCleanupRef.current) {
+      socketCleanupRef.current();
+      socketCleanupRef.current = null;
+    } else {
+      stopPolling();
+    }
     activeRideIdRef.current = null;
     setRideState(DEFAULT_STATE);
-    socketListening.current = false;
   }, [stopPolling]);
 
   const resumeActiveRide = useCallback(async (): Promise<ResumedRide | null> => {
