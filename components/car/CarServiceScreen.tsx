@@ -347,6 +347,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   const showDriverMarker = ['driver_assigned', 'arrived', 'started'].includes(rideState.status);
 
+  // F6: differentiate the terminal-cancelled card's title/message by cause
+  // (driver cancelled / no-show / request timeout / passenger cancelled)
+  // instead of always showing the same generic "Cancel Trip" text.
+  const cancelTitle = rideState.terminationReason === 'timeout' ? t('status_request_timeout') : t('cancel_trip');
+  const cancelSubtitle =
+    rideState.cancelReason ??
+    (rideState.terminationReason === 'driver' ? t('driver_cancelled_msg')
+      : rideState.terminationReason === 'no_show' ? t('no_show_cancelled_msg')
+      : rideState.terminationReason === 'passenger' ? t('passenger_cancelled_msg')
+      : null);
+
   return (
     <View style={styles.root}>
       {/* Resume overlay — shown briefly while checking for an active ride */}
@@ -524,9 +535,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         <View style={styles.card}>
           <View style={styles.cardInner}>
             <XCircle size={48} color="#ef4444" />
-            <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('cancel_trip')}</Text>
-            {rideState.cancelReason ? (
-              <Text style={[styles.cardSub, { color: c.inkSoft }]}>{rideState.cancelReason}</Text>
+            <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{cancelTitle}</Text>
+            {cancelSubtitle ? (
+              <Text style={[styles.cardSub, { color: c.inkSoft }]}>{cancelSubtitle}</Text>
             ) : null}
             <VeeGoButton
               title={t('try_again')}

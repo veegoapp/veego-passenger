@@ -155,16 +155,18 @@ export function DriverAssignedCard({
             <Phone size={18} color={c.ink} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: c.isDark ? 'rgba(235,90,90,0.15)' : 'rgba(235,90,90,0.08)' }]}
-            activeOpacity={0.8}
-            onPress={() => {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              onCancel();
-            }}
-          >
-            <X size={20} color="#eb5a5a" />
-          </TouchableOpacity>
+          {rideStatus !== 'started' && (
+            <TouchableOpacity
+              style={[styles.iconBtn, { backgroundColor: c.isDark ? 'rgba(235,90,90,0.15)' : 'rgba(235,90,90,0.08)' }]}
+              activeOpacity={0.8}
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                onCancel();
+              }}
+            >
+              <X size={20} color="#eb5a5a" />
+            </TouchableOpacity>
+          )}
 
           {rideStatus === 'started' && (
             <TouchableOpacity

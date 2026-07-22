@@ -109,6 +109,8 @@ export interface RideState {
   driverLocation: DriverLocation | null;
   fare: number | null;
   cancelReason: string | null;
+  /** F6: who/what ended the ride, so the UI can show a distinct message per cause. */
+  terminationReason: 'passenger' | 'driver' | 'no_show' | 'timeout' | null;
   waitingCharge: number | null;
   waitingChargeStatus: 'none' | 'active' | 'capped';
   waitingRatePerMinute: number | null;
@@ -174,6 +176,7 @@ const DEFAULT_STATE: RideState = {
   driverLocation: null,
   fare: null,
   cancelReason: null,
+  terminationReason: null,
   waitingCharge: null,
   waitingChargeStatus: 'none',
   waitingRatePerMinute: null,
@@ -337,11 +340,16 @@ export function useRide(): UseRideResult {
       socket.on('ride:driver_cancelled', (raw: unknown) => {
         const parsed = RideCancelledOptionalIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_cancelled payload'); return; }
-        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
+        // rideId is optional on this event: this listener only exists while
+        // actively tracking this specific ride (registered/torn down per
+        // rideId by setupSocketListeners/cleanup), so an omitted rideId is
+        // already implicitly scoped to it. A *present* rideId must still match.
+        if (parsed.data.rideId != null && String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
           status: 'cancelled',
-          cancelReason: parsed.data.reason ?? 'Driver cancelled your ride',
+          cancelReason: parsed.data.reason ?? null,
+          terminationReason: 'driver',
         }));
         cleanup();
       });
@@ -349,11 +357,15 @@ export function useRide(): UseRideResult {
       socket.on('ride:no_show_cancelled', (raw: unknown) => {
         const parsed = RideCancelledOptionalIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:no_show_cancelled payload'); return; }
-        if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
+        // Same reasoning as ride:driver_cancelled above: an omitted rideId is
+        // safe here because this listener is scoped to one ride at a time; a
+        // *present* rideId must still match.
+        if (parsed.data.rideId != null && String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({
           ...prev,
           status: 'cancelled',
-          cancelReason: parsed.data.reason ?? 'Ride cancelled: driver did not arrive in time',
+          cancelReason: parsed.data.reason ?? null,
+          terminationReason: 'no_show',
         }));
         cleanup();
       });
@@ -362,7 +374,7 @@ export function useRide(): UseRideResult {
         const parsed = RideIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:timeout payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
-        setRideState((prev) => ({ ...prev, status: 'timeout' }));
+        setRideState((prev) => ({ ...prev, status: 'timeout', terminationReason: 'timeout' }));
         cleanup();
       });
 
@@ -545,7 +557,8 @@ export function useRide(): UseRideResult {
           setRideState((prev) => ({
             ...prev,
             status,
-            cancelReason: status === 'cancelled' ? (reason ?? 'Cancelled by user') : prev.cancelReason,
+            cancelReason: status === 'cancelled' ? null : prev.cancelReason,
+            terminationReason: status === 'cancelled' ? 'passenger' : prev.terminationReason,
           }));
           if (TERMINAL_STATUSES.includes(status)) {
             activeRideIdRef.current = null;
@@ -564,7 +577,8 @@ export function useRide(): UseRideResult {
     setRideState((prev) => ({
       ...prev,
       status: 'cancelled',
-      cancelReason: reason ?? 'Cancelled by user',
+      cancelReason: null,
+      terminationReason: 'passenger',
     }));
     return { success: true };
   }, [rideState]);
