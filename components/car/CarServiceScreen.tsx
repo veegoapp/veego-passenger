@@ -29,7 +29,15 @@ import { Shadows } from '@/constants/shadows';
 import { VeeGoButton } from '@/components/ui/VeeGoButton';
 
 interface Coords { latitude: number; longitude: number }
-interface RideEstimate { economy: { price: number; eta: number }; premium: { price: number; eta: number } }
+interface RideEstimate {
+  economy: { price: number; eta: number };
+  premium: { price: number; eta: number };
+  /** Real car-category slugs backing the economy/premium tiers, straight from
+   *  the estimate response's `categories[]` (same cheapest/priciest positions
+   *  the backend itself used to derive the economy/premium price fields). */
+  economySlug?: string;
+  premiumSlug?: string;
+}
 
 type CarPhase = 'idle' | 'selecting' | 'ride_options' | 'in_ride' | 'completed' | 'cancelled';
 
@@ -203,9 +211,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     try {
       const data = await getRideEstimate(pickup, dropoff, serviceType);
       if (serviceType === 'car') {
+        const categories: Array<{ slug: string }> | undefined = data.categories;
         setEstimate({
           economy: { price: data.economy?.price ?? 0, eta: data.economy?.eta ?? 5 },
           premium: { price: data.premium?.price ?? 0, eta: data.premium?.eta ?? 8 },
+          economySlug: categories?.[0]?.slug,
+          premiumSlug: categories?.[categories.length - 1]?.slug,
         });
       } else {
         // Scooter/delivery pricing is single-rate on the backend — no
@@ -285,18 +296,25 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       pickupAddress = `${pickup.latitude.toFixed(5)}, ${pickup.longitude.toFixed(5)}`;
     }
 
+    // Map the selected tier to the real car-category slug the backend gave us
+    // in the estimate response — 'standard' (scooter/delivery) has no category
+    // split, so no categorySlug is sent for it (unchanged dispatch behavior).
+    const categorySlug = selectedRide === 'economy' ? estimate?.economySlug
+      : selectedRide === 'premium' ? estimate?.premiumSlug
+      : undefined;
+
     const result = await requestRide({
       type: serviceType,
       pickup:  { ...pickup,  address: pickupAddress },
       dropoff: { ...dropoff, address: destination ?? '' },
-      notes: selectedRide,
+      ...(categorySlug ? { categorySlug } : {}),
       ...(serviceType === 'delivery' ? { recipientName: recipientName.trim(), recipientPhone: recipientPhone.trim() } : {}),
     });
 
     if (!result.success) {
       Alert.alert(t('error'), result.error ?? t('request_ride_failed'));
     }
-  }, [selectedRide, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone]);
+  }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone]);
 
   const handleReset = useCallback(() => {
     resetRide();
