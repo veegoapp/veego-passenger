@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl, Alert,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, MapPin, Flame } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -153,7 +153,17 @@ function makeStyles(c: ThemeColors) {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const [mode, setMode] = useState<ServiceMode>('shuttle');
+  // Cold-start active-ride recovery (F3): app/index.tsx checks GET /rides/active
+  // before landing here and, if a car/scooter/delivery ride is in progress,
+  // appends `resumeService` so Home opens straight into that ride's flow
+  // instead of defaulting to shuttle. CarServiceScreen's own resumeActiveRide()
+  // effect (unchanged) then takes over from here. No param = unchanged default.
+  const { resumeService } = useLocalSearchParams<{ resumeService?: string }>();
+  const [mode, setMode] = useState<ServiceMode>(() => (
+    resumeService === 'car' || resumeService === 'scooter' || resumeService === 'delivery'
+      ? resumeService
+      : 'shuttle'
+  ));
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openRoute, activeBooking } = useBooking();
   const { colors: c, glassStyle: gs, t, isRTL, language } = useTheme();

@@ -10,6 +10,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { tokenStore } from '@/src/api/client';
 import api from '@/src/api/client';
 import { clearSession } from '@/src/api/session';
+import { getActiveRide } from '@/src/api/rideService';
+import { normalizeRideStatus } from '@/src/api/socket';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
@@ -53,6 +55,29 @@ async function attemptTokenRefresh(): Promise<boolean> {
   }
 }
 
+const RESUMABLE_RIDE_SERVICES = new Set(['car', 'scooter', 'delivery']);
+
+/**
+ * F3: checks for an in-progress car/scooter/delivery ride via the existing
+ * GET /rides/active endpoint so a cold start can route straight back into
+ * that ride's flow instead of defaulting to Home's shuttle mode. Any failure
+ * here is treated the same as "no active ride" — this must never block
+ * normal navigation.
+ */
+async function checkActiveRideService(): Promise<string | null> {
+  try {
+    const data = await getActiveRide();
+    const ride = data?.data ?? data;
+    if (!ride?.id) return null;
+    const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
+    if (!status || status === 'completed' || status === 'cancelled') return null;
+    const vehicleType = ride.vehicleType ?? ride.type ?? ride.serviceType;
+    return RESUMABLE_RIDE_SERVICES.has(vehicleType) ? vehicleType : null;
+  } catch {
+    return null;
+  }
+}
+
 async function checkAuthAndNavigate() {
   try {
     const langSelected = await AsyncStorage.getItem(LANG_KEY);
@@ -78,7 +103,8 @@ async function checkAuthAndNavigate() {
     // A device that reaches the app with a valid session has clearly moved
     // past first-run — make sure a later logout on this device skips onboarding too.
     await markOnboardingSeen();
-    router.replace('/(tabs)');
+    const resumeService = await checkActiveRideService();
+    router.replace((resumeService ? `/(tabs)?resumeService=${resumeService}` : '/(tabs)') as any);
   } catch {
     router.replace('/lang-select');
   }
