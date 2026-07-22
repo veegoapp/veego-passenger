@@ -113,7 +113,24 @@ export default function TripTrackingScreen() {
         } catch {}
 
         if (normalized === 'completed' || normalized === 'cancelled') {
-          router.replace({ pathname: '/receipt', params: { id: deepId } } as any);
+          // receipt.tsx reads `rideId` (not `id`) and uses it both to check
+          // whether this ride was already rated and to submit the rating —
+          // passing the wrong key silently broke that lookup and the
+          // eventual POST /rides/:id/rate-driver call.
+          const fare = d?.fare ?? d?.finalPrice;
+          const pickupAddress = d?.pickupAddress ?? d?.pickup_address;
+          const dropoffAddress = d?.dropoffAddress ?? d?.dropoff_address;
+          router.replace({
+            pathname: '/receipt',
+            params: {
+              rideId: deepId,
+              ...(fare != null ? { fare: String(fare) } : {}),
+              ...(pickupAddress ? { pickup: pickupAddress } : {}),
+              ...(dropoffAddress ? { dropoff: dropoffAddress } : {}),
+              ...(d?.driver?.name ? { driverName: d.driver.name } : {}),
+              ...(d?.driver?.rating != null ? { driverRating: String(d.driver.rating) } : {}),
+            },
+          } as any);
           return;
         }
 

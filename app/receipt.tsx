@@ -113,17 +113,21 @@ export default function ReceiptScreen() {
     .slice(0, 2) || 'DR';
 
   const handleRatingSubmit = useCallback(async (stars: number, comment: string) => {
-    if (params.rideId) {
-      try {
-        await api.post(`/rides/${params.rideId}/rate-driver`, { rating: stars, comment });
-        setAlreadyRated(true);
-      } catch {
-        Alert.alert(t('error'), t('rating_submit_failed'));
-        // Not marking alreadyRated — the rating wasn't actually saved, so the
-        // prompt should still offer to retry next time this receipt is seen.
-      }
-    } else {
+    if (!params.rideId) {
+      // No rideId means there's nothing to submit the rating against —
+      // surface the failure instead of silently marking as rated.
+      setRatingVisible(false);
+      Alert.alert(t('error'), t('rating_submit_failed'));
+      router.replace('/(tabs)' as any);
+      return;
+    }
+    try {
+      await api.post(`/rides/${params.rideId}/rate-driver`, { rating: stars, comment });
       setAlreadyRated(true);
+    } catch {
+      Alert.alert(t('error'), t('rating_submit_failed'));
+      // Not marking alreadyRated — the rating wasn't actually saved, so the
+      // prompt should still offer to retry next time this receipt is seen.
     }
     setRatingVisible(false);
     router.replace('/(tabs)' as any);

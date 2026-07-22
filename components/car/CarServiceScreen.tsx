@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
   TextInput, Animated, Modal, Alert,
 } from 'react-native';
+import { router } from 'expo-router';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -308,6 +309,26 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setSearchQuery('');
   }, [resetRide]);
 
+  // Reuses the existing receipt.tsx + RatingSheet flow (already wired to
+  // POST /rides/:id/rate-driver) so a normal in-app ride completion, not just
+  // the deep-link path, gives the passenger a chance to rate the driver.
+  const handleFinishRide = useCallback(() => {
+    const finishedRideId = rideState.rideId;
+    if (finishedRideId) {
+      router.push({
+        pathname: '/receipt',
+        params: {
+          rideId: finishedRideId,
+          ...(rideState.fare != null ? { fare: String(rideState.fare) } : {}),
+          ...(destination ? { dropoff: destination } : {}),
+          ...(rideState.driver?.name ? { driverName: rideState.driver.name } : {}),
+          ...(rideState.driver?.rating != null ? { driverRating: String(rideState.driver.rating) } : {}),
+        },
+      } as any);
+    }
+    handleReset();
+  }, [rideState.rideId, rideState.fare, rideState.driver, destination, handleReset]);
+
   const handleCancel = useCallback(async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     if (phase === 'in_ride' && rideState.rideId) {
@@ -489,7 +510,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
             )}
             <VeeGoButton
               title={t('done')}
-              onPress={handleReset}
+              onPress={handleFinishRide}
               variant="primary"
               size="large"
               style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.xs, elevation: 0 }}
