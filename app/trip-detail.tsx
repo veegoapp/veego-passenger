@@ -212,6 +212,10 @@ export default function TripDetailScreen() {
 
   const tripIdRef = useRef<string | number | null>(null);
   const bookingIdRef = useRef<string | number | null>(null);
+  // Latest routeId/direction, kept in sync by the station-polling effect below —
+  // read by the station-arrived/completed socket handlers so they can trigger
+  // an immediate refetch without needing to be in the [id]-only effect's deps.
+  const tripStationsMetaRef = useRef<{ routeId: string | number; direction?: ShuttleDirection } | null>(null);
 
   const fetchTrip = useCallback(async () => {
     if (!id) { setError(t('trip_id_missing')); setLoading(false); return; }
@@ -315,6 +319,7 @@ export default function TripDetailScreen() {
     const currentStatus = (liveStatus ?? trip?.status ?? '').toLowerCase();
     const livePhase = ['driver_assigned', 'scheduled', 'active', 'boarding'].includes(currentStatus);
     if (!trip?.routeId || !livePhase) return;
+    tripStationsMetaRef.current = { routeId: trip.routeId, direction: trip.direction };
     fetchStations(trip.routeId, trip.direction);
     const interval = setInterval(() => fetchStations(trip.routeId!, trip.direction), 30_000);
     return () => clearInterval(interval);
@@ -395,16 +400,33 @@ export default function TripDetailScreen() {
         socket.emit('join:trip', { tripId: Number(id) });
       };
 
+      // Station arrival/completion — refresh the station list immediately instead
+      // of waiting for the next 30s poll tick (fetchStations is a stable callback).
+      const stationArrivedHandler = (payload: { tripId?: string | number; stationId?: number }) => {
+        if (payload.tripId == null || String(payload.tripId) !== String(id)) return;
+        const meta = tripStationsMetaRef.current;
+        if (meta) fetchStations(meta.routeId, meta.direction);
+      };
+      const stationCompletedHandler = (payload: { tripId?: string | number; stationId?: number }) => {
+        if (payload.tripId == null || String(payload.tripId) !== String(id)) return;
+        const meta = tripStationsMetaRef.current;
+        if (meta) fetchStations(meta.routeId, meta.direction);
+      };
+
       socket.on('shuttle:driver:location', locationHandler);
       socket.on('shuttle:trip:status', statusHandler);
       socket.on('booking:boarded', boardedHandler);
       socket.on('connect', reconnectHandler);
+      socket.on('shuttle:station:arrived', stationArrivedHandler);
+      socket.on('shuttle:station:completed', stationCompletedHandler);
 
       handlers.push(
         () => socket.off('shuttle:driver:location', locationHandler),
         () => socket.off('shuttle:trip:status', statusHandler),
         () => socket.off('booking:boarded', boardedHandler),
         () => socket.off('connect', reconnectHandler),
+        () => socket.off('shuttle:station:arrived', stationArrivedHandler),
+        () => socket.off('shuttle:station:completed', stationCompletedHandler),
       );
     }).catch(() => {});
 
@@ -415,7 +437,7 @@ export default function TripDetailScreen() {
         socket.emit('leave:trip', { tripId: id });
       }).catch(() => {});
     };
-  }, [id]);
+  }, [id, fetchStations]);
 
   // ETA is now computed inside PassengerTrackingMap (single source of truth)
   // and reported back via onEtaChange below — no local calculation here.

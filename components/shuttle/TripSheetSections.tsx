@@ -10,7 +10,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Heart, Clock, MapPin, AlertCircle, Ticket, Wallet,
+  Heart, Clock, MapPin, AlertCircle, Ticket,
   ChevronRight, ChevronLeft, Bus,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -383,11 +383,10 @@ export function StationPicker({
 
 /** ── Price summary card ── */
 export function PriceSummary({
-  styles, c, t, isAr, isRTL, route, safeFrom, safeTo, seatCount, total, walletBalance, walletLow,
+  styles, c, t, isAr, isRTL, route, safeFrom, safeTo, seatCount, total,
 }: {
   styles: any; c: ThemeColors; t: T; isAr: boolean; isRTL: boolean; route: Route;
   safeFrom: number; safeTo: number; seatCount: number; total: number;
-  walletBalance: number | null; walletLow: boolean;
 }) {
   return (
     <View style={[styles.priceSummary, { marginHorizontal: Spacing.md, marginTop: Spacing.md }]}>
@@ -406,14 +405,6 @@ export function PriceSummary({
           {seatCount > 1 ? ` · ${seatCount} ${t('seat_count')}` : ''}
         </Text>
         <Text style={styles.priceTotal}>{total} {t('egp')}</Text>
-        <View style={styles.walletRow}>
-          <Wallet size={11} color={walletLow ? '#e53e3e' : '#38a169'} />
-          <Text style={[styles.walletText, walletLow ? styles.walletLow : styles.walletOk]}>
-            {walletBalance !== null
-              ? `${isAr ? 'المحفظة' : 'Wallet'}: ${walletBalance.toFixed(2)} ${t('egp')}`
-              : t('wallet_loading')}
-          </Text>
-        </View>
       </View>
       {isRTL ? <ChevronLeft size={16} color={c.inkSoft} /> : <ChevronRight size={16} color={c.inkSoft} />}
     </View>

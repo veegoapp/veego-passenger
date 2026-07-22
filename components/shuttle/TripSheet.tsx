@@ -228,10 +228,6 @@ function makeStyles(c: ThemeColors, gs: object) {
     },
     priceSegLabel: { fontSize: Typography.size.xs, color: c.inkSoft, lineHeight: 17 },
     priceTotal: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, marginTop: 2 },
-    walletRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.xs },
-    walletText: { fontSize: 11, color: c.inkSoft },
-    walletLow: { color: '#e53e3e' },
-    walletOk: { color: '#38a169' },
 
     /* Service banner */
     serviceBanner: {
@@ -282,7 +278,7 @@ export function TripSheet() {
   const {
     tripSheetOpen, closeTripSheet, selectedRoute, handleBook, prepareBooking,
     routeLoading, tripsLoading, scheduledTrips,
-    openRoute, walletBalance, seatCount, setSeatCount,
+    openRoute, seatCount, setSeatCount,
   } = useBooking();
   const { getService, handleServiceTap } = useServiceControl();
   const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
@@ -430,7 +426,6 @@ export function TripSheet() {
   const total = pricePerSeat * seatCount;
   const seatsOk = seatCount >= 1 && seatCount <= Math.min(2, selectedTripSeats);
   const valid = hasPath && safeFrom !== safeTo && !routeLoading && visibleTrips.length > 0 && selectedTripBookable && shuttleServiceEnabled && seatsOk && stationsMatchTripDirection;
-  const walletLow = walletBalance !== null && walletBalance < total;
 
   const pickStation = (idx: number) => {
     // Defense-in-depth: the UI below only ever renders indices from
@@ -581,7 +576,6 @@ export function TripSheet() {
             styles={styles} c={c} t={t as (key: string) => string} isAr={isAr} isRTL={isRTL}
             route={route} safeFrom={safeFrom} safeTo={safeTo}
             seatCount={seatCount} total={total}
-            walletBalance={walletBalance} walletLow={walletLow}
           />
 
           <View style={{ height: 120 }} />
@@ -589,8 +583,8 @@ export function TripSheet() {
 
         <View style={styles.cta}>
           <TouchableOpacity
-            style={[styles.ctaBtn, (!valid || walletLow) && { opacity: 0.45 }]}
-            disabled={!valid || walletLow}
+            style={[styles.ctaBtn, !valid && { opacity: 0.45 }]}
+            disabled={!valid}
             activeOpacity={0.88}
             onPress={() => {
               if (!valid) return;
@@ -644,11 +638,9 @@ export function TripSheet() {
                 ? 'Service Unavailable'
                 : !valid
                 ? t('select_trip')
-                : walletLow
-                ? 'Insufficient Balance'
                 : t('continue_btn')}
             </Text>
-            {valid && !walletLow && shuttleServiceEnabled && (isRTL ? <ArrowLeft size={18} color={c.isDark ? c.background : c.white} /> : <ArrowRight size={18} color={c.isDark ? c.background : c.white} />)}
+            {valid && shuttleServiceEnabled && (isRTL ? <ArrowLeft size={18} color={c.isDark ? c.background : c.white} /> : <ArrowRight size={18} color={c.isDark ? c.background : c.white} />)}
           </TouchableOpacity>
         </View>
       </Animated.View>

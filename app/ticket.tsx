@@ -306,6 +306,16 @@ export default function TicketScreen() {
       if (tid && resolvedSocket) resolvedSocket.emit('passenger:join:trip', tid);
     };
 
+    // Live trip status (started/completed) — same event trip-detail.tsx already
+    // listens for; this screen only had trip:activated before, which covers the
+    // booking-threshold case but not the driver actually starting/completing.
+    const tripStatusHandler = (data: { tripId: string | number; status: string }) => {
+      const tid = confirmedTripIdRef.current;
+      if (!tid || String(data.tripId) === String(tid)) {
+        setLiveStatus(data.status?.toLowerCase());
+      }
+    };
+
     (async () => {
       try {
         const socket = await getSocket();
@@ -319,6 +329,7 @@ export default function TicketScreen() {
         socket.on('booking:boarded', boardedHandler);
         socket.on('shuttle:driver:location', driverLocationHandler);
         socket.on('trip:activated', tripActivatedHandler);
+        socket.on('shuttle:trip:status', tripStatusHandler);
         socket.on('connect', reconnectHandler);
       } catch {
         // socket unavailable — graceful degradation
@@ -331,6 +342,7 @@ export default function TicketScreen() {
         resolvedSocket.off('booking:boarded', boardedHandler);
         resolvedSocket.off('shuttle:driver:location', driverLocationHandler);
         resolvedSocket.off('trip:activated', tripActivatedHandler);
+        resolvedSocket.off('shuttle:trip:status', tripStatusHandler);
         resolvedSocket.off('connect', reconnectHandler);
       }
     };
