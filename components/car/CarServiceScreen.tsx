@@ -21,6 +21,7 @@ import { DriverAssignedCard } from './DriverAssignedCard';
 import { SafetySheet } from '@/components/shared/SafetySheet';
 import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useRecentSearches } from '@/src/hooks/shared/useRecentSearches';
+import { useSocketConnectionState } from '@/src/hooks/shared/useSocketConnectionState';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -156,8 +157,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [recipientPhone, setRecipientPhone] = useState('');
   const userCoordsRef = useRef<Coords | null>(null);
 
-  const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide } = useRide();
+  const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide, pollingStale } = useRide();
   const [resuming, setResuming] = useState(false);
+  const socketConnectionState = useSocketConnectionState();
 
   // Nearby-driver markers — pre-booking only. Stops the moment a ride is
   // requested or the phase moves past ride_options; CarServiceScreen itself
@@ -379,6 +381,23 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {/* Realtime connection indicator — live phases only */}
       {phase === 'in_ride' && (
         <ConnectionBanner style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50 }} />
+      )}
+
+      {/* Phase 3: the status-polling fallback (useRide's `pollingStale`) already
+          tracked whether it's failing to reach the server, but nothing showed
+          it. Only surfaced when the socket itself is connected — otherwise
+          ConnectionBanner above already covers it — so this never stacks. */}
+      {phase === 'in_ride' && pollingStale && socketConnectionState === 'connected' && (
+        <View
+          style={{
+            position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50,
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            backgroundColor: '#d97706', paddingVertical: 6, paddingHorizontal: Spacing.md,
+            borderRadius: 99,
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 11, fontWeight: Typography.weight.bold }}>{t('reconnecting')}</Text>
+        </View>
       )}
 
 
