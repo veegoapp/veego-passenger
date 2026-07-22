@@ -27,7 +27,6 @@ export function PersonalInfoModal({
   const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { name: savedName, email: savedEmail, dob: savedDob, phone: savedPhone, saveProfile } = useProfileInfo();
-  const [email, setEmail] = useState(savedEmail);
   const [dob, setDob] = useState(savedDob);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,7 +39,6 @@ export function PersonalInfoModal({
 
   useEffect(() => {
     if (visible) {
-      setEmail(savedEmail);
       setDob(savedDob);
       setSaved(false);
       setSaving(false);
@@ -49,14 +47,14 @@ export function PersonalInfoModal({
       setNewPw('');
       setConfirmPw('');
     }
-  }, [visible, savedEmail, savedDob]);
+  }, [visible, savedDob]);
 
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await saveProfile(savedName, email, dob);
+      await saveProfile(savedName, savedEmail, dob);
       onSaved?.(savedName);
       setSaved(true);
       setTimeout(() => { setSaved(false); onClose(); }, 900);
@@ -139,17 +137,15 @@ export function PersonalInfoModal({
               </View>
             </View>
 
-            {/* Email — editable */}
+            {/* Email — read-only */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>{t('email_address')}</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor={c.silver}
-              />
+              <View style={{ position: 'relative' }}>
+                <Text style={styles.readOnlyInput}>{savedEmail || '—'}</Text>
+                <View style={styles.readOnlyBadge}>
+                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                </View>
+              </View>
             </View>
 
             {/* Date of birth — editable */}

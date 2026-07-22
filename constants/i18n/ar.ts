@@ -255,10 +255,6 @@ export const ar: typeof en = {
   security_title: 'الأمان',
   change_phone: 'تغيير رقم الهاتف',
   change_pin: 'تغيير الرقم السري',
-  biometric: 'تسجيل الدخول بالبصمة',
-  two_fa: 'التحقق بخطوتين',
-  two_fa_sub: 'حماية إضافية لحسابك',
-  biometric_sub: 'استخدام بصمة الإصبع أو Face ID',
   change_phone_sub: 'الحالي: +20 100 000 0000',
   change_pin_sub: 'آخر تغيير منذ 30 يوماً',
 

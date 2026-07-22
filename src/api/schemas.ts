@@ -24,8 +24,6 @@ export const ProfileResponseSchema = z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   dob: z.string().optional(),
-  biometricEnabled: z.boolean().optional(),
-  twoFactorEnabled: z.boolean().optional(),
 }).passthrough();
 
 /** One item of GET /notifications. */

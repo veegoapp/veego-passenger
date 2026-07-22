@@ -254,10 +254,6 @@ export const en = {
   security_title: 'Security',
   change_phone: 'Change phone number',
   change_pin: 'Change PIN',
-  biometric: 'Biometric login',
-  two_fa: 'Two-factor auth',
-  two_fa_sub: 'Extra security for your account',
-  biometric_sub: 'Use fingerprint or Face ID',
   change_phone_sub: 'Current: +20 100 000 0000',
   change_pin_sub: 'Last changed 30 days ago',
 
