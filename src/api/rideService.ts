@@ -18,7 +18,6 @@ export interface RideRequestPayload {
   type: 'car' | 'scooter' | 'delivery';
   pickup: { latitude: number; longitude: number; address?: string };
   dropoff: { latitude: number; longitude: number; address?: string };
-  notes?: string;
   /** Real car-category slug (e.g. 'economy' | 'economy_plus' | 'comfort') for
    *  the passenger's selected tier — backend's /rides/request expects this
    *  exact field name (RequestRideBody.categorySlug). */
@@ -66,7 +65,6 @@ export async function requestRide(payload: RideRequestPayload): Promise<any> {
     dropoffLatitude:    payload.dropoff.latitude,
     dropoffLongitude:   payload.dropoff.longitude,
     dropoffAddress:     payload.dropoff.address ?? '',
-    notes:              payload.notes,
     paymentMethod:      'cash',
     ...(payload.categorySlug ? { categorySlug: payload.categorySlug } : {}),
     ...(payload.promoCode ? { promoCode: payload.promoCode } : {}),

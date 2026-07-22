@@ -156,7 +156,6 @@ interface UseRideResult {
     type: 'car' | 'scooter' | 'delivery';
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
-    notes?: string;
     promoCode?: string;
     recipientName?: string;
     recipientPhone?: string;
@@ -509,7 +508,6 @@ export function useRide(): UseRideResult {
     type: 'car' | 'scooter' | 'delivery';
     pickup: { latitude: number; longitude: number; address?: string };
     dropoff: { latitude: number; longitude: number; address?: string };
-    notes?: string;
     promoCode?: string;
     recipientName?: string;
     recipientPhone?: string;
