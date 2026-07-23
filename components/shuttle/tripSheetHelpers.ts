@@ -7,7 +7,7 @@
  * §21.2: statuses that mean the trip is ahead and accepting new bookings.
  * Expanded from the old 'open'/'active' check to include all pre-departure states.
  */
-export const BOOKABLE_STATUSES = ['scheduled', 'waiting_driver', 'driver_assigned', 'open', 'active'];
+export const BOOKABLE_STATUSES = ['scheduled', 'waiting_driver', 'driver_assigned', 'open', 'active', 'boarding'];
 export const ACTIVE_STATUSES   = ['active', 'driver_assigned', 'boarding'];
 
 export function isTripBookable(trip: any): boolean {
