@@ -14,6 +14,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { useBooking } from '@/context/BookingContext';
+import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { usePromos } from '@/src/hooks/shared/usePromos';
 import { S, makeGlassStyle } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
@@ -59,6 +60,8 @@ export default function ReviewConfirmScreen() {
   const gs         = useMemo(() => makeGlassStyle(c), [c]);
   const { handleConfirm, bookingError, clearBookingError } = useBooking();
   const { validateCode } = usePromos();
+  const { walletFeature } = usePaymentConfig();
+  const walletAvailable = walletFeature.isEnabled && walletFeature.displayMode === 'live';
 
   const [confirming, setConfirming]   = useState(false);
   const [promoInput, setPromoInput]   = useState('');
@@ -67,6 +70,7 @@ export default function ReviewConfirmScreen() {
   const [promoError, setPromoError]   = useState('');
   const [appliedCode, setAppliedCode] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'wallet'>('cash');
 
   /* Params */
   const params = useLocalSearchParams<Params>();
@@ -114,9 +118,9 @@ export default function ReviewConfirmScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     clearBookingError();
     setConfirming(true);
-    await handleConfirm(appliedCode || undefined);
+    await handleConfirm(appliedCode || undefined, paymentMethod);
     setConfirming(false);
-  }, [confirming, appliedCode, handleConfirm, clearBookingError]);
+  }, [confirming, appliedCode, paymentMethod, handleConfirm, clearBookingError]);
 
   const isApplyDisabled = promoInput.trim().length === 0
     || promoStatus === 'loading'
@@ -318,6 +322,19 @@ export default function ReviewConfirmScreen() {
     },
     savingsDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accentMint },
     savingsText: { fontSize: 11, fontWeight: Typography.weight.bold, color: '#22a06b', letterSpacing: 0.1 },
+
+    /* ── Payment method ── */
+    paymentCard: {
+      ...gs,
+      borderRadius: 22,
+      marginBottom: Spacing.lg,
+      padding: Spacing.lg,
+      borderWidth: 1,
+      borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+    },
+    paymentChips: { flexDirection: 'row', gap: Spacing.sm },
+    paymentChip: { flex: 1, height: 46, borderRadius: Radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+    paymentChipText: { fontSize: 13.5, fontWeight: Typography.weight.semibold },
 
     /* ── Error banner ── */
     errorBanner: {
@@ -539,6 +556,45 @@ export default function ReviewConfirmScreen() {
                 <Text style={styles.fareNormal}>{baseTotal} {t('egp')}</Text>
               )}
             </View>
+          </View>
+        </View>
+
+        {/* ── Payment method ────────────────────────────────────── */}
+        <Text style={styles.sectionLabel}>{t('payment_method_label')}</Text>
+        <View style={styles.paymentCard}>
+          <View style={styles.paymentChips}>
+            <TouchableOpacity
+              style={[
+                styles.paymentChip,
+                {
+                  borderColor: paymentMethod !== 'wallet' ? c.ink : c.border,
+                  backgroundColor: paymentMethod !== 'wallet' ? c.ink : 'transparent',
+                },
+              ]}
+              onPress={() => { Haptics.selectionAsync(); setPaymentMethod('cash'); }}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.paymentChipText, { color: paymentMethod !== 'wallet' ? (c.isDark ? c.background : c.white) : c.ink }]}>
+                {t('payment_methods_cash')}
+              </Text>
+            </TouchableOpacity>
+            {walletAvailable && (
+              <TouchableOpacity
+                style={[
+                  styles.paymentChip,
+                  {
+                    borderColor: paymentMethod === 'wallet' ? c.ink : c.border,
+                    backgroundColor: paymentMethod === 'wallet' ? c.ink : 'transparent',
+                  },
+                ]}
+                onPress={() => { Haptics.selectionAsync(); setPaymentMethod('wallet'); }}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.paymentChipText, { color: paymentMethod === 'wallet' ? (c.isDark ? c.background : c.white) : c.ink }]}>
+                  {t('payment_methods_wallet')}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
