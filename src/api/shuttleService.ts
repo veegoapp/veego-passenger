@@ -34,7 +34,8 @@ export interface CreateBookingResult {
 export interface CancelBookingResult {
   ok: boolean;
   bookingId: number;
-  refunded: boolean;      // true if cancelled > 12h before departure
+  refunded: boolean;      // true only when a wallet credit was actually issued
+  refundAmount: number;   // 0 when refunded is false (e.g. cash booking, or within 12h)
 }
 
 // ── Public endpoints (no auth required) ─────────────────────────

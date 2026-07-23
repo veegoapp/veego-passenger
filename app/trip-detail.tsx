@@ -526,6 +526,12 @@ export default function TripDetailScreen() {
           t('cancel_no_refund'),
           [{ text: t('confirm'), onPress: () => router.back() }],
         );
+      } else if (result?.refunded && result.refundAmount > 0) {
+        Alert.alert(
+          t('booking_cancelled_title'),
+          t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
+          [{ text: t('confirm'), onPress: () => router.back() }],
+        );
       } else {
         router.back();
       }

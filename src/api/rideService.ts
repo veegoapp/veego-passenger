@@ -25,6 +25,8 @@ export interface RideRequestPayload {
   promoCode?: string;
   recipientName?: string;
   recipientPhone?: string;
+  /** Defaults to 'cash' — preserves prior hardcoded behavior when omitted. */
+  paymentMethod?: 'cash' | 'wallet';
 }
 
 /** GET /rides/:id — single ride snapshot (polling, reconnect recovery, deep links). */
@@ -65,7 +67,7 @@ export async function requestRide(payload: RideRequestPayload): Promise<any> {
     dropoffLatitude:    payload.dropoff.latitude,
     dropoffLongitude:   payload.dropoff.longitude,
     dropoffAddress:     payload.dropoff.address ?? '',
-    paymentMethod:      'cash',
+    paymentMethod:      payload.paymentMethod ?? 'cash',
     ...(payload.categorySlug ? { categorySlug: payload.categorySlug } : {}),
     ...(payload.promoCode ? { promoCode: payload.promoCode } : {}),
     ...(payload.recipientName ? { recipientName: payload.recipientName } : {}),
@@ -75,8 +77,16 @@ export async function requestRide(payload: RideRequestPayload): Promise<any> {
 }
 
 /** PATCH /rides/:id/cancel — cancel a ride, with an optional reason. */
-export async function cancelRide(rideId: string | number, reason?: string): Promise<void> {
-  await api.patch(`/rides/${rideId}/cancel`, reason ? { reason } : {});
+export async function cancelRide(
+  rideId: string | number,
+  reason?: string,
+): Promise<{ refundAmount?: number; cancellationFee?: number }> {
+  const { data } = await api.patch(`/rides/${rideId}/cancel`, reason ? { reason } : {});
+  const d = data?.data ?? data ?? {};
+  return {
+    refundAmount: typeof d.refundAmount === 'number' ? d.refundAmount : undefined,
+    cancellationFee: typeof d.cancellationFee === 'number' ? d.cancellationFee : undefined,
+  };
 }
 
 /** GET /rides/:id/messages — in-ride chat history. */

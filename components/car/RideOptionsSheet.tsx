@@ -49,6 +49,11 @@ interface RideOptionsSheetProps {
   recipientPhone?: string;
   onRecipientNameChange?: (value: string) => void;
   onRecipientPhoneChange?: (value: string) => void;
+  /** Omit to hide the payment-method selector entirely (preserves prior cash-only UI). */
+  paymentMethod?: 'cash' | 'wallet';
+  onPaymentMethodChange?: (method: 'cash' | 'wallet') => void;
+  /** Only offer the wallet chip when the wallet feature is actually live. */
+  walletAvailable?: boolean;
 }
 
 export function RideOptionsSheet({
@@ -56,6 +61,7 @@ export function RideOptionsSheet({
   estimate, estimateLoading, confirming,
   serviceType = 'car', singleEstimate,
   recipientName, recipientPhone, onRecipientNameChange, onRecipientPhoneChange,
+  paymentMethod, onPaymentMethodChange, walletAvailable,
 }: RideOptionsSheetProps) {
   const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -238,6 +244,46 @@ export function RideOptionsSheet({
         </View>
       )}
 
+      {onPaymentMethodChange && (
+        <View style={styles.paymentRow}>
+          <Text style={[styles.paymentLabel, { color: c.inkSoft }]}>{t('payment_method_label')}</Text>
+          <View style={styles.paymentChips}>
+            <TouchableOpacity
+              style={[
+                styles.paymentChip,
+                {
+                  borderColor: paymentMethod !== 'wallet' ? c.ink : c.border,
+                  backgroundColor: paymentMethod !== 'wallet' ? c.ink : 'transparent',
+                },
+              ]}
+              onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.paymentChipText, { color: paymentMethod !== 'wallet' ? (c.isDark ? c.background : c.white) : c.ink }]}>
+                {t('payment_methods_cash')}
+              </Text>
+            </TouchableOpacity>
+            {walletAvailable && (
+              <TouchableOpacity
+                style={[
+                  styles.paymentChip,
+                  {
+                    borderColor: paymentMethod === 'wallet' ? c.ink : c.border,
+                    backgroundColor: paymentMethod === 'wallet' ? c.ink : 'transparent',
+                  },
+                ]}
+                onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('wallet'); }}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.paymentChipText, { color: paymentMethod === 'wallet' ? (c.isDark ? c.background : c.white) : c.ink }]}>
+                  {t('payment_methods_wallet')}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
       <TouchableOpacity
         style={[
           styles.confirmBtn,
@@ -294,6 +340,11 @@ const styles = StyleSheet.create({
   statDot: { width: 3, height: 3, borderRadius: 2 },
   recipientBlock: { gap: Spacing.sm, marginTop: Spacing.xs },
   recipientInput: { height: 46, borderRadius: Radius.lg, borderWidth: 1, paddingHorizontal: Spacing.md, fontSize: 13.5 },
+  paymentRow: { paddingHorizontal: 20, marginBottom: Spacing.lg, gap: Spacing.sm },
+  paymentLabel: { fontSize: 11, fontWeight: Typography.weight.semibold, textTransform: 'uppercase', letterSpacing: 1 },
+  paymentChips: { flexDirection: 'row', gap: Spacing.sm },
+  paymentChip: { flex: 1, height: 44, borderRadius: Radius.lg, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  paymentChipText: { fontSize: 13.5, fontWeight: Typography.weight.semibold },
   priceBlock: { alignItems: 'flex-end', minWidth: 44 },
   priceLabel: { fontSize: 10, fontWeight: Typography.weight.medium },
   price: { fontSize: 20, fontWeight: Typography.weight.bold, letterSpacing: -0.5 },

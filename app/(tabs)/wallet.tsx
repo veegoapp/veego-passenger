@@ -90,6 +90,12 @@ function makeStyles(c: ThemeColors) {
     debtCheckErrorBannerDark: { backgroundColor: 'rgba(255,255,255,0.06)' },
     debtCheckErrorText: { flex: 1, fontSize: Typography.size.xs, lineHeight: 17 },
     debtCheckErrorRetry: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
+    walletErrorBanner: {
+      marginHorizontal: 20, marginBottom: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: 'rgba(224,88,74,0.1)', borderRadius: 14, padding: Spacing.md,
+    },
+    walletErrorText: { flex: 1, fontSize: Typography.size.xs, lineHeight: 17, color: '#e0584a' },
+    walletErrorRetry: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: '#e0584a' },
     rechargeStatusBanner: {
       marginHorizontal: 20, marginTop: Spacing.xs, marginBottom: Spacing.lg, borderRadius: 18,
       paddingHorizontal: Spacing.lg, paddingVertical: 14,
@@ -108,7 +114,11 @@ export default function WalletScreen() {
   const [selectedCharge, setSelectedCharge] = useState<number | null>(null);
   const isAr = language === 'ar';
 
-  const { balance, spent, transactions, refresh: refreshWallet } = useWallet();
+  const { balance, spent, transactions, loading: walletLoading, error: walletError, refresh: refreshWallet } = useWallet();
+  const [hasLoadedWalletOnce, setHasLoadedWalletOnce] = useState(false);
+  useEffect(() => {
+    if (!walletLoading) setHasLoadedWalletOnce(true);
+  }, [walletLoading]);
   const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
   const { walletFeature, paymentMethods } = usePaymentConfig();
   const paymobEnabled = paymentMethods.some((m) => m.key === 'paymob');
@@ -210,10 +220,16 @@ export default function WalletScreen() {
           <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3a']} style={styles.balanceGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={styles.balanceGlow} />
             <Text style={styles.balanceLabel}>{t('wallet_balance_label')}</Text>
-            <View style={styles.balanceRow}>
-              <Text style={[styles.balanceAmount, balance < 0 && { color: '#f87171' }]}>{balance}</Text>
-              <Text style={styles.balanceCurrency}>{t('egp')}</Text>
-            </View>
+            {walletLoading && !hasLoadedWalletOnce ? (
+              <View style={[styles.balanceRow, { height: 42 }]}>
+                <ActivityIndicator size="small" color="#ffffff" />
+              </View>
+            ) : (
+              <View style={styles.balanceRow}>
+                <Text style={[styles.balanceAmount, balance < 0 && { color: '#f87171' }]}>{balance}</Text>
+                <Text style={styles.balanceCurrency}>{t('egp')}</Text>
+              </View>
+            )}
             <View style={styles.balanceStats}>
               <View style={styles.balanceStat}>
                 <TrendingDown size={14} color="rgba(255,255,255,0.6)" />
@@ -222,6 +238,16 @@ export default function WalletScreen() {
             </View>
           </LinearGradient>
         </View>
+
+        {walletError && (
+          <View style={styles.walletErrorBanner}>
+            <AlertTriangle size={16} color="#e0584a" />
+            <Text style={styles.walletErrorText}>{t('wallet_load_error')}</Text>
+            <TouchableOpacity onPress={refreshWallet} activeOpacity={0.75}>
+              <Text style={styles.walletErrorRetry}>{t('retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {debt?.hasDebt && (
           <View style={[styles.debtBanner, c.isDark && styles.debtBannerDark]}>

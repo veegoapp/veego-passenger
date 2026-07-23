@@ -57,6 +57,7 @@ const RideCancelledSchema = z.object({
 const RideCancelledOptionalIdSchema = z.object({
   rideId: z.string().or(z.number()).optional(),
   reason: z.string().optional(),
+  refundAmount: z.number().optional(),
 });
 
 const RideDriverLocationSchema = z.object({
@@ -111,6 +112,8 @@ export interface RideState {
   cancelReason: string | null;
   /** F6: who/what ended the ride, so the UI can show a distinct message per cause. */
   terminationReason: 'passenger' | 'driver' | 'no_show' | 'timeout' | null;
+  /** Set only on a no-show cancellation when the backend refunded escrowed wallet funds. */
+  refundAmount: number | null;
   waitingCharge: number | null;
   waitingChargeStatus: 'none' | 'active' | 'capped';
   waitingRatePerMinute: number | null;
@@ -159,8 +162,21 @@ interface UseRideResult {
     promoCode?: string;
     recipientName?: string;
     recipientPhone?: string;
-  }) => Promise<{ success: boolean; rideId?: string; error?: string }>;
-  cancelRide: (reason?: string) => Promise<{ success: boolean; error?: string }>;
+    paymentMethod?: 'cash' | 'wallet';
+  }) => Promise<{
+    success: boolean;
+    rideId?: string;
+    error?: string;
+    /** Present only when the backend rejected the request with 402 insufficient-balance. */
+    insufficientBalance?: { required: number; balance: number };
+  }>;
+  cancelRide: (reason?: string) => Promise<{
+    success: boolean;
+    error?: string;
+    /** Present on a successful cancel; > 0 when a wallet-paid ride's escrow was partially or fully returned. */
+    refundAmount?: number;
+    cancellationFee?: number;
+  }>;
   clearDeviationWarning: () => void;
   resetRide: () => void;
   resumeActiveRide: () => Promise<ResumedRide | null>;
@@ -176,6 +192,7 @@ const DEFAULT_STATE: RideState = {
   fare: null,
   cancelReason: null,
   terminationReason: null,
+  refundAmount: null,
   waitingCharge: null,
   waitingChargeStatus: 'none',
   waitingRatePerMinute: null,
@@ -365,6 +382,7 @@ export function useRide(): UseRideResult {
           status: 'cancelled',
           cancelReason: parsed.data.reason ?? null,
           terminationReason: 'no_show',
+          refundAmount: parsed.data.refundAmount ?? null,
         }));
         cleanup();
       });
@@ -511,6 +529,7 @@ export function useRide(): UseRideResult {
     promoCode?: string;
     recipientName?: string;
     recipientPhone?: string;
+    paymentMethod?: 'cash' | 'wallet';
   }) => {
     setRequesting(true);
     setRideState(DEFAULT_STATE);
@@ -527,22 +546,34 @@ export function useRide(): UseRideResult {
       startPolling(rideId);
       return { success: true, rideId };
     } catch (e: any) {
-      const error = e?.response?.data?.message ?? e?.message ?? 'Failed to request ride';
+      const status = e?.response?.status;
+      const respData = e?.response?.data;
+      const error = respData?.error ?? respData?.message ?? e?.message ?? 'Failed to request ride';
       setRideState((prev) => ({ ...prev, status: 'cancelled', cancelReason: error }));
-      return { success: false, error };
+      const insufficientBalance =
+        status === 402 && typeof respData?.required === 'number' && typeof respData?.balance === 'number'
+          ? { required: respData.required, balance: respData.balance }
+          : undefined;
+      return { success: false, error, insufficientBalance };
     } finally {
       setRequesting(false);
     }
   }, [setupSocketListeners, startPolling, stopPolling]);
 
-  const cancelRide = useCallback(async (reason?: string): Promise<{ success: boolean; error?: string }> => {
+  const cancelRide = useCallback(async (reason?: string): Promise<{
+    success: boolean;
+    error?: string;
+    refundAmount?: number;
+    cancellationFee?: number;
+  }> => {
     const { rideId } = rideState;
     if (!rideId) {
       return { success: false, error: 'No active ride to cancel' };
     }
 
+    let cancelResult: { refundAmount?: number; cancellationFee?: number } = {};
     try {
-      await cancelRideApi(rideId, reason);
+      cancelResult = await cancelRideApi(rideId, reason);
     } catch (e: any) {
       // The cancel call failed — don't assume the ride was cancelled. Resync
       // with the backend's actual status instead of guessing, and leave the
@@ -578,7 +609,7 @@ export function useRide(): UseRideResult {
       cancelReason: null,
       terminationReason: 'passenger',
     }));
-    return { success: true };
+    return { success: true, refundAmount: cancelResult.refundAmount, cancellationFee: cancelResult.cancellationFee };
   }, [rideState]);
 
   const clearDeviationWarning = useCallback(() => {

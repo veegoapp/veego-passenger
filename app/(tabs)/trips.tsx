@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Platform, RefreshControl, Animated,
+  Platform, RefreshControl, Animated, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -275,7 +275,10 @@ export default function TripsScreen() {
     try {
       // §11.4, §21.3: DELETE /shuttle/bookings/:id — preferred self-cancel
       // endpoint, replaces the deprecated PATCH /bookings/:id/cancel.
-      await cancelBooking(bookingId);
+      const result = await cancelBooking(bookingId);
+      if (result?.refunded && result.refundAmount > 0) {
+        Alert.alert(t('booking_cancelled_title'), t('ride_refund_msg').replace('{amount}', String(result.refundAmount)));
+      }
       Animated.timing(anim, {
         toValue: 0,
         duration: 320,
@@ -284,7 +287,11 @@ export default function TripsScreen() {
         await refresh();
         anim.setValue(1);
       });
-    } catch {
+    } catch (e: any) {
+      Alert.alert(
+        t('error'),
+        e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? t('cancel_booking_failed'),
+      );
     } finally {
       setCancellingId(null);
     }

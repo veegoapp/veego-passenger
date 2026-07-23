@@ -11,6 +11,7 @@ import * as Location from 'expo-location';
 import { CheckCircle2, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
+import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { useRide } from '@/src/hooks/car/useRide';
 import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
@@ -163,7 +164,11 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [estimateLoading, setEstLoading]= useState(false);
   const [recipientName, setRecipientName]   = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
+  const [paymentMethod, setPaymentMethod]   = useState<'cash' | 'wallet'>('cash');
   const userCoordsRef = useRef<Coords | null>(null);
+
+  const { walletFeature } = usePaymentConfig();
+  const walletAvailable = walletFeature.isEnabled && walletFeature.displayMode === 'live';
 
   const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide, pollingStale } = useRide();
   const [resuming, setResuming] = useState(false);
@@ -309,12 +314,22 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       dropoff: { ...dropoff, address: destination ?? '' },
       ...(categorySlug ? { categorySlug } : {}),
       ...(serviceType === 'delivery' ? { recipientName: recipientName.trim(), recipientPhone: recipientPhone.trim() } : {}),
+      paymentMethod,
     });
 
     if (!result.success) {
-      Alert.alert(t('error'), result.error ?? t('request_ride_failed'));
+      if (result.insufficientBalance) {
+        Alert.alert(
+          t('insufficient_balance_title'),
+          t('insufficient_balance_msg')
+            .replace('{required}', String(result.insufficientBalance.required))
+            .replace('{balance}', String(result.insufficientBalance.balance)),
+        );
+      } else {
+        Alert.alert(t('error'), result.error ?? t('request_ride_failed'));
+      }
     }
-  }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone]);
+  }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone, paymentMethod]);
 
   const handleReset = useCallback(() => {
     resetRide();
@@ -326,6 +341,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setSingleEstimate(null);
     setRecipientName('');
     setRecipientPhone('');
+    setPaymentMethod('cash');
     setSearchQuery('');
   }, [resetRide]);
 
@@ -357,6 +373,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         Alert.alert(t('error'), result.error ?? t('cancel_error'));
         return;
       }
+      if (result.refundAmount && result.refundAmount > 0) {
+        Alert.alert(
+          t('ride_cancelled_title'),
+          t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
+        );
+      }
     }
     handleReset();
   }, [phase, rideState.rideId, cancelRide, handleReset, t]);
@@ -371,12 +393,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   // (driver cancelled / no-show / request timeout / passenger cancelled)
   // instead of always showing the same generic "Cancel Trip" text.
   const cancelTitle = rideState.terminationReason === 'timeout' ? t('status_request_timeout') : t('cancel_trip');
-  const cancelSubtitle =
+  const cancelSubtitleBase =
     rideState.cancelReason ??
     (rideState.terminationReason === 'driver' ? t('driver_cancelled_msg')
       : rideState.terminationReason === 'no_show' ? t('no_show_cancelled_msg')
       : rideState.terminationReason === 'passenger' ? t('passenger_cancelled_msg')
       : null);
+  const cancelSubtitle =
+    rideState.terminationReason === 'no_show' && rideState.refundAmount && rideState.refundAmount > 0
+      ? `${cancelSubtitleBase ?? ''} ${t('ride_refund_msg').replace('{amount}', String(rideState.refundAmount))}`.trim()
+      : cancelSubtitleBase;
 
   return (
     <View style={styles.root}>
@@ -506,6 +532,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         recipientPhone={recipientPhone}
         onRecipientNameChange={setRecipientName}
         onRecipientPhoneChange={setRecipientPhone}
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={setPaymentMethod}
+        walletAvailable={walletAvailable}
       />
 
       {/* Searching */}

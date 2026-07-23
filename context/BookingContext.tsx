@@ -31,7 +31,7 @@ type BookingContextType = {
   openRoute: (route: Route) => void;
   closeTripSheet: () => void;
   handleBook: (booking: Booking) => void;
-  handleConfirm: (promoCode?: string) => void;
+  handleConfirm: (promoCode?: string, paymentMethod?: 'cash' | 'wallet') => void;
   closeConfirmSheet: () => void;
   setActiveBooking: (b: Booking | null) => void;
   fetchTripsForDate: (routeId: string, utcDate: string) => Promise<void>;
@@ -63,7 +63,7 @@ const BookingContext = createContext<BookingContextType>({
   openRoute: () => {},
   closeTripSheet: () => {},
   handleBook: () => {},
-  handleConfirm: (_promoCode?: string) => {},
+  handleConfirm: (_promoCode?: string, _paymentMethod?: 'cash' | 'wallet') => {},
   closeConfirmSheet: () => {},
   setActiveBooking: () => {},
   fetchTripsForDate: async () => {},
@@ -230,7 +230,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setConfirmSheetOpen(true), 280);
   }, []);
 
-  const handleConfirm = useCallback(async (promoCode?: string) => {
+  const handleConfirm = useCallback(async (promoCode?: string, paymentMethod?: 'cash' | 'wallet') => {
     if (confirmingRef.current) return;
     confirmingRef.current = true;
     setConfirmSheetOpen(false);
@@ -288,7 +288,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const body: Record<string, any> = {
         tripId,
         seatCount,
-        paymentMethod: 'cash',
+        paymentMethod: paymentMethod ?? 'cash',
       };
       if (promoCode) body.promoCode = promoCode;
       // Pass along the boarding station the passenger actually selected —
@@ -323,10 +323,23 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e: any) {
       const status = e?.response?.status;
+      const respData = e?.response?.data;
       const msg: string =
-        e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? 'Booking failed';
+        respData?.error ?? respData?.message ?? e?.message ?? 'Booking failed';
 
-      if (status === 409) {
+      if (status === 402) {
+        // Insufficient wallet balance — backend is the source of truth on the
+        // amounts; the client only formats them, it never re-derives them.
+        const required = typeof respData?.required === 'number' ? respData.required : undefined;
+        const availableBalance = typeof respData?.balance === 'number' ? respData.balance : undefined;
+        setBookingError(msg);
+        Alert.alert(
+          'Insufficient Balance',
+          required != null && availableBalance != null
+            ? `You need ${required} EGP but your wallet balance is ${availableBalance} EGP. Please top up your wallet or pay with cash.`
+            : msg,
+        );
+      } else if (status === 409) {
         // Could be duplicate booking OR race condition (seat snatched)
         const isDuplicate = msg.toLowerCase().includes('already have');
         if (isDuplicate) {
