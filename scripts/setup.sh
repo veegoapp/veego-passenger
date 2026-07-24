@@ -34,4 +34,4 @@ export NODE_OPTIONS=--max-old-space-size=4096
 
 # ── Start Metro on LAN (tunnel disabled — ngrok unavailable) ──────
 # Use yes to auto-accept any port-conflict prompts
-exec yes | pnpm exec expo start --lan --port 8081
+npx expo start --tunnel
