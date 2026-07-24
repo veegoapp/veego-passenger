@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { Typography } from '@/constants/typography';
@@ -13,7 +13,7 @@ interface DriverSearchingProps {
 
 export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   const { colors: c, t } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
@@ -72,7 +72,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: insets.bottom + 16,
+          paddingBottom: tabBarHeight + 16,
           opacity: slideAnim,
           transform: [{ translateY }],
         },

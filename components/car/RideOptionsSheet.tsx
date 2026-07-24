@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated, ActivityIndicator, 
 import { AppLoader } from '@/components/ui/AppLoader';
 import { MapPin, ChevronDown, Clock, Users, CheckCircle2, Car, Sparkles, Bike as ScooterIcon, Package } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { Typography } from '@/constants/typography';
@@ -64,7 +64,7 @@ export function RideOptionsSheet({
   paymentMethod, onPaymentMethodChange, walletAvailable,
 }: RideOptionsSheetProps) {
   const { colors: c, t } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const isDelivery = serviceType === 'delivery';
   const recipientReady = !isDelivery || (!!recipientName?.trim() && !!recipientPhone?.trim());
@@ -90,7 +90,7 @@ export function RideOptionsSheet({
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: insets.bottom + 35,
+          paddingBottom: tabBarHeight + 16,
           opacity: slideAnim,
           transform: [{ translateY }],
         },

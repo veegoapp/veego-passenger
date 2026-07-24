@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Linking } from 'react-native';
 import { Star, Clock, MessageCircle, Phone, X, AlertTriangle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
@@ -31,7 +31,7 @@ export function DriverAssignedCard({
   waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const [chatOpen, setChatOpen] = useState(false);
 
@@ -70,7 +70,7 @@ export function DriverAssignedCard({
         {
           backgroundColor: sheetBg,
           borderTopColor: borderCol,
-          paddingBottom: insets.bottom + 16,
+          paddingBottom: tabBarHeight + 16,
           opacity: slideAnim,
           transform: [{ translateY }],
         },

@@ -26,6 +26,7 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
   const bottom = insets.bottom + 8;
   const { colors: c, t, language } = useTheme();
   const { walletFeature } = usePaymentConfig();
+  const { setTabBarHeight } = useTabBar();
   const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
 
   const tabWidths  = useRef<number[]>([]);
@@ -110,7 +111,10 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
   };
 
   return (
-    <View style={[styles.navOuter, { paddingBottom: bottom }]}>
+    <View
+      style={[styles.navOuter, { paddingBottom: bottom }]}
+      onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height)}
+    >
       <View
         style={[
           styles.navInner,
