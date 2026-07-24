@@ -5,7 +5,6 @@ import {
   // Modal removed — pickup/destination editing now uses the unified inline sheet.
   // KeyboardAvoidingView removed — it caused a jitter loop fighting Animated.spring.
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -74,28 +73,18 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
     bottomContainer: {
       position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 30,
     },
-    // Glassmorphic floating search card — BlurView handles the frosted fill;
-    // this style controls shape, shadow, border, and clipping only.
+    // Glassmorphic floating search card
     glassCard: {
       marginHorizontal: 14,
       marginBottom: 10,
       borderRadius: 20,
-      borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)',
-      backgroundColor: 'transparent',
+      backgroundColor: c.isDark ? 'rgba(18,20,40,0.92)' : 'rgba(255,255,255,0.92)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: c.isDark ? 0.45 : 0.18,
+      shadowOpacity: c.isDark ? 0.45 : 0.14,
       shadowRadius: 22,
       elevation: 10,
       overflow: 'hidden',
-    },
-    // Semi-transparent tint overlay that sits between the blur and the content
-    // to give the frosted-glass hue without fully blocking the map behind it.
-    glassCardTint: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: c.isDark ? 'rgba(18,20,40,0.45)' : 'rgba(245,245,247,0.45)',
-      borderRadius: 20,
     },
     bottomPanel: {
       backgroundColor: c.isDark ? 'rgba(18,18,32,0.94)' : 'rgba(255,255,255,0.94)',
@@ -683,18 +672,8 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                 </View>
               )}
 
-              {/* Glassmorphic floating search card — BlurView provides the frosted-glass
-                  blur; the tint overlay sits on top to add the glass hue while letting
-                  the map colours bleed through at ~45 % opacity. */}
-              <BlurView
-                intensity={85}
-                tint={c.isDark ? 'dark' : 'light'}
-                experimentalBlurMethod="dimezisBlurView"
-                style={styles.glassCard}
-              >
-                {/* Glass-tint overlay (map colours bleed through) */}
-                <View style={styles.glassCardTint} pointerEvents="none" />
-
+              {/* Glassmorphic floating search card */}
+              <View style={styles.glassCard}>
                 {/* Drag handle pill */}
                 <View style={styles.dragHandle} />
 
@@ -737,7 +716,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                     <Text style={styles.whereToText}>{t('where_to')}</Text>
                   )}
                 </TouchableOpacity>
-              </BlurView>
+              </View>
 
               {/* Bottom safe-area padding */}
               <View style={{ height: 8, backgroundColor: 'transparent' }} />
