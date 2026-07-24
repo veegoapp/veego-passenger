@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl, Alert,
+  Animated, Dimensions, useWindowDimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, MapPin, Flame } from 'lucide-react-native';
+import { Search, MapPin, Flame, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -16,6 +17,7 @@ import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarServiceScreen, CarServiceScreenHandle } from '@/components/car/CarServiceScreen';
+import { CarMap } from '@/components/car/CarMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
@@ -27,7 +29,7 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import {
   SERVICES, type SavedLocation,
-  HomeHeader, ServiceGrid, DebtBanner, DebtErrorBanner,
+  HomeHeader, ServiceGrid, ServiceCards, DebtBanner, DebtErrorBanner,
   ZoneServicesBanner, ActiveBookingHero, DestinationSearchModal,
 } from '@/components/home/HomeSections';
 
@@ -147,6 +149,19 @@ function makeStyles(c: ThemeColors) {
     routesSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginTop: Spacing.xs, marginBottom: Spacing.md },
     viewAllBtn: { fontSize: 13, fontWeight: Typography.weight.semibold, color: '#3b82f6' },
     routesList: { gap: Spacing.md },
+    sheetHeader: {
+      flexDirection: 'row', alignItems: 'center',
+      position: 'absolute', top: 0, left: 0, right: 0,
+      paddingTop: 14, paddingHorizontal: 16, paddingBottom: 10,
+      gap: 12, zIndex: 50,
+    },
+    sheetBackBtn: {
+      width: 40, height: 40, borderRadius: 20,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    sheetTitle: {
+      fontSize: 17, fontWeight: Typography.weight.semibold as any, letterSpacing: -0.3,
+    },
   });
 }
 
@@ -192,6 +207,10 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchScreenOpen, setSearchScreenOpen] = useState(false);
   const carServiceRef = useRef<CarServiceScreenHandle>(null);
+  const { height: screenHeight } = useWindowDimensions();
+  const [serviceOpen, setServiceOpen] = useState(false);
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const cardsOpacity = useRef(new Animated.Value(1)).current;
 
   const fetchSavedLocations = useCallback(() => {
     return api.get('/user/locations')
@@ -259,19 +278,33 @@ export default function HomeScreen() {
   }, [routes]);
 
   useEffect(() => {
-    setTabBarVisible(true);
-  }, [setTabBarVisible]);
+    setTabBarVisible(!serviceOpen);
+  }, [serviceOpen, setTabBarVisible]);
 
-  const handleServicePress = (id: string) => {
+  const openService = useCallback((id: string) => {
+    if (id !== 'shuttle' && id !== 'car' && id !== 'scooter' && id !== 'delivery') return;
     handleServiceTap(id as ServiceType, () => {
       Haptics.selectionAsync();
-      if (id === 'shuttle' || id === 'car' || id === 'scooter' || id === 'delivery') {
-        setMode(id as ServiceMode);
-        setActiveSearchField(null);
-        setDestinationLocation('');
-      }
+      setMode(id as ServiceMode);
+      setActiveSearchField(null);
+      setDestinationLocation('');
+      setServiceOpen(true);
+      Animated.parallel([
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 60, friction: 10 }),
+        Animated.timing(cardsOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start();
     });
-  };
+  }, [handleServiceTap, slideAnim, cardsOpacity]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const closeService = useCallback(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: screenHeight, useNativeDriver: true, tension: 60, friction: 10 }),
+      Animated.timing(cardsOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start(() => {
+      setServiceOpen(false);
+      setDestinationLocation('');
+    });
+  }, [slideAnim, cardsOpacity, screenHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Destination-search suggestions while typing — proxied through the
   // backend Google Places Autocomplete endpoint. Each result only carries a
@@ -345,16 +378,17 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.background }}>
+    <View style={{ flex: 1 }}>
 
-      {/* ═══ الهيدر — دايمًا في الأعلى ═══ */}
+      {/* ── 1. Background map (always visible) ─────────────────── */}
+      <CarMap />
+
+      {/* ── 2. Header — absolute, always on top ───────────────── */}
       <View
-        style={{ zIndex: 20 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
-        <LinearGradient colors={c.luxeSoftGrad} style={{ paddingTop: top + 12 }}>
-
-          {/* Greeting + icons */}
+        <View style={{ backgroundColor: c.background, paddingTop: top + 12 }}>
           <HomeHeader
             styles={styles} gs={gs} c={c} t={t as (key: string) => string}
             greetingKey={greetingKey} firstName={firstName} avatarInitials={avatarInitials}
@@ -362,27 +396,56 @@ export default function HomeScreen() {
             onNotifications={() => router.push('/notifications')}
             onProfile={() => router.push('/(tabs)/profile')}
           />
-
-          {/* Service tabs */}
-          <ServiceGrid
-            styles={styles} c={c} t={t as (key: string) => string}
-            mode={mode} getService={getService}
-            isServiceVisibleForZone={isServiceVisibleForZone}
-            onServicePress={handleServicePress}
-          />
-
-          {/* §21.7: Outstanding debt banner — shown above everything when hasDebt is true */}
           {debt?.hasDebt && (
             <DebtBanner c={c} t={t as (key: string) => string} />
           )}
-
-          {/* Debt check failed — distinct from "no debt" / "has debt" states, with retry */}
           {!debt?.hasDebt && debtError && (
             <DebtErrorBanner c={c} t={t as (key: string) => string} onRetry={refreshDebt} />
           )}
+          <ZoneServicesBanner
+            c={c} t={t as (key: string) => string}
+            hiddenCount={SERVICES.filter(svc => !isServiceVisibleForZone(svc.id as ServiceType)).length}
+            userZoneId={userZoneId}
+          />
+        </View>
+      </View>
 
-          {/* Shuttle search */}
-          {mode === 'shuttle' && (
+      {/* ── 3. Service sheet — slides up from below ─────────────── */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { top: headerHeight, transform: [{ translateY: slideAnim }], zIndex: 20 },
+        ]}
+      >
+        {/* Back button + service title — overlaid at the top of the sheet */}
+        {serviceOpen && (
+          <View style={[
+            styles.sheetHeader,
+            mode !== 'shuttle' ? {} : { backgroundColor: c.background },
+          ]}>
+            <TouchableOpacity
+              style={[styles.sheetBackBtn, {
+                backgroundColor: mode !== 'shuttle' ? 'rgba(0,0,0,0.45)' : c.mist,
+              }]}
+              onPress={closeService}
+              activeOpacity={0.7}
+            >
+              {isRTL
+                ? <ArrowRight size={20} color={mode !== 'shuttle' ? '#ffffff' : c.ink} />
+                : <ArrowLeft  size={20} color={mode !== 'shuttle' ? '#ffffff' : c.ink} />
+              }
+            </TouchableOpacity>
+            <Text style={[styles.sheetTitle, { color: mode !== 'shuttle' ? '#ffffff' : c.ink }]}>
+              {t(mode)}
+            </Text>
+          </View>
+        )}
+
+        {/* ── Shuttle content ── */}
+        {mode === 'shuttle' && (
+          <View style={{ flex: 1, backgroundColor: c.background }}>
+            {/* Space reserved for the absolute-positioned sheetHeader (64 px) */}
+            <View style={{ height: 64 }} />
             <View style={styles.stickySearch}>
               <TouchableOpacity style={[gs, styles.searchBar]} onPress={() => router.push('/routes')} activeOpacity={0.85}>
                 <Search size={16} color={c.inkSoft} />
@@ -391,44 +454,93 @@ export default function HomeScreen() {
                 <MapPin size={16} color={c.ink} />
               </TouchableOpacity>
             </View>
-          )}
-
-          {/* ═══ تم نقل السيكشن الأصلي والكلمة هنا بالظبط بنفس ستايلها القديم ═══ */}
-          {mode === 'shuttle' && (
             <View style={styles.routesSectionHeader}>
               <Text style={{ fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink }}>{t('shuttle_routes_heading')}</Text>
               <TouchableOpacity onPress={() => router.push('/routes')}>
                 <Text style={styles.viewAllBtn}>{t('view_all_routes')}</Text>
               </TouchableOpacity>
             </View>
-          )}
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={c.ink}
+                  colors={[c.ink]}
+                />
+              }
+            >
+              {activeBooking && (
+                <ActiveBookingHero
+                  styles={styles} c={c} t={t as (key: string) => string}
+                  isAr={isAr} isRTL={isRTL} activeBooking={activeBooking}
+                  onPress={() => router.push('/ticket')}
+                />
+              )}
+              {promos.length > 0 && (
+                <>
+                  <SectionHeader title={t('featured_offers')} />
+                  <FeaturedOffers />
+                </>
+              )}
+              {mostBookedRoutes.length > 0 && (
+                <View>
+                  <View style={styles.mostBookedHeader}>
+                    <Text style={styles.mostBookedTitle}>
+                      <Flame size={16} color="#ef4444" fill="#ef4444" /> {t('most_booked')}
+                    </Text>
+                  </View>
+                  <View style={styles.routesList}>
+                    {mostBookedRoutes.map((route) => (
+                      <RouteCard key={`mb-${route.id}`} route={route} onPress={() => openRoute(route)} />
+                    ))}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        )}
 
-          {/* Zone-filtered services banner */}
-          <ZoneServicesBanner
-            c={c} t={t as (key: string) => string}
-            hiddenCount={SERVICES.filter(svc => !isServiceVisibleForZone(svc.id as ServiceType)).length}
-            userZoneId={userZoneId}
-          />
+        {/* ── Car ── */}
+        {mode === 'car' && (
+          <CarServiceScreen ref={carServiceRef} onBack={closeService} />
+        )}
 
+        {/* ── Scooter ── */}
+        {mode === 'scooter' && (
+          <CarServiceScreen ref={carServiceRef} serviceType="scooter" onBack={closeService} />
+        )}
 
-        </LinearGradient>
-      </View>
+        {/* ── Delivery ── */}
+        {mode === 'delivery' && (
+          <CarServiceScreen ref={carServiceRef} serviceType="delivery" onBack={closeService} />
+        )}
+      </Animated.View>
 
-      {/* ═══ "Where to?" entry bar — sits directly above the bottom nav ═══ */}
-      {mode !== 'shuttle' && (
-        <TouchableOpacity
-          style={[styles.whereToBar, { bottom: tabBarHeight }]}
-          activeOpacity={0.85}
-          onPress={handleOpenSearch}
-        >
-          <Search size={16} color={c.inkSoft} />
-          <Text style={styles.whereToBarText} numberOfLines={1}>
-            {destinationLocation || t('where_to_short')}
-          </Text>
-        </TouchableOpacity>
-      )}
+      {/* ── 4. Bottom service cards — above tab bar ──────────────── */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          bottom: tabBarHeight + 12,
+          left: 12,
+          right: 12,
+          opacity: cardsOpacity,
+          zIndex: 25,
+        }}
+        pointerEvents={serviceOpen ? 'none' : 'box-none'}
+      >
+        <ServiceCards
+          c={c} t={t as (key: string) => string}
+          getService={getService}
+          isServiceVisibleForZone={isServiceVisibleForZone}
+          onServicePress={openService}
+        />
+      </Animated.View>
 
-      {/* ═══ Dedicated destination search screen ═══ */}
+      {/* ── 5. Destination search modal (unchanged) ───────────────── */}
       {searchScreenOpen && (
         <DestinationSearchModal
           styles={styles} c={c} t={t as (key: string) => string} isRTL={isRTL} top={top}
@@ -440,10 +552,6 @@ export default function HomeScreen() {
           onPickSuggestion={async (item) => {
             const wasDestination = activeSearchField === 'to';
 
-            // Places-autocomplete result (no coordinates yet) — resolve the
-            // real ones via /places/details using the same session token
-            // before handing anything off. Never use autocomplete's own
-            // (nonexistent) coordinates.
             if (item.placeId) {
               const token = placesSessionToken;
               let details = null;
@@ -467,10 +575,6 @@ export default function HomeScreen() {
               setPlacesSessionToken(null);
               if (wasDestination) {
                 setSearchScreenOpen(false);
-                // Ride, Scooter, and Delivery all route through
-                // CarServiceScreen (parameterized by serviceType) and
-                // share the same fare-estimate → confirm flow. Coordinates
-                // are already resolved above, so no re-geocode happens there.
                 if (mode !== 'shuttle') {
                   carServiceRef.current?.selectDestination(resolved.name, {
                     latitude: resolved.latitude,
@@ -481,7 +585,6 @@ export default function HomeScreen() {
               return;
             }
 
-            // Saved location — coordinates already known, no lookup needed.
             handleSelectLocation(item);
             setPlacesSessionToken(null);
             if (wasDestination) {
@@ -495,79 +598,6 @@ export default function HomeScreen() {
             }
           }}
         />
-      )}
-
-      {/* ═══ المحتوى ═══ */}
-
-      {/* Shuttle */}
-      {mode === 'shuttle' && (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={c.ink}
-              colors={[c.ink]}
-            />
-          }
-        >
-          {activeBooking && (
-            <ActiveBookingHero
-              styles={styles} c={c} t={t as (key: string) => string}
-              isAr={isAr} isRTL={isRTL} activeBooking={activeBooking}
-              onPress={() => router.push('/ticket')}
-            />
-          )}
-
-          {promos.length > 0 && (
-            <>
-              <SectionHeader title={t('featured_offers')} />
-              <FeaturedOffers />
-            </>
-          )}
-
-          {/* عرض الـ Most Booked لـ 5 خطوط كحد أقصى */}
-          {mostBookedRoutes.length > 0 && (
-            <View>
-              <View style={styles.mostBookedHeader}>
-                <Text style={styles.mostBookedTitle}>
-                  <Flame size={16} color="#ef4444" fill="#ef4444" /> {t('most_booked')}
-                </Text>
-              </View>
-              <View style={styles.routesList}>
-                {mostBookedRoutes.map((route) => (
-                  <RouteCard key={`mb-${route.id}`} route={route} onPress={() => openRoute(route)} />
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* تم إزالة قائمة المسارات الطويلة بالكامل من هنا لسرعة التحميل والتخلص من الثقل */}
-        </ScrollView>
-      )}
-
-      {/* Car */}
-      {mode === 'car' && (
-        <View style={{ flex: 1 }}>
-          <CarServiceScreen ref={carServiceRef} onBack={() => setDestinationLocation('')} />
-        </View>
-      )}
-
-      {/* Scooter */}
-      {mode === 'scooter' && (
-        <View style={{ flex: 1 }}>
-          <CarServiceScreen ref={carServiceRef} serviceType="scooter" onBack={() => setDestinationLocation('')} />
-        </View>
-      )}
-
-      {/* Delivery */}
-      {mode === 'delivery' && (
-        <View style={{ flex: 1 }}>
-          <CarServiceScreen ref={carServiceRef} serviceType="delivery" onBack={() => setDestinationLocation('')} />
-        </View>
       )}
 
     </View>

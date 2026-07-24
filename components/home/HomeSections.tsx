@@ -5,7 +5,7 @@
  * in HomeScreen and arrive here as props (including the makeStyles result,
  * passed as `styles`). No JSX structure, style, or logic changes.
  */
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bus, Car, Bike as ScooterIcon, Package, Bell, Search,
@@ -363,3 +363,68 @@ export function DestinationSearchModal({
     </Modal>
   );
 }
+
+/** ── Bottom floating service cards (new home layout) ── */
+export function ServiceCards({ c, t, getService, isServiceVisibleForZone, onServicePress }: {
+  c: ThemeColors; t: T;
+  getService: (id: ServiceType) => any;
+  isServiceVisibleForZone: (id: ServiceType) => boolean;
+  onServicePress: (id: string) => void;
+}) {
+  const CARD_ITEMS = [
+    { id: 'shuttle' as const, icon: Bus,         labelKey: 'svc_card_shuttle' },
+    { id: 'car'     as const, icon: Car,         labelKey: 'svc_card_car' },
+    { id: 'scooter' as const, icon: ScooterIcon, labelKey: 'svc_card_scooter' },
+    { id: 'delivery' as const, icon: Package,    labelKey: 'svc_card_delivery' },
+  ];
+
+  return (
+    <View style={scStyles.row}>
+      {CARD_ITEMS.map((item) => {
+        const ctrl = getService(item.id as ServiceType);
+        const isEnabled  = ctrl?.isEnabled  ?? true;
+        const displayMode = ctrl?.displayMode ?? 'live';
+        if (!isServiceVisibleForZone(item.id as ServiceType)) return null;
+        if (ctrl && !isEnabled) return null;
+        const isDisabled = displayMode === 'coming_soon' || displayMode === 'maintenance' || displayMode === 'unavailable';
+        const Icon = item.icon;
+        return (
+          <TouchableOpacity
+            key={item.id}
+            style={[scStyles.card, { backgroundColor: c.white, borderColor: c.border, opacity: isDisabled ? 0.5 : 1 }]}
+            onPress={() => !isDisabled && onServicePress(item.id)}
+            activeOpacity={0.75}
+            disabled={isDisabled}
+          >
+            <Icon size={28} color={c.ink} strokeWidth={1.6} />
+            <Text style={[scStyles.label, { color: c.ink }]}>{t(item.labelKey)}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const scStyles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 10 },
+  card: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+});
