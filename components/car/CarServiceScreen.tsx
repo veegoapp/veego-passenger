@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Animated, Modal, Alert,
+  TextInput, Animated, Modal, Alert, LayoutAnimation, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { AppLoader } from '@/components/ui/AppLoader';
