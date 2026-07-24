@@ -557,7 +557,6 @@ export const en = {
   phone_number: '+20 100 000 0000',
   driver_label: 'Driver',
   your_driver: 'Your Driver',
-  ride_cancelled_title: 'Ride Cancelled',
   no_drivers_msg: 'No drivers were available. Please try again.',
   ride_cancelled_msg: 'Your ride was cancelled.',
   driver_cancelled_msg: 'The driver cancelled this trip.',

@@ -558,7 +558,6 @@ export const ar: typeof en = {
   phone_number: '+20 100 000 0000',
   driver_label: 'السائق',
   your_driver: 'سائقك',
-  ride_cancelled_title: 'تم إلغاء الرحلة',
   no_drivers_msg: 'لا يوجد سائقون متاحون. حاول مرة أخرى.',
   ride_cancelled_msg: 'تم إلغاء رحلتك.',
   driver_cancelled_msg: 'قام السائق بإلغاء هذه الرحلة.',
