@@ -697,6 +697,7 @@ export const ar: typeof en = {
   accept: 'أوافق',
   terms_loading: 'جارٍ تحميل الشروط…',
 
+  your_location: 'موقعك',
   current_location: 'موقعك الحالي',
   most_booked: 'الأكثر حجزًا',
   request_ride_failed: 'فشل طلب الرحلة. حاول مجدداً.',

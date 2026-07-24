@@ -27,7 +27,6 @@ import { useSocketConnectionState } from '@/src/hooks/shared/useSocketConnection
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
-import { Shadows } from '@/constants/shadows';
 import { VeeGoButton } from '@/components/ui/VeeGoButton';
 
 interface Coords { latitude: number; longitude: number }
@@ -63,31 +62,73 @@ export interface CarServiceScreenHandle {
 }
 
 function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, sheetHeaderOffset: number) {
-  const inputBg     = c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.92)';
-  const inputBorder = c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)';
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: '#0d0e22' },
-    // paddingTop: use sheetHeaderOffset when inside a sheet (avoids the parent
-    // header bar), otherwise fall back to the device's safe-area inset + 8.
-    topOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, paddingTop: sheetHeaderOffset > 0 ? sheetHeaderOffset + 8 : insetTop + 8 },
-    topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.lg, paddingBottom: 10 },
-    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
-    titleBlock: { flex: 1 },
-    topTitle: { color: 'rgba(255,255,255,0.75)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium },
-    topSubtitle: { color: '#ffffff', fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, letterSpacing: -0.3 },
-    notifBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
-    searchWrap: { paddingHorizontal: Spacing.lg, paddingBottom: 0 },
-    searchBox: {
-      flexDirection: 'row', alignItems: 'center', height: 52,
-      borderRadius: 18, paddingHorizontal: Spacing.lg, gap: 10,
-      backgroundColor: inputBg, borderWidth: 1.5, borderColor: inputBorder,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25, shadowRadius: 12, elevation: Shadows.large.elevation,
+
+    // ── Bottom idle panel (glassmorphism) ─────────────────────────────
+    bottomContainer: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30,
     },
-    searchPlaceholder: { flex: 1, fontSize: Typography.size.sm, color: 'rgba(255,255,255,0.5)', fontWeight: Typography.weight.regular },
-    destTag: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(85,196,154,0.2)', borderRadius: 10, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs },
-    destTagText: { fontSize: 11.5, color: '#55c49a', fontWeight: Typography.weight.medium, maxWidth: 120 },
-    clearBtn: { padding: Spacing.xs },
+    bottomPanel: {
+      backgroundColor: c.isDark ? 'rgba(18,18,32,0.94)' : 'rgba(255,255,255,0.94)',
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      paddingBottom: tabBarHeight,
+      shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.12, shadowRadius: 16, elevation: 12,
+    },
+    dragHandle: {
+      width: 36, height: 4, borderRadius: 2,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.15)',
+      alignSelf: 'center', marginTop: 10, marginBottom: 6,
+    },
+    locationRow: {
+      paddingHorizontal: 20, paddingVertical: 14,
+    },
+    locationLabel: {
+      fontSize: 11, fontWeight: Typography.weight.medium as any,
+      color: c.inkSoft, marginBottom: 4, letterSpacing: 0.1,
+    },
+    locationAddress: {
+      fontSize: 15, fontWeight: Typography.weight.semibold as any,
+      color: c.ink, letterSpacing: -0.2,
+    },
+    fieldDivider: {
+      height: 1,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+      marginHorizontal: 20,
+    },
+    whereToRow: {
+      paddingHorizontal: 20, paddingVertical: 18,
+    },
+    whereToText: {
+      fontSize: 15,
+      color: c.isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.30)',
+      fontWeight: Typography.weight.regular as any,
+    },
+    destinationText: {
+      flex: 1, fontSize: 15, fontWeight: Typography.weight.semibold as any,
+      color: c.ink, letterSpacing: -0.2,
+    },
+
+    // ── Recents section (sits directly above the glass panel) ─────────
+    recentsWrap: {
+      backgroundColor: c.isDark ? 'rgba(18,18,32,0.82)' : 'rgba(255,255,255,0.82)',
+      paddingTop: Spacing.sm,
+    },
+    recentsTitle: {
+      fontSize: 13, fontWeight: Typography.weight.semibold as any,
+      color: c.inkSoft, paddingHorizontal: 20, paddingBottom: Spacing.xs,
+    },
+    recentRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+    },
+    recentRowText: {
+      flex: 1, fontSize: 14.5,
+      fontWeight: Typography.weight.medium as any, color: c.ink,
+    },
     selectingModal: { flex: 1, backgroundColor: c.isDark ? '#0f0f1e' : '#f4f4f8' },
     modalHeader: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
@@ -175,6 +216,23 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [recipientPhone, setRecipientPhone] = useState('');
   const [paymentMethod, setPaymentMethod]   = useState<'cash' | 'wallet'>('cash');
   const userCoordsRef = useRef<Coords | null>(null);
+
+  // Reverse-geocode the user's position for the "Your Location" label.
+  // Best-effort: never blocks the UI. Shows t('current_location') until resolved.
+  const [pickupAddress, setPickupAddress] = useState<string>('');
+  useEffect(() => {
+    if (!userCoords) return;
+    let cancelled = false;
+    Location.reverseGeocodeAsync(userCoords)
+      .then((results) => {
+        if (cancelled || results.length === 0) return;
+        const r = results[0];
+        const addr = [r.name, r.street, r.city].filter(Boolean).join(', ');
+        if (addr) setPickupAddress(addr);
+      })
+      .catch(() => { /* fail silently — UI falls back to t('current_location') */ });
+    return () => { cancelled = true; };
+  }, [userCoords]);
 
   const { walletFeature } = usePaymentConfig();
   const walletAvailable = walletFeature.isEnabled && walletFeature.displayMode === 'live';
@@ -431,37 +489,75 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
       />
 
-      {/* Fix 3: "Where to?" search bar — restored after accidental removal.
-          Only visible in idle phase; hidden once a destination is being
-          selected or a ride is in progress. paddingTop is controlled by
-          sheetHeaderOffset so it clears the parent sheet's header bar. */}
+      {/* ── Idle state: bottom glass panel + recents ─────────────────── */}
       {phase === 'idle' && (
-        <View style={styles.topOverlay}>
-          <View style={styles.searchWrap}>
+        <View style={styles.bottomContainer}>
+
+          {/* Recents — sit directly above the glass panel */}
+          {recents.length > 0 && (
+            <View style={styles.recentsWrap}>
+              <Text style={styles.recentsTitle}>{t('recent_searches')}</Text>
+              {recents.slice(0, 3).map((loc) => (
+                <TouchableOpacity
+                  key={loc.address}
+                  style={styles.recentRow}
+                  onPress={() => handleSelectDestination(
+                    loc.address,
+                    loc.latitude != null && loc.longitude != null
+                      ? { latitude: loc.latitude, longitude: loc.longitude }
+                      : undefined,
+                  )}
+                  activeOpacity={0.75}
+                >
+                  <MapPin size={15} color={c.inkSoft} />
+                  <Text style={styles.recentRowText} numberOfLines={1}>{loc.address}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Glass panel */}
+          <View style={styles.bottomPanel}>
+            {/* Drag handle pill */}
+            <View style={styles.dragHandle} />
+
+            {/* Row 1: Your Location */}
             <TouchableOpacity
-              style={styles.searchBox}
+              style={styles.locationRow}
               onPress={() => setPhase('selecting')}
               activeOpacity={0.85}
             >
-              <Search size={16} color="rgba(255,255,255,0.5)" />
+              <Text style={styles.locationLabel}>{t('your_location')}</Text>
+              <Text style={styles.locationAddress} numberOfLines={1}>
+                {pickupAddress || t('current_location')}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.fieldDivider} />
+
+            {/* Row 2: Where to? / selected destination */}
+            <TouchableOpacity
+              style={styles.whereToRow}
+              onPress={() => setPhase('selecting')}
+              activeOpacity={0.85}
+            >
               {destination ? (
-                <>
-                  <View style={styles.destTag}>
-                    <Text style={styles.destTagText} numberOfLines={1}>{destination}</Text>
-                  </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
+                  <Text style={styles.destinationText} numberOfLines={1}>{destination}</Text>
                   <TouchableOpacity
-                    style={styles.clearBtn}
                     onPress={() => { setDestination(null); setDestCoords(null); }}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <XCircle size={14} color="#55c49a" />
+                    <XCircle size={16} color={c.inkSoft} />
                   </TouchableOpacity>
-                </>
+                </View>
               ) : (
-                <Text style={styles.searchPlaceholder}>{t('where_to')}</Text>
+                <Text style={styles.whereToText}>{t('where_to')}</Text>
               )}
             </TouchableOpacity>
           </View>
+
         </View>
       )}
 

@@ -695,6 +695,7 @@ export const en = {
   accept: 'Accept',
   terms_loading: 'Loading terms…',
 
+  your_location: 'Your Location',
   current_location: 'Current Location',
   most_booked: 'Most Booked',
   request_ride_failed: 'Failed to request ride. Please try again.',
