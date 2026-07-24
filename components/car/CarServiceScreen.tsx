@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Animated, Modal, Alert, ScrollView, Dimensions, Keyboard,
-  // Note: Keyboard is imported for collapseDestSearch (dismiss before slide-down)
+  TextInput, Animated, Alert, ScrollView, Dimensions, Keyboard,
+  // Modal removed — pickup/destination editing now uses the unified inline sheet.
+  // KeyboardAvoidingView removed — it caused a jitter loop fighting Animated.spring.
 } from 'react-native';
-// NOTE: KeyboardAvoidingView intentionally removed from the expanded destination
-// sheet — it caused a jitter loop by fighting the Animated.spring on the JS thread.
 import { router } from 'expo-router';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,7 +42,9 @@ interface RideEstimate {
   premiumSlug?: string;
 }
 
-type CarPhase = 'idle' | 'selecting' | 'ride_options' | 'in_ride' | 'completed' | 'cancelled';
+type CarPhase = 'idle' | 'ride_options' | 'in_ride' | 'completed' | 'cancelled';
+// 'selecting' phase (old full-screen modal) is removed — pickup and destination
+// editing both happen inside the unified inline expanded sheet.
 
 interface CarServiceScreenProps {
   onBack: () => void;
@@ -178,24 +179,33 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       flex: 1, fontSize: 14.5,
       fontWeight: Typography.weight.medium as any, color: c.ink,
     },
-    selectingModal: { flex: 1, backgroundColor: c.isDark ? '#0f0f1e' : '#f4f4f8' },
-    modalHeader: {
-      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-      paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md,
-      paddingTop: insetTop + 8,
-      backgroundColor: c.isDark ? '#1a1a2e' : '#ffffff',
-      borderBottomWidth: 1, borderBottomColor: c.border,
+    // ── Two-field (pickup + destination) block inside the expanded sheet ──
+    twoFieldBlock: {
+      flexDirection: 'row', alignItems: 'stretch',
+      marginHorizontal: 16, marginBottom: 4, gap: 10,
     },
-    modalBackBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    modalTitle: { fontSize: 17, fontWeight: Typography.weight.semibold, color: c.ink, flex: 1 },
-    searchInputRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 10,
-      marginHorizontal: Spacing.lg, marginVertical: Spacing.md, height: 48,
-      borderRadius: Radius.lg, paddingHorizontal: 14, borderWidth: 1,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.white,
-      borderColor: c.border,
+    routeLineWrap: {
+      width: 14, alignItems: 'center', justifyContent: 'space-between',
+      paddingVertical: 14,
     },
-    searchInput: { flex: 1, fontSize: Typography.size.sm, color: c.ink },
+    routeDot: { width: 10, height: 10, borderRadius: 5 },
+    routeLine: {
+      flex: 1, width: 2, marginVertical: 3,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
+    },
+    fieldRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      height: 46, borderRadius: Radius.lg, paddingHorizontal: 12,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+      borderWidth: 1.5,
+      borderColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    },
+    fieldRowActive: {
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    },
+    fieldInput: {
+      flex: 1, fontSize: Typography.size.sm,
+    },
     locItem: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
       paddingHorizontal: 20, paddingVertical: 15,
@@ -257,7 +267,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [destination, setDestination]   = useState<string | null>(null);
   const [destCoords, setDestCoords]     = useState<Coords | null>(null);
   const [userCoords, setUserCoords]     = useState<Coords | null>(null);
-  const [searchQuery, setSearchQuery]   = useState('');
+  // pickupQuery / destQuery / activeField replace the old single searchQuery — see expandSheet block below
   const [selectedRide, setSelectedRide] = useState<'economy' | 'premium' | 'standard' | null>(null);
   const [safetyOpen, setSafetyOpen]     = useState(false);
   const { recents, addRecent }          = useRecentSearches(serviceType);
@@ -269,15 +279,22 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [paymentMethod, setPaymentMethod]   = useState<'cash' | 'wallet'>('cash');
   const userCoordsRef = useRef<Coords | null>(null);
 
-  // Phase 1: Inline destination search — replaces the full-screen "selecting" modal
-  // for "Where to?". The sheet slides up from bottom to cover most of the map.
+  // ── Unified inline location sheet ────────────────────────────────────────
+  // Single sheet handles both pickup and destination editing.
+  // `activeField` controls which row is focused and which handler fires on
+  // suggestion tap. No old full-screen modal — everything lives here.
   const [isDestExpanded, setIsDestExpanded] = useState(false);
-  const destSheetTop = useRef(new Animated.Value(SCREEN_H)).current;
-  // Ref used to focus the search input AFTER the slide animation completes,
-  // so the keyboard never opens while the spring is still running (prevents jitter).
-  const searchInputRef = useRef<TextInput>(null);
+  const [activeField, setActiveField]       = useState<'pickup' | 'destination'>('destination');
+  const [pickupQuery, setPickupQuery]       = useState('');
+  const [destQuery, setDestQuery]           = useState('');
+  const destSheetTop   = useRef(new Animated.Value(SCREEN_H)).current;
+  const pickupInputRef = useRef<TextInput>(null);
+  const destInputRef   = useRef<TextInput>(null);
 
-  const expandDestSearch = useCallback(() => {
+  /** Slide the sheet up and focus the correct field after the animation
+   *  completes — decouples keyboard from spring to prevent jitter. */
+  const expandSheet = useCallback((field: 'pickup' | 'destination') => {
+    setActiveField(field);
     setIsDestExpanded(true);
     Haptics.selectionAsync();
     Animated.spring(destSheetTop, {
@@ -286,15 +303,15 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       tension: 62,
       friction: 11,
     }).start(() => {
-      // Focus the input only after the sheet has finished sliding up.
-      // This decouples the keyboard appearance from the sheet animation,
-      // eliminating the KAV/spring feedback loop that caused the jitter.
-      searchInputRef.current?.focus();
+      if (field === 'pickup') {
+        pickupInputRef.current?.focus();
+      } else {
+        destInputRef.current?.focus();
+      }
     });
   }, [destSheetTop, insetTop]);
 
-  const collapseDestSearch = useCallback(() => {
-    // Dismiss keyboard first so it doesn't fight the slide-down animation.
+  const collapseSheet = useCallback(() => {
     Keyboard.dismiss();
     Animated.timing(destSheetTop, {
       toValue: SCREEN_H,
@@ -302,11 +319,40 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       useNativeDriver: false,
     }).start(() => {
       setIsDestExpanded(false);
-      setSearchQuery('');
-      // Reset to initial value so next expansion starts from below
+      setPickupQuery('');
+      setDestQuery('');
       destSheetTop.setValue(SCREEN_H);
     });
   }, [destSheetTop, SCREEN_H]);
+
+  /** User typed or picked a custom pickup address.
+   *  Geocodes if needed, updates userCoords, then auto-advances to destination. */
+  const handleSelectPickup = useCallback(async (address: string, knownCoords?: Coords) => {
+    Haptics.selectionAsync();
+    setPickupAddress(address);
+    setPickupQuery('');
+
+    const applyCoords = (coords: Coords) => {
+      setUserCoords(coords);
+      userCoordsRef.current = coords;
+    };
+
+    if (knownCoords) {
+      applyCoords(knownCoords);
+    } else {
+      try {
+        const results = await Location.geocodeAsync(address);
+        if (results.length > 0) {
+          applyCoords({ latitude: results[0].latitude, longitude: results[0].longitude });
+        }
+      } catch { /* use whatever coords we already have */ }
+    }
+
+    // Auto-advance: switch focus to the destination field so the user can
+    // immediately type where they want to go.
+    setActiveField('destination');
+    destInputRef.current?.focus();
+  }, []);
 
   // Reverse-geocode the user's position for the "Your Location" label.
   // Best-effort: never blocks the UI. Shows t('current_location') until resolved.
@@ -338,7 +384,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   // requested or the phase moves past ride_options; CarServiceScreen itself
   // unmounts when the passenger leaves this service on Home, which tears the
   // hook's interval down via its own cleanup.
-  const nearbyDriversActive = ['idle', 'selecting', 'ride_options'].includes(phase) && !requesting;
+  const nearbyDriversActive = ['idle', 'ride_options'].includes(phase) && !requesting;
   const { drivers: nearbyDrivers } = useNearbyDrivers({
     isActive: nearbyDriversActive,
     location: userCoords,
@@ -403,10 +449,11 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   const handleSelectDestination = useCallback(async (loc: string, knownCoords?: Coords) => {
     Haptics.selectionAsync();
-    // Phase 1: collapse the inline search sheet before switching to ride_options
+    // Collapse the inline sheet immediately before switching phase.
     setIsDestExpanded(false);
     destSheetTop.setValue(SCREEN_H);
-    setSearchQuery('');
+    setDestQuery('');
+    setPickupQuery('');
     setDestination(loc);
     setPhase('ride_options');
     // Scooter/delivery have a single pricing tier — no economy/premium pick
@@ -506,8 +553,8 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setRecipientName('');
     setRecipientPhone('');
     setPaymentMethod('cash');
-    setSearchQuery('');
-    // Phase 1: ensure expanded dest search is closed on reset
+    setPickupQuery('');
+    setDestQuery('');
     setIsDestExpanded(false);
     destSheetTop.setValue(SCREEN_H);
   }, [resetRide, destSheetTop, SCREEN_H]);
@@ -630,10 +677,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                 {/* Drag handle pill */}
                 <View style={styles.dragHandle} />
 
-                {/* Row 1: Your Location — tappable to open pickup picker */}
+                {/* Row 1: Your Location — opens unified sheet with pickup focused */}
                 <TouchableOpacity
                   style={styles.locationRow}
-                  onPress={() => setPhase('selecting')}
+                  onPress={() => expandSheet('pickup')}
                   activeOpacity={0.85}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -648,10 +695,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                 {/* Divider */}
                 <View style={styles.fieldDivider} />
 
-                {/* Row 2: Where to? — expands sheet inline (NO full-screen navigation) */}
+                {/* Row 2: Where to? — opens unified sheet with destination focused */}
                 <TouchableOpacity
                   style={styles.whereToRow}
-                  onPress={destination ? undefined : expandDestSearch}
+                  onPress={destination ? undefined : () => expandSheet('destination')}
                   activeOpacity={destination ? 1 : 0.82}
                 >
                   <Search size={15} color={c.isDark ? 'rgba(255,255,255,0.4)' : '#999999'} />
@@ -676,32 +723,18 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
             </>
           )}
 
-          {/* ── EXPANDED STATE: inline destination search over the map ── */}
+          {/* ── EXPANDED STATE: unified pickup + destination sheet ── */}
           {isDestExpanded && (
-            // No KeyboardAvoidingView here — the sheet is position:absolute
-            // (its `top` is already animated to sit below the status bar), so
-            // the keyboard simply slides up over the bottom portion. Using KAV
-            // here caused it to fight the spring animation on every keyboard
-            // frame, producing the flicker/jitter loop.
+            // No KeyboardAvoidingView — sheet is position:absolute so keyboard
+            // overlays from below without fighting the spring animation.
             <View style={{ flex: 1 }}>
-              <View style={[
-                styles.bottomPanel,
-                {
-                  flex: 1,
-                  borderTopLeftRadius: 24, borderTopRightRadius: 24,
-                  paddingBottom: 0,
-                },
-              ]}>
-                {/* Drag handle pill */}
+              <View style={[styles.bottomPanel, { flex: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 0 }]}>
+                {/* Drag handle */}
                 <View style={styles.dragHandle} />
 
-                {/* Header: back button */}
+                {/* Header */}
                 <View style={styles.expandedHeader}>
-                  <TouchableOpacity
-                    style={styles.expandedBackBtn}
-                    onPress={collapseDestSearch}
-                    activeOpacity={0.75}
-                  >
+                  <TouchableOpacity style={styles.expandedBackBtn} onPress={collapseSheet} activeOpacity={0.75}>
                     {isRTL
                       ? <ArrowRight size={17} color={c.isDark ? '#ffffff' : '#1A1A1A'} />
                       : <ArrowLeft  size={17} color={c.isDark ? '#ffffff' : '#1A1A1A'} />
@@ -710,86 +743,206 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                   <Text style={styles.expandedTitle}>{t('choose_dest')}</Text>
                 </View>
 
-                {/* Search input row */}
-                <View style={styles.expandedSearchRow}>
-                  <Search size={15} color={c.isDark ? 'rgba(255,255,255,0.4)' : '#999999'} />
-                  <TextInput
-                    ref={searchInputRef}
-                    style={[styles.expandedSearchInput, { textAlign: isRTL ? 'right' : 'left' }]}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder={t('search_dest')}
-                    placeholderTextColor={c.isDark ? 'rgba(255,255,255,0.35)' : '#666666'}
-                    returnKeyType="go"
-                    onSubmitEditing={() => {
-                      if (searchQuery.trim()) handleSelectDestination(searchQuery.trim());
-                    }}
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <XCircle size={16} color={c.inkSoft} />
+                {/* Two-row input block: Pickup → Destination */}
+                <View style={styles.twoFieldBlock}>
+                  {/* Route line connector */}
+                  <View style={styles.routeLineWrap}>
+                    <View style={[styles.routeDot, { backgroundColor: '#10b981' }]} />
+                    <View style={styles.routeLine} />
+                    <View style={[styles.routeDot, { backgroundColor: c.badge ?? '#8B6FD4' }]} />
+                  </View>
+
+                  <View style={{ flex: 1, gap: 6 }}>
+                    {/* ── Pickup row ── */}
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => { setActiveField('pickup'); pickupInputRef.current?.focus(); }}
+                      style={[
+                        styles.fieldRow,
+                        activeField === 'pickup' && styles.fieldRowActive,
+                        { borderColor: activeField === 'pickup' ? '#10b981' : (c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)') },
+                      ]}
+                    >
+                      <TextInput
+                        ref={pickupInputRef}
+                        style={[styles.fieldInput, { textAlign: isRTL ? 'right' : 'left', color: c.isDark ? '#ffffff' : '#1A1A1A' }]}
+                        value={pickupQuery}
+                        onChangeText={setPickupQuery}
+                        onFocus={() => setActiveField('pickup')}
+                        placeholder={pickupAddress || t('current_location')}
+                        placeholderTextColor={c.isDark ? 'rgba(255,255,255,0.4)' : '#888888'}
+                        returnKeyType="next"
+                        onSubmitEditing={() => {
+                          if (pickupQuery.trim()) handleSelectPickup(pickupQuery.trim());
+                          else destInputRef.current?.focus();
+                        }}
+                      />
+                      {pickupQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setPickupQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <XCircle size={15} color={c.inkSoft} />
+                        </TouchableOpacity>
+                      )}
                     </TouchableOpacity>
-                  )}
+
+                    {/* ── Destination row ── */}
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPress={() => { setActiveField('destination'); destInputRef.current?.focus(); }}
+                      style={[
+                        styles.fieldRow,
+                        activeField === 'destination' && styles.fieldRowActive,
+                        { borderColor: activeField === 'destination' ? (c.badge ?? '#8B6FD4') : (c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)') },
+                      ]}
+                    >
+                      <TextInput
+                        ref={destInputRef}
+                        style={[styles.fieldInput, { textAlign: isRTL ? 'right' : 'left', color: c.isDark ? '#ffffff' : '#1A1A1A' }]}
+                        value={destQuery}
+                        onChangeText={setDestQuery}
+                        onFocus={() => setActiveField('destination')}
+                        placeholder={t('where_to')}
+                        placeholderTextColor={c.isDark ? 'rgba(255,255,255,0.35)' : '#888888'}
+                        returnKeyType="go"
+                        onSubmitEditing={() => {
+                          if (destQuery.trim()) handleSelectDestination(destQuery.trim());
+                        }}
+                      />
+                      {destQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setDestQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <XCircle size={15} color={c.inkSoft} />
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
-                {/* Suggestions / recents */}
+                {/* Suggestions list — filtered by active field's query */}
                 <ScrollView
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
                   style={{ flex: 1 }}
                   contentContainerStyle={{ paddingBottom: 40 }}
-                  // On iOS: let the ScrollView itself handle inset adjustments
-                  // when the keyboard overlays the bottom, without involving
-                  // KAV (which was the source of the jitter).
                   automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
                 >
-                  {searchQuery.trim().length > 0 ? (
-                    /* Typed query → show it as a tappable suggestion */
-                    <TouchableOpacity
-                      style={styles.locItem}
-                      onPress={() => handleSelectDestination(searchQuery.trim())}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.locIcon}>
-                        <MapPin size={16} color={c.inkSoft} />
-                      </View>
-                      <Text style={styles.locText}>{searchQuery.trim()}</Text>
-                      {isRTL
-                        ? <ChevronLeft size={14} color={c.silver} />
-                        : <ChevronRight size={14} color={c.silver} />
-                      }
-                    </TouchableOpacity>
-                  ) : recents.length > 0 ? (
-                    <>
-                      <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
-                      {recents.map((loc) => (
+                  {activeField === 'pickup' ? (
+                    /* ── Pickup suggestions ── */
+                    pickupQuery.trim().length > 0 ? (
+                      <>
+                        {/* Use GPS option always available when typing a custom pickup */}
                         <TouchableOpacity
-                          key={loc.address}
                           style={styles.locItem}
-                          onPress={() => handleSelectDestination(
-                            loc.address,
-                            loc.latitude != null && loc.longitude != null
-                              ? { latitude: loc.latitude, longitude: loc.longitude }
-                              : undefined,
-                          )}
+                          onPress={() => {
+                            // Reset to GPS: clear custom pickup address so reverse-geocode label shows again
+                            if (userCoordsRef.current) {
+                              setPickupAddress('');
+                              setPickupQuery('');
+                              // Re-trigger reverse-geocode by nudging userCoords
+                              setUserCoords({ ...userCoordsRef.current });
+                              setActiveField('destination');
+                              destInputRef.current?.focus();
+                            }
+                          }}
                           activeOpacity={0.8}
                         >
-                          <View style={styles.locIcon}>
-                            <Search size={16} color={c.inkSoft} />
+                          <View style={[styles.locIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+                            <MapPin size={16} color="#10b981" />
                           </View>
-                          <Text style={styles.locText}>{loc.address}</Text>
-                          {isRTL
-                            ? <ChevronLeft size={14} color={c.silver} />
-                            : <ChevronRight size={14} color={c.silver} />
-                          }
+                          <Text style={[styles.locText, { color: '#10b981' }]}>{t('current_location')}</Text>
+                          {isRTL ? <ChevronLeft size={14} color="#10b981" /> : <ChevronRight size={14} color="#10b981" />}
                         </TouchableOpacity>
-                      ))}
-                    </>
+                        <TouchableOpacity
+                          style={styles.locItem}
+                          onPress={() => handleSelectPickup(pickupQuery.trim())}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.locIcon}><MapPin size={16} color={c.inkSoft} /></View>
+                          <Text style={styles.locText}>{pickupQuery.trim()}</Text>
+                          {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        {/* Always show "Use current GPS location" at top for pickup */}
+                        <TouchableOpacity
+                          style={styles.locItem}
+                          onPress={() => {
+                            setPickupAddress('');
+                            setPickupQuery('');
+                            if (userCoordsRef.current) setUserCoords({ ...userCoordsRef.current });
+                            setActiveField('destination');
+                            destInputRef.current?.focus();
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.locIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+                            <MapPin size={16} color="#10b981" />
+                          </View>
+                          <Text style={[styles.locText, { color: '#10b981' }]}>{t('current_location')}</Text>
+                          {isRTL ? <ChevronLeft size={14} color="#10b981" /> : <ChevronRight size={14} color="#10b981" />}
+                        </TouchableOpacity>
+                        {recents.length > 0 && (
+                          <>
+                            <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
+                            {recents.map((loc) => (
+                              <TouchableOpacity
+                                key={loc.address}
+                                style={styles.locItem}
+                                onPress={() => handleSelectPickup(
+                                  loc.address,
+                                  loc.latitude != null && loc.longitude != null
+                                    ? { latitude: loc.latitude, longitude: loc.longitude }
+                                    : undefined,
+                                )}
+                                activeOpacity={0.8}
+                              >
+                                <View style={styles.locIcon}><Search size={16} color={c.inkSoft} /></View>
+                                <Text style={styles.locText}>{loc.address}</Text>
+                                {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                              </TouchableOpacity>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    )
                   ) : (
-                    <View style={styles.emptyTip}>
-                      <Search size={28} color={c.silver} />
-                      <Text style={styles.emptyTipText}>{t('search_dest')}</Text>
-                    </View>
+                    /* ── Destination suggestions ── */
+                    destQuery.trim().length > 0 ? (
+                      <TouchableOpacity
+                        style={styles.locItem}
+                        onPress={() => handleSelectDestination(destQuery.trim())}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.locIcon}><MapPin size={16} color={c.inkSoft} /></View>
+                        <Text style={styles.locText}>{destQuery.trim()}</Text>
+                        {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                      </TouchableOpacity>
+                    ) : recents.length > 0 ? (
+                      <>
+                        <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
+                        {recents.map((loc) => (
+                          <TouchableOpacity
+                            key={loc.address}
+                            style={styles.locItem}
+                            onPress={() => handleSelectDestination(
+                              loc.address,
+                              loc.latitude != null && loc.longitude != null
+                                ? { latitude: loc.latitude, longitude: loc.longitude }
+                                : undefined,
+                            )}
+                            activeOpacity={0.8}
+                          >
+                            <View style={styles.locIcon}><Search size={16} color={c.inkSoft} /></View>
+                            <Text style={styles.locText}>{loc.address}</Text>
+                            {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                          </TouchableOpacity>
+                        ))}
+                      </>
+                    ) : (
+                      <View style={styles.emptyTip}>
+                        <Search size={28} color={c.silver} />
+                        <Text style={styles.emptyTipText}>{t('search_dest')}</Text>
+                      </View>
+                    )
                   )}
                 </ScrollView>
               </View>
@@ -820,76 +973,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         </View>
       )}
 
-
-      {/* Destination modal */}
-      <Modal visible={phase === 'selecting'} animationType="slide" onRequestClose={() => setPhase('idle')}>
-        <View style={styles.selectingModal}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity style={styles.modalBackBtn} onPress={() => setPhase('idle')} activeOpacity={0.8}>
-              {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>{t('choose_dest')}</Text>
-          </View>
-
-          <View style={styles.searchInputRow}>
-            <Search size={15} color={c.inkSoft} />
-            <TextInput
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder={t('search_dest')}
-              placeholderTextColor={c.inkSoft}
-              autoFocus
-              textAlign={isRTL ? 'right' : 'left'}
-              returnKeyType="go"
-              onSubmitEditing={() => { if (searchQuery.trim()) handleSelectDestination(searchQuery.trim()); }}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <XCircle size={16} color={c.silver} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {searchQuery.trim().length > 0 ? (
-            <TouchableOpacity style={styles.locItem} onPress={() => handleSelectDestination(searchQuery.trim())} activeOpacity={0.8}>
-              <View style={styles.locIcon}>
-                <MapPin size={16} color={c.inkSoft} />
-              </View>
-              <Text style={styles.locText}>{searchQuery.trim()}</Text>
-              {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
-            </TouchableOpacity>
-          ) : recents.length > 0 ? (
-            <View>
-              <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
-              {recents.map((loc) => (
-                <TouchableOpacity
-                  key={loc.address}
-                  style={styles.locItem}
-                  onPress={() => handleSelectDestination(
-                    loc.address,
-                    loc.latitude != null && loc.longitude != null
-                      ? { latitude: loc.latitude, longitude: loc.longitude }
-                      : undefined,
-                  )}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.locIcon}>
-                    <Search size={16} color={c.inkSoft} />
-                  </View>
-                  <Text style={styles.locText}>{loc.address}</Text>
-                  {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyTip}>
-              <Search size={28} color={c.silver} />
-              <Text style={styles.emptyTipText}>{t('search_dest')}</Text>
-            </View>
-          )}
-        </View>
-      </Modal>
 
       {/* Ride options */}
       <RideOptionsSheet
