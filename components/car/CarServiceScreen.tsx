@@ -2,7 +2,10 @@ import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImper
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
   TextInput, Animated, Modal, Alert, ScrollView, Dimensions, Keyboard,
+  // Note: Keyboard is imported for collapseDestSearch (dismiss before slide-down)
 } from 'react-native';
+// NOTE: KeyboardAvoidingView intentionally removed from the expanded destination
+// sheet — it caused a jitter loop by fighting the Animated.spring on the JS thread.
 import { router } from 'expo-router';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -270,6 +273,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   // for "Where to?". The sheet slides up from bottom to cover most of the map.
   const [isDestExpanded, setIsDestExpanded] = useState(false);
   const destSheetTop = useRef(new Animated.Value(SCREEN_H)).current;
+  // Ref used to focus the search input AFTER the slide animation completes,
+  // so the keyboard never opens while the spring is still running (prevents jitter).
+  const searchInputRef = useRef<TextInput>(null);
 
   const expandDestSearch = useCallback(() => {
     setIsDestExpanded(true);
@@ -279,10 +285,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       useNativeDriver: false,
       tension: 62,
       friction: 11,
-    }).start();
+    }).start(() => {
+      // Focus the input only after the sheet has finished sliding up.
+      // This decouples the keyboard appearance from the sheet animation,
+      // eliminating the KAV/spring feedback loop that caused the jitter.
+      searchInputRef.current?.focus();
+    });
   }, [destSheetTop, insetTop]);
 
   const collapseDestSearch = useCallback(() => {
+    // Dismiss keyboard first so it doesn't fight the slide-down animation.
+    Keyboard.dismiss();
     Animated.timing(destSheetTop, {
       toValue: SCREEN_H,
       duration: 220,
@@ -665,10 +678,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
           {/* ── EXPANDED STATE: inline destination search over the map ── */}
           {isDestExpanded && (
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1 }}
-            >
+            // No KeyboardAvoidingView here — the sheet is position:absolute
+            // (its `top` is already animated to sit below the status bar), so
+            // the keyboard simply slides up over the bottom portion. Using KAV
+            // here caused it to fight the spring animation on every keyboard
+            // frame, producing the flicker/jitter loop.
+            <View style={{ flex: 1 }}>
               <View style={[
                 styles.bottomPanel,
                 {
@@ -699,12 +714,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                 <View style={styles.expandedSearchRow}>
                   <Search size={15} color={c.isDark ? 'rgba(255,255,255,0.4)' : '#999999'} />
                   <TextInput
+                    ref={searchInputRef}
                     style={[styles.expandedSearchInput, { textAlign: isRTL ? 'right' : 'left' }]}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     placeholder={t('search_dest')}
                     placeholderTextColor={c.isDark ? 'rgba(255,255,255,0.35)' : '#666666'}
-                    autoFocus
                     returnKeyType="go"
                     onSubmitEditing={() => {
                       if (searchQuery.trim()) handleSelectDestination(searchQuery.trim());
@@ -723,6 +738,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                   showsVerticalScrollIndicator={false}
                   style={{ flex: 1 }}
                   contentContainerStyle={{ paddingBottom: 40 }}
+                  // On iOS: let the ScrollView itself handle inset adjustments
+                  // when the keyboard overlays the bottom, without involving
+                  // KAV (which was the source of the jitter).
+                  automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
                 >
                   {searchQuery.trim().length > 0 ? (
                     /* Typed query → show it as a tappable suggestion */
@@ -774,7 +793,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                   )}
                 </ScrollView>
               </View>
-            </KeyboardAvoidingView>
+            </View>
           )}
         </Animated.View>
       )}
