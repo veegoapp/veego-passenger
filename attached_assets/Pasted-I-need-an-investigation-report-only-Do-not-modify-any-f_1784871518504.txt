@@ -1,0 +1,106 @@
+I need an investigation report only. Do not modify any files yet.
+
+Review the VeeGo Passenger App code and investigate the following two issues.
+
+## Issue 1 — Map screen opens blank
+
+Problem description:
+
+When opening the Car, Scooter, or Delivery service map screen, the map area appears empty. The screen itself loads, but instead of showing the actual map, only the background color is visible.
+
+Observed behavior:
+- The map screen opens normally.
+- Place search works correctly.
+- Selecting a location works.
+- Trip request API calls work.
+- The backend receives requests correctly.
+- The problem appears to be only the map rendering.
+
+Investigate the root cause.
+
+Check:
+
+- Expo configuration files:
+  - app.json
+  - app.config.js / app.config.ts
+  - eas.json
+- Google Maps native configuration.
+- Android configuration.
+- Google Maps API key injection during EAS build.
+- Map component implementation.
+- Map provider setup.
+- React Native Maps configuration.
+- Permissions.
+- Any missing initialization.
+- Any difference between development and production builds.
+
+Determine whether the problem is:
+- mobile app configuration issue
+- Google Cloud API key issue
+- native Android build issue
+- code issue inside the map component
+- another cause
+
+Important:
+Do not assume the cause.
+Provide evidence from the code and configuration.
+
+---
+
+## Issue 2 — Bottom tab bar overlaps screens and bottom sheets
+
+Problem description:
+
+Many screens and bottom sheets in the Passenger App are appearing behind the bottom navigation bar.
+
+Examples:
+- Driver searching card/panel.
+- Vehicle type selection panel.
+- Search destination panels.
+- Other pages opened from the bottom.
+
+The bottom tab bar hides part of the content because the screens do not appear to respect the bottom safe area / tab bar height.
+
+Expected behavior:
+
+All normal pages and all bottom sheets/components should start above the bottom tab bar.
+
+The bottom navigation area should never cover:
+- buttons
+- input fields
+- cards
+- selectable options
+- action areas
+- bottom sheets
+
+Investigate:
+
+1. How the bottom tab navigation is implemented.
+2. Whether screens use SafeAreaView correctly.
+3. Whether bottom sheets/modals calculate the tab bar height.
+4. Whether there is a shared layout component controlling spacing.
+5. Whether some screens bypass the shared layout.
+6. Whether React Navigation safe area handling is configured correctly.
+7. Whether Android and iOS behave differently.
+
+Find all affected areas:
+- normal screens
+- modal screens
+- bottom sheets
+- floating cards
+- map overlays
+
+---
+
+Output requirements:
+
+Provide only an investigation report:
+
+1. Root cause of the blank map issue.
+2. Root cause of bottom tab bar overlap.
+3. Exact affected files.
+4. Relevant code sections.
+5. Current behavior vs expected behavior.
+6. Recommended fix approach (high level only).
+
+Do not make any code changes yet.
