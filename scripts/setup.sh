@@ -29,4 +29,6 @@ export EXPO_NO_TELEMETRY=1
 export NODE_OPTIONS=--max-old-space-size=4096
 
 # ── Start Metro (mobile only) ─────────────────────────────────────
-exec pnpm exec expo start --tunnel --port 8081
+# Try tunnel first; fall back to LAN if ngrok is unavailable
+pnpm exec expo start --tunnel --port 8081 2>&1 || \
+  exec pnpm exec expo start --lan --port 8081

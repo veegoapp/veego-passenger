@@ -204,7 +204,7 @@ const DEFAULT_STATE: RideState = {
 const TERMINAL_STATUSES: RideStatus[] = ['completed', 'cancelled', 'timeout'];
 const POLL_INTERVAL_MS = 5000;
 
-export function useRide(): UseRideResult {
+export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideResult {
   const [rideState, setRideState] = useState<RideState>(DEFAULT_STATE);
   const [requesting, setRequesting] = useState(false);
   const [pollingStale, setPollingStale] = useState(false);
@@ -632,6 +632,11 @@ export function useRide(): UseRideResult {
       const data = await getActiveRideApi();
       const ride = data?.data ?? data;
       if (!ride?.id) return null;
+
+      // Phase 2: Only resume a ride that belongs to this service's type.
+      // If the active ride is a 'car' ride but this hook instance belongs to
+      // 'scooter', ignore it — each service tab must start in its idle state.
+      if (serviceType && ride.type && String(ride.type) !== String(serviceType)) return null;
 
       const rideId = String(ride.id);
       const status = normalizeRideStatus(ride.status ?? ride.rideStatus);

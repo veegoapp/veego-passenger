@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Animated, Modal, Alert, LayoutAnimation, ScrollView,
+  TextInput, Animated, Modal, Alert, ScrollView, Dimensions,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { AppLoader } from '@/components/ui/AppLoader';
@@ -69,6 +70,19 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
     bottomContainer: {
       position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30,
     },
+    // Glassmorphic floating search card
+    glassCard: {
+      marginHorizontal: 14,
+      marginBottom: 10,
+      borderRadius: 20,
+      backgroundColor: c.isDark ? 'rgba(18,20,40,0.92)' : 'rgba(255,255,255,0.92)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: c.isDark ? 0.45 : 0.14,
+      shadowRadius: 22,
+      elevation: 10,
+      overflow: 'hidden',
+    },
     bottomPanel: {
       backgroundColor: c.isDark ? 'rgba(18,18,32,0.94)' : 'rgba(255,255,255,0.94)',
       borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -86,11 +100,15 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
     },
     locationLabel: {
       fontSize: 11, fontWeight: Typography.weight.medium as any,
-      color: c.inkSoft, marginBottom: 4, letterSpacing: 0.1,
+      // Phase 1: #1A1A1A in light mode for crisp contrast
+      color: c.isDark ? 'rgba(255,255,255,0.55)' : '#1A1A1A',
+      marginBottom: 4, letterSpacing: 0.1,
     },
     locationAddress: {
       fontSize: 15, fontWeight: Typography.weight.semibold as any,
-      color: c.ink, letterSpacing: -0.2,
+      // Phase 1: #1A1A1A in light mode for crisp contrast
+      color: c.isDark ? '#ffffff' : '#1A1A1A',
+      letterSpacing: -0.2,
     },
     fieldDivider: {
       height: 1,
@@ -98,16 +116,45 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       marginHorizontal: 20,
     },
     whereToRow: {
-      paddingHorizontal: 20, paddingVertical: 18,
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 20, paddingVertical: 18, gap: 10,
     },
     whereToText: {
-      fontSize: 15,
-      color: c.isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.30)',
+      flex: 1, fontSize: 15,
+      // Phase 1: #666666 in light mode for placeholder contrast
+      color: c.isDark ? 'rgba(255,255,255,0.38)' : '#666666',
       fontWeight: Typography.weight.regular as any,
     },
     destinationText: {
       flex: 1, fontSize: 15, fontWeight: Typography.weight.semibold as any,
-      color: c.ink, letterSpacing: -0.2,
+      color: c.isDark ? '#ffffff' : '#1A1A1A', letterSpacing: -0.2,
+    },
+
+    // ── Expanded inline destination search ───────────────────────────
+    expandedHeader: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, gap: 10,
+    },
+    expandedBackBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    expandedTitle: {
+      fontSize: 16, fontWeight: Typography.weight.semibold as any,
+      color: c.isDark ? '#ffffff' : '#1A1A1A', flex: 1,
+    },
+    expandedSearchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      marginHorizontal: 16, marginBottom: 8, height: 48,
+      borderRadius: Radius.lg, paddingHorizontal: 14,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+      borderWidth: 1,
+      borderColor: c.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.09)',
+    },
+    expandedSearchInput: {
+      flex: 1, fontSize: Typography.size.sm,
+      color: c.isDark ? '#ffffff' : '#1A1A1A',
     },
 
     // ── Recents section (sits directly above the glass panel) ─────────
@@ -201,6 +248,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const { tabBarHeight } = useTabBar();
   const styles    = useMemo(() => makeStyles(c, insetTop, tabBarHeight, sheetHeaderOffset), [c, insetTop, tabBarHeight, sheetHeaderOffset]);
 
+  // Phase 1: screen height used for expanded-sheet animation
+  const SCREEN_H = Dimensions.get('window').height;
+
   const [phase, setPhase]               = useState<CarPhase>('idle');
   const [destination, setDestination]   = useState<string | null>(null);
   const [destCoords, setDestCoords]     = useState<Coords | null>(null);
@@ -216,6 +266,35 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [recipientPhone, setRecipientPhone] = useState('');
   const [paymentMethod, setPaymentMethod]   = useState<'cash' | 'wallet'>('cash');
   const userCoordsRef = useRef<Coords | null>(null);
+
+  // Phase 1: Inline destination search — replaces the full-screen "selecting" modal
+  // for "Where to?". The sheet slides up from bottom to cover most of the map.
+  const [isDestExpanded, setIsDestExpanded] = useState(false);
+  const destSheetTop = useRef(new Animated.Value(SCREEN_H)).current;
+
+  const expandDestSearch = useCallback(() => {
+    setIsDestExpanded(true);
+    Haptics.selectionAsync();
+    Animated.spring(destSheetTop, {
+      toValue: insetTop + 60,
+      useNativeDriver: false,
+      tension: 62,
+      friction: 11,
+    }).start();
+  }, [destSheetTop, insetTop]);
+
+  const collapseDestSearch = useCallback(() => {
+    Animated.timing(destSheetTop, {
+      toValue: SCREEN_H,
+      duration: 220,
+      useNativeDriver: false,
+    }).start(() => {
+      setIsDestExpanded(false);
+      setSearchQuery('');
+      // Reset to initial value so next expansion starts from below
+      destSheetTop.setValue(SCREEN_H);
+    });
+  }, [destSheetTop, SCREEN_H]);
 
   // Reverse-geocode the user's position for the "Your Location" label.
   // Best-effort: never blocks the UI. Shows t('current_location') until resolved.
@@ -237,7 +316,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const { walletFeature } = usePaymentConfig();
   const walletAvailable = walletFeature.isEnabled && walletFeature.displayMode === 'live';
 
-  const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide, pollingStale } = useRide();
+  // Phase 2: pass serviceType so resumeActiveRide only picks up rides that
+  // belong to this tab — prevents state leakage across car/scooter/delivery.
+  const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide, pollingStale } = useRide(serviceType);
   const [resuming, setResuming] = useState(false);
   const socketConnectionState = useSocketConnectionState();
 
@@ -310,6 +391,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   const handleSelectDestination = useCallback(async (loc: string, knownCoords?: Coords) => {
     Haptics.selectionAsync();
+    // Phase 1: collapse the inline search sheet before switching to ride_options
+    setIsDestExpanded(false);
+    destSheetTop.setValue(SCREEN_H);
+    setSearchQuery('');
     setDestination(loc);
     setPhase('ride_options');
     // Scooter/delivery have a single pricing tier — no economy/premium pick
@@ -410,7 +495,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setRecipientPhone('');
     setPaymentMethod('cash');
     setSearchQuery('');
-  }, [resetRide]);
+    // Phase 1: ensure expanded dest search is closed on reset
+    setIsDestExpanded(false);
+    destSheetTop.setValue(SCREEN_H);
+  }, [resetRide, destSheetTop, SCREEN_H]);
 
   // Reuses the existing receipt.tsx + RatingSheet flow (already wired to
   // POST /rides/:id/rate-driver) so a normal in-app ride completion, not just
@@ -489,76 +577,207 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
       />
 
-      {/* ── Idle state: bottom glass panel + recents ─────────────────── */}
+      {/* ── Idle state: floating glassmorphic search card + inline expanded search ── */}
       {phase === 'idle' && (
-        <View style={styles.bottomContainer}>
+        <Animated.View
+          style={[
+            styles.bottomContainer,
+            // Phase 1: when expanded, animate `top` upward so the sheet
+            // slides up over the map. When collapsed top is unset (natural height).
+            isDestExpanded ? { top: destSheetTop } : {},
+          ]}
+        >
+          {/* ── COLLAPSED STATE: recents above + glassmorphic card ── */}
+          {!isDestExpanded && (
+            <>
+              {/* Recents sit directly above the glass card */}
+              {recents.length > 0 && (
+                <View style={styles.recentsWrap}>
+                  <Text style={styles.recentsTitle}>{t('recent_searches')}</Text>
+                  {recents.slice(0, 3).map((loc) => (
+                    <TouchableOpacity
+                      key={loc.address}
+                      style={styles.recentRow}
+                      onPress={() => handleSelectDestination(
+                        loc.address,
+                        loc.latitude != null && loc.longitude != null
+                          ? { latitude: loc.latitude, longitude: loc.longitude }
+                          : undefined,
+                      )}
+                      activeOpacity={0.75}
+                    >
+                      <MapPin size={15} color={c.inkSoft} />
+                      <Text style={styles.recentRowText} numberOfLines={1}>{loc.address}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
-          {/* Recents — sit directly above the glass panel */}
-          {recents.length > 0 && (
-            <View style={styles.recentsWrap}>
-              <Text style={styles.recentsTitle}>{t('recent_searches')}</Text>
-              {recents.slice(0, 3).map((loc) => (
+              {/* Glassmorphic floating search card */}
+              <View style={styles.glassCard}>
+                {/* Drag handle pill */}
+                <View style={styles.dragHandle} />
+
+                {/* Row 1: Your Location — tappable to open pickup picker */}
                 <TouchableOpacity
-                  key={loc.address}
-                  style={styles.recentRow}
-                  onPress={() => handleSelectDestination(
-                    loc.address,
-                    loc.latitude != null && loc.longitude != null
-                      ? { latitude: loc.latitude, longitude: loc.longitude }
-                      : undefined,
-                  )}
-                  activeOpacity={0.75}
+                  style={styles.locationRow}
+                  onPress={() => setPhase('selecting')}
+                  activeOpacity={0.85}
                 >
-                  <MapPin size={15} color={c.inkSoft} />
-                  <Text style={styles.recentRowText} numberOfLines={1}>{loc.address}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
+                    <Text style={styles.locationLabel}>{t('your_location')}</Text>
+                  </View>
+                  <Text style={styles.locationAddress} numberOfLines={1}>
+                    {pickupAddress || t('current_location')}
+                  </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+
+                {/* Divider */}
+                <View style={styles.fieldDivider} />
+
+                {/* Row 2: Where to? — expands sheet inline (NO full-screen navigation) */}
+                <TouchableOpacity
+                  style={styles.whereToRow}
+                  onPress={destination ? undefined : expandDestSearch}
+                  activeOpacity={destination ? 1 : 0.82}
+                >
+                  <Search size={15} color={c.isDark ? 'rgba(255,255,255,0.4)' : '#999999'} />
+                  {destination ? (
+                    <>
+                      <Text style={styles.destinationText} numberOfLines={1}>{destination}</Text>
+                      <TouchableOpacity
+                        onPress={() => { setDestination(null); setDestCoords(null); }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <XCircle size={16} color={c.inkSoft} />
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <Text style={styles.whereToText}>{t('where_to')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Bottom safe-area padding */}
+              <View style={{ height: 8, backgroundColor: 'transparent' }} />
+            </>
           )}
 
-          {/* Glass panel */}
-          <View style={styles.bottomPanel}>
-            {/* Drag handle pill */}
-            <View style={styles.dragHandle} />
-
-            {/* Row 1: Your Location */}
-            <TouchableOpacity
-              style={styles.locationRow}
-              onPress={() => setPhase('selecting')}
-              activeOpacity={0.85}
+          {/* ── EXPANDED STATE: inline destination search over the map ── */}
+          {isDestExpanded && (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1 }}
             >
-              <Text style={styles.locationLabel}>{t('your_location')}</Text>
-              <Text style={styles.locationAddress} numberOfLines={1}>
-                {pickupAddress || t('current_location')}
-              </Text>
-            </TouchableOpacity>
+              <View style={[
+                styles.bottomPanel,
+                {
+                  flex: 1,
+                  borderTopLeftRadius: 24, borderTopRightRadius: 24,
+                  paddingBottom: 0,
+                },
+              ]}>
+                {/* Drag handle pill */}
+                <View style={styles.dragHandle} />
 
-            {/* Divider */}
-            <View style={styles.fieldDivider} />
-
-            {/* Row 2: Where to? / selected destination */}
-            <TouchableOpacity
-              style={styles.whereToRow}
-              onPress={() => setPhase('selecting')}
-              activeOpacity={0.85}
-            >
-              {destination ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
-                  <Text style={styles.destinationText} numberOfLines={1}>{destination}</Text>
+                {/* Header: back button */}
+                <View style={styles.expandedHeader}>
                   <TouchableOpacity
-                    onPress={() => { setDestination(null); setDestCoords(null); }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={styles.expandedBackBtn}
+                    onPress={collapseDestSearch}
+                    activeOpacity={0.75}
                   >
-                    <XCircle size={16} color={c.inkSoft} />
+                    {isRTL
+                      ? <ArrowRight size={17} color={c.isDark ? '#ffffff' : '#1A1A1A'} />
+                      : <ArrowLeft  size={17} color={c.isDark ? '#ffffff' : '#1A1A1A'} />
+                    }
                   </TouchableOpacity>
+                  <Text style={styles.expandedTitle}>{t('choose_dest')}</Text>
                 </View>
-              ) : (
-                <Text style={styles.whereToText}>{t('where_to')}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
 
-        </View>
+                {/* Search input row */}
+                <View style={styles.expandedSearchRow}>
+                  <Search size={15} color={c.isDark ? 'rgba(255,255,255,0.4)' : '#999999'} />
+                  <TextInput
+                    style={[styles.expandedSearchInput, { textAlign: isRTL ? 'right' : 'left' }]}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder={t('search_dest')}
+                    placeholderTextColor={c.isDark ? 'rgba(255,255,255,0.35)' : '#666666'}
+                    autoFocus
+                    returnKeyType="go"
+                    onSubmitEditing={() => {
+                      if (searchQuery.trim()) handleSelectDestination(searchQuery.trim());
+                    }}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <XCircle size={16} color={c.inkSoft} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Suggestions / recents */}
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{ paddingBottom: 40 }}
+                >
+                  {searchQuery.trim().length > 0 ? (
+                    /* Typed query → show it as a tappable suggestion */
+                    <TouchableOpacity
+                      style={styles.locItem}
+                      onPress={() => handleSelectDestination(searchQuery.trim())}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.locIcon}>
+                        <MapPin size={16} color={c.inkSoft} />
+                      </View>
+                      <Text style={styles.locText}>{searchQuery.trim()}</Text>
+                      {isRTL
+                        ? <ChevronLeft size={14} color={c.silver} />
+                        : <ChevronRight size={14} color={c.silver} />
+                      }
+                    </TouchableOpacity>
+                  ) : recents.length > 0 ? (
+                    <>
+                      <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
+                      {recents.map((loc) => (
+                        <TouchableOpacity
+                          key={loc.address}
+                          style={styles.locItem}
+                          onPress={() => handleSelectDestination(
+                            loc.address,
+                            loc.latitude != null && loc.longitude != null
+                              ? { latitude: loc.latitude, longitude: loc.longitude }
+                              : undefined,
+                          )}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.locIcon}>
+                            <Search size={16} color={c.inkSoft} />
+                          </View>
+                          <Text style={styles.locText}>{loc.address}</Text>
+                          {isRTL
+                            ? <ChevronLeft size={14} color={c.silver} />
+                            : <ChevronRight size={14} color={c.silver} />
+                          }
+                        </TouchableOpacity>
+                      ))}
+                    </>
+                  ) : (
+                    <View style={styles.emptyTip}>
+                      <Search size={28} color={c.silver} />
+                      <Text style={styles.emptyTipText}>{t('search_dest')}</Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </View>
+            </KeyboardAvoidingView>
+          )}
+        </Animated.View>
       )}
 
       {/* Realtime connection indicator — live phases only */}
