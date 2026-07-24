@@ -6,7 +6,7 @@ interface AppLoaderProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export function AppLoader({ size = 120, style }: AppLoaderProps) {
+export function AppLoader({ size = 84, style }: AppLoaderProps) {
   return (
     <LottieView
       source={require('@/assets/animations/veego-loader.json')}

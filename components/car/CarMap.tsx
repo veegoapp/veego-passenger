@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   destPin: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
   driverDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center', elevation: 3 },
   locBtn: {
-    position: 'absolute', bottom: 200, right: 16,
+    position: 'absolute', bottom: 240, right: 16,
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',

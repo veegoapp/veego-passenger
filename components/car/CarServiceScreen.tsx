@@ -71,7 +71,7 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
 
     // ── Bottom idle panel (glassmorphism) ─────────────────────────────
     bottomContainer: {
-      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30,
+      position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 30,
     },
     // Glassmorphic floating search card
     glassCard: {
