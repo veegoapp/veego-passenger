@@ -47,6 +47,10 @@ interface CarServiceScreenProps {
   onBack: () => void;
   /** Defaults to 'car' — preserves existing Ride behavior unchanged. */
   serviceType?: 'car' | 'scooter' | 'delivery';
+  /** Pixels to offset the top overlay downward when rendered inside a sheet
+   *  that already has its own header bar (e.g. the home sheet header = 64px).
+   *  Defaults to 0 (full-screen standalone usage). */
+  sheetHeaderOffset?: number;
 }
 
 // Lets a parent (the home screen's destination search) hand off a selected
@@ -58,12 +62,14 @@ export interface CarServiceScreenHandle {
   selectDestination: (address: string, coordinates?: { latitude: number; longitude: number }) => void;
 }
 
-function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number) {
+function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, sheetHeaderOffset: number) {
   const inputBg     = c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.92)';
   const inputBorder = c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)';
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: '#0d0e22' },
-    topOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, paddingTop: insetTop + 8 },
+    // paddingTop: use sheetHeaderOffset when inside a sheet (avoids the parent
+    // header bar), otherwise fall back to the device's safe-area inset + 8.
+    topOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, paddingTop: sheetHeaderOffset > 0 ? sheetHeaderOffset + 8 : insetTop + 8 },
     topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.lg, paddingBottom: 10 },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
     titleBlock: { flex: 1 },
@@ -147,12 +153,12 @@ function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good
   return 'good_evening';
 }
 
-export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScreenProps>(function CarServiceScreen({ onBack, serviceType = 'car' }, ref) {
+export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScreenProps>(function CarServiceScreen({ onBack, serviceType = 'car', sheetHeaderOffset = 0 }, ref) {
   const { colors: c, t, isRTL } = useTheme();
   const insets      = useSafeAreaInsets();
   const insetTop    = insets.top;
   const { tabBarHeight } = useTabBar();
-  const styles    = useMemo(() => makeStyles(c, insetTop, tabBarHeight), [c, insetTop, tabBarHeight]);
+  const styles    = useMemo(() => makeStyles(c, insetTop, tabBarHeight, sheetHeaderOffset), [c, insetTop, tabBarHeight, sheetHeaderOffset]);
 
   const [phase, setPhase]               = useState<CarPhase>('idle');
   const [destination, setDestination]   = useState<string | null>(null);
@@ -424,6 +430,40 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         onUserLocation={handleUserLocation}
         nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
       />
+
+      {/* Fix 3: "Where to?" search bar — restored after accidental removal.
+          Only visible in idle phase; hidden once a destination is being
+          selected or a ride is in progress. paddingTop is controlled by
+          sheetHeaderOffset so it clears the parent sheet's header bar. */}
+      {phase === 'idle' && (
+        <View style={styles.topOverlay}>
+          <View style={styles.searchWrap}>
+            <TouchableOpacity
+              style={styles.searchBox}
+              onPress={() => setPhase('selecting')}
+              activeOpacity={0.85}
+            >
+              <Search size={16} color="rgba(255,255,255,0.5)" />
+              {destination ? (
+                <>
+                  <View style={styles.destTag}>
+                    <Text style={styles.destTagText} numberOfLines={1}>{destination}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.clearBtn}
+                    onPress={() => { setDestination(null); setDestCoords(null); }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <XCircle size={14} color="#55c49a" />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Text style={styles.searchPlaceholder}>{t('where_to')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Realtime connection indicator — live phases only */}
       {phase === 'in_ride' && (

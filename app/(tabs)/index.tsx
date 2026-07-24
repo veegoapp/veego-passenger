@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl, Alert,
-  Animated, Dimensions, useWindowDimensions,
+  Animated, Dimensions, useWindowDimensions, BackHandler,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -297,6 +297,8 @@ export default function HomeScreen() {
   }, [handleServiceTap, slideAnim, cardsOpacity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeService = useCallback(() => {
+    // Fix 4: show tab bar immediately with animation, not after it completes
+    setTabBarVisible(true);
     Animated.parallel([
       Animated.spring(slideAnim, { toValue: screenHeight, useNativeDriver: true, tension: 60, friction: 10 }),
       Animated.timing(cardsOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
@@ -304,7 +306,17 @@ export default function HomeScreen() {
       setServiceOpen(false);
       setDestinationLocation('');
     });
-  }, [slideAnim, cardsOpacity, screenHeight]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slideAnim, cardsOpacity, screenHeight, setTabBarVisible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fix 1: intercept Android hardware back button while a service sheet is open
+  useEffect(() => {
+    if (!serviceOpen) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeService();
+      return true; // prevent default (exit app)
+    });
+    return () => sub.remove();
+  }, [serviceOpen, closeService]);
 
   // Destination-search suggestions while typing — proxied through the
   // backend Google Places Autocomplete endpoint. Each result only carries a
@@ -442,7 +454,8 @@ export default function HomeScreen() {
         )}
 
         {/* ── Shuttle content ── */}
-        {mode === 'shuttle' && (
+        {/* Fix 2: guard with serviceOpen so shuttle never flashes while opening another service */}
+        {serviceOpen && mode === 'shuttle' && (
           <View style={{ flex: 1, backgroundColor: c.background }}>
             {/* Space reserved for the absolute-positioned sheetHeader (64 px) */}
             <View style={{ height: 64 }} />
@@ -505,18 +518,18 @@ export default function HomeScreen() {
         )}
 
         {/* ── Car ── */}
-        {mode === 'car' && (
-          <CarServiceScreen ref={carServiceRef} onBack={closeService} />
+        {serviceOpen && mode === 'car' && (
+          <CarServiceScreen ref={carServiceRef} onBack={closeService} sheetHeaderOffset={64} />
         )}
 
         {/* ── Scooter ── */}
-        {mode === 'scooter' && (
-          <CarServiceScreen ref={carServiceRef} serviceType="scooter" onBack={closeService} />
+        {serviceOpen && mode === 'scooter' && (
+          <CarServiceScreen ref={carServiceRef} serviceType="scooter" onBack={closeService} sheetHeaderOffset={64} />
         )}
 
         {/* ── Delivery ── */}
-        {mode === 'delivery' && (
-          <CarServiceScreen ref={carServiceRef} serviceType="delivery" onBack={closeService} />
+        {serviceOpen && mode === 'delivery' && (
+          <CarServiceScreen ref={carServiceRef} serviceType="delivery" onBack={closeService} sheetHeaderOffset={64} />
         )}
       </Animated.View>
 
