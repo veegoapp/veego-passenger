@@ -1,0 +1,39 @@
+Now I have everything. Let me write the report and implement the fix immediately after.
+
+Investigation Report
+Root Cause
+The tab bar is position: absolute, bottom: 0, zIndex: 99. Its total rendered height from the bottom of the screen is insets.bottom + 72px (4px top padding + 12px navInner vertical padding + 16px navItem vertical padding + 32px content + 8px extra above safe area).
+
+All bottom-anchored sheets inside the tab screens use paddingBottom: insets.bottom + 16/35, which only clears the device safe area — not the tab bar above it. This leaves 37–56px of bottom content hidden behind the tab bar.
+
+The existing TabBarContext already has a visible toggle but no measured height — components have no shared way to know how tall the bar is.
+
+Affected Files
+File	Issue
+components/car/DriverSearching.tsx	paddingBottom: insets.bottom + 16 — 56px short
+components/car/DriverAssignedCard.tsx	paddingBottom: insets.bottom + 16 — 56px short
+components/car/RideOptionsSheet.tsx	paddingBottom: insets.bottom + 35 — 37px short
+components/car/CarServiceScreen.tsx	card style has only padding: Spacing.xl — no bottom clearance
+app/(tabs)/index.tsx	whereToBar hardcoded at bottom: insets.bottom + 78 — should use measured height
+Not affected: CancelReasonSheet, SafetySheet use native <Modal> — render above everything. TripSheet, ConfirmSheet, RequestTripSheet are rendered in app/_layout.tsx after AppShell, so they naturally overlay the tab bar. RatingSheet appears in standalone screens with no tab bar.
+
+Fix Strategy
+Extend TabBarContext with a measured tabBarHeight (set via onLayout on the tab bar root view). All affected sheets read tabBarHeight from context and use it directly as their paddingBottom — no more manual insets.bottom + N math. This is one change point and works across all screen sizes automatically.
+
+Now implementing:
+
+
+2 actions
+Now let me read the exact lines I need to edit in each file, all in parallel:
+
+
+8 actions
+Good. Now I'll implement all changes in parallel.
+
+
+6 actions
+Now update the insets usages in the three car components, and patch CarServiceScreen and index.tsx, all in parallel:
+
+
+6 actions
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

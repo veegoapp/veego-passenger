@@ -12,6 +12,7 @@ import { CheckCircle2, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLe
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
+import { useTabBar } from '@/context/TabBarContext';
 import { useRide } from '@/src/hooks/car/useRide';
 import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
@@ -57,7 +58,7 @@ export interface CarServiceScreenHandle {
   selectDestination: (address: string, coordinates?: { latitude: number; longitude: number }) => void;
 }
 
-function makeStyles(c: ThemeColors, insetTop: number) {
+function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number) {
   const inputBg     = c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.92)';
   const inputBorder = c.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)';
   return StyleSheet.create({
@@ -118,6 +119,7 @@ function makeStyles(c: ThemeColors, insetTop: number) {
       backgroundColor: c.isDark ? 'rgba(16,16,32,0.98)' : '#ffffff',
       borderTopLeftRadius: 28, borderTopRightRadius: 28,
       padding: Spacing.xl,
+      paddingBottom: tabBarHeight + Spacing.xl,
       elevation: 10, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16,
       shadowOffset: { width: 0, height: -4 },
       zIndex: 999,
@@ -147,9 +149,10 @@ function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good
 
 export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScreenProps>(function CarServiceScreen({ onBack, serviceType = 'car' }, ref) {
   const { colors: c, t, isRTL } = useTheme();
-  const insets    = useSafeAreaInsets();
-  const insetTop  = insets.top;
-  const styles    = useMemo(() => makeStyles(c, insetTop), [c, insetTop]);
+  const insets      = useSafeAreaInsets();
+  const insetTop    = insets.top;
+  const { tabBarHeight } = useTabBar();
+  const styles    = useMemo(() => makeStyles(c, insetTop, tabBarHeight), [c, insetTop, tabBarHeight]);
 
   const [phase, setPhase]               = useState<CarPhase>('idle');
   const [destination, setDestination]   = useState<string | null>(null);

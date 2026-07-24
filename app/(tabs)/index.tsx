@@ -170,7 +170,7 @@ export default function HomeScreen() {
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes, refresh: refreshRoutes } = useRoutes();
-  const { setVisible: setTabBarVisible } = useTabBar();
+  const { setVisible: setTabBarVisible, tabBarHeight } = useTabBar();
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
   const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
   const { profile } = useProfile();
@@ -417,7 +417,7 @@ export default function HomeScreen() {
       {/* ═══ "Where to?" entry bar — sits directly above the bottom nav ═══ */}
       {mode !== 'shuttle' && (
         <TouchableOpacity
-          style={[styles.whereToBar, { bottom: insets.bottom + 78 }]}
+          style={[styles.whereToBar, { bottom: tabBarHeight }]}
           activeOpacity={0.85}
           onPress={handleOpenSearch}
         >
