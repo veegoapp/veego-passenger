@@ -398,6 +398,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     resumeActiveRide().then((resumed) => {
       if (cancelled) return;
       if (resumed?.dropoffAddress) setDestination(resumed.dropoffAddress);
+      if (resumed?.dropoffLatitude != null && resumed?.dropoffLongitude != null) {
+        setDestCoords({
+          latitude: resumed.dropoffLatitude,
+          longitude: resumed.dropoffLongitude,
+        });
+      }
     }).finally(() => {
       if (!cancelled) setResuming(false);
     });

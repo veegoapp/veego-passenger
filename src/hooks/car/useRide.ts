@@ -126,6 +126,8 @@ export interface ResumedRide {
   rideId: string;
   status: RideStatus;
   dropoffAddress?: string;
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
   pickupAddress?: string;
 }
 
@@ -662,6 +664,8 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         status,
         pickupAddress: ride.pickupAddress ?? ride.pickup_address,
         dropoffAddress: ride.dropoffAddress ?? ride.dropoff_address,
+        dropoffLatitude: ride.dropoffLatitude ?? ride.dropoff_latitude ?? ride.dropoff?.latitude ?? ride.dropoff?.lat,
+        dropoffLongitude: ride.dropoffLongitude ?? ride.dropoff_longitude ?? ride.dropoff?.longitude ?? ride.dropoff?.lng,
       };
     } catch {
       return null;

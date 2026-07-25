@@ -4,6 +4,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Car, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
+import { haversineMeters } from '@/src/utils/geoHelpers';
 import { NearbyDriversLayer } from './NearbyDriversLayer';
 import type { NearbyDriver } from '@/src/hooks/car/useNearbyDrivers';
 
@@ -19,6 +20,8 @@ interface CarMapProps {
 }
 
 const CAIRO_DEFAULT: Coords = { latitude: 30.0444, longitude: 31.2357 };
+const ROUTE_REFRESH_INTERVAL_MS = 75_000;
+const SIGNIFICANT_MOVE_METERS = 300;
 
 export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers }: CarMapProps) {
   const mapRef = useRef<MapView>(null);
@@ -55,31 +58,60 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
 
   const [routeCoords, setRouteCoords] = useState<Coords[]>([]);
   const routeFetchKeyRef = useRef<string | null>(null);
+  const lastActiveFetchOriginRef = useRef<Coords | null>(null);
+  const lastActiveFetchAtRef = useRef(0);
+  const activeDestinationKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!destCoords) {
       setRouteCoords([]);
       routeFetchKeyRef.current = null;
+      lastActiveFetchOriginRef.current = null;
+      lastActiveFetchAtRef.current = 0;
+      activeDestinationKeyRef.current = null;
       return;
     }
 
-    // Fetch once per pickup/destination pair (mirrors the shuttle map's
-    // "fetch once per trip" behavior) — avoids re-requesting on every
-    // unrelated re-render.
-    const key = `${userLocation.latitude},${userLocation.longitude}->${destCoords.latitude},${destCoords.longitude}`;
-    if (routeFetchKeyRef.current === key) return;
-    routeFetchKeyRef.current = key;
+    // During an active ride, the driver's live position is the route origin.
+    // Before a driver is assigned, preserve the existing passenger-origin route.
+    const routeOrigin = showDriverMarker && driverLocation ? driverLocation : userLocation;
+    const destinationKey = `${destCoords.latitude},${destCoords.longitude}`;
+
+    if (showDriverMarker && driverLocation) {
+      const now = Date.now();
+      const elapsed = now - lastActiveFetchAtRef.current;
+      const movedSignificantly = lastActiveFetchOriginRef.current
+        ? haversineMeters(lastActiveFetchOriginRef.current, driverLocation) >= SIGNIFICANT_MOVE_METERS
+        : true;
+      const destinationChanged = activeDestinationKeyRef.current !== destinationKey;
+
+      // Keep active-ride refreshes bounded while still following meaningful
+      // driver movement or a changed destination.
+      if (!destinationChanged && elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
+
+      activeDestinationKeyRef.current = destinationKey;
+      lastActiveFetchOriginRef.current = { ...driverLocation };
+      lastActiveFetchAtRef.current = now;
+    } else {
+      // Fetch once per pickup/destination pair before a driver is assigned.
+      const key = `${userLocation.latitude},${userLocation.longitude}->${destinationKey}`;
+      if (routeFetchKeyRef.current === key) return;
+      routeFetchKeyRef.current = key;
+      activeDestinationKeyRef.current = null;
+      lastActiveFetchOriginRef.current = null;
+      lastActiveFetchAtRef.current = 0;
+    }
 
     let cancelled = false;
-    fetchGoogleRoute(userLocation, [destCoords]).then((result) => {
+    fetchGoogleRoute(routeOrigin, [destCoords]).then((result) => {
       if (cancelled) return;
       // Fall back to a straight line if the backend directions request fails
       // or returns no path — keeps the polyline rendering without crashing.
-      setRouteCoords(result?.coords?.length ? result.coords : [userLocation, destCoords]);
+      setRouteCoords(result?.coords?.length ? result.coords : [routeOrigin, destCoords]);
     });
 
     return () => { cancelled = true; };
-  }, [destCoords, userLocation]);
+  }, [destCoords, userLocation, showDriverMarker, driverLocation?.latitude, driverLocation?.longitude]);
 
   return (
     <View style={StyleSheet.absoluteFillObject}>
