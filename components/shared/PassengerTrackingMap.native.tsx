@@ -155,6 +155,36 @@ export function PassengerTrackingMap({
     });
   }, [driverLocation?.latitude, driverLocation?.longitude, waypointsToTarget]);
 
+  // ── Car-ride Google Directions route (no stations — car/scooter/delivery) ──
+  // Fires only when no stations are present (shuttle path above handles the
+  // stations case). Reuses the same refs so throttling is shared.
+  useEffect(() => {
+    if (sorted.length > 0) return;  // shuttle path handles non-empty stations
+    if (!driverLocation || !dropoff) return;
+
+    const now = Date.now();
+    const elapsed = now - lastFetchAtRef.current;
+    const movedSignificantly = lastFetchOriginRef.current
+      ? haversineMeters(lastFetchOriginRef.current, driverLocation) >= SIGNIFICANT_MOVE_METERS
+      : true; // always fetch the first time
+
+    if (elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
+
+    lastFetchOriginRef.current = { latitude: driverLocation.latitude, longitude: driverLocation.longitude };
+    lastFetchAtRef.current = now;
+
+    fetchGoogleRoute(driverLocation, [dropoff]).then((result) => {
+      if (result?.coords?.length) {
+        setRouteCoords(result.coords);
+        if (result.durationSeconds !== null) {
+          setRouteDurationSeconds(result.durationSeconds);
+        }
+      }
+      // On failure keep existing routeCoords; straight-line fallback renders
+      // below until a successful response arrives.
+    });
+  }, [driverLocation?.latitude, driverLocation?.longitude, dropoff, sorted.length]);
+
   // ── ETA ─────────────────────────────────────────────────────────────────────
   // Prefer Google Directions duration (more accurate); fall back to distance-based
   const etaMinutes = useMemo(() => {
@@ -228,8 +258,8 @@ export function PassengerTrackingMap({
           />
         )}
 
-        {/* Fallback line when no stations provided */}
-        {fallbackCoords.length >= 2 && (
+        {/* Fallback line when no stations provided — hidden once Google route loads */}
+        {fallbackCoords.length >= 2 && routeCoords.length < 2 && (
           <Polyline coordinates={fallbackCoords} strokeColor="#2563eb" strokeWidth={3.5} />
         )}
 
