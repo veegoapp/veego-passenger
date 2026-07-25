@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   userDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(17,24,39,0.15)', alignItems: 'center', justifyContent: 'center' },
   userDotInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#111827' },
   destPin: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-  driverDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center', elevation: 3 },
+  driverDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#2d2d42', alignItems: 'center', justifyContent: 'center', elevation: 3 },
   locBtn: {
     position: 'absolute', bottom: 240, right: 16,
     width: 44, height: 44, borderRadius: 22,

@@ -55,7 +55,7 @@ export function DriverAssignedCard({
   const sheetBg  = c.isDark ? 'rgba(16,16,32,0.98)' : 'rgba(250,250,252,0.98)';
   const borderCol = c.isDark ? 'rgba(90,95,160,0.25)' : 'rgba(255,255,255,0.8)';
 
-  const avatarColor = driver?.vehicleColor ?? '#55c49a';
+  const avatarColor = driver?.vehicleColor ?? '#2d2d42';
   const initials = driver?.name
     ? driver.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
     : '?';
@@ -82,7 +82,7 @@ export function DriverAssignedCard({
       <View style={styles.container}>
         {/* ETA / status row */}
         <View style={styles.etaRow}>
-          <View style={[styles.pulseDot, { backgroundColor: isStarted ? '#4d9ef6' : '#55c49a' }]} />
+          <View style={[styles.pulseDot, { backgroundColor: isStarted ? '#4d9ef6' : '#2d2d42' }]} />
           <Text style={[styles.etaText, { color: c.ink }]}>
             {isStarted
               ? t('trip_status_active')

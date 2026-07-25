@@ -83,9 +83,9 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 
       <View style={styles.content}>
         <View style={styles.iconWrap}>
-          <Animated.View style={[styles.ring, { borderColor: '#55c49a', transform: [{ scale }], opacity }]} />
-          <View style={[styles.iconCircle, { backgroundColor: c.isDark ? 'rgba(85,196,154,0.12)' : 'rgba(85,196,154,0.06)' }]}>
-            <View style={[styles.iconInner, { backgroundColor: '#55c49a' }]}>
+          <Animated.View style={[styles.ring, { borderColor: '#2d2d42', transform: [{ scale }], opacity }]} />
+          <View style={[styles.iconCircle, { backgroundColor: c.isDark ? 'rgba(45,45,66,0.18)' : 'rgba(45,45,66,0.07)' }]}>
+            <View style={[styles.iconInner, { backgroundColor: '#2d2d42' }]}>
               <Text style={{ fontSize: 24 }}>⚡</Text>
             </View>
           </View>
@@ -95,9 +95,9 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
         <Text style={[styles.subtitle, { color: c.inkSoft }]}>{t('searching_desc')}</Text>
 
         <View style={styles.dotsRow}>
-          <Animated.View style={[styles.dot, { backgroundColor: '#55c49a', opacity: dot1 }]} />
-          <Animated.View style={[styles.dot, { backgroundColor: '#55c49a', opacity: dot2 }]} />
-          <Animated.View style={[styles.dot, { backgroundColor: '#55c49a', opacity: dot3 }]} />
+          <Animated.View style={[styles.dot, { backgroundColor: '#2d2d42', opacity: dot1 }]} />
+          <Animated.View style={[styles.dot, { backgroundColor: '#2d2d42', opacity: dot2 }]} />
+          <Animated.View style={[styles.dot, { backgroundColor: '#2d2d42', opacity: dot3 }]} />
         </View>
 
         {onCancel && (
