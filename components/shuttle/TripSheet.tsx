@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, Platform, ActivityIndicator, Alert, BackHandler,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
   AlertCircle, Ticket, ArrowRight, ArrowLeft, AlertTriangle, Minus, Plus,
@@ -28,7 +29,7 @@ import {
   RouteHero, StatsRow, DateSelector, TripCard, StationPicker, PriceSummary,
 } from './TripSheetSections';
 
-function makeStyles(c: ThemeColors, gs: object) {
+function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 9999, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -240,7 +241,8 @@ function makeStyles(c: ThemeColors, gs: object) {
 
     /* CTA */
     cta: {
-      padding: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: c.border,
+      padding: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.lg + insetsBottom,
+      borderTopWidth: 1, borderTopColor: c.border,
       backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
     },
     ctaBtn: {
@@ -283,7 +285,8 @@ export function TripSheet() {
   const { getService, handleServiceTap } = useServiceControl();
   const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c, gs), [c]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => makeStyles(c, gs, insets.bottom), [c, gs, insets.bottom]);
 
   const shuttleSvc = getService('shuttle');
   const shuttleServiceEnabled: boolean = !shuttleSvc || (shuttleSvc.isEnabled && shuttleSvc.displayMode === 'live');

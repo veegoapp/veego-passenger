@@ -17,6 +17,7 @@ import { useTrips } from '@/src/hooks/shared/useTrips';
 import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
+import { useTabBar } from '@/context/TabBarContext';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -152,6 +153,7 @@ function CapacityBar({ current, max, c, label }: { current: number; max: number;
 export default function TripsScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
+  const { tabBarHeight } = useTabBar();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const { activeBooking } = useBooking();
   const { colors: c, glassStyle: gs, t, language } = useTheme();
@@ -352,7 +354,7 @@ export default function TripsScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

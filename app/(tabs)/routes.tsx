@@ -9,6 +9,7 @@ import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
+import { useTabBar } from '@/context/TabBarContext';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
@@ -41,6 +42,7 @@ function makeStyles(c: ThemeColors) {
 export default function RoutesScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
+  const { tabBarHeight } = useTabBar();
   const [searchQuery, setSearchQuery] = useState('');
   const { openRoute } = useBooking();
   const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
@@ -117,11 +119,10 @@ export default function RoutesScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight }]} showsVerticalScrollIndicator={false}>
           {filtered.map((r) => (
             <RouteCard key={r.id} route={r} onPress={() => openRoute(r)} />
           ))}
-          <View style={{ height: 100 }} />
         </ScrollView>
       )}
     </LinearGradient>

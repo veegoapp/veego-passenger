@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, TextInput, BackHandler } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { Calendar, Clock, Users, Check, Tag, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -13,13 +14,13 @@ import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
-function makeStyles(c: ThemeColors, gs: object) {
+function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
   const cardBg = c.isDark ? 'rgba(30,32,54,0.9)' : 'rgba(255,255,255,0.8)';
   return StyleSheet.create({
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, ...gs, borderTopLeftRadius: 32, borderTopRightRadius: 32, ...S.float, backgroundColor: c.white },
     handle: { width: 48, height: 6, borderRadius: 3, backgroundColor: c.isDark ? 'rgba(120,120,160,0.4)' : 'rgba(195,195,204,0.7)', alignSelf: 'center', marginTop: Spacing.md },
-    content: { padding: Spacing.xl, gap: Spacing.md },
+    content: { padding: Spacing.xl, paddingBottom: Spacing.xl + insetsBottom, gap: Spacing.md },
     reviewHeader: { alignItems: 'center', marginBottom: Spacing.xs },
     reviewLabel: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.4 },
     reviewRoute: { fontSize: 20, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.4, marginTop: Spacing.xs },
@@ -69,7 +70,8 @@ function makeStyles(c: ThemeColors, gs: object) {
 export function ConfirmSheet() {
   const { confirmSheetOpen, closeConfirmSheet, pendingBooking, handleConfirm } = useBooking();
   const { colors: c, glassStyle: gs, t } = useTheme();
-  const styles = useMemo(() => makeStyles(c, gs), [c]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => makeStyles(c, gs, insets.bottom), [c, gs, insets.bottom]);
   const { validateCode } = usePromos();
   const { walletFeature } = usePaymentConfig();
   const walletAvailable = walletFeature.isEnabled && walletFeature.displayMode === 'live';

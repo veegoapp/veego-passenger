@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, ScrollView, Alert, BackHandler,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import { CheckCircle, X, ArrowRight, ArrowLeft, Clock, RotateCcw } from 'lucide-react-native';
@@ -18,7 +19,7 @@ import { Radius } from '@/constants/radius';
 const OUTBOUND_SLOTS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00'];
 const RETURN_SLOTS   = ['15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00'];
 
-function makeStyles(c: ThemeColors) {
+function makeStyles(c: ThemeColors, insetsBottom: number) {
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 10000, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
@@ -81,7 +82,7 @@ function makeStyles(c: ThemeColors) {
     slotText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink },
     slotTextActive: { color: c.isDark ? c.background : '#ffffff' },
 
-    ctaWrap: { paddingHorizontal: 20, paddingTop: Spacing.lg },
+    ctaWrap: { paddingHorizontal: 20, paddingTop: Spacing.lg, paddingBottom: Spacing.lg + insetsBottom },
     ctaBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: Spacing.sm, paddingVertical: Spacing.lg, borderRadius: 20,
@@ -117,7 +118,8 @@ interface Props {
 
 export function RequestTripSheet({ visible, route, onClose }: Props) {
   const { colors: c, t, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => makeStyles(c, insets.bottom), [c, insets.bottom]);
 
   const slideAnim = useRef(new Animated.Value(600)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
