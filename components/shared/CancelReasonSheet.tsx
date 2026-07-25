@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
-  Platform, I18nManager,
+  I18nManager,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import { X, CircleDot, Circle } from 'lucide-react-native';
@@ -21,6 +22,7 @@ interface CancelReasonSheetProps {
 
 export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }: CancelReasonSheetProps) {
   const { t, colors: c } = useTheme();
+  const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
   const styles = useMemo(() => makeSheetStyles(c), [c]);
 
@@ -78,7 +80,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.handle} />
 
           <View style={[styles.header, isRTL && styles.rowRTL]}>
@@ -159,7 +161,7 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    paddingBottom: 16,
     paddingTop: Spacing.md,
   },
   handle: {

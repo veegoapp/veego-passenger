@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { useFavorites } from '@/context/FavoritesContext';
 import { useBooking } from '@/context/BookingContext';
+import { useTabBar } from '@/context/TabBarContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
 import { useFavoriteDestinations } from '@/src/hooks/shared/useFavoriteDestinations';
@@ -90,6 +91,7 @@ function makeStyles(c: ThemeColors) {
 export default function FavoritesScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
+  const { tabBarHeight } = useTabBar();
   const { colors: c, glassStyle: gs, t, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -128,7 +130,7 @@ export default function FavoritesScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingBottom: 120 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

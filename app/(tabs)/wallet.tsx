@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
+import { useTabBar } from '@/context/TabBarContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useWallet } from '@/src/hooks/shared/useWallet';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
@@ -109,6 +110,7 @@ function makeStyles(c: ThemeColors) {
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
+  const { tabBarHeight } = useTabBar();
   const { colors: c, glassStyle: gs, t, language } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [selectedCharge, setSelectedCharge] = useState<number | null>(null);
@@ -215,7 +217,7 @@ export default function WalletScreen() {
         <Text style={styles.headerSub}>{t('wallet_subtitle')}</Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: tabBarHeight }}>
         <View style={styles.balanceCard}>
           <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3a']} style={styles.balanceGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={styles.balanceGlow} />

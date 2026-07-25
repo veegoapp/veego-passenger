@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
-  Platform, Linking, I18nManager,
+  Linking, I18nManager,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
@@ -47,6 +48,7 @@ export function SafetySheet({
   visible, onClose, rideId, tripId, driverName, vehicle, plate, routeName, fallbackCoords,
 }: SafetySheetProps) {
   const { t, colors: c } = useTheme();
+  const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
   const styles = useMemo(() => makeSheetStyles(c), [c]);
 
@@ -157,7 +159,7 @@ export function SafetySheet({
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.handle} />
 
           <View style={[styles.header, isRTL && styles.rowRTL]}>
@@ -237,7 +239,7 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    paddingBottom: 16,
     paddingTop: Spacing.md,
   },
   handle: {
