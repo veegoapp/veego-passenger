@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import { fetchPassengerActiveSession } from '@/src/api/activeSession';
 import { onAuthEvent } from '@/src/api/authEvents';
 import {
@@ -56,6 +57,9 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
   const socketRef = useRef<Awaited<ReturnType<typeof getSocket>> | null>(null);
   const socketListenerAttachedRef = useRef(false);
   const initializationRef = useRef(false);
+  // Mirrors the `initialized` state so AppState / socket callbacks can read it
+  // without capturing a stale closure value.
+  const initializedRef = useRef(false);
 
   const applySnapshot = useCallback((value: unknown, source: 'REST' | 'socket') => {
     try {
@@ -146,17 +150,63 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
     setError(null);
   }, []);
 
+  // Keep initializedRef in sync so callbacks that outlive renders can read it.
+  useEffect(() => {
+    initializedRef.current = initialized;
+  }, [initialized]);
+
   useEffect(() => {
     mountedRef.current = true;
 
+    // ── Socket reconnect recovery ─────────────────────────────────────────
+    // When the socket gets a brand-new instance (e.g. after a token-refresh
+    // reconnect), re-attach the session:snapshot listener.  Then immediately
+    // kick off a REST refresh as a fallback: the server emits session:snapshot
+    // the instant the socket connects, so if the snapshot arrived before the
+    // listener was re-attached we would have missed it.  The subsequent REST
+    // call covers that race window.
+    //
+    // For Socket.IO's built-in auto-reconnect (same socket instance), the
+    // listener is never removed and session:snapshot is received normally —
+    // no REST fallback is needed for that case.
     const attachAfterSocketReconnect = (state: SocketConnectionState) => {
       if (state !== 'connected' || !mountedRef.current) return;
       const currentSocket = getSocketSync();
       if (!currentSocket || currentSocket === socketRef.current) return;
-      attachSocket().catch((socketError) => {
-        if (__DEV__) console.warn('[ActiveSession] socket listener setup failed:', socketError);
+
+      attachSocket()
+        .then(() => {
+          // Fallback REST refresh to cover the snapshot race on new socket instances.
+          if (!mountedRef.current || !initializedRef.current) return;
+          refreshActiveSession().catch((err) => {
+            if (__DEV__) console.warn('[ActiveSession] post-reconnect fallback refresh failed:', err);
+          });
+        })
+        .catch((socketError) => {
+          if (__DEV__) console.warn('[ActiveSession] socket listener setup failed:', socketError);
+        });
+    };
+
+    // ── App foreground recovery ───────────────────────────────────────────
+    // When the app returns from the background, refresh the session via REST
+    // so the UI reflects any server-side changes that happened while offline.
+    //
+    // Rules (per contract):
+    //   - data exists  → update ActiveSessionContext  (handled by applySnapshot)
+    //   - data is null → clear active session         (handled by applySnapshot)
+    //   - request fails → keep previous session        (refreshActiveSession never clears on error)
+    //
+    // Only runs when the user is already initialized (i.e. authenticated).
+    // Unauthenticated foreground resumes are handled separately by useAuthOnResume
+    // in app/index.tsx and do not need a session refresh.
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (nextState !== 'active' || !mountedRef.current || !initializedRef.current) return;
+      if (__DEV__) console.log('[ActiveSession] foreground resume — refreshing session');
+      refreshActiveSession().catch((err) => {
+        if (__DEV__) console.warn('[ActiveSession] foreground resume refresh failed:', err);
       });
     };
+    const appStateSub = AppState.addEventListener('change', handleAppStateChange);
 
     const unsubscribeSocket = onSocketConnectionChange(attachAfterSocketReconnect);
     const unsubscribeLogin = onAuthEvent('auth:login', () => {
@@ -173,12 +223,13 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
 
     return () => {
       mountedRef.current = false;
+      appStateSub.remove();
       unsubscribeSocket();
       unsubscribeLogin();
       unsubscribeLogout();
       detachSocket();
     };
-  }, [attachSocket, clearActiveSession, detachSocket, initializeActiveSession]);
+  }, [attachSocket, clearActiveSession, detachSocket, initializeActiveSession, refreshActiveSession]);
 
   const value = useMemo<ActiveSessionContextValue>(() => ({
     session,
