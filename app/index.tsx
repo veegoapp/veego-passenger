@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animation } from '@/constants/animations';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing, AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
@@ -12,6 +12,9 @@ import api from '@/src/api/client';
 import { clearSession } from '@/src/api/session';
 import { getActiveRide } from '@/src/api/rideService';
 import { normalizeRideStatus } from '@/src/api/socket';
+import { useActiveSession } from '@/context/ActiveSessionContext';
+import { getActiveSessionRecoveryDestination } from '@/src/session/activeSessionNavigation';
+import type { NormalizedPassengerActiveSession } from '@/src/session/activeSessionTypes';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
@@ -78,7 +81,7 @@ async function checkActiveRideService(): Promise<string | null> {
   }
 }
 
-async function checkAuthAndNavigate() {
+async function checkAuthAndNavigate(onAuthenticated: () => Promise<void>) {
   try {
     const langSelected = await AsyncStorage.getItem(LANG_KEY);
     if (!langSelected) { router.replace('/lang-select'); return; }
@@ -103,8 +106,7 @@ async function checkAuthAndNavigate() {
     // A device that reaches the app with a valid session has clearly moved
     // past first-run — make sure a later logout on this device skips onboarding too.
     await markOnboardingSeen();
-    const resumeService = await checkActiveRideService();
-    router.replace((resumeService ? `/(tabs)?resumeService=${resumeService}` : '/(tabs)') as any);
+    await onAuthenticated();
   } catch {
     router.replace('/lang-select');
   }
@@ -134,12 +136,21 @@ export function useAuthOnResume() {
 
 export default function SplashPage() {
   const { colors: c, t } = useTheme();
+  const {
+    session: activeSession,
+    initialized: activeSessionInitialized,
+    error: activeSessionError,
+    initializeActiveSession,
+  } = useActiveSession();
   const styles = useMemo(() => makeStyles(c), [c]);
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.88)).current;
   const logoRotate = useRef(new Animated.Value(0)).current;
   const barWidth = useRef(new Animated.Value(0)).current;
   const barOpacity = useRef(new Animated.Value(0)).current;
+  const startupAuthStarted = useRef(false);
+  const startupNavigationCompleted = useRef(false);
+  const [authenticationReady, setAuthenticationReady] = useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -162,9 +173,37 @@ export default function SplashPage() {
       ]),
     ]).start();
 
-    const t = setTimeout(() => { checkAuthAndNavigate(); }, 2200);
+    const t = setTimeout(() => {
+      if (startupAuthStarted.current) return;
+      startupAuthStarted.current = true;
+      checkAuthAndNavigate(async () => {
+        setAuthenticationReady(true);
+        await initializeActiveSession();
+      }).catch(() => {});
+    }, 2200);
     return () => clearTimeout(t);
-  }, []);
+  }, [initializeActiveSession]);
+
+  useEffect(() => {
+    if (!authenticationReady || !activeSessionInitialized || startupNavigationCompleted.current) {
+      return;
+    }
+
+    startupNavigationCompleted.current = true;
+    if (activeSessionError && __DEV__) {
+      console.warn('[ActiveSession] cold-start fetch failed; using normal startup fallback:', activeSessionError);
+    }
+
+    const destination = getActiveSessionRecoveryDestination(
+      activeSession as NormalizedPassengerActiveSession | null,
+    );
+    router.replace(destination as any);
+  }, [
+    activeSession,
+    activeSessionError,
+    activeSessionInitialized,
+    authenticationReady,
+  ]);
 
   const rotateDeg = logoRotate.interpolate({ inputRange: [-8, 8], outputRange: ['-8deg', '8deg'] });
 

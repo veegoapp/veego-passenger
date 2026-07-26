@@ -1,0 +1,1 @@
+- [ActiveSession cold start](active-session-cold-start.md) — cold-start navigation must await authenticated REST session initialization; socket snapshots can refine the result afterward.

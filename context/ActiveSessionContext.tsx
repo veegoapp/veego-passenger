@@ -9,7 +9,6 @@ import React, {
 } from 'react';
 import { fetchPassengerActiveSession } from '@/src/api/activeSession';
 import { onAuthEvent } from '@/src/api/authEvents';
-import { tokenStore } from '@/src/api/client';
 import {
   getSocket,
   getSocketSync,
@@ -26,6 +25,7 @@ import type {
 type ActiveSessionContextValue = {
   session: NormalizedPassengerActiveSession | null;
   loading: boolean;
+  initialized: boolean;
   error: Error | null;
   initializeActiveSession: () => Promise<void>;
   refreshActiveSession: () => Promise<void>;
@@ -35,6 +35,7 @@ type ActiveSessionContextValue = {
 const ActiveSessionContext = createContext<ActiveSessionContextValue>({
   session: null,
   loading: false,
+  initialized: false,
   error: null,
   initializeActiveSession: async () => {},
   refreshActiveSession: async () => {},
@@ -48,6 +49,7 @@ function toError(value: unknown): Error {
 export function ActiveSessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<NormalizedPassengerActiveSession | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const mountedRef = useRef(true);
@@ -125,13 +127,15 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
 
   const initializeActiveSession = useCallback(async () => {
     if (initializationRef.current || !mountedRef.current) return;
-    const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
-    if (!token || !mountedRef.current) return;
 
     initializationRef.current = true;
     try {
-      await Promise.all([attachSocket(), refreshActiveSession()]);
+      await refreshActiveSession();
+      attachSocket().catch((socketError) => {
+        if (__DEV__) console.warn('[ActiveSession] socket listener setup failed:', socketError);
+      });
     } finally {
+      if (mountedRef.current) setInitialized(true);
       initializationRef.current = false;
     }
   }, [attachSocket, refreshActiveSession]);
@@ -164,15 +168,8 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
       initializationRef.current = false;
       detachSocket();
       clearActiveSession();
+      setInitialized(false);
     });
-
-    tokenStore.getToken(tokenStore.TOKEN_KEY).then((token) => {
-      if (token && mountedRef.current) {
-        initializeActiveSession().catch((initError) => {
-          if (__DEV__) console.warn('[ActiveSession] initialization failed:', initError);
-        });
-      }
-    }).catch(() => {});
 
     return () => {
       mountedRef.current = false;
@@ -186,6 +183,7 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
   const value = useMemo<ActiveSessionContextValue>(() => ({
     session,
     loading,
+    initialized,
     error,
     initializeActiveSession,
     refreshActiveSession,
@@ -193,6 +191,7 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
   }), [
     session,
     loading,
+    initialized,
     error,
     initializeActiveSession,
     refreshActiveSession,
