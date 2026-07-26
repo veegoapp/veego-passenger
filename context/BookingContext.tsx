@@ -17,8 +17,6 @@ type BookingContextType = {
   activeBooking: Booking | null;
   confirmedBookingId: string | null;
   confirmedTripId: number | null;
-  /** 'pending' when trip hasn't reached minRequired yet; 'confirmed' otherwise (§21.1) */
-  confirmedBookingStatus: string | undefined;
   /** Real-time seat metadata returned by POST /bookings (§2.10) */
   shuttleInfo: ShuttleBookingMeta | null;
   routeLoading: boolean;
@@ -51,7 +49,6 @@ const BookingContext = createContext<BookingContextType>({
   activeBooking: null,
   confirmedBookingId: null,
   confirmedTripId: null,
-  confirmedBookingStatus: undefined,
   shuttleInfo: null,
   routeLoading: false,
   tripsLoading: false,
@@ -135,7 +132,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [seatCount, setSeatCount] = useState<number>(1);
-  const [confirmedBookingStatus, setConfirmedBookingStatus] = useState<string | undefined>(undefined);
   const [shuttleInfo, setShuttleInfo] = useState<ShuttleBookingMeta | null>(null);
 
   // Refresh trips for a line after booking/cancel
@@ -303,8 +299,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (bookingId) {
         setConfirmedBookingId(String(bookingId));
         setConfirmedTripId(Number(tripId));
-        // Capture booking status (§21.1) and shuttle metadata block (§2.10)
-        setConfirmedBookingStatus(data?.status ?? undefined);
+        // Capture shuttle metadata block (§2.10)
         if (data?.shuttle && typeof data.shuttle === 'object') {
           setShuttleInfo(data.shuttle as ShuttleBookingMeta);
         }
@@ -388,7 +383,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         activeBooking,
         confirmedBookingId,
         confirmedTripId,
-        confirmedBookingStatus,
         shuttleInfo,
         routeLoading,
         tripsLoading,

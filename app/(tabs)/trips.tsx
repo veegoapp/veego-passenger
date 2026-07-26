@@ -331,6 +331,10 @@ export default function TripsScreen() {
         price: shuttleSession.totalPrice,
         tripId: shuttleSession.trip.id,
         direction: shuttleSession.trip.direction,
+        // Fields required by the trip card renderer — sourced from ActiveSession contract.
+        bookingId: String(shuttleSession.bookingId),
+        totalSeats: shuttleSession.trip.totalSeats,
+        passengerCount: shuttleSession.trip.totalSeats - shuttleSession.trip.availableSeats,
       }, ...filteredUpcoming]
     : filteredUpcoming;
 

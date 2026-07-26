@@ -235,7 +235,7 @@ export default function TicketScreen() {
   const top = insets.top;
   const { session } = useActiveSession();
   const { shuttleInfo, confirmedBookingId: bookingContextId, confirmedTripId: bookingContextTripId,
-          confirmedBookingStatus: bookingContextStatus, activeBooking } = useBooking();
+          activeBooking } = useBooking();
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -250,7 +250,11 @@ export default function TicketScreen() {
     : (bookingContextId ?? '');
   const resolvedTripId: number | null =
     shuttleSession?.trip.id ?? bookingContextTripId ?? null;
-  const initialStatus = shuttleSession?.bookingStatus ?? bookingContextStatus;
+  // Derive initial live status from ActiveSession: pending booking → 'pending';
+  // otherwise expose the trip-level status so cold-start recovery shows the correct badge.
+  const initialStatus = shuttleSession
+    ? (shuttleSession.bookingStatus === 'pending' ? 'pending' : shuttleSession.trip.status)
+    : undefined;
 
   // Derive display values from real session fields — no synthetic data.
   const { date: sessionDate, time: sessionTime } = shuttleSession
@@ -390,7 +394,7 @@ export default function TicketScreen() {
 
   const rotateDeg = checkRotate.interpolate({ inputRange: [-20, 0], outputRange: ['-20deg', '0deg'] });
 
-  if (!confirmedBookingId) {
+  if (!bookingId) {
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
         <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center', marginBottom: Spacing.sm }}>
@@ -403,9 +407,7 @@ export default function TicketScreen() {
     );
   }
 
-  const booking = activeBooking;
-
-  if (!booking) {
+  if (!hasDisplayData) {
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: Typography.size.md, color: c.inkSoft }}>{t('no_booking')}</Text>
@@ -465,7 +467,9 @@ export default function TicketScreen() {
                 <Text style={styles.pendingBannerTitle}>Waiting for passengers</Text>
                 <Text style={styles.pendingBannerBody}>
                   {t('booking_pending_notice')}
-                  {shuttleInfo?.minRequired != null && shuttleInfo.bookedSeats != null
+                  {shuttleSession
+                    ? `  · ${shuttleSession.trip.totalSeats - shuttleSession.trip.availableSeats}/${shuttleSession.trip.minRequired} seats filled`
+                    : shuttleInfo?.minRequired != null && shuttleInfo.bookedSeats != null
                     ? `  · ${shuttleInfo.bookedSeats}/${shuttleInfo.minRequired} seats filled`
                     : ''}
                 </Text>
@@ -494,14 +498,17 @@ export default function TicketScreen() {
             <View style={styles.ticketHeaderGlow} />
             <View style={styles.ticketHeaderGlow2} />
 
-            {/* Trip badge top-right */}
-            <View style={styles.ticketTripBadge}>
-              <Text style={styles.ticketTripBadgeText}>{t('line')} {booking.route.code}</Text>
-            </View>
+            {/* Trip badge top-right — route.code is not in the ActiveSession contract;
+                fall back to activeBooking (transition window) or omit if unavailable */}
+            {(activeBooking?.route.code) ? (
+              <View style={styles.ticketTripBadge}>
+                <Text style={styles.ticketTripBadgeText}>{t('line')} {activeBooking.route.code}</Text>
+              </View>
+            ) : null}
 
             {/* Route name — Arabic when locale is Arabic (§3) */}
             <Text style={styles.ticketRouteName}>
-              {isAr ? (booking.route.nameAr ?? booking.route.name) : booking.route.name}
+              {isAr ? (displayRouteNameAr ?? displayRouteName) : displayRouteName}
             </Text>
 
             {/* Live status badge — Active or Pending, prominently shown below route name */}
@@ -527,9 +534,7 @@ export default function TicketScreen() {
               <View style={styles.ticketStation}>
                 <View style={[styles.ticketStationDot, { backgroundColor: '#ffffff' }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>
-                  {isAr
-                    ? (booking.route.path[booking.fromIdx]?.nameAr ?? booking.route.path[booking.fromIdx]?.name)
-                    : booking.route.path[booking.fromIdx]?.name}
+                  {isAr ? (displayFromNameAr ?? displayFromName) : displayFromName}
                 </Text>
               </View>
               {isRTL
@@ -538,22 +543,20 @@ export default function TicketScreen() {
               <View style={styles.ticketStation}>
                 <View style={[styles.ticketStationDot, { backgroundColor: c.accentMint }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>
-                  {isAr
-                    ? (booking.route.path[booking.toIdx]?.nameAr ?? booking.route.path[booking.toIdx]?.name)
-                    : booking.route.path[booking.toIdx]?.name}
+                  {isAr ? (displayToNameAr ?? displayToName) : displayToName}
                 </Text>
               </View>
             </View>
 
-            {!!booking.direction && (
+            {!!displayDirection && (
               <Text style={[styles.ticketStationText, { textAlign: 'center', opacity: 0.7 }]}>
-                {booking.direction === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}
+                {displayDirection === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}
               </Text>
             )}
 
             {/* Departure time — prominent */}
             <View style={styles.ticketTimeRow}>
-              <Text style={styles.ticketTime}>{booking.time}</Text>
+              <Text style={styles.ticketTime}>{displayTime}</Text>
               <Text style={styles.ticketTimeTz}>Cairo</Text>
             </View>
           </LinearGradient>
@@ -576,7 +579,7 @@ export default function TicketScreen() {
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('date')}</Text>
-                  <Text style={styles.infoValue}>{booking.date}</Text>
+                  <Text style={styles.infoValue}>{displayDate}</Text>
                 </View>
               </View>
               <View style={styles.infoRow}>
@@ -585,7 +588,7 @@ export default function TicketScreen() {
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('passengers')}</Text>
-                  <Text style={styles.infoValue}>{booking.passengers}</Text>
+                  <Text style={styles.infoValue}>{displayPassengers}</Text>
                 </View>
               </View>
               <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
@@ -594,7 +597,7 @@ export default function TicketScreen() {
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('total')}</Text>
-                  <Text style={styles.infoValue}>{booking.price} {t('egp')}</Text>
+                  <Text style={styles.infoValue}>{displayPrice} {t('egp')}</Text>
                 </View>
               </View>
             </View>
