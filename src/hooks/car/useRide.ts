@@ -221,7 +221,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   // ── ActiveSession integration ─────────────────────────────────────────────
   // Consume the centralized session state. This is the source of truth for
   // recovery and for ongoing state syncs triggered by session:snapshot events.
-  const { session } = useActiveSession();
+  const { session, initialized: activeSessionInitialized, error: activeSessionError } = useActiveSession();
   const activeRideSnapshot = useMemo(() => selectActiveRide(session), [session]);
 
   const stopPolling = useCallback(() => {
@@ -675,9 +675,29 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       };
     }
 
+    // ── Guard: respect an authoritative { data: null } from ActiveSession ──
+    // `activeRideSnapshot` is null in two cases that are both explicit answers
+    // from the backend:
+    //   (a) session === null  →  GET /api/passenger/session returned { data: null }
+    //       meaning the passenger has no active session at all.
+    //   (b) session.kind === 'shuttle'  →  the backend checked rides first
+    //       (rides take priority) and found none; the passenger has a shuttle
+    //       booking but no concurrent ride.
+    //
+    // In either case, falling back to GET /rides/active would contradict the
+    // ActiveSession contract and could "rediscover" a stale or terminal ride.
+    //
+    // Only proceed to the fallback when ActiveSession has NOT yet successfully
+    // initialized (first cold start before initializeActiveSession resolves)
+    // or when its own request failed — in both situations `session === null`
+    // is ambiguous (absence of data, not confirmation of no data).
+    if (activeSessionInitialized && !activeSessionError) {
+      return null;
+    }
+
     // ── Fallback: legacy REST recovery ───────────────────────────────────
-    // Kept for migration safety (e.g. first launch before ActiveSession is
-    // initialized, or if the socket snapshot hasn't arrived yet).
+    // Only reached when ActiveSession hasn't completed initialization yet, or
+    // when the ActiveSession request itself failed (network error, 500, etc.).
     try {
       const data = await getActiveRideApi();
       const ride = data?.data ?? data;
