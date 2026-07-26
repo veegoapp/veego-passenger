@@ -10,8 +10,6 @@ import { useTheme } from '@/context/ThemeContext';
 import { tokenStore } from '@/src/api/client';
 import api from '@/src/api/client';
 import { clearSession } from '@/src/api/session';
-import { getActiveRide } from '@/src/api/rideService';
-import { normalizeRideStatus } from '@/src/api/socket';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { getActiveSessionRecoveryDestination } from '@/src/session/activeSessionNavigation';
 import type { NormalizedPassengerActiveSession } from '@/src/session/activeSessionTypes';
@@ -55,29 +53,6 @@ async function attemptTokenRefresh(): Promise<boolean> {
     return true;
   } catch {
     return false;
-  }
-}
-
-const RESUMABLE_RIDE_SERVICES = new Set(['car', 'scooter', 'delivery']);
-
-/**
- * F3: checks for an in-progress car/scooter/delivery ride via the existing
- * GET /rides/active endpoint so a cold start can route straight back into
- * that ride's flow instead of defaulting to Home's shuttle mode. Any failure
- * here is treated the same as "no active ride" — this must never block
- * normal navigation.
- */
-async function checkActiveRideService(): Promise<string | null> {
-  try {
-    const data = await getActiveRide();
-    const ride = data?.data ?? data;
-    if (!ride?.id) return null;
-    const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
-    if (!status || status === 'completed' || status === 'cancelled') return null;
-    const vehicleType = ride.vehicleType ?? ride.type ?? ride.serviceType;
-    return RESUMABLE_RIDE_SERVICES.has(vehicleType) ? vehicleType : null;
-  } catch {
-    return null;
   }
 }
 

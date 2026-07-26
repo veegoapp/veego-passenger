@@ -1,0 +1,84 @@
+Continue ActiveSession Recovery Migration.
+
+Scope of this task ONLY:
+Remove the old cold-start recovery dependency from app/index.tsx.
+
+Context:
+ActiveSession is now the single source of truth for active session discovery.
+
+Already completed:
+- ActiveSessionContext initializes from GET /api/passenger/session.
+- Cold start waits for ActiveSession initialization.
+- Ride recovery uses ActiveSession.
+- Shuttle hydration migration is in progress/partially completed.
+- GET /rides/active is no longer needed for ride recovery inside useRide.
+
+Task:
+
+1. Audit app/index.tsx only for old active ride discovery logic.
+
+Find and analyze:
+- checkActiveRideService()
+- GET /rides/active usage
+- resumeService parameter creation
+- any service-type inference from:
+  - vehicleType
+  - type
+  - serviceType
+  - bookingType
+  - category
+
+2. Replace only the old recovery decision logic.
+
+New behavior:
+
+Startup flow must be:
+
+1. Authenticate user.
+2. Wait for ActiveSession initialization.
+3. Read normalized ActiveSession state.
+4. Decide startup behavior:
+
+If session is null:
+- Open normal home screen.
+- Do not call GET /rides/active.
+
+If session.kind === "ride":
+- Restore ride startup using ActiveSession identifiers:
+  - rideId
+  - vehicle type
+  - status
+
+If session.kind === "shuttle":
+- Restore shuttle startup using ActiveSession identifiers:
+  - bookingId
+  - tripId
+  - booking status
+
+5. Remove resumeService as the primary recovery mechanism.
+
+Do NOT:
+- modify service screens.
+- modify useRide.
+- modify BookingContext.
+- modify ActiveSessionContext.
+- modify backend code.
+- redesign navigation architecture.
+
+Keep changes minimal.
+
+Before editing:
+Report:
+- exact old recovery code found in app/index.tsx.
+- what will be removed.
+- what will remain.
+
+After editing report:
+- files changed.
+- old recovery paths removed.
+- any fallback logic still remaining and why.
+- TypeScript result.
+
+Important:
+Do not guess backend fields.
+Use the existing normalized ActiveSession types already created in the project.
