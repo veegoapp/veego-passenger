@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +16,8 @@ import { getErrorMessage } from '@/src/utils/errorMessages';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { useActiveSession } from '@/context/ActiveSessionContext';
+import { selectActiveRide } from '@/src/session/activeRideSelectors';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   searching: 'status_finding_driver',
@@ -60,6 +62,13 @@ export default function TripTrackingScreen() {
     dropoffLng?: string;
   }>();
 
+  // ── ActiveSession integration ───────────────────────────────────────────
+  // Use the centralized session as the primary source for rideId-matched
+  // screens. This avoids a separate REST round-trip when state is already
+  // available and ensures session:snapshot events keep this screen in sync.
+  const { session } = useActiveSession();
+  const activeRideSnapshot = useMemo(() => selectActiveRide(session), [session]);
+
   const [pickup, setPickup] = useState<{ latitude: number; longitude: number } | null>(
     params.pickupLat && params.pickupLng
       ? { latitude: parseFloat(params.pickupLat), longitude: parseFloat(params.pickupLng) }
@@ -84,6 +93,58 @@ export default function TripTrackingScreen() {
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
   const socketListening = useRef(false);
+
+  // ── Seed from ActiveSession ───────────────────────────────────────────────
+  // When the centralized session has data for the ride this screen is tracking,
+  // apply it immediately (no REST round-trip needed). This also re-applies on
+  // every session:snapshot that the ActiveSessionContext receives, keeping
+  // driver info and location up to date from the authoritative snapshot.
+  //
+  // The deep-link path (params.id) fetches its own data independently because
+  // it must perform an ownership check before rendering anything.
+  useEffect(() => {
+    const rideId = params.rideId;
+    if (!rideId || !activeRideSnapshot) return;
+    if (activeRideSnapshot.rideId !== rideId) return;
+
+    // Status — map the selector's RideStatus to this screen's TripStatus
+    // (the value sets are identical, so a direct cast is safe).
+    setStatus(activeRideSnapshot.status as TripStatus);
+
+    // Driver info
+    if (activeRideSnapshot.driver) {
+      const d = activeRideSnapshot.driver;
+      setDriverInfo({
+        name: d.name || undefined,
+        vehicle: d.vehicle || undefined,
+        rating: d.rating != null ? String(d.rating) : undefined,
+        phone: d.phone || undefined,
+      });
+    }
+
+    // Driver location
+    if (activeRideSnapshot.driverLocation) {
+      setDriverLocation(activeRideSnapshot.driverLocation);
+    }
+
+    // Vehicle type for the map marker
+    setVehicleType(normalizeVehicleType(activeRideSnapshot.rideType));
+
+    // Pickup / dropoff coords from ActiveSession (fills in when nav params
+    // didn't carry them, e.g. after a cold-start recovery).
+    if (!pickup) {
+      setPickup({
+        latitude: activeRideSnapshot.pickup.latitude,
+        longitude: activeRideSnapshot.pickup.longitude,
+      });
+    }
+    if (!dropoff) {
+      setDropoff({
+        latitude: activeRideSnapshot.dropoff.latitude,
+        longitude: activeRideSnapshot.dropoff.longitude,
+      });
+    }
+  }, [activeRideSnapshot, params.rideId]);
 
   // Task 6: Load full ride data when opened via deep link (veego://ride/{id})
   useEffect(() => {

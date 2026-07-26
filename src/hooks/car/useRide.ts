@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import {
   getRide as getRideApi,
@@ -9,6 +9,8 @@ import {
 import { getSocket, type RideStatus, type DriverLocation, normalizeRideStatus } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
 import { SOCKET_EVENTS } from '../../../constants/socketEvents';
+import { useActiveSession } from '../../../context/ActiveSessionContext';
+import { selectActiveRide } from '../../session/activeRideSelectors';
 
 const DriverAssignedSchema = z.object({
   rideId: z.string().or(z.number()),
@@ -215,6 +217,12 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   const socketCleanupRef = useRef<(() => void) | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeRideIdRef = useRef<string | null>(null);
+
+  // ── ActiveSession integration ─────────────────────────────────────────────
+  // Consume the centralized session state. This is the source of truth for
+  // recovery and for ongoing state syncs triggered by session:snapshot events.
+  const { session } = useActiveSession();
+  const activeRideSnapshot = useMemo(() => selectActiveRide(session), [session]);
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -630,14 +638,52 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   }, [stopPolling]);
 
   const resumeActiveRide = useCallback(async (): Promise<ResumedRide | null> => {
+    // ── Primary: ActiveSession ────────────────────────────────────────────
+    // Phase 3: ActiveSession is the authoritative recovery source. If a
+    // session:snapshot was already received (cold-start Phase 2 flow), use it
+    // directly and skip the extra REST round-trip.
+    if (activeRideSnapshot) {
+      const { rideId, rideType, status, driver, driverLocation } = activeRideSnapshot;
+
+      // Enforce per-tab serviceType isolation: each tab only resumes rides
+      // that belong to its own vehicle type.
+      if (serviceType && rideType !== serviceType) return null;
+
+      activeRideIdRef.current = rideId;
+      setRideState((prev) => ({
+        ...prev,
+        rideId,
+        status,
+        driver,
+        driverLocation,
+        fare: activeRideSnapshot.fare,
+        waitingCharge: activeRideSnapshot.waitingCharge > 0
+          ? activeRideSnapshot.waitingCharge
+          : prev.waitingCharge,
+      }));
+
+      await setupSocketListeners(rideId);
+      startPolling(rideId);
+
+      return {
+        rideId,
+        status,
+        pickupAddress: activeRideSnapshot.pickup.address,
+        dropoffAddress: activeRideSnapshot.dropoff.address,
+        dropoffLatitude: activeRideSnapshot.dropoff.latitude,
+        dropoffLongitude: activeRideSnapshot.dropoff.longitude,
+      };
+    }
+
+    // ── Fallback: legacy REST recovery ───────────────────────────────────
+    // Kept for migration safety (e.g. first launch before ActiveSession is
+    // initialized, or if the socket snapshot hasn't arrived yet).
     try {
       const data = await getActiveRideApi();
       const ride = data?.data ?? data;
       if (!ride?.id) return null;
 
       // Phase 2: Only resume a ride that belongs to this service's type.
-      // If the active ride is a 'car' ride but this hook instance belongs to
-      // 'scooter', ignore it — each service tab must start in its idle state.
       if (serviceType && ride.type && String(ride.type) !== String(serviceType)) return null;
 
       const rideId = String(ride.id);
@@ -670,7 +716,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     } catch {
       return null;
     }
-  }, [setupSocketListeners, startPolling]);
+  }, [activeRideSnapshot, serviceType, setupSocketListeners, startPolling]);
 
   useEffect(() => {
     return () => {
@@ -679,6 +725,55 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       stopPolling();
     };
   }, [stopPolling]);
+
+  // ── ActiveSession → ride state sync ──────────────────────────────────────
+  // When the ActiveSessionContext receives a session:snapshot socket event, it
+  // updates `session`, which re-derives `activeRideSnapshot`. We apply that
+  // snapshot to the local ride state so that the ride UI reacts to the
+  // centralized session without needing to handle session:snapshot directly.
+  //
+  // Guards:
+  //  1. serviceType filter — each tab only reacts to its own vehicle type.
+  //  2. rideId filter — only sync when the snapshot matches the current ride
+  //     (or we have no locally-initiated ride yet, i.e. recovery case).
+  //  3. Terminal states — do not overwrite completed/cancelled/timeout; those
+  //     are handled by specific socket events and the ride is absent from
+  //     ActiveSession anyway.
+  useEffect(() => {
+    if (!activeRideSnapshot) return;
+
+    // serviceType guard
+    if (serviceType && activeRideSnapshot.rideType !== serviceType) return;
+
+    const snapRideId = activeRideSnapshot.rideId;
+
+    // rideId guard: only apply when there's no conflicting local ride
+    if (activeRideIdRef.current !== null && activeRideIdRef.current !== snapRideId) return;
+
+    setRideState((prev) => {
+      // Do not overwrite terminal states — the ride is done locally even if
+      // there was a brief window before ActiveSession cleared.
+      if (TERMINAL_STATUSES.includes(prev.status) && prev.rideId !== null) return prev;
+
+      return {
+        ...prev,
+        rideId: snapRideId,
+        status: activeRideSnapshot.status,
+        // Prefer snapshot driver data; fall back to previous to avoid blanking
+        // out details that socket events may have already enriched.
+        driver: activeRideSnapshot.driver ?? prev.driver,
+        // Prefer most-recent location; socket ride:driver_location events are
+        // more frequent than snapshots, so only update when snapshot has data.
+        driverLocation: activeRideSnapshot.driverLocation ?? prev.driverLocation,
+        // Pricing fields — snapshot is authoritative.
+        fare: activeRideSnapshot.fare ?? prev.fare,
+        waitingCharge:
+          activeRideSnapshot.waitingCharge > 0
+            ? activeRideSnapshot.waitingCharge
+            : prev.waitingCharge,
+      };
+    });
+  }, [activeRideSnapshot, serviceType]);
 
   usePassengerTracking({
     isActive: rideState.status === 'started',
