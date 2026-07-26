@@ -9,8 +9,8 @@ import React from 'react';
 import { Bus, Car, Bike as ScooterIcon, Package, Ticket, User, X, ChevronDown, Wifi } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { type TripType, shuttleStatusLabel, isShuttleTripUpcoming } from '@/constants/data';
-import { useBooking } from '@/context/BookingContext';
+import { type TripType, shuttleStatusLabel, isShuttleTripUpcoming, formatCairoDateTime } from '@/constants/data';
+import { useActiveSession } from '@/context/ActiveSessionContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useTrips } from '@/src/hooks/shared/useTrips';
@@ -155,7 +155,11 @@ export default function TripsScreen() {
   const top = insets.top;
   const { tabBarHeight } = useTabBar();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
-  const { activeBooking } = useBooking();
+  const { session } = useActiveSession();
+  const shuttleSession = session?.kind === 'shuttle' ? session : null;
+  const { date: sessionDate, time: sessionTime } = shuttleSession
+    ? formatCairoDateTime(shuttleSession.trip.departureTime)
+    : { date: '', time: '' };
   const { colors: c, glassStyle: gs, t, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -307,23 +311,26 @@ export default function TripsScreen() {
     return isNaN(ms) || ms >= now - 60 * 60 * 1000; // keep if future or within 1 h grace
   });
 
-  const upcoming = activeBooking
+  // Build the live card from ActiveSession — real data only, no synthetic values.
+  const upcoming = shuttleSession
     ? [{
         id: 'live',
         type: 'shuttle' as TripType,
-        routeCode: activeBooking.route.code,
-        routeName: activeBooking.route.name,
-        routeNameAr: activeBooking.route.nameAr ?? null,
-        from: activeBooking.route.path[activeBooking.fromIdx].name,
-        fromAr: activeBooking.route.path[activeBooking.fromIdx].nameAr ?? null,
-        to: activeBooking.route.path[activeBooking.toIdx].name,
-        toAr: activeBooking.route.path[activeBooking.toIdx].nameAr ?? null,
-        date: activeBooking.date, time: activeBooking.time,
-        departureIso: '',
-        seat: 'B4',
-        status: 'upcoming' as const, price: activeBooking.price,
-        tripId: null,
-        direction: activeBooking.direction,
+        routeCode: '',
+        routeName: shuttleSession.trip.route.name,
+        routeNameAr: shuttleSession.trip.route.nameAr ?? null,
+        from: shuttleSession.boardingStation?.name ?? shuttleSession.trip.route.fromLocation,
+        fromAr: shuttleSession.boardingStation?.nameAr ?? null,
+        to: shuttleSession.trip.route.toLocation,
+        toAr: null,
+        date: sessionDate,
+        time: sessionTime,
+        departureIso: String(shuttleSession.trip.departureTime),
+        seat: '—',
+        status: shuttleSession.trip.status,
+        price: shuttleSession.totalPrice,
+        tripId: shuttleSession.trip.id,
+        direction: shuttleSession.trip.direction,
       }, ...filteredUpcoming]
     : filteredUpcoming;
 

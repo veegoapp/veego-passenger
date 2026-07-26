@@ -9,6 +9,8 @@ import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, C
 import { Animation } from '@/constants/animations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useActiveSession } from '@/context/ActiveSessionContext';
+import { formatCairoDateTime } from '@/constants/data';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
@@ -231,23 +233,61 @@ function makeStyles(c: ThemeColors) {
 export default function TicketScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { activeBooking, confirmedBookingId, confirmedTripId, confirmedBookingStatus, shuttleInfo } = useBooking();
+  const { session } = useActiveSession();
+  const { shuttleInfo, confirmedBookingId: bookingContextId, confirmedTripId: bookingContextTripId,
+          confirmedBookingStatus: bookingContextStatus, activeBooking } = useBooking();
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  const bookingId = confirmedBookingId ?? '';
+  const shuttleSession = session?.kind === 'shuttle' ? session : null;
+
+  // Prefer ActiveSession for both cold-start recovery and post-snapshot state.
+  // Fall back to BookingContext for the brief transition window after booking
+  // creation (before the server emits session:snapshot via socket).
+  const resolvedBookingId = shuttleSession
+    ? String(shuttleSession.bookingId)
+    : (bookingContextId ?? '');
+  const resolvedTripId: number | null =
+    shuttleSession?.trip.id ?? bookingContextTripId ?? null;
+  const initialStatus = shuttleSession?.bookingStatus ?? bookingContextStatus;
+
+  // Derive display values from real session fields — no synthetic data.
+  const { date: sessionDate, time: sessionTime } = shuttleSession
+    ? formatCairoDateTime(shuttleSession.trip.departureTime)
+    : { date: '', time: '' };
+  const displayRouteName   = shuttleSession?.trip.route.name   ?? activeBooking?.route.name   ?? '';
+  const displayRouteNameAr = shuttleSession?.trip.route.nameAr ?? activeBooking?.route.nameAr ?? null;
+  const displayFromName    = shuttleSession
+    ? (shuttleSession.boardingStation?.name ?? shuttleSession.trip.route.fromLocation)
+    : (activeBooking?.route.path[activeBooking.fromIdx]?.name ?? '');
+  const displayFromNameAr  = shuttleSession
+    ? (shuttleSession.boardingStation?.nameAr ?? null)
+    : (activeBooking?.route.path[activeBooking.fromIdx]?.nameAr ?? null);
+  const displayToName      = shuttleSession?.trip.route.toLocation
+    ?? activeBooking?.route.path[activeBooking.toIdx]?.name ?? '';
+  const displayToNameAr    = shuttleSession
+    ? null
+    : (activeBooking?.route.path[activeBooking.toIdx]?.nameAr ?? null);
+  const displayDirection   = shuttleSession?.trip.direction ?? activeBooking?.direction;
+  const displayTime        = sessionTime  || activeBooking?.time  || '';
+  const displayDate        = sessionDate  || activeBooking?.date  || '';
+  const displayPassengers  = shuttleSession?.seatCount   ?? activeBooking?.passengers ?? 1;
+  const displayPrice       = shuttleSession?.totalPrice  ?? activeBooking?.price      ?? 0;
+  const hasDisplayData     = !!shuttleSession || !!activeBooking;
+
+  const bookingId = resolvedBookingId;
 
   const [boarded, setBoarded] = useState(false);
   const [shuttleDriverLocation, setShuttleDriverLocation] = useState<{ lat: number; lng: number; heading?: number } | null>(null);
-  // Local trip status — updated in real-time via trip:activated socket event
-  const [liveStatus, setLiveStatus] = useState<string | undefined>(confirmedBookingStatus);
+  // Local trip status — updated in real-time via socket events
+  const [liveStatus, setLiveStatus] = useState<string | undefined>(initialStatus);
   const boardedAnim = useRef(new Animated.Value(0)).current;
   // Refs so socket handlers always read latest values without stale closures
   const bookingIdRef = useRef(bookingId);
-  const confirmedTripIdRef = useRef(confirmedTripId);
+  const confirmedTripIdRef = useRef(resolvedTripId);
   bookingIdRef.current = bookingId;
-  confirmedTripIdRef.current = confirmedTripId;
+  confirmedTripIdRef.current = resolvedTripId;
 
   const checkScale = useRef(new Animated.Value(0.5)).current;
   const checkOpacity = useRef(new Animated.Value(0)).current;

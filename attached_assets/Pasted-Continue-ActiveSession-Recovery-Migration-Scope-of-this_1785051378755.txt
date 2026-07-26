@@ -1,0 +1,101 @@
+Continue ActiveSession Recovery Migration.
+
+Scope of this task ONLY:
+Remove the temporary Shuttle Synthetic Booking bridge and migrate Shuttle screens to read directly from ActiveSession.
+
+Context:
+The previous Phase created a temporary bridge:
+- BookingContext hydrates activeBooking from ActiveSession.
+- ticket.tsx and trips.tsx still consume old BookingContext recovery fields.
+
+This bridge was confirmed to be temporary.
+
+Goal:
+ActiveSessionContext becomes the single source of truth for active Shuttle session recovery.
+
+Tasks:
+
+1. Audit these files only:
+- context/BookingContext.tsx
+- app/ticket.tsx
+- app/(tabs)/trips.tsx
+
+Before editing report:
+- Which fields are currently coming from BookingContext only for recovery.
+- Which fields are already available from NormalizedPassengerShuttleSession.
+- Which UI fields cannot be provided by ActiveSession and still require REST enrichment.
+
+2. Modify BookingContext.tsx:
+
+Remove only recovery ownership:
+- activeBooking hydration from ActiveSession.
+- confirmedBookingId recovery state if it exists only for recovery.
+- confirmedTripId recovery state if it exists only for recovery.
+- confirmedBookingStatus recovery state if it exists only for recovery.
+
+Keep:
+- booking creation flow state.
+- pending booking.
+- selected route.
+- booking sheet state.
+- temporary UI state.
+
+Do not break booking creation.
+
+3. Modify ticket.tsx:
+
+Replace recovery reads from BookingContext with:
+
+useActiveSession()
+
+Behavior:
+
+If:
+session.kind === "shuttle"
+
+Use:
+- bookingId
+- bookingStatus
+- trip.id
+- trip.status
+- trip.route
+- trip.departureTime
+- trip.arrivalTime
+- boardingStation
+- trip.driver
+
+If no active shuttle session:
+- preserve current empty/idle behavior.
+
+Do not invent missing fields.
+
+4. Modify trips.tsx:
+
+For the active trip card only:
+- Read active Shuttle session from ActiveSession.
+- Keep historical trips list behavior unchanged.
+
+Do not replace the history API.
+
+5. Remove synthetic data creation:
+No more:
+- fake route.path
+- fake route.code
+- fake seat values
+
+If a field is unavailable:
+- keep existing REST enrichment behavior if already present.
+- otherwise show the existing empty state.
+
+Do not:
+- modify backend.
+- modify ActiveSessionContext.
+- modify ride/car recovery.
+- redesign navigation.
+
+After implementation report:
+- files changed.
+- synthetic Booking logic removed.
+- remaining BookingContext responsibilities.
+- any missing fields that still require REST.
+- TypeScript result.

@@ -7,7 +7,7 @@ import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { usePassengerTracking } from '@/src/hooks/shared/usePassengerTracking';
-import { useActiveSession } from '@/context/ActiveSessionContext';
+
 
 type BookingContextType = {
   selectedRoute: Route | null;
@@ -137,89 +137,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [seatCount, setSeatCount] = useState<number>(1);
   const [confirmedBookingStatus, setConfirmedBookingStatus] = useState<string | undefined>(undefined);
   const [shuttleInfo, setShuttleInfo] = useState<ShuttleBookingMeta | null>(null);
-
-  // ── ActiveSession cold-start recovery ─────────────────────────────────────
-  const { session, initialized: activeSessionInitialized, error: activeSessionError } = useActiveSession();
-
-  // Hydrate booking state from ActiveSession on cold start / force-close recovery.
-  // Only fires when:
-  //   • ActiveSession has finished initializing and its own request did not fail,
-  //   • the session is a shuttle_booking,
-  //   • no booking is already held in memory (user is not mid-flow).
-  // Note: ActiveSession does not carry a full station-path array. We synthesise
-  // two terminal Station entries — boarding point at index 0, destination at
-  // index 1 — so downstream code that accesses path[fromIdx] / path[toIdx]
-  // (trips.tsx live-card, ticket.tsx booking details) can render correctly.
-  // `route.code` is not provided by ActiveSession; empty string is used as a
-  // known placeholder — no screen displays the raw code for shuttle.
-  useEffect(() => {
-    if (!activeSessionInitialized || activeSessionError) return;
-    if (session?.kind !== 'shuttle') return;
-    if (confirmedBookingId !== null) return; // already populated by a normal booking flow
-
-    const s = session;
-    const { date, time } = formatCairoDateTime(s.trip.departureTime);
-
-    const fromStation = {
-      id:        s.boardingStation ? String(s.boardingStation.id) : 'from',
-      name:      s.boardingStation?.name ?? s.trip.route.fromLocation,
-      nameAr:    s.boardingStation?.nameAr ?? null,
-      area:      '',
-      distance:  '—',
-      eta:       '—',
-      latitude:  s.boardingStation?.latitude ?? undefined,
-      longitude: s.boardingStation?.longitude ?? undefined,
-      order:     s.boardingStation?.order ?? 1,
-    };
-    const toStation = {
-      id:        'to',
-      name:      s.trip.route.toLocation,
-      nameAr:    null,
-      area:      '',
-      distance:  '—',
-      eta:       '—',
-      order:     2,
-    };
-
-    const syntheticRoute: Route = {
-      id:            String(s.trip.route.id),
-      code:          '',
-      name:          s.trip.route.name,
-      nameAr:        s.trip.route.nameAr ?? null,
-      from:          s.trip.route.fromLocation,
-      fromAr:        null,
-      to:            s.trip.route.toLocation,
-      toAr:          null,
-      stations:      2,
-      duration:      '—',
-      seatsLeft:     s.trip.availableSeats,
-      totalSeats:    s.trip.totalSeats,
-      price:         s.trip.price,
-      nextDeparture: s.trip.departureTime,
-      color:         '#2563eb',
-      path:          [fromStation, toStation],
-    };
-
-    const syntheticBooking: Booking = {
-      route:             syntheticRoute,
-      fromIdx:           0,
-      toIdx:             1,
-      passengers:        s.seatCount,
-      date,
-      time,
-      price:             s.totalPrice,
-      tripId:            s.trip.id,
-      seatCount:         s.seatCount,
-      paymentStatus:     s.paymentStatus as PaymentStatus | undefined,
-      direction:         s.trip.direction as ShuttleDirection | undefined,
-      boardingStationId: s.boardingStation ? String(s.boardingStation.id) : undefined,
-    };
-
-    setConfirmedBookingId(String(s.bookingId));
-    setConfirmedTripId(s.trip.id);
-    setConfirmedBookingStatus(s.bookingStatus);
-    setActiveBooking(syntheticBooking);
-  }, [activeSessionInitialized, activeSessionError, session, confirmedBookingId]);
 
   // Refresh trips for a line after booking/cancel
   const refreshLineTrips = useCallback(async (routeId: string) => {
