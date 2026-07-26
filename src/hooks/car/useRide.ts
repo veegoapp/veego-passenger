@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import {
   getRide as getRideApi,
-  getActiveRide as getActiveRideApi,
   requestRide as requestRideApi,
   cancelRide as cancelRideApi,
 } from '../../api/rideService';
@@ -221,7 +220,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   // ── ActiveSession integration ─────────────────────────────────────────────
   // Consume the centralized session state. This is the source of truth for
   // recovery and for ongoing state syncs triggered by session:snapshot events.
-  const { session, initialized: activeSessionInitialized, error: activeSessionError } = useActiveSession();
+  const { session } = useActiveSession();
   const activeRideSnapshot = useMemo(() => selectActiveRide(session), [session]);
 
   const stopPolling = useCallback(() => {
@@ -272,9 +271,6 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     if (socketListening.current) return;
     socketListening.current = true;
 
-    // Declared before cleanup so closure in cleanup can reference it
-    let reconnectHandler: (() => Promise<void>) | null = null;
-
     const cleanup = () => {
       const s = socketRef.current;
       if (s) {
@@ -295,7 +291,6 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         s.off('surge:updated');
         s.off('ride:deviation:warning');
         s.off('ride:eta_update');
-        if (reconnectHandler) s.io.off('reconnect', reconnectHandler);
       }
       socketListening.current = false;
       stopPolling();
@@ -510,23 +505,9 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         ));
       });
 
-      // On reconnect, re-fetch ride state to recover any events missed during the disconnect window
-      reconnectHandler = async () => {
-        if (!activeRideIdRef.current) return;
-        try {
-          const data = await getRideApi(activeRideIdRef.current);
-          const ride = data?.data ?? data;
-          const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
-          if (!status) return;
-          setRideState((prev) => {
-            const updatedDriver = mapDriverFromRide(ride.driver, ride.eta, prev.driver);
-            const updatedFare = ride.fare ?? ride.finalPrice ?? prev.fare;
-            return { ...prev, status, driver: updatedDriver, fare: updatedFare };
-          });
-          if (TERMINAL_STATUSES.includes(status)) cleanup();
-        } catch {}
-      };
-      socket.io.on('reconnect', reconnectHandler);
+      // Socket reconnect recovery is now owned by ActiveSessionContext via
+      // session:snapshot. The activeRideSnapshot sync effect below applies any
+      // state updates that arrive after a reconnect without an extra REST call.
     } catch (err) {
       console.warn('[useRide] Socket setup failed:', err);
     }
@@ -638,104 +619,41 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   }, [stopPolling]);
 
   const resumeActiveRide = useCallback(async (): Promise<ResumedRide | null> => {
-    // ── Primary: ActiveSession ────────────────────────────────────────────
-    // Phase 3: ActiveSession is the authoritative recovery source. If a
-    // session:snapshot was already received (cold-start Phase 2 flow), use it
-    // directly and skip the extra REST round-trip.
-    if (activeRideSnapshot) {
-      const { rideId, rideType, status, driver, driverLocation } = activeRideSnapshot;
+    // ActiveSessionContext is the sole source of ride recovery.
+    // A null snapshot is an authoritative answer — either no active session
+    // (data: null) or a shuttle booking (not a ride). Both mean no ride to resume.
+    if (!activeRideSnapshot) return null;
 
-      // Enforce per-tab serviceType isolation: each tab only resumes rides
-      // that belong to its own vehicle type.
-      if (serviceType && rideType !== serviceType) return null;
+    const { rideId, rideType, status, driver, driverLocation } = activeRideSnapshot;
 
-      activeRideIdRef.current = rideId;
-      setRideState((prev) => ({
-        ...prev,
-        rideId,
-        status,
-        driver,
-        driverLocation,
-        fare: activeRideSnapshot.fare,
-        waitingCharge: activeRideSnapshot.waitingCharge > 0
-          ? activeRideSnapshot.waitingCharge
-          : prev.waitingCharge,
-      }));
+    // Enforce per-tab serviceType isolation: each tab only resumes rides
+    // that belong to its own vehicle type.
+    if (serviceType && rideType !== serviceType) return null;
 
-      await setupSocketListeners(rideId);
-      startPolling(rideId);
+    activeRideIdRef.current = rideId;
+    setRideState((prev) => ({
+      ...prev,
+      rideId,
+      status,
+      driver,
+      driverLocation,
+      fare: activeRideSnapshot.fare,
+      waitingCharge: activeRideSnapshot.waitingCharge > 0
+        ? activeRideSnapshot.waitingCharge
+        : prev.waitingCharge,
+    }));
 
-      return {
-        rideId,
-        status,
-        pickupAddress: activeRideSnapshot.pickup.address,
-        dropoffAddress: activeRideSnapshot.dropoff.address,
-        dropoffLatitude: activeRideSnapshot.dropoff.latitude,
-        dropoffLongitude: activeRideSnapshot.dropoff.longitude,
-      };
-    }
+    await setupSocketListeners(rideId);
+    startPolling(rideId);
 
-    // ── Guard: respect an authoritative { data: null } from ActiveSession ──
-    // `activeRideSnapshot` is null in two cases that are both explicit answers
-    // from the backend:
-    //   (a) session === null  →  GET /api/passenger/session returned { data: null }
-    //       meaning the passenger has no active session at all.
-    //   (b) session.kind === 'shuttle'  →  the backend checked rides first
-    //       (rides take priority) and found none; the passenger has a shuttle
-    //       booking but no concurrent ride.
-    //
-    // In either case, falling back to GET /rides/active would contradict the
-    // ActiveSession contract and could "rediscover" a stale or terminal ride.
-    //
-    // Only proceed to the fallback when ActiveSession has NOT yet successfully
-    // initialized (first cold start before initializeActiveSession resolves)
-    // or when its own request failed — in both situations `session === null`
-    // is ambiguous (absence of data, not confirmation of no data).
-    if (activeSessionInitialized && !activeSessionError) {
-      return null;
-    }
-
-    // ── Fallback: legacy REST recovery ───────────────────────────────────
-    // Only reached when ActiveSession hasn't completed initialization yet, or
-    // when the ActiveSession request itself failed (network error, 500, etc.).
-    try {
-      const data = await getActiveRideApi();
-      const ride = data?.data ?? data;
-      if (!ride?.id) return null;
-
-      // Phase 2: Only resume a ride that belongs to this service's type.
-      if (serviceType && ride.type && String(ride.type) !== String(serviceType)) return null;
-
-      const rideId = String(ride.id);
-      const status = normalizeRideStatus(ride.status ?? ride.rideStatus);
-      if (!status || TERMINAL_STATUSES.includes(status)) return null;
-
-      const driver = mapDriverFromRide(ride.driver, ride.eta, null);
-
-      activeRideIdRef.current = rideId;
-      setRideState((prev) => ({
-        ...prev,
-        rideId,
-        status,
-        driver,
-        driverLocation: ride.driverLocation ?? ride.driver_location ?? null,
-        fare: ride.fare ?? ride.finalPrice ?? null,
-      }));
-
-      await setupSocketListeners(rideId);
-      startPolling(rideId);
-
-      return {
-        rideId,
-        status,
-        pickupAddress: ride.pickupAddress ?? ride.pickup_address,
-        dropoffAddress: ride.dropoffAddress ?? ride.dropoff_address,
-        dropoffLatitude: ride.dropoffLatitude ?? ride.dropoff_latitude ?? ride.dropoff?.latitude ?? ride.dropoff?.lat,
-        dropoffLongitude: ride.dropoffLongitude ?? ride.dropoff_longitude ?? ride.dropoff?.longitude ?? ride.dropoff?.lng,
-      };
-    } catch {
-      return null;
-    }
+    return {
+      rideId,
+      status,
+      pickupAddress: activeRideSnapshot.pickup.address,
+      dropoffAddress: activeRideSnapshot.dropoff.address,
+      dropoffLatitude: activeRideSnapshot.dropoff.latitude,
+      dropoffLongitude: activeRideSnapshot.dropoff.longitude,
+    };
   }, [activeRideSnapshot, serviceType, setupSocketListeners, startPolling]);
 
   useEffect(() => {
