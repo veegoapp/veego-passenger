@@ -1,0 +1,155 @@
+Continue ActiveSession Recovery migration — Phase 5 only.
+
+Goal:
+Move foreground resume and socket reconnect recovery responsibility into ActiveSessionContext so recovery is centralized.
+
+Important rules:
+- Do not redesign UI.
+- Do not change navigation behavior except where required to refresh existing state.
+- Do not modify booking creation flow.
+- Do not remove old recovery code yet.
+- Do not perform cleanup/deprecation.
+- Do not change backend.
+- Use the existing ActiveSession contract only.
+
+Scope:
+
+1. App foreground recovery
+
+Audit current AppState handling and implement centralized recovery:
+
+Current problem:
+- Auth resume handling exists.
+- Service-specific screens handle their own refresh.
+- No global ActiveSession refresh happens when the app returns from background.
+
+Required behavior:
+
+When app transitions:
+
+background → active
+
+the ActiveSession layer should:
+
+1. Check authentication state.
+2. Call:
+GET /api/passenger/session
+
+3. Apply the response:
+- data exists → update ActiveSessionContext
+- data is null → clear active session
+- request failure → keep previous session and do not clear state
+
+Do not treat a failed request as "no session".
+
+Reuse existing initialized/error/session state patterns.
+
+---
+
+2. Socket reconnect recovery
+
+Audit current socket reconnect handling.
+
+Current problem:
+- useRide handles reconnect separately.
+- trip-detail handles reconnect separately.
+- ticket handles reconnect separately.
+
+Required behavior:
+
+ActiveSessionContext should become responsible for session synchronization after socket reconnect.
+
+When authenticated socket reconnects:
+
+1. Wait for the server emitted:
+session:snapshot
+
+2. Apply:
+
+{
+  data: ActiveSession
+}
+
+or:
+
+{
+  data: null
+}
+
+to ActiveSessionContext.
+
+Do not create duplicate REST calls if the socket snapshot already restores the latest session.
+
+If the existing socket architecture cannot guarantee snapshot delivery, add a minimal fallback refresh:
+
+GET /api/passenger/session
+
+after reconnect.
+
+Keep the implementation inside the ActiveSession layer.
+
+---
+
+3. Prevent duplicate recovery ownership
+
+Audit and report existing duplicate recovery logic in:
+
+- app/index.tsx
+- src/hooks/car/useRide.ts
+- app/trip-detail.tsx
+- app/ticket.tsx
+- app/trip-tracking.tsx
+- context/BookingContext.tsx
+
+Do not remove anything in this phase.
+
+Only identify which logic can later move to ActiveSession.
+
+---
+
+4. Validation requirements
+
+Verify these scenarios:
+
+A) User has active car ride:
+- app background
+- app foreground
+- session restored
+
+B) User has active shuttle booking:
+- app background
+- app foreground
+- session restored
+
+C) Socket disconnect/reconnect during active ride:
+- session:snapshot updates state
+
+D) Socket disconnect/reconnect during shuttle:
+- session:snapshot updates state
+
+E) Backend returns:
+{
+ data:null
+}
+
+Expected:
+- ActiveSession cleared
+- no old stale session remains
+
+F) Network failure:
+Expected:
+- previous active session remains
+- no forced logout
+- no false "no active session"
+
+---
+
+After implementation provide:
+
+1. Files changed
+2. Exact recovery flow before vs after
+3. Any duplicate recovery code found
+4. Any blockers
+5. TypeScript check result
+
+Do not proceed to UI migration or cleanup.
