@@ -1,0 +1,33 @@
+Now I have a complete picture. Let me compile the audit findings before implementing.
+Audit:
+Field
+Status
+Reason
+activeBooking
+Remove — bridge code. Set to pendingBooking at booking time; never cleared on success. Serves as a synthetic data stand-in for screens that hadn't been migrated to ActiveSessionContext. ActiveBookingHero and ticket.tsx display* fallbacks both need to migrate.
+
+confirmedBookingId
+Keep — set at booking-creation time (not recovery). Provides the transition-window guard in ticket.tsx (bookingId when shuttleSession hasn't arrived yet) and drives resolvedTripId fallback.
+
+confirmedTripId
+Keep — drives usePassengerTracking inside BookingProvider. Can't access ActiveSessionContext from inside a sibling context without restructuring. Also provides resolvedTripId fallback in ticket.tsx.
+
+shuttleInfo
+Remove — dead code. Used only as the fallback branch in ticket.tsx's pending banner, but that branch is unreachable: during the transition window liveStatus is undefined (not 'pending') so the pending banner never shows.
+
+Four files to change in parallel:
+I have everything I need. Now implementing all four files in parallel:
+Now removing activeBooking and shuttleInfo from BookingContext, and simultaneously updating index.tsx and ticket.tsx:
+Continuing with the remaining edits in parallel — BookingContext internals, index.tsx call site, and ticket.tsx cleanup:
+Now finishing BookingContext provider internals, index.tsx call site, and ticket.tsx cleanup all in parallel:
+Finishing the BookingContext provider internals and ticket.tsx simplification in parallel:
+Finishing the remaining parallel edits — handleConfirm cleanup, provider value, and ticket.tsx guards/banner:
+Continuing with the remaining edits in parallel:
+Now updating ticket.tsx guards and pending banner, and running typecheck to validate everything:
+The apostrophe in the string literal broke the file. Fixing that plus finishing ticket.tsx cleanup in parallel:
+Let me finish the pending banner cleanup and run typecheck simultaneously:
+Three distinct issues to fix in parallel — pending banner, route code badge, and the removed displayToNameAr:
+All three fixes in one batch:
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+
