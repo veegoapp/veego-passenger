@@ -1,0 +1,235 @@
+You are working on the Passenger App repository only.
+
+The attached document:
+
+"ActiveSession Recovery System — Mobile Integration Contract"
+
+is the ONLY source of truth.
+
+Previous migration phases are already complete:
+
+- ActiveSession API layer
+- ActiveSession Provider
+- Cold-start integration
+- Ride (Car / Scooter / Delivery) migration
+- Ride fallback bug fix
+
+Do NOT modify any of those implementations unless required for Shuttle integration.
+
+Backend is complete.
+
+Your task is ONLY:
+
+Migrate Shuttle recovery to ActiveSession.
+
+Do NOT migrate Car/Scooter/Delivery.
+Do NOT modify backend code.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Remove Shuttle's dependency on in-memory BookingContext for recovery.
+
+ActiveSession must become the authoritative recovery source for Shuttle.
+
+BookingContext should remain responsible only for booking flow UI state (booking creation), not recovery.
+
+--------------------------------------------------
+FILES ALLOWED TO MODIFY
+--------------------------------------------------
+
+Only modify files that are required for Shuttle recovery, such as:
+
+- context/BookingContext.tsx
+- app/ticket.tsx
+- app/trip-detail.tsx
+- app/(tabs)/trips.tsx
+
+Create helper files only if truly necessary.
+
+Do NOT touch unrelated screens.
+
+--------------------------------------------------
+1. BookingContext
+--------------------------------------------------
+
+BookingContext must no longer be the only owner of:
+
+- activeBooking
+- confirmedBookingId
+- confirmedTripId
+- confirmedBookingStatus
+- shuttleInfo
+
+Instead:
+
+If ActiveSession contains:
+
+sessionType = "shuttle_booking"
+
+BookingContext must hydrate itself from the ActiveSession snapshot.
+
+Booking creation flow must continue to work exactly as before.
+
+Do not break booking creation.
+
+--------------------------------------------------
+2. ticket.tsx
+--------------------------------------------------
+
+Current problem:
+
+ticket.tsx assumes BookingContext already contains an active booking.
+
+After force-close this is no longer true.
+
+Change it so:
+
+If ActiveSession contains an active Shuttle session,
+
+ticket.tsx restores itself directly from ActiveSession.
+
+Do not display:
+
+- no booking
+- load error
+
+simply because BookingContext memory was lost.
+
+Preserve existing UI.
+
+Do not redesign anything.
+
+--------------------------------------------------
+3. trip-detail.tsx
+--------------------------------------------------
+
+trip-detail should use ActiveSession as its initial recovery source.
+
+Existing screen-specific APIs remain valid.
+
+Keep:
+
+- station polling
+- trip polling
+- trip detail fetches
+
+These APIs are still useful for detailed screen data.
+
+Do NOT remove them.
+
+Only change how initial recovery works.
+
+--------------------------------------------------
+4. Boarding State
+--------------------------------------------------
+
+Restore from ActiveSession:
+
+- bookingId
+- bookingStatus
+- trip
+- boardingStation
+- seatCount
+- paymentMethod
+- paymentStatus
+
+Do not depend on previous React state.
+
+--------------------------------------------------
+5. Socket Behaviour
+--------------------------------------------------
+
+Do NOT replace existing shuttle socket events.
+
+Continue using them.
+
+However:
+
+session:snapshot
+
+must become authoritative.
+
+If ActiveSession changes,
+
+Shuttle UI must update accordingly.
+
+Avoid duplicated recovery logic.
+
+--------------------------------------------------
+6. Cold Start
+--------------------------------------------------
+
+After:
+
+GET /api/passenger/session
+
+returns a Shuttle session,
+
+the Shuttle screens must be able to recover without requiring:
+
+Trips screen
+
+or
+
+BookingContext memory.
+
+--------------------------------------------------
+7. Force Close
+--------------------------------------------------
+
+Verify the implementation supports:
+
+Force Close
+
+↓
+
+Open App
+
+↓
+
+ActiveSession returns shuttle_booking
+
+↓
+
+Ticket/Trip recovery succeeds
+
+without recreating BookingContext manually.
+
+--------------------------------------------------
+8. Constraints
+--------------------------------------------------
+
+Do NOT:
+
+- modify Car
+- modify Scooter
+- modify Delivery
+- modify backend
+- change ActiveSession contract
+- redesign UI
+- remove Shuttle polling
+- remove Shuttle socket listeners
+
+This phase is Shuttle recovery only.
+
+--------------------------------------------------
+Validation
+--------------------------------------------------
+
+Run TypeScript.
+
+Return:
+
+1. Files modified.
+2. What Shuttle recovery now uses from ActiveSession.
+3. What old Shuttle logic remains intentionally.
+4. Confirmation that:
+   - Booking creation still works.
+   - Force-close recovery works.
+   - Cold-start recovery works.
+   - Existing polling remains.
+   - Existing socket events remain.
+5. TypeScript result.
+6. Any blockers found.

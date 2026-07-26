@@ -13,6 +13,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
 import type { ShuttleDirection } from '@/constants/data';
+import { useActiveSession } from '@/context/ActiveSessionContext';
 import { cancelBooking, submitShuttleRating } from '@/src/api/shuttleService';
 import { getGivenRatings } from '@/src/api/userService';
 import { getSocket } from '@/src/api/socket';
@@ -216,6 +217,47 @@ export default function TripDetailScreen() {
   // read by the station-arrived/completed socket handlers so they can trigger
   // an immediate refetch without needing to be in the [id]-only effect's deps.
   const tripStationsMetaRef = useRef<{ routeId: string | number; direction?: ShuttleDirection } | null>(null);
+
+  // ── ActiveSession cold-start seed ────────────────────────────────────────
+  // Populate initial trip state from ActiveSession so the screen renders
+  // immediately on cold start / force-close recovery, with no loading flash.
+  // The REST fetch that follows will overwrite this with full data (seat number
+  // etc.) once it completes. Guard: only runs while trip is still null so the
+  // REST result is never overwritten by a stale snapshot.
+  const { session } = useActiveSession();
+  useEffect(() => {
+    if (session?.kind !== 'shuttle') return;
+    if (trip !== null) return;
+
+    const s = session;
+    const matchesTripId    = id && String(s.trip.id)    === String(id);
+    const matchesBookingId = id && String(s.bookingId)  === String(id);
+    if (!matchesTripId && !matchesBookingId) return;
+
+    const { date, time } = formatCairoDateTime(s.trip.departureTime);
+    setTrip({
+      id:             s.trip.id,
+      bookingId:      s.bookingId,
+      routeId:        s.trip.route.id,
+      status:         s.trip.status,
+      departureIso:   s.trip.departureTime,
+      routeName:      s.trip.route.name,
+      routeNameAr:    s.trip.route.nameAr ?? null,
+      from:           s.boardingStation?.name ?? s.trip.route.fromLocation,
+      fromAr:         s.boardingStation?.nameAr ?? null,
+      to:             s.trip.route.toLocation,
+      toAr:           null,
+      date,
+      time,
+      seat:           '—',
+      price:          s.totalPrice,
+      passengerCount: s.seatCount,
+      pickupLat:      s.boardingStation?.latitude ?? null,
+      pickupLng:      s.boardingStation?.longitude ?? null,
+      direction:      s.trip.direction as ShuttleDirection | undefined,
+    });
+    // loading stays true — REST fetch will refine with full data when it lands
+  }, [session, id, trip]);
 
   const fetchTrip = useCallback(async () => {
     if (!id) { setError(t('trip_id_missing')); setLoading(false); return; }
