@@ -33,6 +33,7 @@ export const SOCKET_EVENTS = {
   SHUTTLE_DRIVER_LOCATION:       "shuttle:driver:location",
   TRIP_CHAT_MESSAGE:             "trip:chat:message",
   TRIP_ACTIVATED:                "trip:activated",
+  SESSION_SNAPSHOT:              "session:snapshot",
 
   // Passenger → Server
   JOIN:                          "join",

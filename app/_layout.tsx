@@ -17,6 +17,7 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { BookingProvider } from '@/context/BookingContext';
+import { ActiveSessionProvider } from '@/context/ActiveSessionContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { TabBarProvider } from '@/context/TabBarContext';
@@ -258,13 +259,15 @@ export default function RootLayout() {
           <TabBarProvider>
             <ServiceControlProvider>
               <PaymentConfigProvider>
-                <BookingProvider>
-                  <FavoritesProvider>
-                    <AppErrorBoundary>
-                      <AppShell />
-                    </AppErrorBoundary>
-                  </FavoritesProvider>
-                </BookingProvider>
+                <ActiveSessionProvider>
+                  <BookingProvider>
+                    <FavoritesProvider>
+                      <AppErrorBoundary>
+                        <AppShell />
+                      </AppErrorBoundary>
+                    </FavoritesProvider>
+                  </BookingProvider>
+                </ActiveSessionProvider>
               </PaymentConfigProvider>
             </ServiceControlProvider>
           </TabBarProvider>

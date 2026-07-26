@@ -1,0 +1,240 @@
+You are working on the Passenger App repository only.
+
+The attached document:
+"ActiveSession Recovery System — Mobile Integration Contract"
+is the ONLY source of truth for the new backend ActiveSession system.
+
+Do not guess any backend fields.
+Do not modify backend code.
+Do not modify API contracts.
+Do not implement UI navigation changes yet.
+
+Goal of this task:
+Create the ActiveSession client foundation layer in the Passenger App so future migration phases can replace the old recovery system safely.
+
+Current situation:
+The app currently has multiple independent recovery mechanisms:
+- GET /rides/active
+- useRide local recovery state
+- BookingContext for Shuttle state
+- screen-level socket recovery
+
+The backend now provides:
+- GET /api/passenger/session
+- socket event: session:snapshot
+
+This task only creates the new client-side foundation.
+
+Required implementation:
+
+1. Create a dedicated ActiveSession API module.
+
+Add a new module responsible only for:
+
+- Calling:
+  GET /api/passenger/session
+
+- Using the existing authenticated API client.
+
+Requirements:
+- Follow the existing Axios/client architecture.
+- Do not create a second HTTP client.
+- Confirm the API path is generated correctly with the existing base URL.
+- Avoid creating:
+  /api/api/passenger/session
+  or
+  /passenger/session
+
+The module should expose:
+- fetchPassengerActiveSession()
+
+Do not add UI usage yet.
+
+---
+
+2. Add ActiveSession TypeScript types.
+
+Create a dedicated types file.
+
+Example location:
+src/session/activeSessionTypes.ts
+
+Define client-side types based ONLY on the attached backend contract.
+
+Include:
+
+- PassengerActiveSession
+- PassengerRideSession
+- PassengerShuttleSession
+- sessionType unions
+- ride vehicleType unions
+- status enums/unions
+
+Do not simplify fields.
+Do not remove nullable fields.
+Do not invent additional backend fields.
+
+The purpose is to have a strongly typed representation of the backend response.
+
+---
+
+3. Add an ActiveSession adapter layer.
+
+Create:
+
+src/session/activeSessionAdapter.ts
+
+Responsibilities:
+
+- Convert backend response into a client normalized model.
+
+The adapter should own:
+- session type handling
+- vehicle type normalization
+- status normalization
+- terminal/null handling
+
+Do not duplicate normalization logic in screens.
+
+The adapter must support:
+
+Passenger ride:
+- car
+- scooter
+- delivery
+
+Passenger shuttle:
+- shuttle_booking
+
+Important:
+The adapter must preserve the original backend data.
+Do not drop fields needed later for:
+- recovery UI
+- navigation
+- tracking
+- delivery recipient information
+- shuttle boarding state
+
+---
+
+4. Add a centralized ActiveSession state layer.
+
+Create:
+
+context/ActiveSessionContext.tsx
+
+or the closest existing state pattern used in the project.
+
+Responsibilities:
+
+- Store current normalized active session.
+- Store loading state.
+- Store last fetch error.
+- Provide:
+  - initializeActiveSession()
+  - refreshActiveSession()
+  - clearActiveSession()
+
+Rules:
+
+- A failed API request must NOT clear an existing active session.
+- Only:
+  - backend returns data: null
+  - explicit clear action
+  can remove the active session.
+
+Do not connect this context to navigation yet.
+
+---
+
+5. Add socket event support.
+
+Update the existing socket handling layer.
+
+Add support for:
+
+session:snapshot
+
+Payload:
+
+{
+  data: PassengerActiveSession | null
+}
+
+Requirements:
+
+- Do not create duplicate socket connections.
+- Use the existing socket instance.
+- Expose the event to ActiveSessionContext.
+
+Behavior:
+
+When:
+{
+ data: session
+}
+
+Update the stored active session.
+
+When:
+{
+ data: null
+}
+
+Clear the stored active session.
+
+Do not modify existing ride/shuttle socket events.
+
+---
+
+6. Add diagnostics.
+
+Add minimal development logging only where the project already allows it.
+
+Useful logs:
+
+- Active session fetch started
+- Active session received
+- session:snapshot received
+- Adapter conversion failure
+
+Do not add noisy logs.
+
+---
+
+Constraints:
+
+DO NOT:
+- modify app/index.tsx
+- modify navigation
+- modify CarServiceScreen
+- modify useRide
+- modify BookingContext
+- modify ticket.tsx
+- modify trip-detail.tsx
+- remove GET /rides/active yet
+- remove old recovery code yet
+
+This phase is only the foundation layer.
+
+---
+
+Validation required:
+
+Before finishing:
+
+1. Run TypeScript checks.
+
+2. Confirm:
+- no REST changes except adding the new client call.
+- no backend changes.
+- no navigation behavior changes.
+- no existing recovery behavior removed.
+
+Return a report containing:
+
+- Files created
+- Files modified
+- TypeScript result
+- Confirmation that old recovery logic remains untouched
+- Any assumptions made

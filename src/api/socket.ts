@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { tokenStore, registerSocketReconnect } from './client';
 import { normalizeApiUrl } from './normalizeApiUrl';
+import type { PassengerSessionSnapshotPayload } from '@/src/session/activeSessionTypes';
 
 const _rawApiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!_rawApiUrl) {
@@ -145,4 +146,5 @@ export interface RideSocketEvents {
   'shuttle:driver:location': (data: { tripId: string | number; driverId?: string | number; lat: number; lng: number; heading?: number }) => void;
   'shuttle:trip:status': (data: { tripId: string | number; status?: string; passengerCount?: number }) => void;
   'trip:activated': (data: { tripId: string | number; activatedAt?: string }) => void;
+  'session:snapshot': (data: PassengerSessionSnapshotPayload) => void;
 }
