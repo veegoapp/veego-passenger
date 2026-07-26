@@ -2,12 +2,6 @@ import type { NormalizedPassengerActiveSession } from './activeSessionTypes';
 
 export type ActiveSessionRecoveryParams = {
   resumeService?: 'car' | 'scooter' | 'delivery' | 'shuttle';
-  resumeRideId?: string;
-  resumeVehicleType?: 'car' | 'scooter' | 'delivery';
-  resumeStatus?: string;
-  resumeBookingId?: string;
-  resumeTripId?: string;
-  resumeBookingStatus?: string;
 };
 
 export type ActiveSessionRecoveryDestination = {
@@ -32,22 +26,12 @@ export function getActiveSessionRecoveryDestination(
   if (session.kind === 'ride') {
     return {
       pathname: '/(tabs)',
-      params: {
-        resumeService: session.serviceType,
-        resumeRideId: String(session.rideId),
-        resumeVehicleType: session.vehicleType,
-        resumeStatus: session.status,
-      },
+      params: { resumeService: session.serviceType },
     };
   }
 
   return {
     pathname: '/(tabs)',
-    params: {
-      resumeService: 'shuttle',
-      resumeBookingId: String(session.bookingId),
-      resumeTripId: String(session.trip.id),
-      resumeBookingStatus: session.bookingStatus,
-    },
+    params: { resumeService: 'shuttle' },
   };
 }

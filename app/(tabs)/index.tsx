@@ -170,11 +170,10 @@ function makeStyles(c: ThemeColors) {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  // Cold-start active-ride recovery (F3): app/index.tsx checks GET /rides/active
-  // before landing here and, if a car/scooter/delivery ride is in progress,
-  // appends `resumeService` so Home opens straight into that ride's flow
-  // instead of defaulting to shuttle. CarServiceScreen's own resumeActiveRide()
-  // effect (unchanged) then takes over from here. No param = unchanged default.
+  // resumeService is seeded by ActiveSession recovery navigation (app/index.tsx →
+  // getActiveSessionRecoveryDestination). It selects the correct initial service
+  // mode before hooks initialise, avoiding a shuttle-UI flash on ride recovery.
+  // CarServiceScreen's resumeActiveRide() then takes over once mounted.
   const { resumeService } = useLocalSearchParams<{ resumeService?: string }>();
   const [mode, setMode] = useState<ServiceMode>(() => (
     resumeService === 'car' || resumeService === 'scooter' || resumeService === 'delivery'

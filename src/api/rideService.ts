@@ -35,12 +35,6 @@ export async function getRide(rideId: string | number): Promise<any> {
   return data;
 }
 
-/** GET /rides/active — the caller's current non-terminal ride, if any. */
-export async function getActiveRide(): Promise<any> {
-  const { data } = await api.get('/rides/active');
-  return data;
-}
-
 /** GET /rides/estimate — price/ETA estimate for a pickup→dropoff pair. */
 export async function getRideEstimate(
   pickup: { latitude: number; longitude: number },
