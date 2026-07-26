@@ -15,6 +15,8 @@ import { RouteCard, FeaturedOffers } from '@/components/shuttle/RouteCard';
 import { usePromos } from '@/src/hooks/shared/usePromos';
 import { SectionHeader } from '@/components/shared/Shared';
 import { useBooking } from '@/context/BookingContext';
+import { useActiveSession } from '@/context/ActiveSessionContext';
+import { formatCairoDateTime } from '@/constants/data';
 import { useTabBar } from '@/context/TabBarContext';
 import { CarServiceScreen, CarServiceScreenHandle } from '@/components/car/CarServiceScreen';
 import { CarMap } from '@/components/car/CarMap';
@@ -180,7 +182,12 @@ export default function HomeScreen() {
       : 'shuttle'
   ));
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { openRoute, activeBooking } = useBooking();
+  const { openRoute } = useBooking();
+  const { session: activeSession } = useActiveSession();
+  const shuttleHeroSession = activeSession?.kind === 'shuttle' ? activeSession : null;
+  const { time: heroTime } = shuttleHeroSession
+    ? formatCairoDateTime(shuttleHeroSession.trip.departureTime)
+    : { time: '' };
   const { colors: c, glassStyle: gs, t, isRTL, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -486,10 +493,16 @@ export default function HomeScreen() {
                 />
               }
             >
-              {activeBooking && (
+              {shuttleHeroSession && (
                 <ActiveBookingHero
                   styles={styles} c={c} t={t as (key: string) => string}
-                  isAr={isAr} isRTL={isRTL} activeBooking={activeBooking}
+                  isAr={isAr} isRTL={isRTL}
+                  routeName={shuttleHeroSession.trip.route.name}
+                  routeNameAr={shuttleHeroSession.trip.route.nameAr ?? null}
+                  time={heroTime}
+                  fromName={shuttleHeroSession.boardingStation?.name ?? shuttleHeroSession.trip.route.fromLocation}
+                  fromNameAr={shuttleHeroSession.boardingStation?.nameAr ?? null}
+                  toName={shuttleHeroSession.trip.route.toLocation}
                   onPress={() => router.push('/ticket')}
                 />
               )}

@@ -1,8 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
-import type { Booking, PaymentStatus, Route, ShuttleBookingMeta, ShuttleDirection, ShuttleTripSlot } from '@/constants/data';
-import { formatCairoDateTime } from '@/constants/data';
+import type { Booking, PaymentStatus, Route, ShuttleDirection, ShuttleTripSlot } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
@@ -14,11 +13,8 @@ type BookingContextType = {
   tripSheetOpen: boolean;
   confirmSheetOpen: boolean;
   pendingBooking: Booking | null;
-  activeBooking: Booking | null;
   confirmedBookingId: string | null;
   confirmedTripId: number | null;
-  /** Real-time seat metadata returned by POST /bookings (§2.10) */
-  shuttleInfo: ShuttleBookingMeta | null;
   routeLoading: boolean;
   tripsLoading: boolean;
   scheduledTrips: ShuttleTripSlot[];
@@ -33,7 +29,6 @@ type BookingContextType = {
   handleBook: (booking: Booking) => void;
   handleConfirm: (promoCode?: string, paymentMethod?: 'cash' | 'wallet') => void;
   closeConfirmSheet: () => void;
-  setActiveBooking: (b: Booking | null) => void;
   fetchTripsForDate: (routeId: string, utcDate: string) => Promise<void>;
   loadMoreTrips: () => Promise<void>;
   clearBookingError: () => void;
@@ -46,10 +41,8 @@ const BookingContext = createContext<BookingContextType>({
   tripSheetOpen: false,
   confirmSheetOpen: false,
   pendingBooking: null,
-  activeBooking: null,
   confirmedBookingId: null,
   confirmedTripId: null,
-  shuttleInfo: null,
   routeLoading: false,
   tripsLoading: false,
   scheduledTrips: [],
@@ -64,7 +57,6 @@ const BookingContext = createContext<BookingContextType>({
   handleBook: () => {},
   handleConfirm: (_promoCode?: string, _paymentMethod?: 'cash' | 'wallet') => {},
   closeConfirmSheet: () => {},
-  setActiveBooking: () => {},
   fetchTripsForDate: async () => {},
   loadMoreTrips: async () => {},
   clearBookingError: () => {},
@@ -122,7 +114,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [tripSheetOpen, setTripSheetOpen] = useState(false);
   const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
   const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);
-  const [activeBooking, setActiveBooking] = useState<Booking | null>(null);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
   const [confirmedTripId, setConfirmedTripId] = useState<number | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -132,7 +123,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [seatCount, setSeatCount] = useState<number>(1);
-  const [shuttleInfo, setShuttleInfo] = useState<ShuttleBookingMeta | null>(null);
 
   // Refresh trips for a line after booking/cancel
   const refreshLineTrips = useCallback(async (routeId: string) => {
@@ -240,25 +230,21 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     if (svc && (!svc.isEnabled || svc.displayMode !== 'live')) {
       const msg = svc.unavailableMessage ?? 'Shuttle service is currently unavailable. Please try again later.';
       Alert.alert('Service Unavailable', msg);
-      setActiveBooking(null);
       return;
     }
 
-    setActiveBooking(pendingBooking);
     setBookingError(null);
 
     const tripId = pendingBooking.tripId ?? null;
 
     if (!tripId) {
       setBookingError('No trip selected. Please select a departure time.');
-      setActiveBooking(null);
       return;
     }
 
     // Client-side guard only — server must enforce seat count limits
     if (!seatCount || seatCount < 1 || seatCount > 2 || !Number.isInteger(seatCount)) {
       Alert.alert('Error', 'Invalid seat count');
-      setActiveBooking(null);
       confirmingRef.current = false;
       return;
     }
@@ -274,8 +260,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       boardingStation?.direction &&
       boardingStation.direction !== pendingBooking.direction
     ) {
-      setBookingError('Selected boarding station does not match this trip’s direction. Please choose a station again.');
-      setActiveBooking(null);
+      setBookingError("Selected boarding station does not match this trip's direction. Please choose a station again.");
       confirmingRef.current = false;
       return;
     }
@@ -299,10 +284,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (bookingId) {
         setConfirmedBookingId(String(bookingId));
         setConfirmedTripId(Number(tripId));
-        // Capture shuttle metadata block (§2.10)
-        if (data?.shuttle && typeof data.shuttle === 'object') {
-          setShuttleInfo(data.shuttle as ShuttleBookingMeta);
-        }
         bookingSuccess = true;
 
         // Refresh trip data immediately after booking
@@ -352,8 +333,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       } else {
         Alert.alert('Booking Failed', msg);
       }
-
-      setActiveBooking(null);
     } finally {
       confirmingRef.current = false;
     }
@@ -380,10 +359,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         tripSheetOpen,
         confirmSheetOpen,
         pendingBooking,
-        activeBooking,
         confirmedBookingId,
         confirmedTripId,
-        shuttleInfo,
         routeLoading,
         tripsLoading,
         scheduledTrips,
@@ -398,7 +375,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         handleBook,
         handleConfirm,
         closeConfirmSheet,
-        setActiveBooking,
         fetchTripsForDate,
         loadMoreTrips,
         clearBookingError,

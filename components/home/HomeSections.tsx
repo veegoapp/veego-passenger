@@ -222,9 +222,22 @@ export function ZoneServicesBanner({ c, t, hiddenCount, userZoneId }: {
 }
 
 /** ── Active shuttle booking hero card ── */
-export function ActiveBookingHero({ styles, c, t, isAr, isRTL, activeBooking, onPress }: {
-  styles: any; c: ThemeColors; t: T; isAr: boolean; isRTL: boolean;
-  activeBooking: any; onPress: () => void;
+export function ActiveBookingHero({ styles, c, t, isAr, isRTL, onPress,
+  routeName, routeNameAr, time, fromName, fromNameAr, toName,
+}: {
+  styles: any; c: ThemeColors; t: T; isAr: boolean; isRTL: boolean; onPress: () => void;
+  /** Route display name (English) */
+  routeName: string;
+  /** Route display name (Arabic) — null when not available */
+  routeNameAr: string | null;
+  /** Formatted departure time string */
+  time: string;
+  /** Boarding station name (English) */
+  fromName: string;
+  /** Boarding station name (Arabic) — null when not available */
+  fromNameAr: string | null;
+  /** Destination location name — toLocation from the route; no Arabic in contract */
+  toName: string;
 }) {
   return (
     <TouchableOpacity activeOpacity={0.92} onPress={onPress}>
@@ -233,23 +246,21 @@ export function ActiveBookingHero({ styles, c, t, isAr, isRTL, activeBooking, on
         <View style={styles.heroTop}>
           <View>
             <Text style={styles.heroLabel}>{t('next_departure')}</Text>
-            <Text style={styles.heroRouteName}>{isAr ? (activeBooking.route.nameAr ?? activeBooking.route.name) : activeBooking.route.name}</Text>
+            <Text style={styles.heroRouteName}>{isAr ? (routeNameAr ?? routeName) : routeName}</Text>
           </View>
-          <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{activeBooking.time}</Text></View>
+          <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{time}</Text></View>
         </View>
         <View style={styles.heroBottom}>
           <View style={styles.heroStation}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff' }} />
             <Text style={styles.heroStationName}>
-              {isAr ? (activeBooking.route.path[activeBooking.fromIdx].nameAr ?? activeBooking.route.path[activeBooking.fromIdx].name) : activeBooking.route.path[activeBooking.fromIdx].name}
+              {isAr ? (fromNameAr ?? fromName) : fromName}
             </Text>
           </View>
           {isRTL ? <ArrowLeft size={12} color="rgba(255,255,255,0.5)" /> : <ArrowRight size={12} color="rgba(255,255,255,0.5)" />}
           <View style={styles.heroStation}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#55c49a' }} />
-            <Text style={styles.heroStationName}>
-              {isAr ? (activeBooking.route.path[activeBooking.toIdx].nameAr ?? activeBooking.route.path[activeBooking.toIdx].name) : activeBooking.route.path[activeBooking.toIdx].name}
-            </Text>
+            <Text style={styles.heroStationName}>{toName}</Text>
           </View>
         </View>
       </LinearGradient>

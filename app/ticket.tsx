@@ -234,8 +234,7 @@ export default function TicketScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { session } = useActiveSession();
-  const { shuttleInfo, confirmedBookingId: bookingContextId, confirmedTripId: bookingContextTripId,
-          activeBooking } = useBooking();
+  const { confirmedBookingId: bookingContextId, confirmedTripId: bookingContextTripId } = useBooking();
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -256,29 +255,23 @@ export default function TicketScreen() {
     ? (shuttleSession.bookingStatus === 'pending' ? 'pending' : shuttleSession.trip.status)
     : undefined;
 
-  // Derive display values from real session fields — no synthetic data.
+  // All display values come from ActiveSession — no synthetic fallbacks.
   const { date: sessionDate, time: sessionTime } = shuttleSession
     ? formatCairoDateTime(shuttleSession.trip.departureTime)
     : { date: '', time: '' };
-  const displayRouteName   = shuttleSession?.trip.route.name   ?? activeBooking?.route.name   ?? '';
-  const displayRouteNameAr = shuttleSession?.trip.route.nameAr ?? activeBooking?.route.nameAr ?? null;
+  const displayRouteName   = shuttleSession?.trip.route.name   ?? '';
+  const displayRouteNameAr = shuttleSession?.trip.route.nameAr ?? null;
   const displayFromName    = shuttleSession
     ? (shuttleSession.boardingStation?.name ?? shuttleSession.trip.route.fromLocation)
-    : (activeBooking?.route.path[activeBooking.fromIdx]?.name ?? '');
-  const displayFromNameAr  = shuttleSession
-    ? (shuttleSession.boardingStation?.nameAr ?? null)
-    : (activeBooking?.route.path[activeBooking.fromIdx]?.nameAr ?? null);
-  const displayToName      = shuttleSession?.trip.route.toLocation
-    ?? activeBooking?.route.path[activeBooking.toIdx]?.name ?? '';
-  const displayToNameAr    = shuttleSession
-    ? null
-    : (activeBooking?.route.path[activeBooking.toIdx]?.nameAr ?? null);
-  const displayDirection   = shuttleSession?.trip.direction ?? activeBooking?.direction;
-  const displayTime        = sessionTime  || activeBooking?.time  || '';
-  const displayDate        = sessionDate  || activeBooking?.date  || '';
-  const displayPassengers  = shuttleSession?.seatCount   ?? activeBooking?.passengers ?? 1;
-  const displayPrice       = shuttleSession?.totalPrice  ?? activeBooking?.price      ?? 0;
-  const hasDisplayData     = !!shuttleSession || !!activeBooking;
+    : '';
+  const displayFromNameAr  = shuttleSession?.boardingStation?.nameAr ?? null;
+  // toLocation has no nameAr in the contract
+  const displayToName      = shuttleSession?.trip.route.toLocation ?? '';
+  const displayDirection   = shuttleSession?.trip.direction;
+  const displayTime        = sessionTime;
+  const displayDate        = sessionDate;
+  const displayPassengers  = shuttleSession?.seatCount   ?? 1;
+  const displayPrice       = shuttleSession?.totalPrice  ?? 0;
 
   const bookingId = resolvedBookingId;
 
@@ -407,13 +400,12 @@ export default function TicketScreen() {
     );
   }
 
-  if (!hasDisplayData) {
+  // bookingId is set (via confirmedBookingId transition window) but session not yet
+  // delivered by the socket — show a brief loading state rather than an error screen.
+  if (!shuttleSession) {
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: Typography.size.md, color: c.inkSoft }}>{t('no_booking')}</Text>
-        <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={styles.goHomeBtn}>
-          <Text style={styles.goHomeBtnText}>{t('go_home')}</Text>
-        </TouchableOpacity>
+        <Text style={{ fontSize: Typography.size.md, color: c.inkSoft }}>{t('loading')}</Text>
       </LinearGradient>
     );
   }
@@ -467,11 +459,7 @@ export default function TicketScreen() {
                 <Text style={styles.pendingBannerTitle}>Waiting for passengers</Text>
                 <Text style={styles.pendingBannerBody}>
                   {t('booking_pending_notice')}
-                  {shuttleSession
-                    ? `  · ${shuttleSession.trip.totalSeats - shuttleSession.trip.availableSeats}/${shuttleSession.trip.minRequired} seats filled`
-                    : shuttleInfo?.minRequired != null && shuttleInfo.bookedSeats != null
-                    ? `  · ${shuttleInfo.bookedSeats}/${shuttleInfo.minRequired} seats filled`
-                    : ''}
+                  {`  · ${shuttleSession.trip.totalSeats - shuttleSession.trip.availableSeats}/${shuttleSession.trip.minRequired} seats filled`}
                 </Text>
               </View>
             </View>
@@ -498,13 +486,7 @@ export default function TicketScreen() {
             <View style={styles.ticketHeaderGlow} />
             <View style={styles.ticketHeaderGlow2} />
 
-            {/* Trip badge top-right — route.code is not in the ActiveSession contract;
-                fall back to activeBooking (transition window) or omit if unavailable */}
-            {(activeBooking?.route.code) ? (
-              <View style={styles.ticketTripBadge}>
-                <Text style={styles.ticketTripBadgeText}>{t('line')} {activeBooking.route.code}</Text>
-              </View>
-            ) : null}
+            {/* route.code is not in the ActiveSession contract — badge omitted */}
 
             {/* Route name — Arabic when locale is Arabic (§3) */}
             <Text style={styles.ticketRouteName}>
@@ -543,7 +525,7 @@ export default function TicketScreen() {
               <View style={styles.ticketStation}>
                 <View style={[styles.ticketStationDot, { backgroundColor: c.accentMint }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>
-                  {isAr ? (displayToNameAr ?? displayToName) : displayToName}
+                  {displayToName}
                 </Text>
               </View>
             </View>
