@@ -9,7 +9,7 @@ import React from 'react';
 import { Bus, Car, Bike as ScooterIcon, Package, Ticket, User, X, ChevronDown, Wifi } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { type TripType, shuttleStatusLabel, isShuttleTripUpcoming, formatCairoDateTime } from '@/constants/data';
+import { type TripType, type ShuttleDirection, shuttleStatusLabel, isShuttleTripUpcoming, formatCairoDateTime } from '@/constants/data';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -17,6 +17,8 @@ import { useTrips } from '@/src/hooks/shared/useTrips';
 import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
+import { UpcomingTripCard } from '@/components/shuttle/UpcomingTripCard';
+import { AppLoader } from '@/components/ui/AppLoader';
 import { useTabBar } from '@/context/TabBarContext';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -61,6 +63,7 @@ function makeStyles(c: ThemeColors) {
     tabText: { fontSize: 12.5, fontWeight: Typography.weight.medium, color: c.inkSoft },
     tabTextActive: { color: c.isDark ? c.background : c.white },
     list: { paddingHorizontal: 20, gap: Spacing.md },
+    loadingWrap: { alignItems: 'center', paddingTop: 60 },
     empty: { alignItems: 'center', paddingTop: 60, gap: Spacing.md },
     emptyIcon: { width: 72, height: 72, borderRadius: 28, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
     emptyTitle: { fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, color: c.ink },
@@ -165,7 +168,7 @@ export default function TripsScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const routeColors = c.isDark ? ROUTE_COLORS_DARK : ROUTE_COLORS_LIGHT;
 
-  const { upcomingTrips, pastTrips, loading, refresh, hasMore, loadMore } = useTrips();
+  const { upcomingTrips, pastTrips, loading, error, refresh, hasMore, loadMore, retry } = useTrips();
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelSheetId, setCancelSheetId] = useState<string | null>(null);
@@ -330,7 +333,7 @@ export default function TripsScreen() {
         status: shuttleSession.trip.status,
         price: shuttleSession.totalPrice,
         tripId: shuttleSession.trip.id,
-        direction: shuttleSession.trip.direction,
+        direction: shuttleSession.trip.direction as ShuttleDirection | undefined,
         // Fields required by the trip card renderer — sourced from ActiveSession contract.
         bookingId: String(shuttleSession.bookingId),
         totalSeats: shuttleSession.trip.totalSeats,
@@ -342,6 +345,13 @@ export default function TripsScreen() {
 
   const activeLabel  = isAr ? t('trip_status_active')  : `${t('trip_status_active')} / ${t('trip_status_active')}`;
   const pendingLabel = isAr ? t('trip_status_pending') : `${t('trip_status_pending')} / قيد الانتظار`;
+
+  // Upcoming-specific loading/error states — sourced from useTrips(), which
+  // covers both the shuttle and ride fetches behind My Trips, so `loading`/
+  // `error` here may occasionally reflect the ride side even though Upcoming
+  // itself only reads shuttle data.
+  const showUpcomingLoading = tab === 'upcoming' && loading && upcomingTrips.length === 0 && !error;
+  const showUpcomingError   = tab === 'upcoming' && !!error && !loading && upcomingTrips.length === 0;
 
   return (
     <LinearGradient colors={c.luxeSoftGrad} style={{ flex: 1 }}>
@@ -376,6 +386,23 @@ export default function TripsScreen() {
           />
         }
       >
+        {showUpcomingLoading ? (
+          <View style={styles.loadingWrap}>
+            <AppLoader size={80} />
+          </View>
+        ) : showUpcomingError ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Ticket size={30} color={c.silver} />
+            </View>
+            <Text style={styles.emptyTitle}>{t('error')}</Text>
+            <Text style={styles.emptySub}>{error}</Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={retry} activeOpacity={0.88}>
+              <Text style={styles.emptyBtnText}>{t('retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+        <>
         {trips.length === 0 && (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
@@ -443,6 +470,28 @@ export default function TripsScreen() {
             typeof effectivePassCount === 'number' &&
             typeof trip.totalSeats === 'number' &&
             trip.totalSeats > 0;
+
+          if (tab === 'upcoming') {
+            return (
+              <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
+                <UpcomingTripCard
+                  trip={trip}
+                  tripStatus={effectiveStatus}
+                  passengerCount={effectivePassCount}
+                  isLive={isLive}
+                  canCancel={isUpcoming}
+                  isCancelling={isCancelling}
+                  accentColor={routeColors[trip.routeCode] ?? c.mist}
+                  onPress={() => {
+                    if (trip.id === 'live') { router.push('/ticket'); }
+                    else if (trip.bookingId) { router.push(`/trip-detail?id=${trip.bookingId}` as any); }
+                    Haptics.selectionAsync();
+                  }}
+                  onCancelPress={() => handleCancelPress(bookingKey)}
+                />
+              </Animated.View>
+            );
+          }
 
           return (
             <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
@@ -545,6 +594,8 @@ export default function TripsScreen() {
             </Animated.View>
           );
         })}
+        </>
+        )}
 
         {hasMore && tab === 'past' && (
           <TouchableOpacity
