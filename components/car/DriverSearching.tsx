@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
-import { Car } from 'lucide-react-native';
+import { Car, Bike, Package } from 'lucide-react-native';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
@@ -10,13 +10,26 @@ import { Spacing } from '@/constants/spacing';
 interface DriverSearchingProps {
   visible: boolean;
   onCancel?: () => void;
+  serviceType?: 'car' | 'scooter' | 'delivery';
+}
+
+function getServiceConfig(serviceType: 'car' | 'scooter' | 'delivery' | undefined) {
+  switch (serviceType) {
+    case 'scooter':
+      return { accentColor: '#10B981', IconComponent: Bike };
+    case 'delivery':
+      return { accentColor: '#8B5CF6', IconComponent: Package };
+    case 'car':
+    default:
+      return { accentColor: '#3B82F6', IconComponent: Car };
+  }
 }
 
 const RING_COUNT = 4;
 const RING_DURATION = 2200;
 const RING_STAGGER = 550;
 
-export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
+export function DriverSearching({ visible, onCancel, serviceType }: DriverSearchingProps) {
   const { colors: c, t } = useTheme();
   const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -91,7 +104,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [380, 0] });
   const isDark = c.isDark;
-  const accentColor = '#3B82F6';
+  const { accentColor, IconComponent } = getServiceConfig(serviceType);
   const panelBg = isDark ? 'rgba(10,10,22,0.97)' : 'rgba(250,250,254,0.97)';
 
   return (
@@ -132,9 +145,9 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
           })}
 
           {/* Centre icon */}
-          <View style={[styles.iconOuter, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)' }]}>
+          <View style={[styles.iconOuter, { backgroundColor: isDark ? `${accentColor}1F` : `${accentColor}14` }]}>
             <View style={[styles.iconInner, { backgroundColor: accentColor }]}>
-              <Car size={22} color="#ffffff" />
+              <IconComponent size={22} color="#ffffff" />
             </View>
           </View>
         </View>

@@ -1,0 +1,174 @@
+You previously completed a UI/UX redesign for the Passenger App ride flow (Car, Scooter, and Delivery). During a review, several service-specific UI issues and one localization issue were identified.
+
+This task is NOT a redesign.
+
+This is a final correction pass only.
+
+The current design direction is approved and should remain unchanged.
+
+Your objective is to fix only the issues described below while preserving 100% of the current functionality and design.
+
+======================================================================
+STRICT RULES
+======================================================================
+
+Do NOT modify:
+
+- Business logic
+- APIs
+- Backend integration
+- Socket events
+- Socket handling
+- Navigation
+- Ride lifecycle
+- State management
+- Hooks
+- Contexts
+- Providers
+- Services
+- Models
+- Existing callbacks
+- Existing animations
+- Existing layouts (except where required below)
+
+Do NOT redesign the screens again.
+
+Do NOT introduce unnecessary dependencies.
+
+Only perform the fixes listed below.
+
+======================================================================
+ISSUE #1
+DriverSearching is not service-aware
+======================================================================
+
+The current DriverSearching screen always displays:
+
+- A Car icon
+- A blue accent color
+
+This is incorrect.
+
+The UI must represent the selected ride service.
+
+Update DriverSearching so it becomes service-aware.
+
+Requirements:
+
+Car
+- Display the Car icon.
+- Use the Car visual identity/accent color.
+
+Scooter
+- Display the Scooter/Bike icon.
+- Never display a Car icon.
+- Use the Scooter accent color.
+
+Delivery
+- Display the Package icon.
+- Never display a Car icon.
+- Use the Delivery accent color.
+
+The following visual elements should automatically adapt based on service type:
+
+- Radar icon
+- Radar rings
+- Scanning animation color
+- Accent highlights
+- Icon background
+- Any other service-colored UI element
+
+Do NOT change:
+
+- Radar animation
+- Searching logic
+- Cancel logic
+- Component behavior
+- Existing callbacks
+
+Only make the UI aware of the selected service.
+
+======================================================================
+ISSUE #2
+Localization regression
+======================================================================
+
+The Active Ride UI contains hardcoded English text:
+
+"EN ROUTE"
+
+Hardcoded strings are not allowed.
+
+Replace every hardcoded ride-status label with the application's existing translation system.
+
+Use the existing translation key already used by the project for the active ride status.
+
+The result must continue supporting:
+
+- English
+- Arabic
+- RTL
+
+Do NOT introduce new hardcoded strings.
+
+======================================================================
+ISSUE #3
+Ride tier badge (optional enhancement)
+======================================================================
+
+The DriverAssignedCard component already receives rideType.
+
+Currently this information is never shown.
+
+If appropriate, add a small visual badge indicating:
+
+- Economy
+- Premium
+
+ONLY for Car rides.
+
+Do NOT display tier badges for:
+
+- Scooter
+- Delivery
+
+because those services do not use Economy/Premium tiers.
+
+This is purely a presentation improvement.
+
+Do not change any logic or data flow.
+
+======================================================================
+FINAL VERIFICATION
+======================================================================
+
+Before considering the task complete, verify:
+
+Car
+- Economy/Premium still work.
+- Searching shows the Car identity.
+- Assigned and Active Ride remain correct.
+
+Scooter
+- No Economy/Premium assumptions.
+- Scooter icon is shown while searching.
+- Scooter colors are used.
+- No Car-specific UI appears.
+
+Delivery
+- Package icon is shown while searching.
+- Delivery colors are used.
+- Recipient functionality remains unchanged.
+- No Economy/Premium assumptions exist.
+
+======================================================================
+FINAL REPORT
+======================================================================
+
+When finished, provide:
+
+1. Files modified.
+2. Summary of each fix.
+3. Confirmation that no business logic changed.
+4. Confirmation that no API, socket, navigation, or state-management code changed.
+5. Confirmation that Car, Scooter, and Delivery now each have their own correct visual identity.

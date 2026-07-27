@@ -1006,12 +1006,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       <DriverSearching
         visible={phase === 'in_ride' && rideState.status === 'searching'}
         onCancel={handleCancel}
+        serviceType={serviceType}
       />
 
       {/* Driver assigned / arrived / started */}
       <DriverAssignedCard
         visible={phase === 'in_ride' && ['driver_assigned', 'arrived', 'started'].includes(rideState.status)}
         rideType={selectedRide}
+        serviceType={serviceType}
         destination={destination}
         driver={rideState.driver}
         rideId={rideState.rideId}

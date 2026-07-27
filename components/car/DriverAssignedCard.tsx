@@ -14,6 +14,7 @@ import { Radius } from '@/constants/radius';
 interface DriverAssignedCardProps {
   visible: boolean;
   rideType: 'economy' | 'premium' | 'standard' | null;
+  serviceType?: 'car' | 'scooter' | 'delivery';
   destination: string | null;
   driver?: DriverInfo | null;
   rideId?: string | null;
@@ -26,7 +27,7 @@ interface DriverAssignedCardProps {
 }
 
 export function DriverAssignedCard({
-  visible, rideType, destination, driver, rideId, rideStatus,
+  visible, rideType, serviceType, destination, driver, rideId, rideStatus,
   waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
@@ -130,7 +131,7 @@ export function DriverAssignedCard({
             <View style={styles.cockpitStatusLeft}>
               <Animated.View style={[styles.enRouteDot, { opacity: enRouteDot }]} />
               <Text style={[styles.cockpitStatusLabel, { color: '#3B82F6' }]}>
-                EN ROUTE
+                {t('driver_en_route')}
               </Text>
             </View>
             <View style={styles.cockpitStatusRight}>
@@ -262,9 +263,27 @@ export function DriverAssignedCard({
 
             {/* Driver info */}
             <View style={styles.driverInfo}>
-              <Text style={[styles.driverName, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
-                {driver?.name ?? '—'}
-              </Text>
+              <View style={styles.driverNameRow}>
+                <Text style={[styles.driverName, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
+                  {driver?.name ?? '—'}
+                </Text>
+                {/* Economy / Premium badge — Car rides only */}
+                {serviceType === 'car' && (rideType === 'economy' || rideType === 'premium') && (
+                  <View style={[
+                    styles.tierBadge,
+                    rideType === 'premium'
+                      ? { backgroundColor: 'rgba(245,158,11,0.13)', borderColor: 'rgba(245,158,11,0.4)' }
+                      : { backgroundColor: 'rgba(59,130,246,0.10)', borderColor: 'rgba(59,130,246,0.35)' },
+                  ]}>
+                    <Text style={[
+                      styles.tierBadgeText,
+                      { color: rideType === 'premium' ? '#D97706' : '#3B82F6' },
+                    ]}>
+                      {rideType === 'premium' ? t('premium') : t('economy')}
+                    </Text>
+                  </View>
+                )}
+              </View>
 
               {/* Star rating */}
               <View style={styles.starsRow}>
@@ -490,8 +509,16 @@ const styles = StyleSheet.create({
     color: '#ffffff', fontSize: 22, fontWeight: '800' as any, letterSpacing: -0.5,
   },
   driverInfo: { flex: 1, gap: 4 },
+  driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   driverName: {
     fontSize: 20, fontWeight: '700' as any, letterSpacing: -0.4,
+  },
+  tierBadge: {
+    borderRadius: 6, borderWidth: 1,
+    paddingHorizontal: 7, paddingVertical: 2,
+  },
+  tierBadgeText: {
+    fontSize: 10, fontWeight: '700' as any, letterSpacing: 0.5, textTransform: 'uppercase' as any,
   },
   starsRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   ratingText: { fontSize: 12, fontWeight: '600' as any, marginLeft: 4 },
