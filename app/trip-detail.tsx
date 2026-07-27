@@ -222,7 +222,7 @@ function isWithin20Min(departureIso: string): boolean {
   return diffMs >= 0 && diffMs <= MINUTES_BEFORE_DEPARTURE * 60 * 1000;
 }
 
-function makeStyles(c: ThemeColors) {
+function makeStyles(c: ThemeColors, isRTL: boolean) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.md },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
@@ -312,7 +312,7 @@ export default function TripDetailScreen() {
   const top = insets.top;
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const styles = useMemo(() => makeStyles(c, isRTL), [c, isRTL]);
 
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [rideDetail, setRideDetail] = useState<RideDetail | null>(null);
