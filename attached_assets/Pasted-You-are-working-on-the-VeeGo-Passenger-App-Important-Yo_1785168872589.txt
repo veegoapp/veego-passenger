@@ -1,0 +1,166 @@
+You are working on the VeeGo Passenger App.
+
+Important:
+You have NO previous chat history.
+Do not assume any previous plan.
+Read the existing code first before making changes.
+
+We are implementing Phase 1 only from the navigation improvement plan.
+
+Scope:
+Fix route logic for Car / Scooter / Delivery rides only.
+
+DO NOT modify:
+- Shuttle logic
+- trip-detail.tsx
+- Shuttle station handling
+- Camera behavior
+- Map animations
+- Backend APIs
+- Socket architecture
+- Any unrelated files
+
+Current architecture:
+- Active ride tracking screen:
+  app/trip-tracking.tsx
+
+- Main tracking map:
+  components/shared/PassengerTrackingMap.native.tsx
+
+- Directions are already proxied through backend:
+  GET /directions
+
+Current problem:
+For Car/Scooter/Delivery rides, the passenger map always calculates and displays:
+
+driverLocation → dropoff
+
+This is wrong before pickup.
+
+Expected behavior:
+
+Phase 1: Driver going to passenger
+
+Statuses:
+- driver_assigned
+- arrived
+
+Map should show:
+- Driver marker
+- Pickup marker
+- Dropoff marker
+- Road route:
+  driverLocation → pickup
+
+ETA should represent:
+time until driver reaches pickup
+
+Phase 2: Trip started
+
+Status:
+- started
+
+Map should show:
+- Driver marker
+- Pickup marker
+- Dropoff marker
+- Road route:
+  driverLocation → dropoff
+
+ETA should represent:
+time until destination
+
+Completed/cancelled behavior should remain unchanged.
+
+Implementation requirements:
+
+1) Make PassengerTrackingMap phase-aware.
+
+Add a prop:
+
+tripPhase:
+'driver_arriving' | 'trip_started' | null
+
+The parent screen decides the phase.
+
+2) Update app/trip-tracking.tsx
+
+Map the existing ride statuses:
+
+driver_assigned
+arrived
+
+→ tripPhase = 'driver_arriving'
+
+
+started
+
+→ tripPhase = 'trip_started'
+
+
+completed/cancelled
+
+→ tripPhase = null
+
+
+Pass both pickup and dropoff coordinates to PassengerTrackingMap.
+
+3) Update PassengerTrackingMap.native.tsx
+
+Modify route fetching logic:
+
+If tripPhase === 'driver_arriving':
+
+Directions request:
+origin = driverLocation
+destination = pickup
+
+
+If tripPhase === 'trip_started':
+
+Directions request:
+origin = driverLocation
+destination = dropoff
+
+
+Do not create a new routing system.
+Reuse existing googleDirections helper.
+
+4) Update ETA calculation
+
+Before pickup:
+ETA target = pickup
+
+After trip starts:
+ETA target = dropoff
+
+Keep existing fallback calculations.
+
+5) Keep existing behavior:
+
+- Driver marker animation stays unchanged.
+- Socket driver location updates stay unchanged.
+- Existing polyline rendering stays unchanged.
+- Existing vehicle types continue using the same screen:
+  Car
+  Scooter
+  Delivery
+
+6) Before editing:
+
+First inspect these files:
+
+app/trip-tracking.tsx
+components/shared/PassengerTrackingMap.native.tsx
+src/utils/googleDirections.ts
+src/utils/geoHelpers.ts
+
+Then provide:
+
+1. Short explanation of current flow.
+2. Exact files you will modify.
+3. Step-by-step implementation plan.
+
+STOP and wait for approval before changing code.
+
+No code changes until approved.
