@@ -403,16 +403,19 @@ export default function TripsScreen() {
             );
           }
 
+          // Ride history items have no tripId (no detail screen to open) — the card stays non-clickable.
+          const canOpenHistoryDetail = trip.id === 'live' || !!trip.tripId;
+
           return (
             <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
               <HistoryTripCard
                 trip={trip}
                 accentColor={routeColors[trip.routeCode] ?? c.mist}
-                onPress={() => {
+                onPress={canOpenHistoryDetail ? () => {
                   if (trip.id === 'live') { router.push('/ticket'); }
                   else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
                   Haptics.selectionAsync();
-                }}
+                } : undefined}
               />
             </Animated.View>
           );

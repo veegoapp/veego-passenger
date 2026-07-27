@@ -26,7 +26,8 @@ interface HistoryTripCardProps {
   /** Normalized trip — shuttle (serviceType 'shuttle') or on-demand (car/scooter/delivery), already merged by useTrips(). */
   trip: Trip;
   accentColor: string;
-  onPress: () => void;
+  /** Omit (or pass undefined) when the trip has no navigable detail target — the card stays non-clickable. */
+  onPress?: () => void;
 }
 
 /**
@@ -44,7 +45,7 @@ export function HistoryTripCard({ trip, accentColor, onPress }: HistoryTripCardP
   const TripTypeIcon = TYPE_ICONS[trip.type];
 
   return (
-    <TouchableOpacity style={[gs, styles.card]} onPress={onPress} activeOpacity={0.9}>
+    <TouchableOpacity style={[gs, styles.card]} onPress={onPress} disabled={!onPress} activeOpacity={0.9}>
       <View style={[styles.accent, { backgroundColor: accentColor }]} />
 
       <View style={styles.top}>
