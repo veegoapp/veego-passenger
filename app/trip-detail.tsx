@@ -6,7 +6,7 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users, Phone, Car } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users, Phone, Car, HelpCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -24,6 +24,7 @@ import type { Station } from '@/components/shared/PassengerTrackingMap';
 import { RealMap } from '@/components/shared/RealMap';
 import { RatingSheet } from '@/components/shared/RatingSheet';
 import { SafetySheet } from '@/components/shared/SafetySheet';
+import { TripSupportSheet } from '@/components/shared/TripSupportSheet';
 import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -92,6 +93,7 @@ interface RideDetail {
   vehicleMake: string | null;
   vehicleModel: string | null;
   vehiclePlate: string | null;
+  vehicleType: 'car' | 'scooter' | 'delivery' | null;
 }
 
 const RIDE_LABEL = {
@@ -173,6 +175,9 @@ function mapRideToDetail(r: any): RideDetail {
     vehicleMake: vehicle.make ?? null,
     vehicleModel: vehicle.model ?? null,
     vehiclePlate: vehicle.plateNumber ?? vehicle.plate_number ?? null,
+    vehicleType: (['car', 'scooter', 'delivery'].includes(r.vehicleType ?? r.type ?? '')
+      ? (r.vehicleType ?? r.type)
+      : null) as 'car' | 'scooter' | 'delivery' | null,
   };
 }
 
@@ -303,6 +308,8 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     },
     nextStopLabel: { fontSize: 11, color: c.inkSoft, fontWeight: Typography.weight.semibold },
     nextStopName: { flex: 1, fontSize: 13, fontWeight: Typography.weight.bold, color: c.ink, textAlign: isRTL ? 'right' : 'left' },
+    helpBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: '#4d9ef6', backgroundColor: 'rgba(77,158,246,0.06)', padding: 14, flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: Spacing.sm },
+    helpBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: '#4d9ef6' },
   });
 }
 
@@ -328,6 +335,7 @@ export default function TripDetailScreen() {
   const [stations, setStations] = useState<Station[]>([]);
   const [boarded, setBoarded] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [nextStation, setNextStation] = useState<Station | null>(null);
 
@@ -922,7 +930,24 @@ export default function TripDetailScreen() {
               </View>
             </LinearGradient>
           )}
+
+          {/* Need Help — available for all ride statuses */}
+          <TouchableOpacity
+            style={styles.helpBtn}
+            onPress={() => setSupportOpen(true)}
+            activeOpacity={0.8}
+          >
+            <HelpCircle size={14} color="#4d9ef6" />
+            <Text style={styles.helpBtnText}>Need Help?</Text>
+          </TouchableOpacity>
         </ScrollView>
+
+        <TripSupportSheet
+          visible={supportOpen}
+          onClose={() => setSupportOpen(false)}
+          serviceType={rd.vehicleType ?? 'car'}
+          rideId={rd.id}
+        />
       </LinearGradient>
     );
   }
@@ -1133,6 +1158,16 @@ export default function TripDetailScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Need Help — always available for shuttle bookings */}
+        <TouchableOpacity
+          style={styles.helpBtn}
+          onPress={() => setSupportOpen(true)}
+          activeOpacity={0.8}
+        >
+          <HelpCircle size={14} color="#4d9ef6" />
+          <Text style={styles.helpBtnText}>Need Help?</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Shuttle driver rating sheet */}
@@ -1154,6 +1189,13 @@ export default function TripDetailScreen() {
         fallbackCoords={trip?.pickupLat != null && trip?.pickupLng != null
           ? { latitude: trip.pickupLat, longitude: trip.pickupLng }
           : null}
+      />
+
+      <TripSupportSheet
+        visible={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        serviceType="shuttle"
+        bookingId={trip?.bookingId ?? id}
       />
 
     </LinearGradient>

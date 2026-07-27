@@ -68,6 +68,23 @@ export async function createSupportTicket(issueType: string, message: string): P
   return data;
 }
 
+/**
+ * POST /support/tickets — open a trip-linked support ticket.
+ * Sends the booking/ride id and serviceType alongside the issue so ops can
+ * look up the trip directly from the ticket. Auth token is added automatically
+ * by the Axios request interceptor in client.ts.
+ */
+export async function createTripSupportTicket(body: {
+  issueType: string;
+  message: string;
+  serviceType: 'shuttle' | 'car' | 'scooter' | 'delivery';
+  bookingId?: string | number | null;
+  rideId?: string | number | null;
+}): Promise<any> {
+  const { data } = await api.post('/support/tickets', body);
+  return data;
+}
+
 /** POST /support/tickets/:id/attachments — upload one attachment (caller builds the FormData). */
 export async function uploadSupportAttachment(ticketId: string | number, form: FormData): Promise<void> {
   await api.post(`/support/tickets/${ticketId}/attachments`, form);
