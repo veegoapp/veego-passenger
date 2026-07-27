@@ -640,6 +640,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         showDriverMarker={showDriverMarker}
         onUserLocation={handleUserLocation}
         nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
+        serviceType={serviceType}
       />
 
       {/* ── Idle state: floating glassmorphic search card + inline expanded search ── */}

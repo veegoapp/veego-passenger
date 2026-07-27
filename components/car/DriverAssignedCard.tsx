@@ -420,6 +420,7 @@ const styles = StyleSheet.create({
   },
   cockpitStatusLabel: {
     fontSize: 11, fontWeight: '700' as any, letterSpacing: 1.2,
+    textTransform: 'uppercase' as any,
   },
   cockpitStatusRight: {
     flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1,

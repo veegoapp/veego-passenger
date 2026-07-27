@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { MapPin, Car, Navigation } from 'lucide-react-native';
+import { MapPin, Car, Bike, Package, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 import { haversineMeters } from '@/src/utils/geoHelpers';
@@ -17,13 +17,14 @@ interface CarMapProps {
   onUserLocation?: (loc: Coords) => void;
   /** Pre-booking nearby-driver markers — pass undefined/empty once a real driver is assigned. */
   nearbyDrivers?: NearbyDriver[];
+  serviceType?: 'car' | 'scooter' | 'delivery';
 }
 
 const CAIRO_DEFAULT: Coords = { latitude: 30.0444, longitude: 31.2357 };
 const ROUTE_REFRESH_INTERVAL_MS = 75_000;
 const SIGNIFICANT_MOVE_METERS = 300;
 
-export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers }: CarMapProps) {
+export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType }: CarMapProps) {
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<Coords>(CAIRO_DEFAULT);
   const onUserLocationRef = useRef(onUserLocation);
@@ -146,7 +147,13 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
         {showDriverMarker && driverLocation && (
           <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={styles.driverDot}>
-              <Car size={14} color="#ffffff" />
+              {serviceType === 'scooter' ? (
+                <Bike size={14} color="#ffffff" />
+              ) : serviceType === 'delivery' ? (
+                <Package size={14} color="#ffffff" />
+              ) : (
+                <Car size={14} color="#ffffff" />
+              )}
             </View>
           </Marker>
         )}
