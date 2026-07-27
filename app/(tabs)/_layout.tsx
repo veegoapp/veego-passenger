@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 4, zIndex: 99,
   },
   navInner: {
-    flexDirection: 'row', borderRadius: 30,
+    flexDirection: 'row', direction: 'ltr', borderRadius: 30,
     paddingVertical: 6, paddingHorizontal: 6,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 5,
   },
