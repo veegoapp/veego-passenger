@@ -75,6 +75,24 @@ export async function getMyBookings() {
   return Array.isArray(data) ? data : data?.data ?? data?.bookings ?? [];
 }
 
+export interface ShuttleMyTripsResponse {
+  data: any[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** GET /shuttle/my-trips — passenger's shuttle bookings (upcoming + history), paginated. */
+export async function getMyTrips(page = 1, limit = 10): Promise<ShuttleMyTripsResponse> {
+  const { data } = await api.get('/shuttle/my-trips', { params: { page, limit } });
+  return {
+    data: Array.isArray(data?.data) ? data.data : [],
+    total: Number(data?.total) || 0,
+    page: Number(data?.page) || page,
+    limit: Number(data?.limit) || limit,
+  };
+}
+
 /**
  * GET /bookings/:id — single booking (§11.2).
  * Response includes embedded trip data on most backends.

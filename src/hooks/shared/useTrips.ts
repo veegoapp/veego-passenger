@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import api from '../../api/client';
+import { useCallback, useMemo } from 'react';
+import { getMyTrips } from '../../api/shuttleService';
+import { getMyRides } from '../../api/rideService';
 import { BookingItemSchema, checkContract } from '../../api/schemas';
+import { usePaginatedList } from './usePaginatedList';
 import type { Trip, TripType, ShuttleTripStatus, BookingStatus, PaymentStatus } from '@/constants/data';
 import { isShuttleTripUpcoming, formatCairoDateTime } from '@/constants/data';
 
@@ -8,21 +10,15 @@ interface UseTripsResult {
   upcomingTrips: Trip[];
   pastTrips:     Trip[];
   loading:       boolean;
+  refreshing:    boolean;
   error:         string | null;
   hasMore:       boolean;
   loadMore:      () => Promise<void>;
   refresh:       () => Promise<void>;
+  retry:         () => Promise<void>;
 }
 
-function detectType(b: any): TripType {
-  const raw = (
-    b.type ?? b.bookingType ??
-    b.serviceType ?? b.category ?? ''
-  ).toLowerCase();
-  if (raw === 'car'     || raw === 'ride'   || raw === 'car_ride')     return 'car';
-  if (raw === 'scooter' || raw === 'scooter_ride')                     return 'scooter';
-  return 'shuttle';
-}
+const PAGE_LIMIT = 10;
 
 function mapBackendStatus(raw: string): ShuttleTripStatus {
   switch (raw.toLowerCase()) {
@@ -39,50 +35,38 @@ function mapBackendStatus(raw: string): ShuttleTripStatus {
 }
 
 /**
- * Maps a raw booking object (from GET /users/me/bookings) into the Trip display model.
- * Stores both English and Arabic name fields so screens can choose based on locale.
+ * Maps a raw item from GET /shuttle/my-trips into the normalized Trip model.
+ * Always tagged type: 'shuttle' — the source endpoint already tells us this.
  * Departure times are formatted in Africa/Cairo timezone per §21.9.
  */
-function mapApiBooking(b: any): Trip {
+function mapShuttleTrip(b: any): Trip {
   const trip  = b.trip  ?? {};
   const route = trip.route ?? trip.shuttleLine ?? trip.line ?? {};
 
-  // Booking status (raw) — §2.4, §21.1
   const rawBookingStatus = (b.status ?? '').toLowerCase() as BookingStatus;
-  // Trip status — drives upcoming/past classification
   const rawTripStatus    = (trip.shuttleStatus ?? trip.status ?? '').toLowerCase();
   const status: ShuttleTripStatus = mapBackendStatus(rawTripStatus || rawBookingStatus);
 
-  const type = detectType(b);
-
-  const departureIso =
-    trip.departureTime ?? b.scheduledAt ?? '';
-
-  // §21.9: display in Africa/Cairo, not UTC
+  const departureIso = trip.departureTime ?? b.scheduledAt ?? '';
   const { date, time } = formatCairoDateTime(departureIso);
 
-  // English + Arabic route names (§3)
-  const routeName   = route.name          ?? trip.name     ?? b.destinationName ?? (type === 'car' ? 'Car Ride' : type === 'scooter' ? 'Scooter Ride' : '—');
-  const routeNameAr = route.nameAr        ?? null;
+  const routeName   = route.name   ?? trip.name ?? '—';
+  const routeNameAr = route.nameAr ?? null;
 
-  const from   = route.fromLocation   ?? route.from  ?? b.pickupAddress     ?? b.origin ?? '—';
+  const from   = route.fromLocation   ?? route.from ?? b.pickupAddress ?? '—';
   const fromAr = route.fromLocationAr ?? null;
 
-  const to     = route.toLocation     ?? route.to    ?? b.destinationAddress ?? b.destinationName ?? b.destination ?? '—';
-  const toAr   = route.toLocationAr   ?? null;
+  const to     = route.toLocation   ?? route.to ?? b.destinationAddress ?? '—';
+  const toAr   = route.toLocationAr ?? null;
 
-  const routeCode = route.code ??
-    (trip.lineId ? `L${trip.lineId}` : null) ??
-    (type === 'car' ? 'CAR' : type === 'scooter' ? 'SCOOTER' : '—');
+  const routeCode = route.code ?? (trip.lineId ? `L${trip.lineId}` : '—');
 
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
-
-  // Only present when the backend actually provides it — never fabricated.
   const direction = trip.direction ?? b.direction ?? undefined;
 
   return {
     id:   String(b.id ?? Math.random()),
-    type,
+    type: 'shuttle',
     routeCode,
     routeName,
     routeNameAr,
@@ -97,7 +81,7 @@ function mapApiBooking(b: any): Trip {
     status,
     bookingStatus: rawBookingStatus || undefined,
     paymentStatus: b.paymentStatus as PaymentStatus | undefined,
-    price:         b.totalPrice ?? trip.price ?? b.price ?? b.fare ?? 0,
+    price:         b.totalPrice ?? trip.price ?? b.price ?? 0,
     tripId:        trip.id ?? b.tripId ?? null,
     bookingId:     String(b.id ?? ''),
     pickupLat:     pickupStation?.latitude ?? null,
@@ -113,86 +97,109 @@ function mapApiBooking(b: any): Trip {
   };
 }
 
-const PAGE_LIMIT = 10;
+/**
+ * Maps a raw item from GET /rides/my into the normalized Trip model.
+ * Ride items expose `vehicleType` directly (car | scooter | delivery).
+ */
+function mapRideTrip(r: any): Trip {
+  const type: TripType = r.vehicleType === 'scooter' || r.vehicleType === 'delivery' ? r.vehicleType : 'car';
+  const status: ShuttleTripStatus = mapBackendStatus(r.status ?? '');
 
+  const departureIso = r.completedAt ?? r.startedAt ?? r.requestedAt ?? r.createdAt ?? '';
+  const { date, time } = formatCairoDateTime(departureIso);
+
+  const pickup  = r.pickup  ?? {};
+  const dropoff = r.dropoff ?? {};
+
+  const label = type === 'scooter' ? 'Scooter Ride' : type === 'delivery' ? 'Delivery' : 'Car Ride';
+
+  return {
+    id:   String(r.id ?? Math.random()),
+    type,
+    routeCode: type.toUpperCase(),
+    routeName: label,
+    routeNameAr: null,
+    from:   pickup.address  ?? r.pickupAddress     ?? '—',
+    fromAr: null,
+    to:     dropoff.address ?? r.dropoffAddress    ?? '—',
+    toAr:   null,
+    date,
+    time,
+    departureIso,
+    seat: '—',
+    status,
+    bookingStatus: undefined,
+    paymentStatus: r.paymentStatus as PaymentStatus | undefined,
+    price:     r.finalPrice ?? r.estimatedPrice ?? r.price ?? 0,
+    tripId:    null,
+    bookingId: String(r.id ?? ''),
+    pickupLat: pickup.latitude  ?? null,
+    pickupLng: pickup.longitude ?? null,
+    seatCount: 1,
+  };
+}
+
+function byNewestFirst(a: Trip, b: Trip): number {
+  const at = new Date(a.departureIso).getTime();
+  const bt = new Date(b.departureIso).getTime();
+  return (isNaN(bt) ? 0 : bt) - (isNaN(at) ? 0 : at);
+}
+
+async function fetchShuttlePage(page: number) {
+  const res = await getMyTrips(page, PAGE_LIMIT);
+  if (__DEV__ && res.data.length > 0) checkContract('Shuttle my-trips item', res.data[0], BookingItemSchema);
+  return { items: res.data, page: res.page, total: res.total };
+}
+
+async function fetchRidePage(page: number) {
+  const res = await getMyRides(page, PAGE_LIMIT);
+  return { items: res.data, page: res.meta.page, total: res.meta.total };
+}
+
+/**
+ * My Trips data layer.
+ *
+ * Upcoming is derived solely from GET /shuttle/my-trips (rides have no
+ * scheduled/upcoming concept — an in-progress ride lives in ActiveSession,
+ * not in trip history). History merges GET /shuttle/my-trips (non-upcoming
+ * statuses) with GET /rides/my, normalizing both endpoints' differing
+ * pagination shapes (top-level total/page/limit vs meta.total/page/limit)
+ * into one common paging model via usePaginatedList.
+ */
 export function useTrips(): UseTripsResult {
-  const [upcomingTrips, setUpcomingTrips] = useState<Trip[]>([]);
-  const [pastTrips,     setPastTrips]     = useState<Trip[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [error,         setError]         = useState<string | null>(null);
-  const [page,          setPage]          = useState(1);
-  const [total,         setTotal]         = useState(0);
+  const shuttle = usePaginatedList(fetchShuttlePage, 'Failed to load shuttle trips');
+  const ride    = usePaginatedList(fetchRidePage, 'Failed to load ride trips');
 
-  const fetchTrips = useCallback(async (pageNum = 1) => {
-    if (pageNum === 1) setLoading(true);
-    setError(null);
-    try {
-      // §11.5: GET /users/me/bookings — replaces deprecated /shuttle/my-trips
-      const shuttleRes = await api
-        .get('/users/me/bookings', { params: { page: pageNum, limit: PAGE_LIMIT } })
-        .catch(() => ({ data: [] }));
+  const upcomingTrips = useMemo(
+    () => shuttle.items.map(mapShuttleTrip).filter((t) => isShuttleTripUpcoming(t.status)),
+    [shuttle.items],
+  );
 
-      const d = shuttleRes.data;
-      const shuttleBookings: any[] = Array.isArray(d)
-        ? d
-        : d.trips ?? d.bookings ?? d.data ?? d.items ?? [];
-      const serverTotal: number =
-        typeof d.total  === 'number' ? d.total  :
-        typeof d.count  === 'number' ? d.count  :
-        shuttleBookings.length;
+  const pastTrips = useMemo(() => {
+    const shuttleHistory = shuttle.items.map(mapShuttleTrip).filter((t) => !isShuttleTripUpcoming(t.status));
+    const rideHistory    = ride.items.map(mapRideTrip);
+    return [...shuttleHistory, ...rideHistory].sort(byNewestFirst);
+  }, [shuttle.items, ride.items]);
 
-      // Rides (car/scooter) — only on first page
-      const ridesRes = pageNum === 1
-        ? await api.get('/rides/my').catch(() => ({ data: [] }))
-        : { data: [] };
-      const rides: any[] = Array.isArray(ridesRes.data)
-        ? ridesRes.data
-        : ridesRes.data?.rides ?? ridesRes.data?.data ?? [];
-
-      if (__DEV__ && shuttleBookings.length > 0) checkContract('Shuttle booking', shuttleBookings[0], BookingItemSchema);
-      const mapped = [...shuttleBookings, ...rides].map(mapApiBooking);
-
-      const upcoming = mapped.filter((t) => isShuttleTripUpcoming(t.status));
-      const past     = mapped.filter((t) => !isShuttleTripUpcoming(t.status));
-
-      if (pageNum === 1) {
-        setUpcomingTrips(upcoming);
-        setPastTrips(past);
-      } else {
-        setUpcomingTrips((prev) => [...prev, ...upcoming]);
-        setPastTrips((prev)     => [...prev, ...past]);
-      }
-
-      setTotal(serverTotal);
-      setPage(pageNum);
-    } catch (e: any) {
-      const msg =
-        e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? 'Failed to load trips';
-      setError(msg);
-      if (pageNum === 1) {
-        setUpcomingTrips([]);
-        setPastTrips([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const refresh = useCallback(async () => {
-    await fetchTrips(1);
-  }, [fetchTrips]);
+  const loading    = shuttle.loading || ride.loading;
+  const refreshing = shuttle.refreshing || ride.refreshing;
+  const error      = shuttle.error ?? ride.error;
+  const hasMore    = shuttle.hasMore || ride.hasMore;
 
   const loadMore = useCallback(async () => {
-    const loaded = upcomingTrips.length + pastTrips.length;
-    if (loaded >= total) return;
-    await fetchTrips(page + 1);
-  }, [fetchTrips, page, upcomingTrips.length, pastTrips.length, total]);
+    await Promise.all([
+      shuttle.hasMore ? shuttle.loadMore() : Promise.resolve(),
+      ride.hasMore    ? ride.loadMore()    : Promise.resolve(),
+    ]);
+  }, [shuttle, ride]);
 
-  useEffect(() => {
-    fetchTrips(1);
-  }, [fetchTrips]);
+  const refresh = useCallback(async () => {
+    await Promise.all([shuttle.refresh(), ride.refresh()]);
+  }, [shuttle, ride]);
 
-  const hasMore = (upcomingTrips.length + pastTrips.length) < total;
+  const retry = useCallback(async () => {
+    await Promise.all([shuttle.retry(), ride.retry()]);
+  }, [shuttle, ride]);
 
-  return { upcomingTrips, pastTrips, loading, error, hasMore, loadMore, refresh };
+  return { upcomingTrips, pastTrips, loading, refreshing, error, hasMore, loadMore, refresh, retry };
 }

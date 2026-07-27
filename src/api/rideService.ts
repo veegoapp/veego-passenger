@@ -35,6 +35,25 @@ export async function getRide(rideId: string | number): Promise<any> {
   return data;
 }
 
+export interface RideMyTripsResponse {
+  data: any[];
+  meta: { total: number; page: number; limit: number };
+}
+
+/** GET /rides/my — passenger's ride (car/scooter/delivery) history, paginated. */
+export async function getMyRides(page = 1, limit = 10): Promise<RideMyTripsResponse> {
+  const { data } = await api.get('/rides/my', { params: { page, limit } });
+  const meta = data?.meta ?? {};
+  return {
+    data: Array.isArray(data?.data) ? data.data : [],
+    meta: {
+      total: Number(meta.total) || 0,
+      page: Number(meta.page) || page,
+      limit: Number(meta.limit) || limit,
+    },
+  };
+}
+
 /** GET /rides/estimate — price/ETA estimate for a pickup→dropoff pair. */
 export async function getRideEstimate(
   pickup: { latitude: number; longitude: number },
