@@ -305,6 +305,12 @@ export default function TripTrackingScreen() {
     };
   }, [params.rideId]);
 
+  const tripPhase = useMemo<'driver_arriving' | 'trip_started' | null>(() => {
+    if (status === 'driver_assigned' || status === 'arrived') return 'driver_arriving';
+    if (status === 'started') return 'trip_started';
+    return null;
+  }, [status]);
+
   const statusColor = STATUS_COLORS[status] ?? '#2563eb';
   const statusLabel = t((STATUS_LABEL_KEYS[status] ?? 'loading') as any);
   const isTerminal = status === 'completed' || status === 'cancelled' || status === 'timeout';
@@ -341,6 +347,7 @@ export default function TripTrackingScreen() {
         dropoff={dropoff}
         driverLocation={driverLocation}
         vehicleType={vehicleType}
+        tripPhase={tripPhase}
       />
 
       {/* Top bar */}

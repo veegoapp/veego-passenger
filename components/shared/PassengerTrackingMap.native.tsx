@@ -40,6 +40,9 @@ export interface TrackingMapProps {
   /** Called whenever the internally-computed ETA changes — lets the parent
    * screen display it without computing its own separate ETA. */
   onEtaChange?: (minutes: number | null) => void;
+  /** Current trip phase for car/scooter/delivery rides. Controls route target
+   * and ETA reference point. Ignored when stations are present (shuttle path). */
+  tripPhase?: 'driver_arriving' | 'trip_started' | null;
 }
 
 const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
@@ -59,6 +62,7 @@ export function PassengerTrackingMap({
   pickup, dropoff, driverLocation,
   stations = [], passengerStationId, style,
   vehicleType = 'shuttle', onEtaChange,
+  tripPhase = null,
 }: TrackingMapProps) {
   const { t } = useTheme();
 
@@ -125,6 +129,9 @@ export function PassengerTrackingMap({
   const [routeDurationSeconds, setRouteDurationSeconds] = useState<number | null>(null);
   const lastFetchOriginRef = useRef<LatLng | null>(null);
   const lastFetchAtRef = useRef(0);
+  // Tracks the previous tripPhase so the car-route effect can detect a phase
+  // change and force an immediate refetch for the new target.
+  const prevTripPhaseRef = useRef<typeof tripPhase>(tripPhase);
 
   useEffect(() => {
     if (!driverLocation || waypointsToTarget.length === 0) return;
@@ -158,22 +165,48 @@ export function PassengerTrackingMap({
   // ── Car-ride Google Directions route (no stations — car/scooter/delivery) ──
   // Fires only when no stations are present (shuttle path above handles the
   // stations case). Reuses the same refs so throttling is shared.
+  //
+  // Route target is phase-aware:
+  //   driver_arriving → driverLocation → pickup
+  //   trip_started    → driverLocation → dropoff
+  //   null            → clear route (completed / cancelled)
   useEffect(() => {
     if (sorted.length > 0) return;  // shuttle path handles non-empty stations
-    if (!driverLocation || !dropoff) return;
+
+    // Completed / cancelled: clear the active route immediately.
+    if (!tripPhase) {
+      setRouteCoords([]);
+      setRouteDurationSeconds(null);
+      lastFetchOriginRef.current = null;
+      lastFetchAtRef.current = 0;
+      prevTripPhaseRef.current = null;
+      return;
+    }
+
+    // Pick route destination based on current phase.
+    const routeTarget =
+      tripPhase === 'driver_arriving' ? (pickup ?? null) :
+      tripPhase === 'trip_started'    ? (dropoff ?? null) :
+      null;
+
+    if (!driverLocation || !routeTarget) return;
 
     const now = Date.now();
     const elapsed = now - lastFetchAtRef.current;
+    const phaseChanged = prevTripPhaseRef.current !== tripPhase;
     const movedSignificantly = lastFetchOriginRef.current
       ? haversineMeters(lastFetchOriginRef.current, driverLocation) >= SIGNIFICANT_MOVE_METERS
       : true; // always fetch the first time
 
-    if (elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
+    // Force an immediate refetch when the phase changes (new target); otherwise
+    // apply the normal distance + time throttle.
+    if (!phaseChanged && elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
 
+    prevTripPhaseRef.current = tripPhase;
     lastFetchOriginRef.current = { latitude: driverLocation.latitude, longitude: driverLocation.longitude };
     lastFetchAtRef.current = now;
 
-    fetchGoogleRoute(driverLocation, [dropoff]).then((result) => {
+    fetchGoogleRoute(driverLocation, [routeTarget]).then((result) => {
       if (result?.coords?.length) {
         setRouteCoords(result.coords);
         if (result.durationSeconds !== null) {
@@ -183,17 +216,31 @@ export function PassengerTrackingMap({
       // On failure keep existing routeCoords; straight-line fallback renders
       // below until a successful response arrives.
     });
-  }, [driverLocation?.latitude, driverLocation?.longitude, dropoff, sorted.length]);
+  }, [driverLocation?.latitude, driverLocation?.longitude, pickup, dropoff, sorted.length, tripPhase]);
 
   // ── ETA ─────────────────────────────────────────────────────────────────────
-  // Prefer Google Directions duration (more accurate); fall back to distance-based
+  // Prefer Google Directions duration (more accurate); fall back to distance-based.
+  // Shuttle path: falls back to next-station distance (targetStation — unchanged).
+  // Car/scooter/delivery path: falls back to a phase-aware pickup or dropoff target.
+  // The two paths are fully isolated — shuttle logic is not touched.
   const etaMinutes = useMemo(() => {
     if (routeDurationSeconds !== null) {
       return Math.max(1, Math.ceil(routeDurationSeconds / 60));
     }
-    if (!driverLocation || !targetStation) return null;
-    return estimateEtaMinutes(driverLocation, targetStation);
-  }, [routeDurationSeconds, driverLocation?.latitude, driverLocation?.longitude, targetStation]);
+    if (sorted.length > 0) {
+      // Shuttle fallback — distance to next station (original logic, untouched)
+      if (!driverLocation || !targetStation) return null;
+      return estimateEtaMinutes(driverLocation, targetStation);
+    }
+    // Car/scooter/delivery fallback — phase-aware distance target
+    const nonShuttleTarget =
+      tripPhase === 'driver_arriving' ? (pickup ?? null) :
+      tripPhase === 'trip_started'    ? (dropoff ?? null) :
+      null;
+    if (!driverLocation || !nonShuttleTarget) return null;
+    return estimateEtaMinutes(driverLocation, nonShuttleTarget);
+  }, [routeDurationSeconds, driverLocation?.latitude, driverLocation?.longitude,
+      targetStation, sorted.length, tripPhase, pickup, dropoff]);
 
   useEffect(() => {
     onEtaChange?.(etaMinutes);
