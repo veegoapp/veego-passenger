@@ -7,18 +7,25 @@ import type { Trip, TripType, ShuttleTripStatus, BookingStatus, PaymentStatus } 
 import { isShuttleTripUpcoming, formatCairoDateTime } from '@/constants/data';
 
 interface UseTripsResult {
-  upcomingTrips: Trip[];
-  pastTrips:     Trip[];
-  loading:       boolean;
-  refreshing:    boolean;
-  error:         string | null;
-  hasMore:       boolean;
-  loadMore:      () => Promise<void>;
-  refresh:       () => Promise<void>;
-  retry:         () => Promise<void>;
+  upcomingTrips:   Trip[];
+  pastTrips:       Trip[];
+  loading:         boolean;
+  refreshing:      boolean;
+  error:           string | null;
+  hasMore:         boolean;
+  loadMore:        () => Promise<void>;
+  refresh:         () => Promise<void>;
+  retry:           () => Promise<void>;
+  /** Isolated to the shuttle upcoming fetch — a rides/history failure never affects these. */
+  upcomingLoading: boolean;
+  upcomingError:   string | null;
+  upcomingRetry:   () => Promise<void>;
 }
 
 const PAGE_LIMIT = 10;
+
+/** Statuses a shuttle booking can still be self-cancelled from, used only when the backend omits `canCancel`. */
+const FALLBACK_CANCELLABLE_STATUSES: ShuttleTripStatus[] = ['scheduled', 'waiting_driver', 'driver_assigned', 'upcoming'];
 
 function mapBackendStatus(raw: string): ShuttleTripStatus {
   switch (raw.toLowerCase()) {
@@ -64,6 +71,10 @@ function mapShuttleTrip(b: any): Trip {
   const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
   const direction = trip.direction ?? b.direction ?? undefined;
 
+  // Backend field is authoritative; only fall back to a status-based guess when it's absent.
+  const canCancel: boolean =
+    typeof b.canCancel === 'boolean' ? b.canCancel : FALLBACK_CANCELLABLE_STATUSES.includes(status);
+
   return {
     id:   String(b.id ?? Math.random()),
     type: 'shuttle',
@@ -94,6 +105,7 @@ function mapShuttleTrip(b: any): Trip {
     totalSeats:     trip.totalSeats     ?? undefined,
     availableSeats: trip.availableSeats ?? undefined,
     direction,
+    canCancel,
   };
 }
 
@@ -201,5 +213,13 @@ export function useTrips(): UseTripsResult {
     await Promise.all([shuttle.retry(), ride.retry()]);
   }, [shuttle, ride]);
 
-  return { upcomingTrips, pastTrips, loading, refreshing, error, hasMore, loadMore, refresh, retry };
+  // Upcoming is shuttle-only, so its loading/error must never reflect a rides fetch failure.
+  const upcomingLoading = shuttle.loading;
+  const upcomingError   = shuttle.error;
+  const upcomingRetry   = shuttle.retry;
+
+  return {
+    upcomingTrips, pastTrips, loading, refreshing, error, hasMore, loadMore, refresh, retry,
+    upcomingLoading, upcomingError, upcomingRetry,
+  };
 }

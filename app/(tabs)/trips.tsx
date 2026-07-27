@@ -168,7 +168,10 @@ export default function TripsScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const routeColors = c.isDark ? ROUTE_COLORS_DARK : ROUTE_COLORS_LIGHT;
 
-  const { upcomingTrips, pastTrips, loading, error, refresh, hasMore, loadMore, retry } = useTrips();
+  const {
+    upcomingTrips, pastTrips, loading, refresh, hasMore, loadMore,
+    upcomingLoading, upcomingError, upcomingRetry,
+  } = useTrips();
   const [refreshing, setRefreshing] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelSheetId, setCancelSheetId] = useState<string | null>(null);
@@ -346,12 +349,9 @@ export default function TripsScreen() {
   const activeLabel  = isAr ? t('trip_status_active')  : `${t('trip_status_active')} / ${t('trip_status_active')}`;
   const pendingLabel = isAr ? t('trip_status_pending') : `${t('trip_status_pending')} / قيد الانتظار`;
 
-  // Upcoming-specific loading/error states — sourced from useTrips(), which
-  // covers both the shuttle and ride fetches behind My Trips, so `loading`/
-  // `error` here may occasionally reflect the ride side even though Upcoming
-  // itself only reads shuttle data.
-  const showUpcomingLoading = tab === 'upcoming' && loading && upcomingTrips.length === 0 && !error;
-  const showUpcomingError   = tab === 'upcoming' && !!error && !loading && upcomingTrips.length === 0;
+  // Isolated to the shuttle upcoming fetch — a rides/history failure never affects these.
+  const showUpcomingLoading = tab === 'upcoming' && upcomingLoading && upcomingTrips.length === 0 && !upcomingError;
+  const showUpcomingError   = tab === 'upcoming' && !!upcomingError && !upcomingLoading && upcomingTrips.length === 0;
 
   return (
     <LinearGradient colors={c.luxeSoftGrad} style={{ flex: 1 }}>
@@ -396,8 +396,8 @@ export default function TripsScreen() {
               <Ticket size={30} color={c.silver} />
             </View>
             <Text style={styles.emptyTitle}>{t('error')}</Text>
-            <Text style={styles.emptySub}>{error}</Text>
-            <TouchableOpacity style={styles.emptyBtn} onPress={retry} activeOpacity={0.88}>
+            <Text style={styles.emptySub}>{upcomingError}</Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={upcomingRetry} activeOpacity={0.88}>
               <Text style={styles.emptyBtnText}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
@@ -447,17 +447,13 @@ export default function TripsScreen() {
 
           const TripTypeIcon = TYPE_ICONS[trip.type];
 
-          // ── Cancel button: only on valid upcoming/pending trips with a booking ID ──
-          const isCancellableStatus =
-            effectiveStatus === 'scheduled' ||
-            effectiveStatus === 'upcoming'  ||
-            effectiveStatus === 'pending'   ||
-            isPendingStatus(effectiveStatus);
+          // ── Cancel button: gated on the data layer's canCancel (backend field, ──
+          // with a status-based fallback applied in useTrips.ts when absent) ──
           const isUpcoming =
             trip.id !== 'live' &&
-            isCancellableStatus &&
             hasValidRoute &&
-            !!(trip.bookingId || trip.id);
+            !!(trip.bookingId || trip.id) &&
+            !!trip.canCancel;
 
           // Use bookingId as the stable key for cancel state and fade animation
           const bookingKey = trip.bookingId || trip.id;

@@ -164,6 +164,8 @@ export type Trip = {
   availableSeats?: number;
   /** This booking's specific trip direction, when the backend provides it. */
   direction?: ShuttleDirection;
+  /** Whether this booking can be self-cancelled — from backend `canCancel`, with a status-based fallback when absent. */
+  canCancel?: boolean;
 };
 
 /** Pending booking held in BookingContext while user reviews in ConfirmSheet */
