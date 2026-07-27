@@ -83,8 +83,7 @@ export function DriverAssignedCard({
   const handleCall = () => {
     if (!driver?.phone) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const url = `tel:${driver.phone}`;
-    Linking.canOpenURL(url).then((ok: boolean) => { if (ok) Linking.openURL(url); }).catch(() => {});
+    Linking.openURL(`tel:${driver.phone}`).catch(() => {});
   };
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
