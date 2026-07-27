@@ -316,9 +316,7 @@ export const ar: typeof en = {
 
   app_version_label: 'إصدار التطبيق',
   terms_of_service: 'شروط الخدمة',
-  privacy_policy: 'سياسة الخصوصية',
   about_veego: 'عن VeeGo',
-  rate_app: 'قيّم التطبيق',
 
   recent_searches: 'عمليات البحث الأخيرة',
   clear_all: 'مسح الكل',

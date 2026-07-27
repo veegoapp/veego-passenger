@@ -315,9 +315,7 @@ export const en = {
 
   app_version_label: 'App version',
   terms_of_service: 'Terms of Service',
-  privacy_policy: 'Privacy policy',
   about_veego: 'About VeeGo',
-  rate_app: 'Rate the app',
 
   recent_searches: 'Recent searches',
   clear_all: 'Clear all',
