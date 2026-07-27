@@ -606,7 +606,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       }
     }
     handleReset();
-  }, [phase, rideState.rideId, cancelRide, handleReset, t]);
+  }, [phase, rideState.rideId, cancelRide, handleReset, t, paymentMethod]);
 
   useImperativeHandle(ref, () => ({
     selectDestination: handleSelectDestination,
