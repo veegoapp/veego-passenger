@@ -593,11 +593,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         Alert.alert(t('error'), result.error ?? t('cancel_error'));
         return;
       }
-      if (result.refundAmount && result.refundAmount > 0) {
+      // Only show a wallet refund message when the passenger actually paid via
+      // wallet or card — cash rides never receive a wallet credit even if the
+      // backend returns a non-zero refundAmount.
+      if (paymentMethod !== 'cash' && result.refundAmount && result.refundAmount > 0) {
         Alert.alert(
           t('ride_cancelled_title'),
           t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
         );
+      } else {
+        Alert.alert(t('ride_cancelled_title'), t('ride_cancelled_msg'));
       }
     }
     handleReset();
@@ -620,7 +625,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       : rideState.terminationReason === 'passenger' ? t('passenger_cancelled_msg')
       : null);
   const cancelSubtitle =
-    rideState.terminationReason === 'no_show' && rideState.refundAmount && rideState.refundAmount > 0
+    rideState.terminationReason === 'no_show' && paymentMethod !== 'cash' && rideState.refundAmount && rideState.refundAmount > 0
       ? `${cancelSubtitleBase ?? ''} ${t('ride_refund_msg').replace('{amount}', String(rideState.refundAmount))}`.trim()
       : cancelSubtitleBase;
 
@@ -958,8 +963,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         </Animated.View>
       )}
 
-      {/* Realtime connection indicator — live phases only */}
-      {phase === 'in_ride' && (
+      {/* Realtime connection indicator — live phases only.
+          Suppressed during 'searching' because the socket is still initialising
+          after ride creation; this is expected and not a real outage. */}
+      {phase === 'in_ride' && rideState.status !== 'searching' && (
         <ConnectionBanner style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50 }} />
       )}
 

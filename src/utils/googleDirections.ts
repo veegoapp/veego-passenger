@@ -80,20 +80,26 @@ export async function fetchGoogleRoute(
     // Unwrap envelope if backend wraps response: { data: { ... } }
     const data = raw?.data ?? raw;
 
-    if (data?.status !== 'OK' || !data.routes?.length) return null;
+    // Backend returns { polyline: LatLng[], distanceM, durationS }
+    // (not Google's native { status, routes[{overview_polyline:{points}}] })
+    if (Array.isArray(data?.polyline) && data.polyline.length > 0) {
+      const coords: LatLng[] = data.polyline.map((pt: any) => ({
+        latitude: pt.latitude,
+        longitude: pt.longitude,
+      }));
+      const durationSeconds: number | null =
+        typeof data.durationS === 'number' ? data.durationS : null;
+      return { coords, durationSeconds };
+    }
 
-    const route = data.routes[0];
-    const coords = decodePolyline(route.overview_polyline.points);
-
-    const durationSeconds: number | null = route.legs
-      ? (route.legs as any[]).reduce(
-          (sum: number, leg: any) => sum + (leg.duration?.value ?? 0),
-          0,
-        )
-      : null;
-
-    return { coords, durationSeconds };
-  } catch {
+    if (__DEV__) {
+      console.warn('[googleDirections] Unexpected response shape:', JSON.stringify(data)?.slice(0, 200));
+    }
+    return null;
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[googleDirections] Request failed:', err);
+    }
     return null;
   }
 }

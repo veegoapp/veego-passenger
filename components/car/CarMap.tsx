@@ -106,9 +106,17 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
     let cancelled = false;
     fetchGoogleRoute(routeOrigin, [destCoords]).then((result) => {
       if (cancelled) return;
-      // Fall back to a straight line if the backend directions request fails
-      // or returns no path — keeps the polyline rendering without crashing.
-      setRouteCoords(result?.coords?.length ? result.coords : [routeOrigin, destCoords]);
+      if (result?.coords?.length) {
+        setRouteCoords(result.coords);
+      } else {
+        // Directions fetch failed or returned no coords — fall back to a
+        // straight line so the polyline still renders. Log in dev so failures
+        // are visible instead of silently drawing a wrong route.
+        if (__DEV__) {
+          console.warn('[CarMap] fetchGoogleRoute returned no coords — falling back to straight line');
+        }
+        setRouteCoords([routeOrigin, destCoords]);
+      }
     });
 
     return () => { cancelled = true; };

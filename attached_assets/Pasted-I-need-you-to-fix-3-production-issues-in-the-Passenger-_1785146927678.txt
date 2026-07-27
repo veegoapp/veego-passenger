@@ -1,0 +1,214 @@
+I need you to fix 3 production issues in the Passenger App ride flow (Car, Scooter, Delivery).
+
+Important:
+Before changing anything, analyze the existing code flow and verify the root cause. Do not apply a superficial UI workaround. Preserve all existing business logic, APIs, sockets, navigation, and state management unless the fix explicitly requires it.
+
+====================================================
+ISSUE 1 — Google Directions route is still a straight line
+====================================================
+
+Problem:
+When passenger selects destination and requests a ride, the map draws a straight line between pickup and destination instead of the real road route.
+
+Previous attempt:
+A Google Directions integration was already implemented, but the issue still exists. Do not assume the previous fix was correct. Trace the full data flow again.
+
+Backend investigation result:
+The backend endpoint is working:
+
+GET /directions
+
+Backend file:
+artifacts/api-server/src/routes/directions.ts
+
+It calls Google Directions API successfully and returns this format:
+
+{
+  polyline: [
+    { latitude, longitude },
+    { latitude, longitude }
+  ],
+  distanceM,
+  durationS
+}
+
+The backend DOES NOT return Google's native format:
+
+{
+ status,
+ routes: [
+   {
+     overview_polyline: {
+       points
+     }
+   }
+ ]
+}
+
+The current mobile parser appears to expect Google's native response shape.
+
+Required fix:
+- Update Passenger App route parsing to correctly consume the backend response:
+  - response.polyline
+  - response.distanceM
+  - response.durationS
+
+- Remove the silent fallback behavior that hides failures and immediately creates a straight line.
+
+Current bad behavior:
+If directions parsing fails, the app silently does:
+
+[pickup coordinate, destination coordinate]
+
+which creates a straight line.
+
+Required:
+- Keep fallback only as a last resort.
+- Add proper error logging in development so future failures are visible.
+- Make sure Car, Scooter, and Delivery all use the same route drawing logic.
+
+Do NOT change the backend response format.
+
+====================================================
+ISSUE 2 — Cash cancellation shows false wallet refund
+====================================================
+
+Problem:
+Passenger chooses CASH payment.
+Passenger cancels the ride.
+The app shows:
+
+"50 EGP has been refunded to your wallet"
+
+This is wrong.
+
+Backend investigation result:
+
+File:
+rideCancellationService.ts
+
+The backend calculates:
+
+refundAmount = estimatedPrice - cancellationFee - waitingCharge
+
+for all payment methods.
+
+However:
+
+Wallet transaction is correctly skipped for cash:
+
+if (ride.paymentMethod !== "cash") {
+   applyWalletEntry(...)
+}
+
+The problem:
+The backend still returns:
+
+{
+ refundAmount: estimatedPrice
+}
+
+even for cash rides.
+
+So the frontend receives a fake refund amount and displays a wallet refund message.
+
+Required fix:
+Frontend should become defensive.
+
+Rules:
+- If paymentMethod === "cash":
+    NEVER show wallet refund message.
+- Only show refund message when:
+    paymentMethod is wallet/card
+    AND actual refundAmount > 0
+
+Do not break existing wallet refund behavior.
+
+Also review the cancel response handling and make sure cancellation messages are accurate:
+Cash:
+"Ride cancelled successfully"
+
+Wallet/card:
+"X EGP has been refunded to your wallet"
+
+Do not modify cancellation APIs.
+
+====================================================
+ISSUE 3 — "Reconnecting to server" appears during driver search
+====================================================
+
+Problem:
+Passenger requests ride successfully.
+Driver search starts.
+Map screen suddenly shows:
+
+"Reconnecting to server..."
+
+However:
+- Ride request reaches backend.
+- Driver receives request.
+- Socket eventually works.
+
+Backend investigation result:
+
+Backend socket behavior is correct.
+
+Flow:
+
+1. Passenger creates ride through REST API.
+2. App changes ride state to searching.
+3. Socket connection is still establishing.
+4. ConnectionBanner appears because socket state is "connecting".
+
+This is not a real outage.
+
+Required fix:
+Do not show ConnectionBanner during the initial driver searching phase.
+
+The banner should only appear when:
+- driver is assigned
+- driver arrived
+- ride started
+
+During:
+status === "searching"
+
+hide/suppress the reconnect banner because socket initialization is expected.
+
+Do NOT modify:
+- socket events
+- socket reconnect logic
+- backend
+- session snapshot handling
+
+====================================================
+Safety requirements
+====================================================
+
+Do not modify:
+
+- Ride creation logic
+- API contracts
+- Socket events
+- Socket listeners
+- Navigation routes
+- Authentication
+- Context providers
+- Database logic
+- Shuttle service
+- Wallet logic except UI handling mentioned above
+
+Keep all existing:
+- Car
+- Scooter
+- Delivery
+
+flows working.
+
+After implementation provide a report containing:
+
+1. Exact files modified.
+2. Root cause of each issue.
+3. Confirmation that no business logic/API/socket/navigation changes happened.
+4. TypeScript validation result.
+5. Any remaining risks.
