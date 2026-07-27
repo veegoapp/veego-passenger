@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
+import { Car } from 'lucide-react-native';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
@@ -11,14 +12,22 @@ interface DriverSearchingProps {
   onCancel?: () => void;
 }
 
+const RING_COUNT = 4;
+const RING_DURATION = 2200;
+const RING_STAGGER = 550;
+
 export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   const { colors: c, t } = useTheme();
   const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
-  const pulseRing = useRef(new Animated.Value(0)).current;
+
+  // One animated value per radar ring
+  const rings = useRef(
+    Array.from({ length: RING_COUNT }, () => new Animated.Value(0))
+  ).current;
+
+  // Scanning bar
+  const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -29,80 +38,146 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   }, [visible]);
 
   useEffect(() => {
-    const makeDot = (anim: Animated.Value, delay: number) =>
-      Animated.loop(Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(anim, { toValue: 1, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.delay(600),
-      ]));
+    const ringAnims = rings.map((ring, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * RING_STAGGER),
+          Animated.timing(ring, {
+            toValue: 1,
+            duration: RING_DURATION,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(ring, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    );
 
-    const d1 = makeDot(dot1, 0);
-    const d2 = makeDot(dot2, 200);
-    const d3 = makeDot(dot3, 400);
-
-    const pulse = Animated.loop(
+    const scan = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseRing, { toValue: 1, duration: 1500, easing: Easing.out(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulseRing, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(scanAnim, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+        Animated.timing(scanAnim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: false,
+        }),
       ])
     );
 
     if (visible) {
-      d1.start(); d2.start(); d3.start(); pulse.start();
+      ringAnims.forEach((a) => a.start());
+      scan.start();
     } else {
-      d1.stop(); d2.stop(); d3.stop(); pulse.stop();
-      dot1.setValue(0); dot2.setValue(0); dot3.setValue(0); pulseRing.setValue(0);
+      ringAnims.forEach((a) => a.stop());
+      scan.stop();
+      rings.forEach((r) => r.setValue(0));
+      scanAnim.setValue(0);
     }
 
-    return () => { d1.stop(); d2.stop(); d3.stop(); pulse.stop(); };
+    return () => {
+      ringAnims.forEach((a) => a.stop());
+      scan.stop();
+    };
   }, [visible]);
 
-  const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] });
-  const scale = pulseRing.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.4] });
-  const opacity = pulseRing.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.4, 0.2, 0] });
-
-  const sheetBg = c.isDark ? 'rgba(16,16,32,0.98)' : 'rgba(250,250,252,0.98)';
-  const borderCol = c.isDark ? 'rgba(90,95,160,0.25)' : 'rgba(255,255,255,0.8)';
+  const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [380, 0] });
+  const isDark = c.isDark;
+  const accentColor = '#3B82F6';
+  const panelBg = isDark ? 'rgba(10,10,22,0.97)' : 'rgba(250,250,254,0.97)';
 
   return (
     <Animated.View
       style={[
         styles.sheet,
         {
-          backgroundColor: sheetBg,
-          borderTopColor: borderCol,
-          paddingBottom: tabBarHeight + 16,
+          backgroundColor: panelBg,
+          paddingBottom: tabBarHeight + 20,
           opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={styles.handle} />
+      {/* Drag handle */}
+      <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }]} />
 
-      <View style={styles.content}>
-        <View style={styles.iconWrap}>
-          <Animated.View style={[styles.ring, { borderColor: '#2d2d42', transform: [{ scale }], opacity }]} />
-          <View style={[styles.iconCircle, { backgroundColor: c.isDark ? 'rgba(45,45,66,0.18)' : 'rgba(45,45,66,0.07)' }]}>
-            <View style={[styles.iconInner, { backgroundColor: '#2d2d42' }]}>
-              <Text style={{ fontSize: 24 }}>⚡</Text>
+      <View style={styles.body}>
+        {/* Radar animation */}
+        <View style={styles.radarWrap}>
+          {rings.map((ring, i) => {
+            const scale = ring.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1.9] });
+            const opacity = ring.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.55, 0] });
+            return (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.ring,
+                  {
+                    borderColor: accentColor,
+                    transform: [{ scale }],
+                    opacity,
+                  },
+                ]}
+              />
+            );
+          })}
+
+          {/* Centre icon */}
+          <View style={[styles.iconOuter, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)' }]}>
+            <View style={[styles.iconInner, { backgroundColor: accentColor }]}>
+              <Car size={22} color="#ffffff" />
             </View>
           </View>
         </View>
 
-        <Text style={[styles.title, { color: c.ink }]}>{t('searching_driver')}</Text>
-        <Text style={[styles.subtitle, { color: c.inkSoft }]}>{t('searching_desc')}</Text>
-
-        <View style={styles.dotsRow}>
-          <Animated.View style={[styles.dot, { backgroundColor: '#2d2d42', opacity: dot1 }]} />
-          <Animated.View style={[styles.dot, { backgroundColor: '#2d2d42', opacity: dot2 }]} />
-          <Animated.View style={[styles.dot, { backgroundColor: '#2d2d42', opacity: dot3 }]} />
+        {/* Status text */}
+        <View style={styles.textZone}>
+          <Text style={[styles.title, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
+            {t('searching_driver')}
+          </Text>
+          <Text style={[styles.subtitle, { color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.42)' }]}>
+            {t('searching_desc')}
+          </Text>
         </View>
 
+        {/* Scanning bar */}
+        <View style={[styles.scanTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }]}>
+          <Animated.View
+            style={[
+              styles.scanBar,
+              {
+                backgroundColor: accentColor,
+                width: scanAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
+          />
+        </View>
+
+        {/* Cancel */}
         {onCancel && (
-          <TouchableOpacity style={[styles.cancelBtn, { borderColor: c.border }]} onPress={onCancel} activeOpacity={0.7}>
-            <Text style={[styles.cancelTxt, { color: c.inkSoft }]}>{t('cancel')}</Text>
+          <TouchableOpacity
+            onPress={onCancel}
+            activeOpacity={0.75}
+            style={[styles.cancelBtn, {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+              borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)',
+            }]}
+          >
+            <Text style={[styles.cancelText, { color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)' }]}>
+              {t('cancel')}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -112,33 +187,71 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 
 const styles = StyleSheet.create({
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 28,
-    elevation: 24,
-    paddingTop: 6,
-    zIndex: 999,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -14 },
+    shadowOpacity: 0.3, shadowRadius: 30, elevation: 26,
+    paddingTop: 8, zIndex: 999,
   },
-  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: 20 },
-  content: { alignItems: 'center', paddingHorizontal: Spacing.xl, gap: 14, paddingBottom: Spacing.sm },
-  iconWrap: { width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
-  ring: { position: 'absolute', width: 90, height: 90, borderRadius: 45, borderWidth: 2 },
-  iconCircle: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
-  iconInner: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, fontFamily: 'Inter_700Bold' },
-  subtitle: { fontSize: 13, textAlign: 'center', lineHeight: 18, paddingHorizontal: Spacing.md },
-  dotsRow: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginVertical: 2 },
-  dot: { width: 7, height: 7, borderRadius: 3.5 },
-  cancelBtn: { marginTop: Spacing.xs, borderWidth: 1, borderRadius: 14, paddingHorizontal: 28, paddingVertical: 10 },
-  cancelTxt: { fontSize: 13.5, fontWeight: Typography.weight.semibold },
+  handle: {
+    width: 36, height: 4, borderRadius: 2,
+    alignSelf: 'center', marginBottom: Spacing.xl,
+  },
+  body: {
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    gap: 20,
+    paddingBottom: Spacing.md,
+  },
+
+  // Radar
+  radarWrap: {
+    width: 120, height: 120,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  ring: {
+    position: 'absolute',
+    width: 100, height: 100, borderRadius: 50,
+    borderWidth: 1.5,
+  },
+  iconOuter: {
+    width: 68, height: 68, borderRadius: 34,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  iconInner: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Text
+  textZone: { alignItems: 'center', gap: 6 },
+  title: {
+    fontSize: Typography.size.lg,
+    fontWeight: Typography.weight.bold,
+    letterSpacing: -0.3,
+    fontFamily: 'Inter_700Bold',
+  },
+  subtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: 16,
+  },
+
+  // Scan bar
+  scanTrack: {
+    width: '80%', height: 3, borderRadius: 2, overflow: 'hidden',
+  },
+  scanBar: {
+    height: '100%', borderRadius: 2,
+  },
+
+  // Cancel
+  cancelBtn: {
+    paddingVertical: 13, paddingHorizontal: 40,
+    borderRadius: 14, borderWidth: 1,
+  },
+  cancelText: {
+    fontSize: 14, fontWeight: '600' as any,
+  },
 });
