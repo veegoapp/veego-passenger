@@ -22,13 +22,17 @@ export default function LangSelectScreen() {
   const handleSelect = async (lang: 'en' | 'ar') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelected(lang);
-    setLanguage(lang);
+    // Persist the first-launch flag BEFORE calling setLanguage. For Arabic,
+    // setLanguage triggers an app restart (RTL layout change) after writing
+    // to @veego_prefs_v1. If the flag is written after setLanguage, the
+    // restart fires before the flag is in storage and the screen re-appears
+    // on every subsequent launch.
     try {
       await AsyncStorage.setItem(LANG_SELECTED_KEY, '1');
     } catch (err) {
-      // Non-fatal — the app just re-shows this screen next launch.
       if (__DEV__) console.warn('[LangSelect] failed to persist language choice:', err);
     }
+    setLanguage(lang);
     setTimeout(() => router.replace('/onboarding'), 320);
   };
 

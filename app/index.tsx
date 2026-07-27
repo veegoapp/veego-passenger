@@ -83,7 +83,12 @@ async function checkAuthAndNavigate(onAuthenticated: () => Promise<void>) {
     await markOnboardingSeen();
     await onAuthenticated();
   } catch {
-    router.replace('/lang-select');
+    // Do not fall back to /lang-select on unexpected errors (expired token,
+    // network failure, initializeActiveSession throw, etc.). The user likely
+    // already selected a language — routing them to lang-select resets the
+    // first-launch flow incorrectly. /auth is the safe fallback: it handles
+    // all unauthenticated states and never re-shows the language screen.
+    router.replace('/auth');
   }
 }
 
