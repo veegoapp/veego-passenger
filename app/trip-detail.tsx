@@ -6,7 +6,7 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users, Phone, Car } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -15,11 +15,13 @@ import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
 import type { ShuttleDirection } from '@/constants/data';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { cancelBooking, submitShuttleRating } from '@/src/api/shuttleService';
+import { getRide } from '@/src/api/rideService';
 import { getGivenRatings } from '@/src/api/userService';
 import { getSocket } from '@/src/api/socket';
 import api, { tokenStore } from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import type { Station } from '@/components/shared/PassengerTrackingMap';
+import { RealMap } from '@/components/shared/RealMap';
 import { RatingSheet } from '@/components/shared/RatingSheet';
 import { SafetySheet } from '@/components/shared/SafetySheet';
 import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
@@ -65,6 +67,113 @@ interface DriverLocation {
   lat: number;
   lng: number;
   heading?: number;
+}
+
+/** On-demand ride (car/scooter/delivery) trip detail — from GET /rides/:id. */
+interface RideDetail {
+  id: string | number;
+  status: string;
+  pickupAddress: string;
+  dropoffAddress: string;
+  pickupLat: number | null;
+  pickupLng: number | null;
+  dropoffLat: number | null;
+  dropoffLng: number | null;
+  requestedAt: string | null;
+  driverAssignedAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  actualDurationMinutes: number | null;
+  distanceKm: number | null;
+  finalPrice: number | null;
+  driverName: string | null;
+  driverPhone: string | null;
+  driverRating: number | null;
+  vehicleMake: string | null;
+  vehicleModel: string | null;
+  vehiclePlate: string | null;
+}
+
+const RIDE_LABEL = {
+  requestedAt:      { en: 'Requested',      ar: 'وقت الطلب' },
+  driverAssignedAt: { en: 'Driver Assigned', ar: 'تعيين السائق' },
+  startedAt:        { en: 'Started',        ar: 'بدأت' },
+  completedAt:      { en: 'Completed',      ar: 'اكتملت' },
+  distance:         { en: 'Distance',       ar: 'المسافة' },
+  duration:         { en: 'Duration',       ar: 'المدة' },
+  price:            { en: 'Price',          ar: 'السعر' },
+  driver:           { en: 'Driver',         ar: 'السائق' },
+  rating:           { en: 'Rating',         ar: 'التقييم' },
+  vehicle:          { en: 'Vehicle',        ar: 'المركبة' },
+  plate:            { en: 'Plate',          ar: 'رقم اللوحة' },
+  phone:            { en: 'Phone',          ar: 'الهاتف' },
+};
+
+const RIDE_STATUS_LABEL: Record<string, { en: string; ar: string }> = {
+  requested:       { en: 'Requested',        ar: 'تم الطلب' },
+  searching:       { en: 'Finding driver',   ar: 'جاري البحث عن سائق' },
+  driver_assigned: { en: 'Driver assigned',  ar: 'تم تعيين السائق' },
+  driver_arrived:  { en: 'Driver arrived',   ar: 'وصل السائق' },
+  active:          { en: 'In progress',      ar: 'جارية' },
+  started:         { en: 'In progress',      ar: 'جارية' },
+  completed:       { en: 'Completed',        ar: 'مكتملة' },
+  cancelled:       { en: 'Cancelled',        ar: 'ملغية' },
+};
+
+const RIDE_STATUS_COLOR: Record<string, string> = {
+  requested: '#f59e0b',
+  searching: '#f59e0b',
+  driver_assigned: '#4d9ef6',
+  driver_arrived: '#4d9ef6',
+  active: '#55c49a',
+  started: '#55c49a',
+  completed: '#94a3b8',
+  cancelled: '#dc2626',
+};
+
+function rideStatusLabel(status: string, isAr: boolean): string {
+  const entry = RIDE_STATUS_LABEL[status];
+  if (!entry) return status || '—';
+  return isAr ? entry.ar : entry.en;
+}
+
+/** Formats an ISO timestamp via the app's existing Cairo-timezone date utility; '—' when absent. */
+function formatRideTimestamp(iso: string | null): string {
+  if (!iso) return '—';
+  const { date, time } = formatCairoDateTime(iso);
+  if (date === '—') return '—';
+  return `${date} · ${time}`;
+}
+
+function mapRideToDetail(r: any): RideDetail {
+  const driver = r.driver ?? {};
+  const vehicle = driver.vehicle ?? r.vehicle ?? {};
+  const pickup = r.pickup ?? {};
+  const dropoff = r.dropoff ?? {};
+
+  return {
+    id: r.id ?? '',
+    status: String(r.status ?? '').toLowerCase(),
+    pickupAddress: r.pickupAddress ?? pickup.address ?? '—',
+    dropoffAddress: r.dropoffAddress ?? dropoff.address ?? '—',
+    pickupLat: r.pickupLatitude ?? pickup.latitude ?? null,
+    pickupLng: r.pickupLongitude ?? pickup.longitude ?? null,
+    dropoffLat: r.dropoffLatitude ?? dropoff.latitude ?? null,
+    dropoffLng: r.dropoffLongitude ?? dropoff.longitude ?? null,
+    requestedAt: r.requestedAt ?? null,
+    driverAssignedAt: r.driverAssignedAt ?? null,
+    startedAt: r.startedAt ?? null,
+    completedAt: r.completedAt ?? null,
+    actualDurationMinutes: typeof r.actualDurationMinutes === 'number' ? r.actualDurationMinutes : null,
+    distanceKm: typeof r.distanceKm === 'number' ? r.distanceKm : null,
+    finalPrice: typeof r.finalPrice === 'number' ? r.finalPrice : (typeof r.price === 'number' ? r.price : null),
+    driverName: driver.name ?? null,
+    driverPhone: driver.phone ?? null,
+    driverRating: typeof driver.rating === 'number' ? driver.rating : null,
+    vehicleMake: vehicle.make ?? null,
+    vehicleModel: vehicle.model ?? null,
+    vehiclePlate: vehicle.plateNumber ?? vehicle.plate_number ?? null,
+  };
 }
 
 function mapApiToDetail(b: any): TripDetail {
@@ -206,6 +315,7 @@ export default function TripDetailScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const [trip, setTrip] = useState<TripDetail | null>(null);
+  const [rideDetail, setRideDetail] = useState<RideDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
@@ -339,11 +449,28 @@ export default function TripDetailScreen() {
           }
           return detail;
         });
+        setRideDetail(null);
         tripIdRef.current = detail.id;
         bookingIdRef.current = detail.bookingId ?? null;
-      } else {
-        setError(t('trip_load_error'));
+        return;
       }
+
+      // Not a shuttle booking — this id may belong to an on-demand ride.
+      const rideRaw = await getRide(id).catch(() => null);
+      const rideObj = rideRaw?.data ?? rideRaw;
+      if (rideObj && (rideObj.id != null || rideObj.pickupAddress != null || rideObj.pickup != null)) {
+        const rideUserId = rideObj.userId ?? rideObj.passengerId ?? null;
+        if (currentUserId != null && rideUserId != null &&
+            String(rideUserId) !== String(currentUserId)) {
+          router.replace('/(tabs)');
+          return;
+        }
+        setRideDetail(mapRideToDetail(rideObj));
+        setTrip(null);
+        return;
+      }
+
+      setError(t('trip_load_error'));
     } catch (e: any) {
       setError(e?.response?.data?.message ?? e?.message ?? t('trip_load_error'));
     } finally {
@@ -408,9 +535,10 @@ export default function TripDetailScreen() {
       .catch(() => {});
   }, [liveStatus, trip?.id, trip?.status]);
 
-  // Socket: join/leave trip room + listen for driver location + live status updates
+  // Socket: join/leave trip room + listen for driver location + live status updates.
+  // Shuttle-only — ride details don't use the shuttle trip-room protocol.
   useEffect(() => {
-    if (!id) return;
+    if (!id || rideDetail) return;
 
     let cleanedUp = false;
     const handlers: Array<() => void> = [];
@@ -503,7 +631,7 @@ export default function TripDetailScreen() {
         socket.emit('leave:trip', { tripId: id });
       }).catch(() => {});
     };
-  }, [id, fetchStations]);
+  }, [id, fetchStations, rideDetail]);
 
   // ETA is now computed inside PassengerTrackingMap (single source of truth)
   // and reported back via onEtaChange below — no local calculation here.
@@ -671,7 +799,7 @@ export default function TripDetailScreen() {
     );
   }
 
-  if (error || !trip) {
+  if (error || (!trip && !rideDetail)) {
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
         <View style={[styles.header, { paddingTop: top + 12 }]}>
@@ -689,6 +817,119 @@ export default function TripDetailScreen() {
         </View>
       </LinearGradient>
     );
+  }
+
+  if (rideDetail) {
+    const rd = rideDetail;
+    const hasDriverInfo = !!rd.driverName || !!rd.vehicleMake || !!rd.vehiclePlate;
+    const hasMapCoords = (rd.pickupLat != null && rd.pickupLng != null) || (rd.dropoffLat != null && rd.dropoffLng != null);
+    const ridePickup = rd.pickupLat != null && rd.pickupLng != null ? { latitude: rd.pickupLat, longitude: rd.pickupLng } : undefined;
+    const rideDropoff = rd.dropoffLat != null && rd.dropoffLng != null ? { latitude: rd.dropoffLat, longitude: rd.dropoffLng } : undefined;
+    const rideStatusColor = RIDE_STATUS_COLOR[rd.status] ?? c.silver;
+
+    return (
+      <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+        <View style={[styles.header, { paddingTop: top + 12 }]}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
+          <View style={styles.shareBtn} />
+        </View>
+
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+          <LinearGradient
+            colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+            style={styles.card}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.routeTitle}>{rd.pickupAddress}</Text>
+            <Text style={styles.routeSub}>{isRTL ? ' ← ' : ' → '}{rd.dropoffAddress}</Text>
+
+            <View style={styles.statusRow}>
+              <View style={[styles.statusDot, { backgroundColor: rideStatusColor }]} />
+              <Text style={[styles.statusText, { color: rideStatusColor }]}>
+                {rideStatusLabel(rd.status, isAr)}
+              </Text>
+            </View>
+
+            <View style={styles.gridRow}>
+              {[
+                { label: RIDE_LABEL.requestedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.requestedAt) },
+                { label: RIDE_LABEL.driverAssignedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.driverAssignedAt) },
+                { label: RIDE_LABEL.startedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.startedAt) },
+                { label: RIDE_LABEL.completedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.completedAt) },
+              ].map((item) => (
+                <View key={item.label} style={styles.gridItem}>
+                  <Text style={styles.gridLabel}>{item.label}</Text>
+                  <Text style={styles.gridValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.gridRow}>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>{RIDE_LABEL.distance[isAr ? 'ar' : 'en']}</Text>
+                <Text style={styles.gridValue}>{rd.distanceKm != null ? `${rd.distanceKm} km` : '—'}</Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>{RIDE_LABEL.duration[isAr ? 'ar' : 'en']}</Text>
+                <Text style={styles.gridValue}>{rd.actualDurationMinutes != null ? `${rd.actualDurationMinutes} ${t('min')}` : '—'}</Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>{RIDE_LABEL.price[isAr ? 'ar' : 'en']}</Text>
+                <Text style={styles.gridValue}>{rd.finalPrice != null ? `${rd.finalPrice} ${t('egp')}` : '—'}</Text>
+              </View>
+            </View>
+          </LinearGradient>
+
+          {hasMapCoords && (
+            <View style={styles.mapCard}>
+              <RealMap pickup={ridePickup} dropoff={rideDropoff} style={{ borderRadius: Radius.xl }} />
+            </View>
+          )}
+
+          {hasDriverInfo && (
+            <LinearGradient
+              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+              style={styles.card}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.sectionLabel}>{RIDE_LABEL.driver[isAr ? 'ar' : 'en']}</Text>
+              <View style={styles.gridRow}>
+                <View style={styles.gridItem}>
+                  <Text style={styles.gridLabel}>{RIDE_LABEL.driver[isAr ? 'ar' : 'en']}</Text>
+                  <Text style={styles.gridValue}>{rd.driverName ?? '—'}</Text>
+                </View>
+                <View style={styles.gridItem}>
+                  <Text style={styles.gridLabel}>{RIDE_LABEL.rating[isAr ? 'ar' : 'en']}</Text>
+                  <Text style={styles.gridValue}>{rd.driverRating != null ? rd.driverRating.toFixed(1) : '—'}</Text>
+                </View>
+                <View style={styles.gridItem}>
+                  <Text style={styles.gridLabel}>{RIDE_LABEL.phone[isAr ? 'ar' : 'en']}</Text>
+                  <Text style={styles.gridValue}>{rd.driverPhone ?? '—'}</Text>
+                </View>
+                <View style={styles.gridItem}>
+                  <Text style={styles.gridLabel}>{RIDE_LABEL.vehicle[isAr ? 'ar' : 'en']}</Text>
+                  <Text style={styles.gridValue}>
+                    {rd.vehicleMake || rd.vehicleModel ? `${rd.vehicleMake ?? ''} ${rd.vehicleModel ?? ''}`.trim() : '—'}
+                  </Text>
+                </View>
+                <View style={styles.gridItem}>
+                  <Text style={styles.gridLabel}>{RIDE_LABEL.plate[isAr ? 'ar' : 'en']}</Text>
+                  <Text style={styles.gridValue}>{rd.vehiclePlate ?? '—'}</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          )}
+        </ScrollView>
+      </LinearGradient>
+    );
+  }
+
+  if (!trip) {
+    // Unreachable given the guards above — keeps trip narrowed to non-null below.
+    return null;
   }
 
   const statusColor: Record<string, string> = {
