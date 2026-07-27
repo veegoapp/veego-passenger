@@ -43,6 +43,13 @@ export interface TrackingMapProps {
   /** Current trip phase for car/scooter/delivery rides. Controls route target
    * and ETA reference point. Ignored when stations are present (shuttle path). */
   tripPhase?: 'driver_arriving' | 'trip_started' | null;
+  /** Whether the passenger has boarded the shuttle. Controls which stations are
+   * visible: before boarding = up to boarding stop; after = remaining stops only.
+   * Ignored for car/scooter/delivery (no stations). */
+  boarded?: boolean;
+  /** Called whenever the shuttle's current target station changes (next stop).
+   * Fired only when stations are present; null when no target exists. */
+  onTargetStationChange?: (station: Station | null) => void;
 }
 
 const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
@@ -63,10 +70,29 @@ export function PassengerTrackingMap({
   stations = [], passengerStationId, style,
   vehicleType = 'shuttle', onEtaChange,
   tripPhase = null,
+  boarded = false,
+  onTargetStationChange,
 }: TrackingMapProps) {
   const { t } = useTheme();
 
   const sorted = useMemo(() => [...stations].sort((a, b) => a.order - b.order), [stations]);
+
+  // ── Passenger-aware station filtering (shuttle only) ─────────────────────────
+  // Before boarding: show stations from the start up to and including the
+  // passenger's boarding station — hide irrelevant stops further down the line.
+  // After boarding:  show only the remaining stops after the boarding station,
+  // dropping completed stops as the bus passes through them.
+  const visibleStations = useMemo(() => {
+    if (sorted.length === 0 || passengerStationId == null) return sorted;
+    const boardingIdx = sorted.findIndex((s) => s.id === passengerStationId);
+    if (boardingIdx === -1) return sorted;
+    if (!boarded) {
+      // Before boarding — clip at (and including) the passenger's stop
+      return sorted.slice(0, boardingIdx + 1);
+    }
+    // After boarding — show remaining stops ahead; hide completed ones behind
+    return sorted.slice(boardingIdx + 1).filter((s) => s.status !== 'completed');
+  }, [sorted, passengerStationId, boarded]);
 
   // ── Driver marker animation ──────────────────────────────────────────────────
   const initLat = driverLocation?.latitude ?? pickup?.latitude ?? DEFAULT_CENTER.latitude;
@@ -105,12 +131,24 @@ export function PassengerTrackingMap({
   useEffect(() => {
     if (!driverLocation) return;
 
-    // ── Shuttle path: preserve original behavior unchanged ───────────────────
+    // ── Shuttle path: fit driver + next target station (Phase 3 camera) ──────
     if (sorted.length > 0) {
-      mapRef.current?.animateToRegion(
-        { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-        100,
-      );
+      if (isUserPanning) return;
+      const shuttleTarget = targetStation
+        ? { latitude: targetStation.latitude, longitude: targetStation.longitude }
+        : null;
+      if (shuttleTarget) {
+        mapRef.current?.fitToCoordinates(
+          [driverLocation, shuttleTarget],
+          { edgePadding: FIT_PADDING, animated: true },
+        );
+      } else {
+        // No target station available yet — center on driver as fallback
+        mapRef.current?.animateToRegion(
+          { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+          100,
+        );
+      }
       return;
     }
 
@@ -139,7 +177,7 @@ export function PassengerTrackingMap({
       [driverLocation, secondPoint],
       { edgePadding: FIT_PADDING, animated: true },
     );
-  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length, tripPhase, isUserPanning, pickup, dropoff]);
+  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length, tripPhase, isUserPanning, pickup, dropoff, targetStation]);
 
   // Recenter: fit the same phase-appropriate pair and clear the pan flag.
   const handleRecenter = useCallback(() => {
@@ -300,21 +338,29 @@ export function PassengerTrackingMap({
     onEtaChange?.(etaMinutes);
   }, [etaMinutes, onEtaChange]);
 
+  // ── Target station callback (shuttle only) ───────────────────────────────────
+  // Fires whenever the computed next stop changes — lets the parent screen show
+  // "Next stop: <name>" without duplicating the target-station logic.
+  useEffect(() => {
+    if (sorted.length === 0) return;
+    onTargetStationChange?.(targetStation ?? null);
+  }, [targetStation, onTargetStationChange, sorted.length]);
+
   // ── Straight-line fallback coords (used until Google route loads) ────────────
   const completedCoords = useMemo((): LatLng[] => {
-    const done = sorted.filter((s) => s.status === 'completed');
+    const done = visibleStations.filter((s) => s.status === 'completed');
     if (done.length < 2) return [];
     return done.map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
-  }, [sorted]);
+  }, [visibleStations]);
 
   const upcomingCoords = useMemo((): LatLng[] => {
-    const ahead = sorted.filter((s) => s.status !== 'completed');
+    const ahead = visibleStations.filter((s) => s.status !== 'completed');
     if (ahead.length === 0) return [];
     const pts: LatLng[] = [];
     if (driverLocation) pts.push(driverLocation);
     ahead.forEach((s) => pts.push({ latitude: s.latitude, longitude: s.longitude }));
     return pts;
-  }, [sorted, driverLocation]);
+  }, [visibleStations, driverLocation]);
 
   const fallbackCoords = useMemo((): LatLng[] => {
     if (sorted.length > 0) return [];
@@ -365,8 +411,8 @@ export function PassengerTrackingMap({
           <Polyline coordinates={fallbackCoords} strokeColor="#2563eb" strokeWidth={3.5} />
         )}
 
-        {/* Station markers */}
-        {sorted.map((station) => {
+        {/* Station markers — filtered to passenger-relevant stops only */}
+        {visibleStations.map((station) => {
           const isPassenger = passengerStationId != null && station.id === passengerStationId;
           const fill = stationFill(station.status);
           return (

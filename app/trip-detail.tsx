@@ -185,6 +185,15 @@ function makeStyles(c: ThemeColors) {
     modalActions: { flexDirection: 'row', gap: 10, marginTop: Spacing.xs },
     modalBtn: { flex: 1, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     modalBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
+    nextStopCard: {
+      marginHorizontal: 20, marginBottom: Spacing.sm,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+      backgroundColor: c.isDark ? 'rgba(37,99,235,0.12)' : '#eff6ff',
+      borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10,
+      borderWidth: 1, borderColor: c.isDark ? 'rgba(37,99,235,0.25)' : '#bfdbfe',
+    },
+    nextStopLabel: { fontSize: 11, color: c.inkSoft, fontWeight: Typography.weight.semibold },
+    nextStopName: { flex: 1, fontSize: 13, fontWeight: Typography.weight.bold, color: c.ink, textAlign: isRTL ? 'right' : 'left' },
   });
 }
 
@@ -210,6 +219,7 @@ export default function TripDetailScreen() {
   const [boarded, setBoarded] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
+  const [nextStation, setNextStation] = useState<Station | null>(null);
 
   const tripIdRef = useRef<string | number | null>(null);
   const bookingIdRef = useRef<string | number | null>(null);
@@ -217,6 +227,20 @@ export default function TripDetailScreen() {
   // read by the station-arrived/completed socket handlers so they can trigger
   // an immediate refetch without needing to be in the [id]-only effect's deps.
   const tripStationsMetaRef = useRef<{ routeId: string | number; direction?: ShuttleDirection } | null>(null);
+
+  // ── Driver location seed from ActiveSession ───────────────────────────────
+  // Seed driverLocation from the session's last-known driver position so the
+  // map shows the driver marker immediately on open, before the first socket
+  // event arrives. Socket updates continue replacing this value normally.
+  useEffect(() => {
+    if (session?.kind !== 'shuttle') return;
+    if (driverLocation !== null) return; // socket has already delivered a location
+    const lat = (session as any).trip?.driver?.currentLatitude;
+    const lng = (session as any).trip?.driver?.currentLongitude;
+    if (lat != null && lng != null) {
+      setDriverLocation({ lat: Number(lat), lng: Number(lng) });
+    }
+  }, [session, driverLocation]);
 
   // ── ActiveSession cold-start seed ────────────────────────────────────────
   // Populate initial trip state from ActiveSession so the screen renders
@@ -759,8 +783,10 @@ export default function TripDetailScreen() {
                 : null}
               stations={stations}
               passengerStationId={trip.pickupStationId ?? undefined}
+              boarded={boarded}
               style={{ borderRadius: Radius.xl }}
               onEtaChange={setEtaMinutes}
+              onTargetStationChange={setNextStation}
             />
 
             {/* SOS floating button — only once the trip is underway */}
@@ -773,6 +799,19 @@ export default function TripDetailScreen() {
 
             {/* Realtime connection indicator */}
             <ConnectionBanner style={{ position: 'absolute', bottom: 12, alignSelf: 'center' }} />
+          </View>
+        )}
+
+        {/* Next stop card — shown whenever there is a target station ahead */}
+        {showMap && nextStation != null && (
+          <View style={styles.nextStopCard}>
+            <MapPin size={14} color="#2563eb" />
+            <Text style={styles.nextStopLabel}>
+              {boarded ? 'المحطة القادمة' : 'محطة الركوب'}
+            </Text>
+            <Text style={styles.nextStopName} numberOfLines={1}>
+              {nextStation.name}
+            </Text>
           </View>
         )}
 
