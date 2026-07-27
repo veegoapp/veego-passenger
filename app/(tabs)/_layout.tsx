@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Alert } from 'react-native';
-import { Home, Ticket, Heart, Wallet, User } from 'lucide-react-native';
+import { Home, Ticket, Wallet, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme } from '@/context/ThemeContext';
@@ -16,7 +16,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 const TAB_ITEMS = [
   { name: 'index',     labelKey: 'home'      as const, icon: Home },
   { name: 'trips',     labelKey: 'trips'     as const, icon: Ticket },
-  { name: 'favorites', labelKey: 'favorites' as const, icon: Heart },
   { name: 'wallet',    labelKey: 'wallet'    as const, icon: Wallet },
   { name: 'profile',   labelKey: 'profile'   as const, icon: User },
 ];
@@ -227,7 +226,6 @@ export default function TabLayout() {
       >
         <Tabs.Screen name="index" />
         <Tabs.Screen name="trips" />
-        <Tabs.Screen name="favorites" />
         <Tabs.Screen name="wallet" />
         <Tabs.Screen name="profile" />
         {/* تم حذف المسارات الفرعية من هنا لأنها لو مش موجودة كملفات بتسبب Crash */}
