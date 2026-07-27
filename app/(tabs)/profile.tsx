@@ -12,7 +12,6 @@ import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
-import { useTrips } from '@/src/hooks/shared/useTrips';
 import { useWallet } from '@/src/hooks/shared/useWallet';
 import api, { tokenStore } from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
@@ -24,7 +23,6 @@ import { PaymentMethodsModal } from '@/components/profile/PaymentMethodsModal';
 import { NotificationsModal } from '@/components/profile/NotificationsModal';
 import { HelpFaqModal } from '@/components/profile/HelpFaqModal';
 import { ContactSupportModal } from '@/components/profile/ContactSupportModal';
-import { RatingDetailsModal } from '@/components/profile/RatingDetailsModal';
 import { RatingHistoryModal } from '@/components/profile/RatingHistoryModal';
 import { SavedLocationsModal } from '@/components/profile/SavedLocationsModal';
 import { makeStyles, useProfileInfo } from '@/components/profile/shared';
@@ -35,7 +33,6 @@ type ProfileScreen =
   | 'notifications'
   | 'help_faq'
   | 'contact_support'
-  | 'rating_details'
   | 'ratings_history'
   | 'terms'
   | 'emergency_contact'
@@ -60,38 +57,14 @@ export default function ProfileScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
-  // Live stats — bound to real API data
-  const { upcomingTrips, pastTrips, refresh: refreshTrips } = useTrips();
-  const totalTrips = upcomingTrips.length + pastTrips.length;
-  const [savedAmount, setSavedAmount] = useState<number | null>(null);
-  const [overallRating, setOverallRating] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-
-  const fetchStats = useCallback(() => {
-    return Promise.allSettled([
-      api.get('/users/me/stats').then(({ data }) => {
-        if (typeof data.savedAmount === 'number') setSavedAmount(data.savedAmount);
-      }).catch((err) => {
-        if (__DEV__) console.warn('[Profile] failed to load stats:', err?.message);
-      }),
-      api.get('/user/me/passenger-rating').then(({ data }) => {
-        if (typeof data.averageRating === 'number') setOverallRating(data.averageRating);
-      }).catch((err) => {
-        if (__DEV__) console.warn('[Profile] failed to load rating:', err?.message);
-      }),
-    ]);
-  }, []);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.selectionAsync();
-    await Promise.allSettled([refreshProfile(), refreshTrips(), fetchStats()]);
+    await refreshProfile();
     setRefreshing(false);
-  }, [refreshProfile, refreshTrips, fetchStats]);
+  }, [refreshProfile]);
 
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -175,25 +148,6 @@ export default function ProfileScreen() {
               <View style={styles.heroText}>
                 <Text style={styles.heroName}>{heroName}</Text>
                 <Text style={styles.heroEmail}>{profileEmail || ''}</Text>
-                <View style={styles.heroStats}>
-                  {/* Trips — bound to useTrips */}
-                  <View style={styles.heroStat}>
-                    <Text style={styles.heroStatNum}>{totalTrips}</Text>
-                    <Text style={styles.heroStatLabel}>{t('trips_stat')}</Text>
-                  </View>
-                  <View style={styles.heroStatDivider} />
-                  {/* Rating — tappable → RatingDetailsModal */}
-                  <TouchableOpacity style={styles.heroStat} activeOpacity={0.75} onPress={() => open('rating_details')}>
-                    <Text style={styles.heroStatNum}>{overallRating !== null ? overallRating.toFixed(1) : '—'}</Text>
-                    <Text style={styles.heroStatLabel}>{t('rating_stat')} ›</Text>
-                  </TouchableOpacity>
-                  <View style={styles.heroStatDivider} />
-                  {/* Saved — GET /users/me/stats */}
-                  <View style={styles.heroStat}>
-                    <Text style={styles.heroStatNum}>{savedAmount !== null ? savedAmount.toFixed(0) : '—'}</Text>
-                    <Text style={styles.heroStatLabel}>{t('saved_stat')}</Text>
-                  </View>
-                </View>
               </View>
             </View>
           </LinearGradient>
@@ -348,11 +302,6 @@ export default function ProfileScreen() {
       <NotificationsModal visible={activeModal === 'notifications'} onClose={close} />
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
-      <RatingDetailsModal
-        visible={activeModal === 'rating_details'}
-        onClose={close}
-        onOpenHistory={() => open('ratings_history')}
-      />
       <RatingHistoryModal visible={activeModal === 'ratings_history'} onClose={close} />
       <SavedLocationsModal visible={activeModal === 'saved_locations'} onClose={close} />
       <TermsModal
