@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Polyline, AnimatedRegion, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
-import { Car, Bike as ScooterIcon } from 'lucide-react-native';
+import { Car, Bike as ScooterIcon, Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 import { estimateEtaMinutes, haversineMeters } from '@/src/utils/geoHelpers';
@@ -94,13 +94,67 @@ export function PassengerTrackingMap({
   // ── Camera follow ────────────────────────────────────────────────────────────
   const mapRef = useRef<MapView>(null);
 
+  // True while the passenger is manually panning — pauses auto-camera updates.
+  // Cleared when the recenter button is pressed.
+  const [isUserPanning, setIsUserPanning] = useState(false);
+
+  // Edge-padding for fitToCoordinates: generous bottom clearance leaves room for
+  // the bottom card that trip-tracking.tsx overlays on the map.
+  const FIT_PADDING = { top: 120, right: 60, bottom: 280, left: 60 } as const;
+
   useEffect(() => {
     if (!driverLocation) return;
-    mapRef.current?.animateToRegion(
-      { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-      100,
+
+    // ── Shuttle path: preserve original behavior unchanged ───────────────────
+    if (sorted.length > 0) {
+      mapRef.current?.animateToRegion(
+        { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+        100,
+      );
+      return;
+    }
+
+    // ── Car/scooter/delivery: no active phase — leave camera alone ───────────
+    if (!tripPhase) return;
+
+    // ── User has manually panned — respect their view until recenter ─────────
+    if (isUserPanning) return;
+
+    // ── Phase-aware fit ───────────────────────────────────────────────────────
+    const secondPoint =
+      tripPhase === 'driver_arriving' ? (pickup ?? null) :
+      tripPhase === 'trip_started'    ? (dropoff ?? null) :
+      null;
+
+    if (!secondPoint) {
+      // Second point not yet available — fall back to single driver region
+      mapRef.current?.animateToRegion(
+        { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+        100,
+      );
+      return;
+    }
+
+    mapRef.current?.fitToCoordinates(
+      [driverLocation, secondPoint],
+      { edgePadding: FIT_PADDING, animated: true },
     );
-  }, [driverLocation?.latitude, driverLocation?.longitude]);
+  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length, tripPhase, isUserPanning, pickup, dropoff]);
+
+  // Recenter: fit the same phase-appropriate pair and clear the pan flag.
+  const handleRecenter = useCallback(() => {
+    if (!driverLocation || !tripPhase) return;
+    const secondPoint =
+      tripPhase === 'driver_arriving' ? (pickup ?? null) :
+      tripPhase === 'trip_started'    ? (dropoff ?? null) :
+      null;
+    if (!secondPoint) return;
+    setIsUserPanning(false);
+    mapRef.current?.fitToCoordinates(
+      [driverLocation, secondPoint],
+      { edgePadding: FIT_PADDING, animated: true },
+    );
+  }, [driverLocation, tripPhase, pickup, dropoff]);
 
   // ── ETA/route target station ─────────────────────────────────────────────────
   // The passenger's own boarding station if it's still upcoming; otherwise the
@@ -290,6 +344,7 @@ export function PassengerTrackingMap({
         scrollEnabled
         zoomEnabled
         pitchEnabled={false}
+        onPanDrag={() => setIsUserPanning(true)}
       >
         {/* Completed leg — straight line between visited stops (green) */}
         {completedCoords.length >= 2 && (
@@ -378,6 +433,18 @@ export function PassengerTrackingMap({
           <Text style={styles.etaValue}>{etaMinutes} min</Text>
         </View>
       )}
+
+      {/* Recenter button — car/scooter/delivery only, shown after manual pan */}
+      {sorted.length === 0 && tripPhase !== null && isUserPanning && (
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={handleRecenter}
+          activeOpacity={0.85}
+          accessibilityLabel="Re-center map"
+        >
+          <Navigation size={18} color="#fff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -438,4 +505,22 @@ const styles = StyleSheet.create({
   },
   etaLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
   etaValue: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
+
+  // Recenter button — floats above the map, bottom-right, above the bottom card
+  recenterBtn: {
+    position: 'absolute',
+    bottom: 200,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(17,24,39,0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 6,
+  },
 });

@@ -1,0 +1,220 @@
+You are working on the VeeGo Passenger App.
+
+Important:
+You have NO previous chat history.
+You must rely only on this prompt and the existing code.
+
+Implement Phase 2 of the Passenger App navigation improvements.
+
+DO NOT redesign the architecture.
+DO NOT touch backend.
+DO NOT touch shuttle logic.
+
+================================================
+
+Current completed state (Phase 1):
+
+Car / Scooter / Delivery rides already support:
+
+- tripPhase prop in PassengerTrackingMap.native.tsx
+
+Values:
+'driver_arriving'
+'trip_started'
+null
+
+Route behavior:
+
+driver_arriving:
+route = driverLocation → pickup
+
+trip_started:
+route = driverLocation → dropoff
+
+ETA logic already changes based on tripPhase.
+
+Do not modify this logic.
+
+================================================
+
+Phase 2 Goal:
+
+Improve passenger map camera experience to behave closer to Uber/Careem.
+
+Current issue:
+
+PassengerTrackingMap.native.tsx currently follows the driver only.
+
+Current behavior:
+- animateToRegion centers only on driver location.
+- Fixed zoom.
+- Passenger cannot see driver + pickup or driver + destination together.
+- No manual recenter control.
+
+================================================
+
+Files allowed to modify:
+
+ONLY:
+
+components/shared/PassengerTrackingMap.native.tsx
+
+app/trip-tracking.tsx (only if required for passing new props or button placement)
+
+Do not modify:
+- Shuttle files
+- trip-detail.tsx
+- routing hooks
+- ETA logic
+- socket logic
+- backend
+
+================================================
+
+Required implementation:
+
+1) Phase-aware camera fitting
+
+Use existing tripPhase.
+
+When:
+
+tripPhase === 'driver_arriving'
+
+Camera should fit:
+
+driverLocation + pickup
+
+Use react-native-maps fitToCoordinates.
+
+Example:
+
+mapRef.current.fitToCoordinates(
+ [
+   driverLocation,
+   pickup
+ ],
+ {
+   edgePadding: ...
+   animated: true
+ }
+)
+
+
+The passenger should see:
+- current driver position
+- pickup location
+
+
+------------------------------------------------
+
+When:
+
+tripPhase === 'trip_started'
+
+Camera should fit:
+
+driverLocation + dropoff
+
+
+The passenger should see:
+- current driver position
+- destination
+
+
+================================================
+
+2) Automatic camera follow behavior
+
+Keep following the driver during live updates.
+
+But change the behavior:
+
+Instead of always centering directly on driver:
+
+- During driver_arriving:
+  keep driver + pickup visible.
+
+- During trip_started:
+  keep driver + dropoff visible.
+
+
+Do not break existing driver marker animation.
+
+
+================================================
+
+3) Manual map movement handling
+
+Add user interaction detection.
+
+When passenger drags/pans the map:
+
+- Stop automatic camera updates temporarily.
+
+Store this state internally.
+
+
+================================================
+
+4) Add recenter button
+
+Add a simple recenter button using the existing UI style.
+
+When pressed:
+
+If:
+
+tripPhase === 'driver_arriving'
+
+restore:
+
+driver + pickup fit view
+
+
+If:
+
+tripPhase === 'trip_started'
+
+restore:
+
+driver + dropoff fit view
+
+
+Clear the manual-pan state.
+
+
+================================================
+
+5) Preserve all existing functionality:
+
+Must remain working:
+
+✅ Phase 1 route switching
+✅ ETA calculation
+✅ Driver marker animation
+✅ Socket driver location updates
+✅ Car service
+✅ Scooter service
+✅ Delivery service
+
+Shuttle must remain untouched and unchanged.
+
+
+================================================
+
+Implementation notes:
+
+- Reuse existing mapRef.
+- Reuse existing tripPhase prop.
+- Do not add external dependencies.
+- Do not add Google APIs.
+- Do not change backend.
+- Keep TypeScript strict.
+
+After implementation provide:
+
+1) Files changed.
+2) Exact changes made.
+3) TypeScript check result.
+4) Confirmation that Phase 1 and Shuttle behavior are unchanged.
