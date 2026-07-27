@@ -43,21 +43,25 @@ function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: { paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.md },
     headerTitle: { fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
-    tabRow: { flexDirection: 'row', gap: Spacing.sm },
-    tabBtn: { paddingHorizontal: 20, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: c.border, backgroundColor: c.white },
-    tabBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
-    tabText: { fontSize: 12.5, fontWeight: Typography.weight.medium, color: c.inkSoft },
-    tabTextActive: { color: c.isDark ? c.background : c.white },
+    sectionTitle: {
+      fontSize: 11,
+      fontWeight: Typography.weight.semibold,
+      color: c.inkSoft,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: Spacing.xs,
+    },
     list: { paddingHorizontal: 20, gap: Spacing.md },
-    loadingWrap: { alignItems: 'center', paddingTop: 60 },
-    empty: { alignItems: 'center', paddingTop: 60, gap: Spacing.md },
-    emptyIcon: { width: 72, height: 72, borderRadius: 28, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+    loadingWrap: { alignItems: 'center', paddingTop: 32, paddingBottom: Spacing.md },
+    empty: { alignItems: 'center', paddingTop: 32, paddingBottom: Spacing.md, gap: Spacing.md },
+    emptyIcon: { width: 64, height: 64, borderRadius: 24, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
     emptyTitle: { fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, color: c.ink },
     emptySub: { fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xxl, lineHeight: 20 },
     emptyBtn: { marginTop: Spacing.xs, paddingHorizontal: 28, paddingVertical: Spacing.md, borderRadius: Radius.lg, backgroundColor: c.ink },
     emptyBtnText: { color: c.isDark ? c.background : c.white, fontSize: 13, fontWeight: Typography.weight.semibold },
     loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: Spacing.xs, paddingVertical: Spacing.md },
     loadMoreText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.inkSoft },
+    sectionDivider: { height: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', marginVertical: Spacing.sm },
   });
 }
 
@@ -65,7 +69,6 @@ export default function TripsScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { tabBarHeight } = useTabBar();
-  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const { session } = useActiveSession();
   const shuttleSession = session?.kind === 'shuttle' ? session : null;
   const { date: sessionDate, time: sessionTime } = shuttleSession
@@ -251,34 +254,16 @@ export default function TripsScreen() {
       }, ...filteredUpcoming]
     : filteredUpcoming;
 
-  const trips = tab === 'upcoming' ? upcoming : pastTrips;
-
-  // Isolated to the shuttle upcoming fetch — a rides/history failure never affects these.
-  const showUpcomingLoading = tab === 'upcoming' && upcomingLoading && upcomingTrips.length === 0 && !upcomingError;
-  const showUpcomingError   = tab === 'upcoming' && !!upcomingError && !upcomingLoading && upcomingTrips.length === 0;
-
-  // History depends on both the shuttle and rides fetches, so the combined loading/error is correct here.
-  const showHistoryLoading = tab === 'past' && loading && pastTrips.length === 0 && !error;
-  const showHistoryError   = tab === 'past' && !!error && !loading && pastTrips.length === 0;
+  // Section-level loading/error states — independent of each other
+  const showUpcomingLoading = upcomingLoading && upcomingTrips.length === 0 && !upcomingError;
+  const showUpcomingError   = !!upcomingError && !upcomingLoading && upcomingTrips.length === 0;
+  const showHistoryLoading  = loading && pastTrips.length === 0 && !error;
+  const showHistoryError    = !!error && !loading && pastTrips.length === 0;
 
   return (
     <LinearGradient colors={c.luxeSoftGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Text style={styles.headerTitle}>{t('my_trips')}</Text>
-        <View style={styles.tabRow}>
-          {(['upcoming', 'past'] as const).map((tp) => (
-            <TouchableOpacity
-              key={tp}
-              style={[styles.tabBtn, tab === tp && styles.tabBtnActive]}
-              onPress={() => { setTab(tp); Haptics.selectionAsync(); }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.tabText, tab === tp && styles.tabTextActive]}>
-                {tp === 'upcoming' ? t('upcoming') : t('past')}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       <ScrollView
@@ -294,6 +279,9 @@ export default function TripsScreen() {
           />
         }
       >
+        {/* ── Upcoming section ───────────────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>{t('upcoming')}</Text>
+
         {showUpcomingLoading ? (
           <View style={styles.loadingWrap}>
             <AppLoader size={80} />
@@ -301,7 +289,7 @@ export default function TripsScreen() {
         ) : showUpcomingError ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ticket size={30} color={c.silver} />
+              <Ticket size={28} color={c.silver} />
             </View>
             <Text style={styles.emptyTitle}>{t('error')}</Text>
             <Text style={styles.emptySub}>{upcomingError}</Text>
@@ -309,14 +297,89 @@ export default function TripsScreen() {
               <Text style={styles.emptyBtnText}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
-        ) : showHistoryLoading ? (
+        ) : upcoming.length === 0 ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <Ticket size={28} color={c.silver} />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {t('no_trips').replace('{tab}', t('upcoming'))}
+            </Text>
+            <Text style={styles.emptySub}>{t('trips_here')}</Text>
+            <TouchableOpacity
+              style={styles.emptyBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push('/' as any);
+              }}
+              activeOpacity={0.88}
+            >
+              <Text style={styles.emptyBtnText}>{t('browse_routes')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {upcoming.map((trip) => {
+              // ── Strict ghost-trip guard ───────────────────────────────────
+              const hasValidRoute =
+                (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
+              const hasValidStations =
+                (trip.from && trip.from !== '—') || !!trip.fromAr;
+              if (!trip || !hasValidRoute || !hasValidStations) return null;
+
+              const patch = trip.tripId ? (liveUpdates[String(trip.tripId)] ?? {}) : {};
+              const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status | 'pending';
+              const effectivePassCount =
+                patch.passengerCount !== undefined ? patch.passengerCount : trip.passengerCount;
+              const isLive = !!patch.status || patch.passengerCount !== undefined;
+
+              const isUpcoming =
+                trip.id !== 'live' &&
+                hasValidRoute &&
+                !!(trip.bookingId || trip.id) &&
+                !!trip.canCancel;
+
+              const bookingKey = trip.bookingId || trip.id;
+              const isCancelling = cancellingId === bookingKey;
+              const fadeAnim = getFadeAnim(bookingKey);
+
+              return (
+                <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
+                  <UpcomingTripCard
+                    trip={trip}
+                    tripStatus={effectiveStatus}
+                    passengerCount={effectivePassCount}
+                    isLive={isLive}
+                    canCancel={isUpcoming}
+                    isCancelling={isCancelling}
+                    accentColor={routeColors[trip.routeCode] ?? c.mist}
+                    onPress={() => {
+                      if (trip.id === 'live') { router.push('/ticket'); }
+                      else if (trip.bookingId) { router.push(`/trip-detail?id=${trip.bookingId}` as any); }
+                      Haptics.selectionAsync();
+                    }}
+                    onCancelPress={() => handleCancelPress(bookingKey)}
+                  />
+                </Animated.View>
+              );
+            })}
+          </>
+        )}
+
+        {/* ── Divider ────────────────────────────────────────────────────── */}
+        <View style={styles.sectionDivider} />
+
+        {/* ── Past section ───────────────────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>{t('past')}</Text>
+
+        {showHistoryLoading ? (
           <View style={styles.loadingWrap}>
             <AppLoader size={80} />
           </View>
         ) : showHistoryError ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ticket size={30} color={c.silver} />
+              <Ticket size={28} color={c.silver} />
             </View>
             <Text style={styles.emptyTitle}>{t('error')}</Text>
             <Text style={styles.emptySub}>{error}</Text>
@@ -324,106 +387,50 @@ export default function TripsScreen() {
               <Text style={styles.emptyBtnText}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-        <>
-        {trips.length === 0 && (
+        ) : pastTrips.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ticket size={30} color={c.silver} />
+              <Ticket size={28} color={c.silver} />
             </View>
             <Text style={styles.emptyTitle}>
-              {tab === 'upcoming' ? t('no_trips').replace('{tab}', t('upcoming')) : t('no_trips').replace('{tab}', t('past'))}
+              {t('no_trips').replace('{tab}', t('past'))}
             </Text>
             <Text style={styles.emptySub}>{t('trips_here')}</Text>
-            {tab === 'upcoming' && (
-              <TouchableOpacity
-                style={styles.emptyBtn}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  router.push('/' as any);
-                }}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.emptyBtnText}>{t('browse_routes')}</Text>
-              </TouchableOpacity>
-            )}
           </View>
-        )}
-        {trips.map((trip) => {
-          // ── Strict ghost-trip guard ─────────────────────────────────────────
-          // A valid trip must have a non-empty, non-placeholder route name AND
-          // at least one real station name — anything else is a corrupted object.
-          const hasValidRoute =
-            (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
-          const hasValidStations =
-            (trip.from && trip.from !== '—') || !!trip.fromAr;
-          if (!trip || !hasValidRoute || !hasValidStations) return null;
+        ) : (
+          <>
+            {pastTrips.map((trip) => {
+              // ── Strict ghost-trip guard ───────────────────────────────────
+              const hasValidRoute =
+                (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
+              const hasValidStations =
+                (trip.from && trip.from !== '—') || !!trip.fromAr;
+              if (!trip || !hasValidRoute || !hasValidStations) return null;
 
-          const patch = trip.tripId ? (liveUpdates[String(trip.tripId)] ?? {}) : {};
-          // Widened to include 'pending': patch.status comes from the live socket
-          // payload (untyped string) and can carry raw backend values not present
-          // in the ShuttleTripStatus union used for `trip.status`.
-          const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status | 'pending';
-          const effectivePassCount =
-            patch.passengerCount !== undefined ? patch.passengerCount : trip.passengerCount;
-          const isLive = !!patch.status || patch.passengerCount !== undefined;
+              const fadeAnim = getFadeAnim(trip.bookingId || trip.id);
 
-          // ── Cancel button: gated on the data layer's canCancel (backend field, ──
-          // with a status-based fallback applied in useTrips.ts when absent) ──
-          const isUpcoming =
-            trip.id !== 'live' &&
-            hasValidRoute &&
-            !!(trip.bookingId || trip.id) &&
-            !!trip.canCancel;
+              // Ride history items have no tripId (no detail screen to open) — the card stays non-clickable.
+              const canOpenHistoryDetail = trip.id === 'live' || !!trip.tripId;
 
-          // Use bookingId as the stable key for cancel state and fade animation
-          const bookingKey = trip.bookingId || trip.id;
-          const isCancelling = cancellingId === bookingKey;
-          const fadeAnim = getFadeAnim(bookingKey);
-
-          if (tab === 'upcoming') {
-            return (
-              <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
-                <UpcomingTripCard
-                  trip={trip}
-                  tripStatus={effectiveStatus}
-                  passengerCount={effectivePassCount}
-                  isLive={isLive}
-                  canCancel={isUpcoming}
-                  isCancelling={isCancelling}
-                  accentColor={routeColors[trip.routeCode] ?? c.mist}
-                  onPress={() => {
-                    if (trip.id === 'live') { router.push('/ticket'); }
-                    else if (trip.bookingId) { router.push(`/trip-detail?id=${trip.bookingId}` as any); }
-                    Haptics.selectionAsync();
-                  }}
-                  onCancelPress={() => handleCancelPress(bookingKey)}
-                />
-              </Animated.View>
-            );
-          }
-
-          // Ride history items have no tripId (no detail screen to open) — the card stays non-clickable.
-          const canOpenHistoryDetail = trip.id === 'live' || !!trip.tripId;
-
-          return (
-            <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
-              <HistoryTripCard
-                trip={trip}
-                accentColor={routeColors[trip.routeCode] ?? c.mist}
-                onPress={canOpenHistoryDetail ? () => {
-                  if (trip.id === 'live') { router.push('/ticket'); }
-                  else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
-                  Haptics.selectionAsync();
-                } : undefined}
-              />
-            </Animated.View>
-          );
-        })}
-        </>
+              return (
+                <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
+                  <HistoryTripCard
+                    trip={trip}
+                    accentColor={routeColors[trip.routeCode] ?? c.mist}
+                    onPress={canOpenHistoryDetail ? () => {
+                      if (trip.id === 'live') { router.push('/ticket'); }
+                      else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
+                      Haptics.selectionAsync();
+                    } : undefined}
+                  />
+                </Animated.View>
+              );
+            })}
+          </>
         )}
 
-        {hasMore && tab === 'past' && (
+        {/* ── Load more (past) ───────────────────────────────────────────── */}
+        {hasMore && (
           <TouchableOpacity
             style={styles.loadMoreBtn}
             onPress={handleLoadMore}
