@@ -7,6 +7,8 @@ import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 import { haversineMeters } from '@/src/utils/geoHelpers';
 import { NearbyDriversLayer } from './NearbyDriversLayer';
 import type { NearbyDriver } from '@/src/hooks/car/useNearbyDrivers';
+import { useTheme } from '@/context/ThemeContext';
+import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -25,6 +27,7 @@ const ROUTE_REFRESH_INTERVAL_MS = 75_000;
 const SIGNIFICANT_MOVE_METERS = 300;
 
 export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType }: CarMapProps) {
+  const { darkMode } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<Coords>(CAIRO_DEFAULT);
   const onUserLocationRef = useRef(onUserLocation);
@@ -130,12 +133,13 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
         style={StyleSheet.absoluteFillObject}
         initialRegion={{ ...userLocation, latitudeDelta: 0.015, longitudeDelta: 0.015 }}
         showsUserLocation={false}
+        customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
         // @ts-expect-error react-native-maps@1.20.1 types no longer declare
         // compassEnabled, but the native view still supports and uses it.
         compassEnabled={false}
       >
         {routeCoords.length > 0 && (
-          <Polyline coordinates={routeCoords} strokeColor="#111827" strokeWidth={4} />
+          <Polyline coordinates={routeCoords} strokeColor={darkMode ? '#e5e7eb' : '#111827'} strokeWidth={4} />
         )}
 
         <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>

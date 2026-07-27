@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useTheme } from '@/context/ThemeContext';
+import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
 
 interface LatLng {
   latitude: number;
@@ -41,7 +42,7 @@ export function RealMap({
   stationMarkers = [],
   defaultCenter,
 }: RealMapProps) {
-  const { t } = useTheme();
+  const { t, darkMode } = useTheme();
   const center = useMemo(() => {
     const pts = [pickup, dropoff, driverLocation, ...stationMarkers].filter(Boolean) as LatLng[];
     if (pts.length > 0) return centroid(pts);
@@ -69,6 +70,7 @@ export function RealMap({
         scrollEnabled={true}
         zoomEnabled={true}
         pitchEnabled={false}
+        customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
       >
 
         {stationMarkers.map((s) => (

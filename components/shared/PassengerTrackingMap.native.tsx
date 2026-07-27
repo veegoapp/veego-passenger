@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Polyline, AnimatedRegion, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Car, Bike as ScooterIcon, Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 import { estimateEtaMinutes, haversineMeters } from '@/src/utils/geoHelpers';
 
@@ -73,7 +74,7 @@ export function PassengerTrackingMap({
   boarded = false,
   onTargetStationChange,
 }: TrackingMapProps) {
-  const { t } = useTheme();
+  const { t, darkMode } = useTheme();
 
   const sorted = useMemo(() => [...stations].sort((a, b) => a.order - b.order), [stations]);
 
@@ -390,6 +391,7 @@ export function PassengerTrackingMap({
         scrollEnabled
         zoomEnabled
         pitchEnabled={false}
+        customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
         onPanDrag={() => setIsUserPanning(true)}
       >
         {/* Completed leg — straight line between visited stops (green) */}
