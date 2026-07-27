@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import type { ComponentType } from 'react';
 import api from '../../api/client';
 import { Sparkles, Wallet, Gift, Star, Tag } from 'lucide-react-native';
+import { useTheme } from '../../../context/ThemeContext';
 
 export interface PromoCard {
   code: string;
@@ -53,6 +54,7 @@ function mapPromoCard(item: any): PromoCard {
 }
 
 export function usePromos(): UsePromosResult {
+  const { t } = useTheme();
   const [promos, setPromos] = useState<PromoCard[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -87,17 +89,17 @@ export function usePromos(): UsePromosResult {
         typeof discountValue === 'number'
           ? discountType === 'percentage' || discountType === 'percent'
             ? `${discountValue}%`
-            : `${discountValue} EGP`
+            : `${discountValue} ${t('egp')}`
           : String(discountValue);
       return { valid: Boolean(valid), discount: discountStr, message: data.message };
     } catch (e: any) {
       const status = e?.response?.status;
       if (status === 404 || status === 400 || status === 422) {
-        return { valid: false, message: e?.response?.data?.error ?? e?.response?.data?.message ?? 'Invalid promo code' };
+        return { valid: false, message: e?.response?.data?.error ?? e?.response?.data?.message ?? t('promo_invalid') };
       }
-      return { valid: false, message: 'Could not validate code. Please try again.' };
+      return { valid: false, message: t('promo_validate_error') };
     }
-  }, []);
+  }, [t]);
 
   const validatePromo = useCallback((code: string) => validateCode(code), [validateCode]);
 

@@ -6,6 +6,7 @@ import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { usePassengerTracking } from '@/src/hooks/shared/usePassengerTracking';
+import { useTheme } from '@/context/ThemeContext';
 
 
 type BookingContextType = {
@@ -103,6 +104,7 @@ async function fetchLineTrips(routeId: string): Promise<ShuttleTripSlot[]> {
 }
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTheme();
   // ServiceControlProvider wraps BookingProvider in _layout.tsx, so this is safe
   const { getService } = useServiceControl();
   // Use a ref so handleConfirm always reads the latest value without needing it in dep arrays
@@ -228,8 +230,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     // This catches the case where admin disabled the service AFTER TripSheet opened
     const svc = getServiceRef.current('shuttle');
     if (svc && (!svc.isEnabled || svc.displayMode !== 'live')) {
-      const msg = svc.unavailableMessage ?? 'Shuttle service is currently unavailable. Please try again later.';
-      Alert.alert('Service Unavailable', msg);
+      const msg = svc.unavailableMessage ?? t('service_unavailable');
+      Alert.alert(t('service_unavailable'), msg);
       return;
     }
 
@@ -238,13 +240,13 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const tripId = pendingBooking.tripId ?? null;
 
     if (!tripId) {
-      setBookingError('No trip selected. Please select a departure time.');
+      setBookingError(t('no_trip_selected'));
       return;
     }
 
     // Client-side guard only — server must enforce seat count limits
     if (!seatCount || seatCount < 1 || seatCount > 2 || !Number.isInteger(seatCount)) {
-      Alert.alert('Error', 'Invalid seat count');
+      Alert.alert(t('error'), t('invalid_seat_count'));
       confirmingRef.current = false;
       return;
     }
@@ -260,7 +262,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       boardingStation?.direction &&
       boardingStation.direction !== pendingBooking.direction
     ) {
-      setBookingError("Selected boarding station does not match this trip's direction. Please choose a station again.");
+      setBookingError(t('booking_station_mismatch'));
       confirmingRef.current = false;
       return;
     }
@@ -303,7 +305,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const status = e?.response?.status;
       const respData = e?.response?.data;
       const msg: string =
-        respData?.error ?? respData?.message ?? e?.message ?? 'Booking failed';
+        respData?.error ?? respData?.message ?? e?.message ?? t('booking_failed_title');
 
       if (status === 402) {
         // Insufficient wallet balance — backend is the source of truth on the
@@ -312,26 +314,25 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         const availableBalance = typeof respData?.balance === 'number' ? respData.balance : undefined;
         setBookingError(msg);
         Alert.alert(
-          'Insufficient Balance',
+          t('insufficient_balance_title'),
           required != null && availableBalance != null
-            ? `You need ${required} EGP but your wallet balance is ${availableBalance} EGP. Please top up your wallet or pay with cash.`
+            ? t('insufficient_balance_msg')
+                .replace('{required}', String(required))
+                .replace('{balance}', String(availableBalance))
             : msg,
         );
       } else if (status === 409) {
         // Could be duplicate booking OR race condition (seat snatched)
         const isDuplicate = msg.toLowerCase().includes('already have');
         if (isDuplicate) {
-          setBookingError('You already have an active booking for this trip.');
-          Alert.alert('Already Booked', 'You already have an active booking for this trip.');
+          setBookingError(t('already_booked_msg'));
+          Alert.alert(t('already_booked_title'), t('already_booked_msg'));
         } else {
-          setBookingError('Sorry, those seats were just taken. Please check for another trip.');
-          Alert.alert(
-            'Seats Taken',
-            'Sorry, those seats were just taken. Please check for another trip.',
-          );
+          setBookingError(t('seats_taken_msg'));
+          Alert.alert(t('seats_taken_title'), t('seats_taken_msg'));
         }
       } else {
-        Alert.alert('Booking Failed', msg);
+        Alert.alert(t('booking_failed_title'), msg);
       }
     } finally {
       confirmingRef.current = false;
@@ -340,7 +341,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     if (bookingSuccess) {
       setTimeout(() => router.push('/ticket'), 260);
     }
-  }, [pendingBooking, refreshLineTrips]);
+  }, [pendingBooking, refreshLineTrips, t]);
 
   const closeConfirmSheet = useCallback(() => {
     setConfirmSheetOpen(false);

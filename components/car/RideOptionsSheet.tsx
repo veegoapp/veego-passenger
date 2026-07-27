@@ -87,7 +87,7 @@ export function RideOptionsSheet({
   recipientName, recipientPhone, onRecipientNameChange, onRecipientPhoneChange,
   paymentMethod, onPaymentMethodChange, walletAvailable,
 }: RideOptionsSheetProps) {
-  const { colors: c, t } = useTheme();
+  const { colors: c, t, isRTL } = useTheme();
   const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -437,7 +437,9 @@ export function RideOptionsSheet({
             <View style={styles.confirmInner}>
               <Text style={styles.confirmLabel}>
                 {selectedPrice != null
-                  ? `${selectedLabel} · ${t('egp')} ${selectedPrice.toFixed(0)}`
+                  ? isRTL
+                    ? `${selectedLabel} · ${selectedPrice.toFixed(0)} ${t('egp')}`
+                    : `${selectedLabel} · ${t('egp')} ${selectedPrice.toFixed(0)}`
                   : t('confirm')}
               </Text>
               <View style={styles.confirmArrow}>

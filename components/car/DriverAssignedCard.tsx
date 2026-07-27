@@ -329,7 +329,7 @@ export function DriverAssignedCard({
             <View style={[styles.waitingBanner, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.3)' }]}>
               <View style={styles.waitingDot} />
               <Text style={[styles.waitingText, { color: '#B45309' }]}>
-                {t('waiting_charge') ?? 'Waiting charge'}: {waitingCharge.toFixed(2)} {t('egp')}
+                {t('waiting_charge')}: {waitingCharge.toFixed(2)} {t('egp')}
               </Text>
             </View>
           )}
@@ -344,7 +344,7 @@ export function DriverAssignedCard({
             >
               <MessageCircle size={20} color={isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)'} />
               <Text style={[styles.actionLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
-                {t('chat') ?? 'Chat'}
+                {t('chat')}
               </Text>
             </TouchableOpacity>
 

@@ -3,6 +3,8 @@ import type { ComponentType } from 'react';
 import api from '../../api/client';
 import { WalletBalanceSchema, TransactionItemSchema, checkContract } from '../../api/schemas';
 import { Bus, Car, Bike as ScooterIcon, PlusCircle, RefreshCw, ArrowUp, Tag, Ticket, CreditCard } from 'lucide-react-native';
+import { en as i18nEn } from '../../../constants/i18n/en';
+import { ar as i18nAr } from '../../../constants/i18n/ar';
 
 export interface Transaction {
   id: string;
@@ -91,8 +93,8 @@ function mapTransaction(t: RawTransaction): Transaction {
   return {
     id: String(t.id ?? Math.random()),
     type: isCredit ? 'credit' : 'debit',
-    titleEn: t.description ?? t.title ?? t.titleEn ?? (isCredit ? 'Wallet recharge' : 'Trip payment'),
-    titleAr: t.descriptionAr ?? t.titleAr ?? t.description ?? (isCredit ? 'شحن رصيد' : 'دفع رحلة'),
+    titleEn: t.description ?? t.title ?? t.titleEn ?? (isCredit ? i18nEn.tx_wallet_recharge : i18nEn.tx_trip_payment),
+    titleAr: t.descriptionAr ?? t.titleAr ?? t.description ?? (isCredit ? i18nAr.tx_wallet_recharge : i18nAr.tx_trip_payment),
     subtitleEn: t.subDescription ?? t.subtitleEn ?? t.note ?? '',
     subtitleAr: t.subDescriptionAr ?? t.subtitleAr ?? t.note ?? '',
     amount: Math.abs(t.amount ?? 0),

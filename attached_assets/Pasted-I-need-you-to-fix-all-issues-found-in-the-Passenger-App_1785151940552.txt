@@ -1,0 +1,310 @@
+I need you to fix all issues found in the Passenger App Currency & Localization Audit.
+
+Important rules:
+- Apply fixes only. Do not only report.
+- Do not modify business logic.
+- Do not change API contracts.
+- Do not change ride creation, booking, payment, wallet, refund, or pricing calculations.
+- Do not change backend behavior.
+- Do not introduce breaking changes.
+- Keep the current UI behavior and design unchanged except for the required localization/currency fixes.
+- After completing the work, provide a detailed implementation report.
+
+Project context:
+VeeGo Passenger App is Egypt-only.
+The only supported currency is EGP.
+
+Currency rules:
+English:
+- Use EGP
+
+Arabic:
+- Use ج.م where currency labels are displayed.
+
+No user-visible:
+- USD
+- TND
+- DT
+- SAR
+- AED
+- EUR
+- €
+- £
+- any foreign currency symbol
+
+==================================================
+TASK 1 — Fix BookingContext.tsx currency/localization issues
+==================================================
+
+File:
+context/BookingContext.tsx
+
+Problem:
+The insufficient wallet balance flow contains hardcoded English text and hardcoded EGP.
+
+Current behavior:
+Arabic users can see:
+
+"Insufficient Balance"
+
+"You need X EGP but your wallet balance is Y EGP"
+
+Fix:
+
+Use the existing translation key:
+
+t('insufficient_balance_msg')
+
+Replace placeholders correctly:
+- {required}
+- {balance}
+
+Do not hardcode:
+- EGP
+- English text
+
+Also fix all other hardcoded Alert titles/messages found in this file:
+
+Replace:
+- Service Unavailable
+- Error
+- Invalid seat count
+- Already Booked
+- Seats Taken
+- Booking Failed
+
+with proper i18n keys.
+
+If keys do not exist:
+Add them to:
+
+constants/i18n/en.ts
+constants/i18n/ar.ts
+
+Make sure Arabic translations are correct.
+
+==================================================
+TASK 2 — Fix promo currency formatting
+==================================================
+
+File:
+src/hooks/shared/usePromos.ts
+
+Problem:
+Promo validation creates:
+
+${discountValue} EGP
+
+This bypasses localization.
+
+Fix:
+Use the translation currency key:
+
+t('egp')
+
+Expected:
+
+English:
+20 EGP
+
+Arabic:
+20 ج.م
+
+Do not hardcode EGP.
+
+Also fix hardcoded English error messages:
+
+Replace:
+- Invalid promo code
+- Could not validate code. Please try again.
+
+with translation keys.
+
+Use existing keys if available.
+
+If missing:
+Add keys to:
+
+constants/i18n/en.ts
+constants/i18n/ar.ts
+
+==================================================
+TASK 3 — Fix RideOptionsSheet currency order for RTL
+==================================================
+
+File:
+components/car/RideOptionsSheet.tsx
+
+Problem:
+Confirm button currently creates:
+
+Economy · EGP 50
+
+Arabic becomes:
+
+اقتصادية · ج.م 50
+
+This is incorrect Arabic currency ordering.
+
+Fix:
+
+Respect locale formatting.
+
+Expected:
+
+English:
+Economy · EGP 50
+
+Arabic:
+اقتصادية · 50 ج.م
+
+Do not break:
+- RTL layout
+- spacing
+- styling
+- existing translations
+
+==================================================
+TASK 4 — Fix promo screen raw backend currency display
+==================================================
+
+File:
+app/promo.tsx
+
+Problem:
+promo.discount is rendered directly from backend.
+
+Example:
+Backend may return:
+
+20 EGP
+
+The app displays it directly without localization.
+
+Fix:
+
+Normalize promo discount display.
+
+Separate numeric value from currency label when possible.
+
+Render currency using:
+
+t('egp')
+
+Expected:
+
+English:
+20 EGP
+
+Arabic:
+20 ج.م
+
+Do not assume backend formatting is localized.
+
+==================================================
+TASK 5 — Remove remaining hardcoded English strings found during audit
+==================================================
+
+Fix remaining localization issues:
+
+Files:
+
+context/BookingContext.tsx
+
+Replace all hardcoded user-facing English messages.
+
+src/hooks/shared/usePromos.ts
+
+Replace:
+- Invalid promo code
+- Could not validate code. Please try again.
+
+components/car/DriverAssignedCard.tsx
+
+Remove fallback:
+
+'Waiting charge'
+
+Use translation only.
+
+src/hooks/shared/useWallet.ts
+
+Fix fallback transaction titles:
+
+Current:
+- Wallet recharge
+- Trip payment
+
+Replace with localized keys.
+
+If missing:
+Add proper keys in English and Arabic translations.
+
+==================================================
+TASK 6 — Full currency verification scan
+==================================================
+
+After applying fixes, scan the entire Passenger App.
+
+Search for:
+
+USD
+TND
+DT
+SAR
+AED
+EUR
+$
+€
+£
+
+Ignore:
+- code syntax
+- comments
+- documentation
+
+Only report user-visible occurrences.
+
+Verify all money screens:
+
+- Ride options
+- Fare estimate
+- Driver assigned
+- Active ride
+- Receipt
+- Ride history
+- Trip details
+- Wallet
+- Promotions
+- Shuttle booking
+- Cancellation screens
+
+Confirm:
+✅ English displays EGP
+✅ Arabic displays ج.م
+✅ No foreign currency appears
+
+==================================================
+TASK 7 — Final validation report
+==================================================
+
+After finishing provide:
+
+1. Files modified
+
+2. Every issue fixed:
+- old behavior
+- new behavior
+
+3. Translation keys added
+
+4. Currency scan results
+
+5. Confirm:
+- No API changes
+- No backend changes
+- No pricing changes
+- No payment changes
+- No wallet logic changes
+
+6. TypeScript/build validation result

@@ -107,6 +107,24 @@ function makeStyles(c: ThemeColors) {
   });
 }
 
+/**
+ * Normalise a discount string from the backend into the current locale.
+ * Backend may send "20 EGP", "20%", or a raw number string.
+ * - Percentage values are returned as-is.
+ * - Fixed-amount values have their "EGP" suffix replaced with the localised
+ *   currency label so Arabic users see "ج.م" instead of "EGP".
+ */
+function normalizeDiscount(discount: string, egpLabel: string): string {
+  const trimmed = discount.trim();
+  if (!trimmed) return trimmed;
+  // Percentage — no currency label needed
+  if (trimmed.endsWith('%')) return trimmed;
+  // Strip any trailing "EGP" suffix (case-insensitive) and re-attach locale label
+  const match = trimmed.match(/^(.+?)\s*EGP$/i);
+  if (match) return `${match[1].trim()} ${egpLabel}`;
+  return trimmed;
+}
+
 export default function PromoScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
@@ -270,7 +288,7 @@ export default function PromoScreen() {
                       </View>
                     </View>
                     <View style={styles.promoRight}>
-                      <Text style={styles.promoDiscount}>{promo.discount}</Text>
+                      <Text style={styles.promoDiscount}>{normalizeDiscount(promo.discount, t('egp'))}</Text>
                       <View style={styles.promoCodeBadge}>
                         <Text style={styles.promoCodeText}>{promo.code}</Text>
                       </View>
