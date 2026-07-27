@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CreditCard, ChevronRight, ChevronLeft, User, ShieldCheck, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, MapPin } from 'lucide-react-native';
+import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, MapPin } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -252,9 +252,7 @@ export default function ProfileScreen() {
           <View style={[gs, styles.groupCard]}>
             {[
               { icon: FileText, label: t('terms_of_service'), onPress: () => open('terms') },
-              { icon: ShieldCheck, label: t('privacy_policy'), onPress: () => Alert.alert(t('privacy_policy'), t('privacy_browser_msg')) },
               { icon: Info, label: t('about_veego'), value: 'v1.0.0', onPress: () => {} },
-              { icon: Star, label: t('rate_app'), onPress: () => Alert.alert(t('rate_app'), t('rate_app_msg')) },
             ].map((item, i) => (
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}

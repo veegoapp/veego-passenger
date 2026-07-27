@@ -693,8 +693,6 @@ export const en = {
   lang_change_hint: 'You can change this anytime in Settings',
   date_placeholder: 'DD/MM/YYYY',
   terms_browser_msg: 'Terms would open in a browser.',
-  privacy_browser_msg: 'Privacy policy would open in a browser.',
-  rate_app_msg: 'App store rating would open here.',
   based_on_ratings: 'Based on {count} rating{plural}',
   notif_on: 'On',
   support_form_error: 'Please select an issue type and describe your problem.',

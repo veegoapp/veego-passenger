@@ -695,8 +695,6 @@ export const ar: typeof en = {
   lang_change_hint: 'يمكنك تغيير هذا في أي وقت من الإعدادات',
   date_placeholder: 'يي/شش/سسسس',
   terms_browser_msg: 'ستُفتح الشروط في المتصفح.',
-  privacy_browser_msg: 'ستُفتح سياسة الخصوصية في المتصفح.',
-  rate_app_msg: 'سيُفتح تقييم التطبيق هنا.',
   based_on_ratings: 'بناءً على {count} تقييم{plural}',
   notif_on: 'مفعّل',
   support_form_error: 'يرجى اختيار نوع المشكلة ووصف مشكلتك.',
