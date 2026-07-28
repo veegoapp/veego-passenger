@@ -63,6 +63,10 @@ externalPort = 3001
 localPort = 11001
 externalPort = 3002
 
+[[ports]]
+localPort = 23636
+externalPort = 5173
+
 [nix]
 packages = ["lsof", "eas-cli"]
 channel = "stable-25_05"
