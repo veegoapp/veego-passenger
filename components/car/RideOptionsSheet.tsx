@@ -20,39 +20,36 @@ import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
+interface RideCategoryOption {
+  slug:  string;
+  name:  string;
+  price: number;
+}
+
 interface RideEstimate {
-  economy: { price: number; eta: number };
-  premium: { price: number; eta: number };
+  categories: RideCategoryOption[];
+  eta: number;
 }
 
 interface SingleEstimate { price: number; eta: number }
 
-// Tier accents pull from the shared VeeGo palette (mint accent / ink primary)
-// instead of one-off hues — same brand identity the Driver app's ride screen
-// uses, just applied to the economy/premium split.
-function getTierConfig(c: ThemeColors) {
-  return {
-    economy: {
-      id: 'economy' as const,
-      labelKey: 'economy' as const,
-      descKey: 'economy_desc' as const,
-      icon: Car,
+// Tier accents pull from the shared VeeGo palette (mint accent / ink primary),
+// cycled by position so any number of car categories gets a consistent look —
+// previously this was a fixed economy/premium pair, which silently dropped
+// any category configured in between (e.g. "Economy Plus").
+function getTierStyles(c: ThemeColors) {
+  return [
+    {
       accent: c.accent,
       accentBg: c.isDark ? 'rgba(85,196,154,0.14)' : 'rgba(85,196,154,0.10)',
       accentBorder: c.isDark ? 'rgba(85,196,154,0.4)' : 'rgba(85,196,154,0.35)',
-      tag: null as string | null,
     },
-    premium: {
-      id: 'premium' as const,
-      labelKey: 'premium' as const,
-      descKey: 'premium_desc' as const,
-      icon: Car,
+    {
       accent: c.primary,
       accentBg: c.isDark ? 'rgba(232,232,242,0.10)' : 'rgba(30,30,40,0.06)',
       accentBorder: c.isDark ? 'rgba(232,232,242,0.35)' : 'rgba(30,30,40,0.28)',
-      tag: 'Premium',
     },
-  };
+  ];
 }
 
 function getSingleMeta(c: ThemeColors): Record<'scooter' | 'delivery', {
@@ -64,7 +61,8 @@ function getSingleMeta(c: ThemeColors): Record<'scooter' | 'delivery', {
   };
 }
 
-type RideOptionId = 'economy' | 'premium' | 'standard';
+// A car category slug (dynamic, from the backend) or 'standard' for scooter/delivery.
+type RideOptionId = string;
 
 interface RideOptionsSheetProps {
   visible: boolean;
@@ -97,8 +95,9 @@ export function RideOptionsSheet({
   const { colors: c, t, isRTL } = useTheme();
   const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const TIER_CONFIG = getTierConfig(c);
+  const TIER_STYLES = getTierStyles(c);
   const SINGLE_META = getSingleMeta(c);
+  const carCategories = estimate?.categories ?? [];
 
   const isDelivery = serviceType === 'delivery';
   const recipientReady = !isDelivery || (!!recipientName?.trim() && !!recipientPhone?.trim());
@@ -117,19 +116,17 @@ export function RideOptionsSheet({
   const isDark = c.isDark;
 
   // Resolve selected price for the confirm button label
+  const selectedCategory = selected ? carCategories.find((cat) => cat.slug === selected) : undefined;
   const selectedPrice = (() => {
     if (!selected) return null;
-    if (selected === 'economy') return estimate?.economy?.price;
-    if (selected === 'premium') return estimate?.premium?.price;
     if (selected === 'standard') return singleEstimate?.price;
-    return null;
+    return selectedCategory?.price ?? null;
   })();
 
   const selectedLabel = (() => {
     if (!selected) return t('confirm');
-    if (selected === 'economy') return t('economy');
-    if (selected === 'premium') return t('premium');
-    return serviceType === 'scooter' ? t('scooter') : t('delivery');
+    if (selected === 'standard') return serviceType === 'scooter' ? t('scooter') : t('delivery');
+    return selectedCategory?.name ?? t('confirm');
   })();
 
   // CTA always uses the shared VeeGo ink gradient — same treatment as the
@@ -187,34 +184,34 @@ export function RideOptionsSheet({
       {/* ── Option cards ── */}
       <View style={styles.optionsWrap}>
         {serviceType === 'car' ? (
-          (['economy', 'premium'] as const).map((id) => {
-            const cfg = TIER_CONFIG[id];
-            const price = estimate?.[id]?.price;
-            const eta   = estimate?.[id]?.eta;
-            const isSelected = selected === id;
-            const IconComp = cfg.icon;
+          carCategories.map((cat, index) => {
+            const style = TIER_STYLES[index % TIER_STYLES.length];
+            const isPricierTier = index === carCategories.length - 1 && carCategories.length > 1;
+            const price = cat.price;
+            const eta   = estimate?.eta;
+            const isSelected = selected === cat.slug;
 
             return (
               <TouchableOpacity
-                key={id}
-                onPress={() => { Haptics.selectionAsync(); onSelect(id); }}
+                key={cat.slug}
+                onPress={() => { Haptics.selectionAsync(); onSelect(cat.slug); }}
                 activeOpacity={0.82}
                 style={[
                   styles.optionCard,
                   {
                     backgroundColor: isSelected
-                      ? cfg.accentBg
+                      ? style.accentBg
                       : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
-                    borderColor: isSelected ? cfg.accent : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'),
+                    borderColor: isSelected ? style.accent : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'),
                     borderWidth: isSelected ? 1.5 : 1,
                   },
                 ]}
               >
                 {/* Icon zone */}
-                <View style={[styles.optionIconZone, { backgroundColor: isSelected ? cfg.accentBg : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)') }]}>
-                  <IconComp size={26} color={isSelected ? cfg.accent : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)')} />
-                  {id === 'premium' && (
-                    <View style={[styles.sparkBadge, { backgroundColor: isSelected ? cfg.accent : (isDark ? '#3a3a58' : '#e0e0ea') }]}>
+                <View style={[styles.optionIconZone, { backgroundColor: isSelected ? style.accentBg : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)') }]}>
+                  <Car size={26} color={isSelected ? style.accent : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)')} />
+                  {isPricierTier && (
+                    <View style={[styles.sparkBadge, { backgroundColor: isSelected ? style.accent : (isDark ? '#3a3a58' : '#e0e0ea') }]}>
                       <Sparkles size={9} color={isSelected ? '#fff' : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)')} fill={isSelected ? '#fff' : 'transparent'} />
                     </View>
                   )}
@@ -223,18 +220,10 @@ export function RideOptionsSheet({
                 {/* Meta */}
                 <View style={styles.optionMeta}>
                   <View style={styles.optionNameRow}>
-                    <Text style={[styles.optionName, { color: isSelected ? cfg.accent : (isDark ? '#e8e8f2' : '#1e1e28') }]}>
-                      {t(cfg.labelKey)}
+                    <Text style={[styles.optionName, { color: isSelected ? style.accent : (isDark ? '#e8e8f2' : '#1e1e28') }]}>
+                      {cat.name}
                     </Text>
-                    {cfg.tag && (
-                      <View style={[styles.tagPill, { backgroundColor: isSelected ? cfg.accentBg : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'), borderColor: isSelected ? cfg.accentBorder : 'transparent' }]}>
-                        <Text style={[styles.tagText, { color: isSelected ? cfg.accent : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)') }]}>{cfg.tag}</Text>
-                      </View>
-                    )}
                   </View>
-                  <Text style={[styles.optionDesc, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)' }]}>
-                    {t(cfg.descKey)}
-                  </Text>
                   <View style={styles.optionChips}>
                     <View style={[styles.chip, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)' }]}>
                       <Clock size={10} color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'} />
@@ -252,13 +241,13 @@ export function RideOptionsSheet({
                 {/* Price block */}
                 <View style={styles.priceZone}>
                   {estimateLoading ? (
-                    <ActivityIndicator size="small" color={cfg.accent} />
+                    <ActivityIndicator size="small" color={style.accent} />
                   ) : (
                     <>
-                      <Text style={[styles.priceCurrency, { color: isSelected ? cfg.accent : (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)') }]}>
+                      <Text style={[styles.priceCurrency, { color: isSelected ? style.accent : (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)') }]}>
                         {t('egp')}
                       </Text>
-                      <Text style={[styles.priceValue, { color: isSelected ? cfg.accent : (isDark ? '#e8e8f2' : '#1e1e28') }]}>
+                      <Text style={[styles.priceValue, { color: isSelected ? style.accent : (isDark ? '#e8e8f2' : '#1e1e28') }]}>
                         {price != null ? price.toFixed(0) : '—'}
                       </Text>
                     </>
@@ -267,7 +256,7 @@ export function RideOptionsSheet({
 
                 {/* Selected indicator */}
                 {isSelected && (
-                  <View style={[styles.selectedDot, { backgroundColor: cfg.accent }]} />
+                  <View style={[styles.selectedDot, { backgroundColor: style.accent }]} />
                 )}
               </TouchableOpacity>
             );

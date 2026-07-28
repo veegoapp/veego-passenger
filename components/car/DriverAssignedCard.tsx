@@ -14,7 +14,11 @@ import { Radius } from '@/constants/radius';
 
 interface DriverAssignedCardProps {
   visible: boolean;
-  rideType: 'economy' | 'premium' | 'standard' | null;
+  /** Selected car category's display name (e.g. "Economy Plus"), straight from
+   *  the estimate response — null/undefined for scooter/delivery or when no
+   *  category was resolved. Was previously a hardcoded 'economy' | 'premium'
+   *  id that couldn't represent a 3rd (or Nth) category. */
+  carCategoryName?: string | null;
   serviceType?: 'car' | 'scooter' | 'delivery';
   destination: string | null;
   driver?: DriverInfo | null;
@@ -28,7 +32,7 @@ interface DriverAssignedCardProps {
 }
 
 export function DriverAssignedCard({
-  visible, rideType, serviceType, destination, driver, rideId, rideStatus,
+  visible, carCategoryName, serviceType, destination, driver, rideId, rideStatus,
   waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
@@ -269,20 +273,18 @@ export function DriverAssignedCard({
                 <Text style={[styles.driverName, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
                   {driver?.name ?? '—'}
                 </Text>
-                {/* Economy / Premium badge — Car rides only. Same accent split
-                    as the ride-options sheet: mint for economy, ink for premium. */}
-                {serviceType === 'car' && (rideType === 'economy' || rideType === 'premium') && (
+                {/* Car category badge — shows the actual selected category name
+                    (Economy, Economy Plus, Comfort, ...), not a hardcoded pair. */}
+                {serviceType === 'car' && !!carCategoryName && (
                   <View style={[
                     styles.tierBadge,
-                    rideType === 'premium'
-                      ? { backgroundColor: (isDark ? 'rgba(232,232,242,0.10)' : 'rgba(30,30,40,0.06)'), borderColor: (isDark ? 'rgba(232,232,242,0.35)' : 'rgba(30,30,40,0.28)') }
-                      : { backgroundColor: c.accent + '1A', borderColor: c.accent + '59' },
+                    { backgroundColor: c.accent + '1A', borderColor: c.accent + '59' },
                   ]}>
                     <Text style={[
                       styles.tierBadgeText,
-                      { color: rideType === 'premium' ? c.primary : c.accent },
+                      { color: c.accent },
                     ]}>
-                      {rideType === 'premium' ? t('premium') : t('economy')}
+                      {carCategoryName}
                     </Text>
                   </View>
                 )}
