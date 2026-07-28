@@ -91,9 +91,19 @@ export default function ProfileScreen() {
         headers: { 'Content-Type': undefined },
       });
       if (uploadData?.avatarUrl) setAvatarUri(uploadData.avatarUrl);
-    } catch {
+    } catch (err: any) {
       setAvatarUri(prevUri);
-      Alert.alert(t('upload_failed'), t('upload_failed_msg'));
+      // Surface the server's actual reason (e.g. "Storage upload failed.",
+      // a file-type rejection) instead of a generic message, so a failure
+      // can be diagnosed from what the user sees instead of needing
+      // server log access every time.
+      const serverMessage = err?.response?.data?.message ?? err?.response?.data?.detail;
+      console.error('[avatar upload] failed', {
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+      });
+      Alert.alert(t('upload_failed'), serverMessage ?? t('upload_failed_msg'));
     } finally {
       setAvatarUploading(false);
     }
