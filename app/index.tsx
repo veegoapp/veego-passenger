@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animation } from '@/constants/animations';
-import { View, Text, StyleSheet, Dimensions, Animated, Easing, AppState, AppStateStatus } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, AppState, AppStateStatus } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation } from 'lucide-react-native';
@@ -18,7 +18,15 @@ import { Spacing } from '@/constants/spacing';
 
 const LANG_KEY = '@veego_lang_selected';
 const ONBOARDING_KEY = '@veego_has_seen_onboarding';
-const { width } = Dimensions.get('window');
+
+// Icon card is 80x80 (see iconInner). The arrow travels the card's own
+// bottom-left-to-top-right diagonal, extended past both corners; iconInner's
+// overflow:hidden + borderRadius clips it, so it isn't drawn at all until it
+// crosses the bottom edge and is gone again once it clears the top edge.
+const FLY_ICON_SIZE = 35;
+const FLY_TRANSLATE_X = [-57.1, 102.1];
+const FLY_TRANSLATE_Y = [102.1, -57.1];
+const FLY_DURATION = 2370;
 
 function decodeJwtPayload(token: string): { exp?: number } | null {
   try {
@@ -126,8 +134,7 @@ export default function SplashPage() {
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.88)).current;
   const logoRotate = useRef(new Animated.Value(0)).current;
-  const barWidth = useRef(new Animated.Value(0)).current;
-  const barOpacity = useRef(new Animated.Value(0)).current;
+  const flyProgress = useRef(new Animated.Value(0)).current;
   const startupAuthStarted = useRef(false);
   const startupNavigationCompleted = useRef(false);
   const [authenticationReady, setAuthenticationReady] = useState(false);
@@ -143,14 +150,9 @@ export default function SplashPage() {
           Animated.timing(logoRotate, { toValue: 0, duration: Animation.duration.slower, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ),
-      Animated.sequence([
-        Animated.delay(400),
-        Animated.timing(barOpacity, { toValue: 1, duration: Animation.duration.normal, useNativeDriver: false }),
-      ]),
-      Animated.sequence([
-        Animated.delay(500),
-        Animated.timing(barWidth, { toValue: width * 0.55, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
-      ]),
+      Animated.loop(
+        Animated.timing(flyProgress, { toValue: 1, duration: FLY_DURATION, easing: Easing.linear, useNativeDriver: true })
+      ),
     ]).start();
 
     const t = setTimeout(() => {
@@ -186,21 +188,29 @@ export default function SplashPage() {
   ]);
 
   const rotateDeg = logoRotate.interpolate({ inputRange: [-8, 8], outputRange: ['-8deg', '8deg'] });
+  const flyTranslateX = flyProgress.interpolate({ inputRange: [0, 1], outputRange: FLY_TRANSLATE_X });
+  const flyTranslateY = flyProgress.interpolate({ inputRange: [0, 1], outputRange: FLY_TRANSLATE_Y });
 
   return (
     <LinearGradient colors={c.luxeGrad} style={styles.root}>
       <Animated.View style={[styles.content, { opacity, transform: [{ scale }] }]}>
         <Animated.View style={[styles.iconWrap, { transform: [{ rotate: rotateDeg }] }]}>
           <View style={styles.iconInner}>
-            <Navigation size={32} color={c.white} />
+            <View style={styles.iconClip}>
+              <Animated.View
+                style={[
+                  styles.flyIcon,
+                  { transform: [{ translateX: flyTranslateX }, { translateY: flyTranslateY }] },
+                ]}
+              >
+                <Navigation size={FLY_ICON_SIZE} color={c.white} />
+              </Animated.View>
+            </View>
           </View>
           <View style={styles.iconGlow} />
         </Animated.View>
         <Text style={styles.wordmark}>VeeGo</Text>
         <Text style={styles.tagline}>{t('tagline')}</Text>
-        <View style={styles.barWrap}>
-          <Animated.View style={[styles.bar, { width: barWidth, opacity: barOpacity }]} />
-        </View>
       </Animated.View>
     </LinearGradient>
   );
@@ -216,15 +226,16 @@ function makeStyles(c: ThemeColors) {
       alignItems: 'center', justifyContent: 'center',
       shadowColor: c.ink, shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.25, shadowRadius: 32, elevation: 10,
     },
+    // Separate from iconInner: overflow:hidden here (not on the shadow-casting
+    // view above) so clipping the flying icon doesn't also clip the card's own
+    // drop shadow.
+    iconClip: { width: 80, height: 80, borderRadius: 28, overflow: 'hidden' },
+    flyIcon: { position: 'absolute', left: 0, top: 0 },
     iconGlow: {
       position: 'absolute', width: 100, height: 100, borderRadius: 50,
       backgroundColor: 'rgba(30,30,40,0.08)',
     },
     wordmark: { fontSize: 46, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -2.5, fontFamily: 'Inter_700Bold' },
     tagline: { fontSize: 13, color: c.inkSoft, letterSpacing: 0.2, fontFamily: 'Inter_400Regular' },
-    barWrap: {
-      width: 220, height: 4, borderRadius: 2, backgroundColor: c.border, overflow: 'hidden', marginTop: Spacing.sm,
-    },
-    bar: { height: 4, borderRadius: 2, backgroundColor: c.ink },
   });
 }
