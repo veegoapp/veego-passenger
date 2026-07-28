@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, Dimensions, Animated, Easing, AppState, AppStat
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import { tokenStore } from '@/src/api/client';
@@ -16,7 +15,6 @@ import type { NormalizedPassengerActiveSession } from '@/src/session/activeSessi
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
-const ONBOARDING_KEY = '@veego_has_seen_onboarding';
 const { width } = Dimensions.get('window');
 
 function decodeJwtPayload(token: string): { exp?: number } | null {
@@ -27,18 +25,8 @@ function decodeJwtPayload(token: string): { exp?: number } | null {
   }
 }
 
-async function markOnboardingSeen(): Promise<void> {
-  try { await AsyncStorage.setItem(ONBOARDING_KEY, '1'); } catch {}
-}
-
-/**
- * Onboarding is a first-install-only screen. Once a device has seen it (or
- * has ever been authenticated) it must never resurface — logout, expiry, and
- * failed refresh should all land on /auth instead.
- */
 async function routeUnauthenticated(): Promise<void> {
-  const seen = await AsyncStorage.getItem(ONBOARDING_KEY);
-  router.replace(seen === '1' ? '/auth' : '/onboarding');
+  router.replace('/auth');
 }
 
 async function attemptTokenRefresh(): Promise<boolean> {
@@ -74,9 +62,6 @@ async function checkAuthAndNavigate(onAuthenticated: () => Promise<void>) {
       }
     }
 
-    // A device that reaches the app with a valid session has clearly moved
-    // past first-run — make sure a later logout on this device skips onboarding too.
-    await markOnboardingSeen();
     await onAuthenticated();
   } catch {
     // /auth is the safe fallback on unexpected errors (expired token,

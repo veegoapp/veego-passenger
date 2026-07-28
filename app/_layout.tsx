@@ -200,7 +200,6 @@ function AppShell() {
       <StatusBar style={darkMode ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding" />
         <Stack.Screen name="auth" />
         <Stack.Screen name="(tabs)"        options={{ animation: 'fade' }} />
         <Stack.Screen name="stations"      options={{ animation: slideAnim }} />
