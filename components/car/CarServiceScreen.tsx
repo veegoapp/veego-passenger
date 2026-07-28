@@ -33,14 +33,17 @@ import { Radius } from '@/constants/radius';
 import { VeeGoButton } from '@/components/ui/VeeGoButton';
 
 interface Coords { latitude: number; longitude: number }
+interface CarCategoryOption {
+  slug:  string;
+  name:  string;
+  price: number;
+}
 interface RideEstimate {
-  economy: { price: number; eta: number };
-  premium: { price: number; eta: number };
-  /** Real car-category slugs backing the economy/premium tiers, straight from
-   *  the estimate response's `categories[]` (same cheapest/priciest positions
-   *  the backend itself used to derive the economy/premium price fields). */
-  economySlug?: string;
-  premiumSlug?: string;
+  /** One entry per active car category from the backend (economy, economy_plus,
+   *  comfort, ...) — was previously collapsed to just the cheapest/priciest
+   *  entries, which silently dropped any category in between. */
+  categories: CarCategoryOption[];
+  eta: number;
 }
 
 type CarPhase = 'idle' | 'ride_options' | 'in_ride' | 'completed' | 'cancelled';
@@ -274,7 +277,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [destCoords, setDestCoords]     = useState<Coords | null>(null);
   const [userCoords, setUserCoords]     = useState<Coords | null>(null);
   // pickupQuery / destQuery / activeField replace the old single searchQuery — see expandSheet block below
-  const [selectedRide, setSelectedRide] = useState<'economy' | 'premium' | 'standard' | null>(null);
+  const [selectedRide, setSelectedRide] = useState<string | null>(null);
   const [safetyOpen, setSafetyOpen]     = useState(false);
   const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
@@ -434,12 +437,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     try {
       const data = await getRideEstimate(pickup, dropoff, serviceType);
       if (serviceType === 'car') {
-        const categories: Array<{ slug: string }> | undefined = data.categories;
+        const categories: Array<{ slug: string; name: string; estimatedPrice: number }> = data.categories ?? [];
         setEstimate({
-          economy: { price: data.economy?.price ?? 0, eta: data.economy?.eta ?? 5 },
-          premium: { price: data.premium?.price ?? 0, eta: data.premium?.eta ?? 8 },
-          economySlug: categories?.[0]?.slug,
-          premiumSlug: categories?.[categories.length - 1]?.slug,
+          categories: categories.map((cat) => ({ slug: cat.slug, name: cat.name, price: cat.estimatedPrice })),
+          eta: data.durationMinutes ?? 5,
         });
       } else {
         // Scooter/delivery pricing is single-rate on the backend — no
@@ -524,12 +525,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       pickupAddress = `${pickup.latitude.toFixed(5)}, ${pickup.longitude.toFixed(5)}`;
     }
 
-    // Map the selected tier to the real car-category slug the backend gave us
-    // in the estimate response — 'standard' (scooter/delivery) has no category
-    // split, so no categorySlug is sent for it (unchanged dispatch behavior).
-    const categorySlug = selectedRide === 'economy' ? estimate?.economySlug
-      : selectedRide === 'premium' ? estimate?.premiumSlug
-      : undefined;
+    // selectedRide holds the real car-category slug directly for car rides —
+    // 'standard' (scooter/delivery) has no category split, so no categorySlug
+    // is sent for it (unchanged dispatch behavior).
+    const categorySlug = serviceType === 'car' ? (selectedRide ?? undefined) : undefined;
 
     const result = await requestRide({
       type: serviceType,
@@ -1026,7 +1025,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {/* Driver assigned / arrived / started */}
       <DriverAssignedCard
         visible={phase === 'in_ride' && ['driver_assigned', 'arrived', 'started'].includes(rideState.status)}
-        rideType={selectedRide}
+        carCategoryName={estimate?.categories.find((cat) => cat.slug === selectedRide)?.name}
         serviceType={serviceType}
         destination={destination}
         driver={rideState.driver}
