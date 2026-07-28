@@ -1,5 +1,5 @@
 export const en = {
-  home: 'Home', routes: 'Routes', trips: 'Trips', profile: 'Profile', wallet: 'Wallet',
+  home: 'Go', routes: 'Routes', trips: 'Activity', profile: 'Profile', wallet: 'Wallet',
   good_morning: 'Good morning',
   good_afternoon: 'Good afternoon',
   good_evening: 'Good evening',

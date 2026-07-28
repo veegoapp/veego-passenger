@@ -1,7 +1,7 @@
 import { en } from './en';
 
 export const ar: typeof en = {
-  home: 'الرئيسية', routes: 'الخطوط', trips: 'رحلاتي', profile: 'الملف', wallet: 'المحفظة',
+  home: 'انطلق', routes: 'الخطوط', trips: 'النشاط', profile: 'الملف', wallet: 'المحفظة',
   good_morning: 'صباح الخير',
   good_afternoon: 'مساء الخير',
   good_evening: 'مساء النور',
