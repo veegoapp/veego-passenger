@@ -1,8 +1,10 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Car, Bike, Package } from 'lucide-react-native';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
+import { GlassView } from '@/components/ui/GlassView';
 import { Animation } from '@/constants/animations';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -13,15 +15,14 @@ interface DriverSearchingProps {
   serviceType?: 'car' | 'scooter' | 'delivery';
 }
 
-function getServiceConfig(serviceType: 'car' | 'scooter' | 'delivery' | undefined) {
+// Icon only varies by vehicle type — the accent stays the shared VeeGo mint,
+// same as the Driver app (which never color-codes by vehicle type either).
+function getServiceIcon(serviceType: 'car' | 'scooter' | 'delivery' | undefined) {
   switch (serviceType) {
-    case 'scooter':
-      return { accentColor: '#10B981', IconComponent: Bike };
-    case 'delivery':
-      return { accentColor: '#8B5CF6', IconComponent: Package };
+    case 'scooter': return Bike;
+    case 'delivery': return Package;
     case 'car':
-    default:
-      return { accentColor: '#3B82F6', IconComponent: Car };
+    default: return Car;
   }
 }
 
@@ -104,22 +105,21 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [380, 0] });
   const isDark = c.isDark;
-  const { accentColor, IconComponent } = getServiceConfig(serviceType);
-  const panelBg = isDark ? 'rgba(10,10,22,0.97)' : 'rgba(250,250,254,0.97)';
+  const IconComponent = getServiceIcon(serviceType);
+  const accentColor = c.accent;
 
   return (
     <Animated.View
       style={[
         styles.sheet,
         {
-          backgroundColor: panelBg,
-          paddingBottom: tabBarHeight + 20,
           opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
+      <GlassView strong borderRadius={28} style={[styles.sheetGlass, { paddingBottom: tabBarHeight + 20 }]}>
       {/* Drag handle */}
       <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }]} />
 
@@ -144,11 +144,11 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
             );
           })}
 
-          {/* Centre icon */}
+          {/* Centre icon — same ink gradient treatment as the Driver app's nav icon */}
           <View style={[styles.iconOuter, { backgroundColor: isDark ? `${accentColor}1F` : `${accentColor}14` }]}>
-            <View style={[styles.iconInner, { backgroundColor: accentColor }]}>
+            <LinearGradient colors={c.gradientPrimary} style={styles.iconInner}>
               <IconComponent size={22} color="#ffffff" />
-            </View>
+            </LinearGradient>
           </View>
         </View>
 
@@ -194,6 +194,7 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
           </TouchableOpacity>
         )}
       </View>
+      </GlassView>
     </Animated.View>
   );
 }
@@ -201,10 +202,14 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
     shadowColor: '#000', shadowOffset: { width: 0, height: -14 },
     shadowOpacity: 0.3, shadowRadius: 30, elevation: 26,
-    paddingTop: 8, zIndex: 999,
+    zIndex: 999,
+  },
+  sheetGlass: {
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+    paddingTop: 8,
   },
   handle: {
     width: 36, height: 4, borderRadius: 2,

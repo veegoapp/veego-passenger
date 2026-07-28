@@ -10,7 +10,8 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { CheckCircle2, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Check, X, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
@@ -67,18 +68,21 @@ export interface CarServiceScreenHandle {
 
 function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, sheetHeaderOffset: number) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: '#0d0e22' },
+    root: { flex: 1, backgroundColor: c.background },
 
     // ── Bottom idle panel (glassmorphism) ─────────────────────────────
     bottomContainer: {
       position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 30,
     },
-    // Glassmorphic floating search card
+    // Glassmorphic floating search card — same translucent-panel + hairline
+    // border language as the Driver app's GlassView.
     glassCard: {
       marginHorizontal: 14,
       marginBottom: 10,
       borderRadius: 20,
       backgroundColor: c.isDark ? 'rgba(18,20,40,0.92)' : 'rgba(255,255,255,0.92)',
+      borderWidth: 1,
+      borderColor: c.border,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: c.isDark ? 0.45 : 0.14,
@@ -89,6 +93,7 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
     bottomPanel: {
       backgroundColor: c.isDark ? 'rgba(18,18,32,0.94)' : 'rgba(255,255,255,0.94)',
       borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      borderWidth: 1, borderColor: c.border, borderBottomWidth: 0,
       paddingBottom: tabBarHeight,
       shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
       shadowOpacity: 0.12, shadowRadius: 16, elevation: 12,
@@ -231,11 +236,12 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       zIndex: 999,
     },
     cardInner: { alignItems: 'center', gap: 6 },
+    statusBadge: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
     cardTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, letterSpacing: -0.3, fontFamily: 'Inter_700Bold' },
     cardSub: { fontSize: 13, textAlign: 'center' },
     invoice: { width: '100%', borderRadius: Radius.lg, padding: Spacing.lg, alignItems: 'center', marginVertical: Spacing.md },
     invoiceLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium },
-    invoiceAmount: { fontSize: 26, fontWeight: '800', color: '#10b981', marginTop: 2, letterSpacing: -0.5 },
+    invoiceAmount: { fontSize: 26, fontWeight: '800', color: c.ink, marginTop: 2, letterSpacing: -0.5 },
     actionBtn: { width: '100%', height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
     actionBtnTxt: { fontSize: 15, fontWeight: Typography.weight.bold },
     resumeOverlay: {
@@ -696,7 +702,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                   activeOpacity={0.85}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.primary }} />
                     <Text style={styles.locationLabel}>{t('your_location')}</Text>
                   </View>
                   <Text style={styles.locationAddress} numberOfLines={1}>
@@ -759,9 +765,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                 <View style={styles.twoFieldBlock}>
                   {/* Route line connector */}
                   <View style={styles.routeLineWrap}>
-                    <View style={[styles.routeDot, { backgroundColor: '#10b981' }]} />
+                    <View style={[styles.routeDot, { backgroundColor: c.primary }]} />
                     <View style={styles.routeLine} />
-                    <View style={[styles.routeDot, { backgroundColor: c.badge ?? '#8B6FD4' }]} />
+                    <View style={[styles.routeDot, { backgroundColor: c.accent }]} />
                   </View>
 
                   <View style={{ flex: 1, gap: 6 }}>
@@ -772,7 +778,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                       style={[
                         styles.fieldRow,
                         activeField === 'pickup' && styles.fieldRowActive,
-                        { borderColor: activeField === 'pickup' ? '#10b981' : (c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)') },
+                        { borderColor: activeField === 'pickup' ? c.primary : (c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)') },
                       ]}
                     >
                       <TextInput
@@ -803,7 +809,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                       style={[
                         styles.fieldRow,
                         activeField === 'destination' && styles.fieldRowActive,
-                        { borderColor: activeField === 'destination' ? (c.badge ?? '#8B6FD4') : (c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)') },
+                        { borderColor: activeField === 'destination' ? c.accent : (c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)') },
                       ]}
                     >
                       <TextInput
@@ -856,11 +862,11 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                           }}
                           activeOpacity={0.8}
                         >
-                          <View style={[styles.locIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
-                            <MapPin size={16} color="#10b981" />
+                          <View style={[styles.locIcon, { backgroundColor: c.primary + '1F' }]}>
+                            <MapPin size={16} color={c.primary} />
                           </View>
-                          <Text style={[styles.locText, { color: '#10b981' }]}>{t('current_location')}</Text>
-                          {isRTL ? <ChevronLeft size={14} color="#10b981" /> : <ChevronRight size={14} color="#10b981" />}
+                          <Text style={[styles.locText, { color: c.primary }]}>{t('current_location')}</Text>
+                          {isRTL ? <ChevronLeft size={14} color={c.primary} /> : <ChevronRight size={14} color={c.primary} />}
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.locItem}
@@ -886,11 +892,11 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                           }}
                           activeOpacity={0.8}
                         >
-                          <View style={[styles.locIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
-                            <MapPin size={16} color="#10b981" />
+                          <View style={[styles.locIcon, { backgroundColor: c.primary + '1F' }]}>
+                            <MapPin size={16} color={c.primary} />
                           </View>
-                          <Text style={[styles.locText, { color: '#10b981' }]}>{t('current_location')}</Text>
-                          {isRTL ? <ChevronLeft size={14} color="#10b981" /> : <ChevronRight size={14} color="#10b981" />}
+                          <Text style={[styles.locText, { color: c.primary }]}>{t('current_location')}</Text>
+                          {isRTL ? <ChevronLeft size={14} color={c.primary} /> : <ChevronRight size={14} color={c.primary} />}
                         </TouchableOpacity>
                         {recents.length > 0 && (
                           <>
@@ -1051,7 +1057,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {phase === 'completed' && (
         <View style={styles.card}>
           <View style={styles.cardInner}>
-            <CheckCircle2 size={48} color="#10b981" />
+            {/* Same ink-gradient check badge as the Driver app's trip-done overlay */}
+            <LinearGradient colors={c.gradientPrimary} style={styles.statusBadge}>
+              <Check size={32} color="#ffffff" strokeWidth={3} />
+            </LinearGradient>
             <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('trip_complete')}</Text>
             <Text style={[styles.cardSub, { color: c.inkSoft }]}>{t('payment_paid')}</Text>
             {rideState.fare != null && (
@@ -1075,7 +1084,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {phase === 'cancelled' && (
         <View style={styles.card}>
           <View style={styles.cardInner}>
-            <XCircle size={48} color="#ef4444" />
+            <View style={[styles.statusBadge, { backgroundColor: c.error }]}>
+              <X size={32} color="#ffffff" strokeWidth={3} />
+            </View>
             <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{cancelTitle}</Text>
             {cancelSubtitle ? (
               <Text style={[styles.cardSub, { color: c.inkSoft }]}>{cancelSubtitle}</Text>

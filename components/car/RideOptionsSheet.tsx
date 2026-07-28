@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { GlassView } from '@/components/ui/GlassView';
 import {
   MapPin, ChevronDown, Clock, Users, ArrowRight,
   Car, Sparkles, Bike as ScooterIcon, Package,
@@ -13,6 +14,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
+import type { ThemeColors } from '@/constants/colors';
 import { Animation } from '@/constants/animations';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -25,37 +27,42 @@ interface RideEstimate {
 
 interface SingleEstimate { price: number; eta: number }
 
-const TIER_CONFIG = {
-  economy: {
-    id: 'economy' as const,
-    labelKey: 'economy' as const,
-    descKey: 'economy_desc' as const,
-    icon: Car,
-    accent: '#10B981',
-    accentBg: 'rgba(16,185,129,0.10)',
-    accentBorder: 'rgba(16,185,129,0.35)',
-    gradientStart: 'rgba(16,185,129,0.08)',
-    tag: null as string | null,
-  },
-  premium: {
-    id: 'premium' as const,
-    labelKey: 'premium' as const,
-    descKey: 'premium_desc' as const,
-    icon: Car,
-    accent: '#8B5CF6',
-    accentBg: 'rgba(139,92,246,0.10)',
-    accentBorder: 'rgba(139,92,246,0.35)',
-    gradientStart: 'rgba(139,92,246,0.08)',
-    tag: 'Premium',
-  },
-};
+// Tier accents pull from the shared VeeGo palette (mint accent / ink primary)
+// instead of one-off hues — same brand identity the Driver app's ride screen
+// uses, just applied to the economy/premium split.
+function getTierConfig(c: ThemeColors) {
+  return {
+    economy: {
+      id: 'economy' as const,
+      labelKey: 'economy' as const,
+      descKey: 'economy_desc' as const,
+      icon: Car,
+      accent: c.accent,
+      accentBg: c.isDark ? 'rgba(85,196,154,0.14)' : 'rgba(85,196,154,0.10)',
+      accentBorder: c.isDark ? 'rgba(85,196,154,0.4)' : 'rgba(85,196,154,0.35)',
+      tag: null as string | null,
+    },
+    premium: {
+      id: 'premium' as const,
+      labelKey: 'premium' as const,
+      descKey: 'premium_desc' as const,
+      icon: Car,
+      accent: c.primary,
+      accentBg: c.isDark ? 'rgba(232,232,242,0.10)' : 'rgba(30,30,40,0.06)',
+      accentBorder: c.isDark ? 'rgba(232,232,242,0.35)' : 'rgba(30,30,40,0.28)',
+      tag: 'Premium',
+    },
+  };
+}
 
-const SINGLE_META: Record<'scooter' | 'delivery', {
+function getSingleMeta(c: ThemeColors): Record<'scooter' | 'delivery', {
   icon: typeof Car; accent: string; accentBg: string; accentBorder: string;
-}> = {
-  scooter:  { icon: ScooterIcon, accent: '#10B981', accentBg: 'rgba(16,185,129,0.10)', accentBorder: 'rgba(16,185,129,0.35)' },
-  delivery: { icon: Package,     accent: '#8B5CF6', accentBg: 'rgba(139,92,246,0.10)', accentBorder: 'rgba(139,92,246,0.35)' },
-};
+}> {
+  return {
+    scooter:  { icon: ScooterIcon, accent: c.accent, accentBg: c.isDark ? 'rgba(85,196,154,0.14)' : 'rgba(85,196,154,0.10)', accentBorder: c.isDark ? 'rgba(85,196,154,0.4)' : 'rgba(85,196,154,0.35)' },
+    delivery: { icon: Package,     accent: c.accent, accentBg: c.isDark ? 'rgba(85,196,154,0.14)' : 'rgba(85,196,154,0.10)', accentBorder: c.isDark ? 'rgba(85,196,154,0.4)' : 'rgba(85,196,154,0.35)' },
+  };
+}
 
 type RideOptionId = 'economy' | 'premium' | 'standard';
 
@@ -90,6 +97,8 @@ export function RideOptionsSheet({
   const { colors: c, t, isRTL } = useTheme();
   const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const TIER_CONFIG = getTierConfig(c);
+  const SINGLE_META = getSingleMeta(c);
 
   const isDelivery = serviceType === 'delivery';
   const recipientReady = !isDelivery || (!!recipientName?.trim() && !!recipientPhone?.trim());
@@ -123,12 +132,10 @@ export function RideOptionsSheet({
     return serviceType === 'scooter' ? t('scooter') : t('delivery');
   })();
 
-  const confirmGradient: [string, string] = canConfirm && !confirming
-    ? (selected === 'premium'
-        ? ['#7C3AED', '#5B21B6']
-        : selected === 'standard' && serviceType === 'delivery'
-          ? ['#7C3AED', '#5B21B6']
-          : ['#059669', '#047857'])
+  // CTA always uses the shared VeeGo ink gradient — same treatment as the
+  // Driver app's accept/next-phase buttons — instead of a tier-dependent hue.
+  const confirmGradient: readonly [string, string] = canConfirm && !confirming
+    ? c.gradientPrimary
     : [isDark ? '#2a2a40' : '#d1d1db', isDark ? '#1e1e32' : '#c4c4cf'];
 
   return (
@@ -136,14 +143,13 @@ export function RideOptionsSheet({
       style={[
         styles.sheet,
         {
-          backgroundColor: isDark ? 'rgba(12,12,24,0.98)' : 'rgba(248,248,252,0.99)',
-          paddingBottom: tabBarHeight + 20,
           opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
+      <GlassView strong borderRadius={28} style={[styles.sheetGlass, { paddingBottom: tabBarHeight + 20 }]}>
       {/* Drag handle */}
       <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }]} />
 
@@ -151,9 +157,9 @@ export function RideOptionsSheet({
       <View style={styles.headerRow}>
         {/* Trip route summary */}
         <View style={styles.tripRoute}>
-          <View style={[styles.routeOriginDot, { backgroundColor: '#10B981' }]} />
+          <View style={[styles.routeOriginDot, { backgroundColor: c.primary }]} />
           <View style={[styles.routeDashedLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)' }]} />
-          <View style={[styles.routeDestPin, { backgroundColor: '#EF4444' }]}>
+          <View style={[styles.routeDestPin, { backgroundColor: c.accent }]}>
             <MapPin size={8} color="#fff" />
           </View>
         </View>
@@ -197,7 +203,7 @@ export function RideOptionsSheet({
                   styles.optionCard,
                   {
                     backgroundColor: isSelected
-                      ? (isDark ? cfg.accentBg : `rgba(${id === 'economy' ? '16,185,129' : '139,92,246'},0.06)`)
+                      ? cfg.accentBg
                       : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
                     borderColor: isSelected ? cfg.accent : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'),
                     borderWidth: isSelected ? 1.5 : 1,
@@ -449,6 +455,7 @@ export function RideOptionsSheet({
           )}
         </LinearGradient>
       </TouchableOpacity>
+      </GlassView>
     </Animated.View>
   );
 }
@@ -456,10 +463,14 @@ export function RideOptionsSheet({
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
     shadowColor: '#000', shadowOffset: { width: 0, height: -16 },
     shadowOpacity: 0.35, shadowRadius: 32, elevation: 28,
-    paddingTop: 8, zIndex: 999,
+    zIndex: 999,
+  },
+  sheetGlass: {
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+    paddingTop: 8,
   },
   handle: {
     width: 36, height: 4, borderRadius: 2,

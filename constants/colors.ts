@@ -11,6 +11,7 @@ export type ThemeColors = {
   badge: string;
   luxeGrad: readonly [string, string];
   luxeSoftGrad: readonly [string, string];
+  gradientPrimary: readonly [string, string];
   isDark: boolean;
   // Canonical design-token aliases (source of truth for future UI work).
   // These mirror the legacy fields above so existing call sites keep working.
@@ -38,6 +39,9 @@ export const LIGHT: ThemeColors = {
   badge: '#d95c35',
   luxeGrad: ['#f4f4fb', '#ededf4'],
   luxeSoftGrad: ['#fafafa', '#f4f4f8'],
+  // Shared VeeGo ink gradient — same identity used for the ride-journey CTA
+  // gradients on the Driver app (mirrors that app's `gradientPrimary`).
+  gradientPrimary: ['#2d2d42', '#1e1e28'],
   isDark: false,
   primary: '#1e1e28',
   accent: '#55c49a',
@@ -63,6 +67,7 @@ export const DARK: ThemeColors = {
   badge: '#e07055',
   luxeGrad: ['#1e1e32', '#0f0f1e'],
   luxeSoftGrad: ['#181828', '#0f0f1e'],
+  gradientPrimary: ['#2d2d42', '#1e1e28'],
   isDark: true,
   primary: '#1e1e28',
   accent: '#55c49a',

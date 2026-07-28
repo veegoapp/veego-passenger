@@ -4,6 +4,7 @@ import { MessageCircle, Phone, X, AlertTriangle, Star, Navigation } from 'lucide
 import * as Haptics from 'expo-haptics';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
+import { GlassView } from '@/components/ui/GlassView';
 import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
@@ -88,11 +89,12 @@ export function DriverAssignedCard({
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
   const isDark = c.isDark;
-  const panelBg = isDark ? 'rgba(10,10,22,0.98)' : 'rgba(250,250,254,0.98)';
-  const surfaceBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  // Circular action buttons use a primary-tint background — same treatment
+  // as the Driver app's message/call buttons (`colors.primary + '26'`).
+  const surfaceBg = c.primary + (isDark ? '26' : '14');
   const borderCol = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
 
-  const avatarColor = driver?.vehicleColor ?? '#3B82F6';
+  const avatarColor = driver?.vehicleColor ?? c.primary;
   const initials = driver?.name
     ? driver.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
     : '?';
@@ -100,7 +102,8 @@ export function DriverAssignedCard({
   const isStarted = rideStatus === 'started';
   const isArrived = rideStatus === 'arrived';
 
-  // Star rating display (up to 5)
+  // Star rating display (up to 5) — mint accent, matching the Driver app's
+  // rating stars in both the request card and the completed-ride sheet.
   const rating = driver?.rating ?? null;
   const fullStars = rating != null ? Math.floor(rating) : 0;
 
@@ -109,14 +112,13 @@ export function DriverAssignedCard({
       style={[
         styles.sheet,
         {
-          backgroundColor: panelBg,
-          paddingBottom: tabBarHeight + 20,
           opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
+      <GlassView strong borderRadius={28} style={[styles.sheetGlass, { paddingBottom: tabBarHeight + 20 }]}>
       <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }]} />
 
       {/* ════════════════════════════════════════════
@@ -126,10 +128,10 @@ export function DriverAssignedCard({
         <View style={styles.cockpit}>
 
           {/* Status strip */}
-          <View style={[styles.cockpitStatus, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
+          <View style={[styles.cockpitStatus, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: borderCol }]}>
             <View style={styles.cockpitStatusLeft}>
-              <Animated.View style={[styles.enRouteDot, { opacity: enRouteDot }]} />
-              <Text style={[styles.cockpitStatusLabel, { color: '#3B82F6' }]}>
+              <Animated.View style={[styles.enRouteDot, { opacity: enRouteDot, backgroundColor: c.primary }]} />
+              <Text style={[styles.cockpitStatusLabel, { color: c.primary }]}>
                 {t('driver_en_route')}
               </Text>
             </View>
@@ -159,8 +161,8 @@ export function DriverAssignedCard({
 
             {/* Waiting charge */}
             {waitingChargeStatus === 'active' && waitingCharge != null && (
-              <View style={[styles.cockpitWait, { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: '#f59e0b' }]}>
-                <Text style={[styles.cockpitWaitText, { color: '#d97706' }]}>
+              <View style={[styles.cockpitWait, { backgroundColor: c.warning + '1F', borderColor: c.warning }]}>
+                <Text style={[styles.cockpitWaitText, { color: c.warning }]}>
                   +{waitingCharge.toFixed(2)} {t('egp')}
                 </Text>
               </View>
@@ -170,28 +172,29 @@ export function DriverAssignedCard({
           {/* Cockpit actions */}
           <View style={styles.cockpitActions}>
             <TouchableOpacity
-              style={[styles.cockpitIconBtn, { backgroundColor: surfaceBg, borderColor: borderCol }]}
+              style={[styles.cockpitIconBtn, { backgroundColor: surfaceBg, borderColor: 'transparent' }]}
               onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
               activeOpacity={0.78}
             >
-              <MessageCircle size={18} color={isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)'} />
+              <MessageCircle size={18} color={c.primary} />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.cockpitIconBtn,
-                { backgroundColor: surfaceBg, borderColor: borderCol, opacity: driver?.phone ? 1 : 0.38 },
+                { backgroundColor: surfaceBg, borderColor: 'transparent', opacity: driver?.phone ? 1 : 0.38 },
               ]}
               onPress={handleCall}
               disabled={!driver?.phone}
               activeOpacity={0.78}
             >
-              <Phone size={18} color={isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)'} />
+              <Phone size={18} color={c.primary} />
             </TouchableOpacity>
 
-            {/* SOS — dominant, full label */}
+            {/* SOS — dominant, full label, same solid destructive treatment
+                the Driver app uses for its own SOS button. */}
             <TouchableOpacity
-              style={styles.sosBtn}
+              style={[styles.sosBtn, { backgroundColor: c.error }]}
               onPress={() => {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 onSOS?.();
@@ -215,11 +218,11 @@ export function DriverAssignedCard({
             <Animated.View
               style={[
                 styles.arrivedBadge,
-                { backgroundColor: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.35)', transform: [{ scale: arrivedPulse }] },
+                { backgroundColor: c.success + '1F', borderColor: c.success + '59', transform: [{ scale: arrivedPulse }] },
               ]}
             >
-              <View style={styles.arrivedDot} />
-              <Text style={[styles.arrivedText, { color: '#16A34A' }]}>
+              <View style={[styles.arrivedDot, { backgroundColor: c.success }]} />
+              <Text style={[styles.arrivedText, { color: c.success }]}>
                 {t('status_driver_arrived')}
               </Text>
             </Animated.View>
@@ -266,17 +269,18 @@ export function DriverAssignedCard({
                 <Text style={[styles.driverName, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
                   {driver?.name ?? '—'}
                 </Text>
-                {/* Economy / Premium badge — Car rides only */}
+                {/* Economy / Premium badge — Car rides only. Same accent split
+                    as the ride-options sheet: mint for economy, ink for premium. */}
                 {serviceType === 'car' && (rideType === 'economy' || rideType === 'premium') && (
                   <View style={[
                     styles.tierBadge,
                     rideType === 'premium'
-                      ? { backgroundColor: 'rgba(245,158,11,0.13)', borderColor: 'rgba(245,158,11,0.4)' }
-                      : { backgroundColor: 'rgba(59,130,246,0.10)', borderColor: 'rgba(59,130,246,0.35)' },
+                      ? { backgroundColor: (isDark ? 'rgba(232,232,242,0.10)' : 'rgba(30,30,40,0.06)'), borderColor: (isDark ? 'rgba(232,232,242,0.35)' : 'rgba(30,30,40,0.28)') }
+                      : { backgroundColor: c.accent + '1A', borderColor: c.accent + '59' },
                   ]}>
                     <Text style={[
                       styles.tierBadgeText,
-                      { color: rideType === 'premium' ? '#D97706' : '#3B82F6' },
+                      { color: rideType === 'premium' ? c.primary : c.accent },
                     ]}>
                       {rideType === 'premium' ? t('premium') : t('economy')}
                     </Text>
@@ -284,14 +288,14 @@ export function DriverAssignedCard({
                 )}
               </View>
 
-              {/* Star rating */}
+              {/* Star rating — mint accent, same as the Driver app */}
               <View style={styles.starsRow}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
                     size={13}
-                    color="#F59E0B"
-                    fill={i < fullStars ? '#F59E0B' : 'transparent'}
+                    color={c.accent}
+                    fill={i < fullStars ? c.accent : 'transparent'}
                   />
                 ))}
                 {rating != null && (
@@ -323,11 +327,12 @@ export function DriverAssignedCard({
             )}
           </View>
 
-          {/* Waiting charge */}
+          {/* Waiting charge — same amber/warning treatment as the Driver
+              app's waiting-fee ticker on the ride screen. */}
           {waitingChargeStatus === 'active' && waitingCharge != null && (
-            <View style={[styles.waitingBanner, { backgroundColor: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.3)' }]}>
-              <View style={styles.waitingDot} />
-              <Text style={[styles.waitingText, { color: '#B45309' }]}>
+            <View style={[styles.waitingBanner, { backgroundColor: c.warning + '14', borderColor: c.warning + '4D' }]}>
+              <View style={[styles.waitingDot, { backgroundColor: c.warning }]} />
+              <Text style={[styles.waitingText, { color: c.warning }]}>
                 {t('waiting_charge')}: {waitingCharge.toFixed(2)} {t('egp')}
               </Text>
             </View>
@@ -335,14 +340,14 @@ export function DriverAssignedCard({
 
           {/* ── Actions ── */}
           <View style={[styles.actionRow, { borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }]}>
-            {/* Chat */}
+            {/* Chat — primary-tint circular treatment, same as the Driver app */}
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: surfaceBg, borderColor: borderCol }]}
+              style={[styles.actionBtn, { backgroundColor: surfaceBg, borderColor: 'transparent' }]}
               onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
               activeOpacity={0.78}
             >
-              <MessageCircle size={20} color={isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)'} />
-              <Text style={[styles.actionLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
+              <MessageCircle size={20} color={c.primary} />
+              <Text style={[styles.actionLabel, { color: c.primary }]}>
                 {t('chat')}
               </Text>
             </TouchableOpacity>
@@ -351,29 +356,30 @@ export function DriverAssignedCard({
             <TouchableOpacity
               style={[
                 styles.actionBtn,
-                { backgroundColor: surfaceBg, borderColor: borderCol, opacity: driver?.phone ? 1 : 0.35 },
+                { backgroundColor: surfaceBg, borderColor: 'transparent', opacity: driver?.phone ? 1 : 0.35 },
               ]}
               onPress={handleCall}
               disabled={!driver?.phone}
               activeOpacity={0.78}
             >
-              <Phone size={20} color={isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)'} />
-              <Text style={[styles.actionLabel, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
+              <Phone size={20} color={c.primary} />
+              <Text style={[styles.actionLabel, { color: c.primary }]}>
                 {t('call') ?? 'Call'}
               </Text>
             </TouchableOpacity>
 
-            {/* Cancel */}
+            {/* Cancel — plain destructive tint, same family as the Driver
+                app's error color. */}
             <TouchableOpacity
-              style={[styles.actionBtn, styles.cancelBtn, { borderColor: 'rgba(239,68,68,0.25)', backgroundColor: 'rgba(239,68,68,0.07)' }]}
+              style={[styles.actionBtn, styles.cancelBtn, { borderColor: c.error + '40', backgroundColor: c.error + '12' }]}
               onPress={() => {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                 onCancel();
               }}
               activeOpacity={0.78}
             >
-              <X size={20} color="#EF4444" />
-              <Text style={[styles.actionLabel, { color: '#EF4444' }]}>
+              <X size={20} color={c.error} />
+              <Text style={[styles.actionLabel, { color: c.error }]}>
                 {t('cancel')}
               </Text>
             </TouchableOpacity>
@@ -387,6 +393,7 @@ export function DriverAssignedCard({
         driverName={driver?.name ?? ''}
         tripId={rideId ?? null}
       />
+      </GlassView>
     </Animated.View>
   );
 }
@@ -394,10 +401,14 @@ export function DriverAssignedCard({
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
     shadowColor: '#000', shadowOffset: { width: 0, height: -14 },
     shadowOpacity: 0.32, shadowRadius: 30, elevation: 26,
-    paddingTop: 8, zIndex: 999,
+    zIndex: 999,
+  },
+  sheetGlass: {
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+    paddingTop: 8,
   },
   handle: {
     width: 36, height: 4, borderRadius: 2,
@@ -415,7 +426,7 @@ const styles = StyleSheet.create({
   },
   cockpitStatusLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   enRouteDot: {
-    width: 8, height: 8, borderRadius: 4, backgroundColor: '#3B82F6',
+    width: 8, height: 8, borderRadius: 4,
   },
   cockpitStatusLabel: {
     fontSize: 11, fontWeight: '700' as any, letterSpacing: 1.2,
@@ -453,7 +464,6 @@ const styles = StyleSheet.create({
   },
   sosBtn: {
     flex: 1, height: 48, borderRadius: 14,
-    backgroundColor: '#DC2626',
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   sosBtnText: {
@@ -484,7 +494,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, alignSelf: 'stretch',
   },
   arrivedDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: '#22C55E',
+    width: 10, height: 10, borderRadius: 5,
   },
   arrivedText: { fontSize: 15, fontWeight: '700' as any },
 
@@ -542,7 +552,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 10,
     borderWidth: 1,
   },
-  waitingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#F59E0B' },
+  waitingDot: { width: 8, height: 8, borderRadius: 4 },
   waitingText: { fontSize: 12.5, fontWeight: '600' as any },
 
   // Action row
