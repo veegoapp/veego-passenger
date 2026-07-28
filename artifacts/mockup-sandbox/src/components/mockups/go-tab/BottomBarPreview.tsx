@@ -1,171 +1,134 @@
-import { Compass, Ticket, Wallet, User } from "lucide-react";
+import { Compass, Navigation, Navigation2, Ticket, Wallet, User } from "lucide-react";
 
-const TABS = [
-  { name: "Go",       icon: Compass, active: true  },
-  { name: "Activity", icon: Ticket,  active: false },
-  { name: "Wallet",   icon: Wallet,  active: false },
-  { name: "Profile",  icon: User,    active: false },
-];
+type IconType = typeof Compass;
 
-function TabBar({ dark }: { dark: boolean }) {
-  const bg        = dark ? "rgba(26,28,50,0.97)"       : "rgba(255,255,255,0.96)";
-  const border    = dark ? "rgba(90,95,160,0.15)"      : "rgba(0,0,0,0.04)";
-  const pillBg    = dark ? "#0f0f1e"                   : "rgba(15,23,42,0.09)";
-  const inkSoft   = dark ? "rgba(180,182,210,0.55)"    : "rgba(15,23,42,0.38)";
-  const activeClr = dark ? "#f8f8ff"                   : "#0f172a";
-  const screenBg  = dark ? "#0f0f1e"                   : "#f1f2f8";
-  const labelDim  = dark ? "rgba(140,145,190,0.4)"     : "rgba(15,23,42,0.18)";
+function MiniBar({ GoIcon, dark }: { GoIcon: IconType; dark: boolean }) {
+  const bg      = dark ? "rgba(26,28,50,0.97)"    : "rgba(255,255,255,0.96)";
+  const border  = dark ? "rgba(90,95,160,0.15)"   : "rgba(0,0,0,0.04)";
+  const pillBg  = dark ? "#0f0f1e"                : "rgba(15,23,42,0.09)";
+  const inkSoft = dark ? "rgba(180,182,210,0.50)" : "rgba(15,23,42,0.38)";
+  const active  = dark ? "#f8f8ff"                : "#0f172a";
+  const screenBg= dark ? "#0f0f1e"               : "#f1f2f8";
+  const dimLine = dark ? "rgba(140,145,190,0.35)" : "rgba(15,23,42,0.12)";
+
+  const tabs = [
+    { name: "Go",       Icon: GoIcon,    isActive: true  },
+    { name: "Activity", Icon: Ticket,    isActive: false },
+    { name: "Wallet",   Icon: Wallet,    isActive: false },
+    { name: "Profile",  Icon: User,      isActive: false },
+  ];
 
   return (
-    <div
-      style={{
-        background: screenBg,
-        borderRadius: 28,
-        padding: "28px 16px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 0,
-        width: 360,
-        boxShadow: dark
-          ? "0 24px 60px rgba(0,0,0,0.55)"
-          : "0 12px 40px rgba(0,0,0,0.10)",
-      }}
-    >
-      {/* fake screen content above bar */}
-      <div style={{ paddingBottom: 24, paddingLeft: 4, paddingRight: 4 }}>
-        <div style={{
-          height: 10, width: "45%", borderRadius: 99,
-          background: labelDim, marginBottom: 10,
-        }} />
-        <div style={{
-          height: 8, width: "70%", borderRadius: 99,
-          background: labelDim, marginBottom: 20,
-        }} />
-        <div style={{
-          height: 72, borderRadius: 20,
-          background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
-        }} />
+    <div style={{
+      background: screenBg, borderRadius: 24, padding: "20px 12px 12px",
+      display: "flex", flexDirection: "column", gap: 0, width: 280,
+      boxShadow: dark ? "0 20px 50px rgba(0,0,0,0.5)" : "0 10px 30px rgba(0,0,0,0.10)",
+    }}>
+      {/* skeleton screen content */}
+      <div style={{ paddingBottom: 18, paddingLeft: 2, paddingRight: 2 }}>
+        <div style={{ height: 8, width: "40%", borderRadius: 99, background: dimLine, marginBottom: 8 }} />
+        <div style={{ height: 7, width: "65%", borderRadius: 99, background: dimLine, marginBottom: 16 }} />
+        <div style={{ height: 56, borderRadius: 16, background: dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)" }} />
       </div>
-
-      {/* bar shell */}
+      {/* tab bar */}
       <div style={{
-        background: bg,
-        borderRadius: 30,
-        border: `1px solid ${border}`,
-        padding: "6px",
-        display: "flex",
-        flexDirection: "row",
-        position: "relative",
-        boxShadow: dark
-          ? "0 4px 20px rgba(0,0,0,0.35)"
-          : "0 4px 16px rgba(0,0,0,0.07)",
+        background: bg, borderRadius: 30, border: `1px solid ${border}`,
+        padding: "6px", display: "flex", flexDirection: "row",
+        boxShadow: dark ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 12px rgba(0,0,0,0.06)",
       }}>
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const color = tab.active ? activeClr : inkSoft;
-          return (
-            <div
-              key={tab.name}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                paddingTop: 8,
-                paddingBottom: 8,
-                borderRadius: 24,
-                gap: 3,
-                position: "relative",
-                background: tab.active ? pillBg : "transparent",
-                zIndex: 2,
-              }}
-            >
-              <Icon size={17} color={color} strokeWidth={tab.active ? 2.2 : 1.9} />
-              <span style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color,
-                fontFamily: "'Inter', sans-serif",
-                letterSpacing: 0.1,
-                lineHeight: "13px",
-              }}>
-                {tab.name}
-              </span>
-            </div>
-          );
-        })}
+        {tabs.map(({ name, Icon, isActive }) => (
+          <div key={name} style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            paddingTop: 8, paddingBottom: 8, borderRadius: 24, gap: 3,
+            background: isActive ? pillBg : "transparent",
+          }}>
+            <Icon size={17} color={isActive ? active : inkSoft} strokeWidth={isActive ? 2.2 : 1.9} />
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              color: isActive ? active : inkSoft,
+              fontFamily: "'Inter', sans-serif", lineHeight: "13px",
+            }}>{name}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
+const OPTIONS: { icon: IconType; label: string; note: string }[] = [
+  { icon: Navigation,  label: "Navigation",  note: "أقرب للوجو ✓" },
+  { icon: Navigation2, label: "Navigation2", note: "متماثل / مملوء" },
+  { icon: Compass,     label: "Compass",     note: "الاختيار الحالي" },
+];
+
 export function BottomBarPreview() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #1a1a2e 0%, #2d2d4e 100%)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 40,
-      padding: 40,
+      background: "linear-gradient(145deg, #12122a 0%, #1e1e3a 100%)",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      gap: 36, padding: 40,
       fontFamily: "'Inter', sans-serif",
     }}>
-      {/* header */}
-      <div style={{ textAlign: "center", marginBottom: 4 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: 2,
-          color: "rgba(255,255,255,0.4)", textTransform: "uppercase",
-          marginBottom: 8,
-        }}>
-          VeeGo Passenger App
+      {/* title */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", marginBottom: 8 }}>
+          VeeGo · Go Tab Icon Options
         </div>
-        <div style={{
-          fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: -0.5,
-        }}>
-          "Go" Tab — Compass Icon Preview
+        <div style={{ fontSize: 21, fontWeight: 800, color: "#fff", letterSpacing: -0.4 }}>
+          Navigation vs Navigation2 vs Compass
         </div>
-        <div style={{
-          fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 6,
-        }}>
-          Active state · Light &amp; Dark
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>
+          كلهم موجودين في lucide-react-native · Active state · Dark mode
         </div>
       </div>
 
-      {/* two bars */}
-      <div style={{ display: "flex", flexDirection: "row", gap: 32, alignItems: "flex-start" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: 1, textTransform: "uppercase" }}>
-            Light Mode
+      {/* three bars */}
+      <div style={{ display: "flex", flexDirection: "row", gap: 28, alignItems: "flex-start" }}>
+        {OPTIONS.map(({ icon, label, note }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+            {/* badge */}
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            }}>
+              <div style={{
+                fontSize: 12, fontWeight: 700, color: "#fff",
+                background: label === "Navigation" ? "rgba(99,102,241,0.8)" : "rgba(255,255,255,0.1)",
+                borderRadius: 99, padding: "3px 12px", letterSpacing: 0.3,
+              }}>{label}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{note}</div>
+            </div>
+            <MiniBar GoIcon={icon} dark={true} />
+            <MiniBar GoIcon={icon} dark={false} />
           </div>
-          <TabBar dark={false} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", letterSpacing: 1, textTransform: "uppercase" }}>
-            Dark Mode
-          </div>
-          <TabBar dark={true} />
-        </div>
+        ))}
       </div>
 
-      {/* legend */}
+      {/* icon zoom strip */}
       <div style={{
-        display: "flex", flexDirection: "row", alignItems: "center", gap: 20,
-        background: "rgba(255,255,255,0.06)", borderRadius: 14,
-        padding: "12px 20px",
+        display: "flex", flexDirection: "row", alignItems: "center", gap: 32,
+        background: "rgba(255,255,255,0.06)", borderRadius: 16,
+        padding: "16px 28px",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Compass size={15} color="#a5b4fc" strokeWidth={2.2} />
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>
-            Compass · lucide-react-native
-          </span>
+        {OPTIONS.map(({ icon: Icon, label }) => (
+          <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: 16,
+              background: label === "Navigation" ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.08)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: label === "Navigation" ? "1.5px solid rgba(99,102,241,0.5)" : "1.5px solid rgba(255,255,255,0.1)",
+            }}>
+              <Icon size={26} color={label === "Navigation" ? "#a5b4fc" : "rgba(255,255,255,0.6)"} strokeWidth={2} />
+            </div>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>{label}</span>
+          </div>
+        ))}
+        <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.1)", marginLeft: 4 }} />
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", maxWidth: 160, lineHeight: "18px" }}>
+          الـ Navigation هو الأقرب لشكل سهم الـ VeeGo logo
         </div>
-        <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.12)" }} />
-        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-          size=17 · strokeWidth=2.2 active / 1.9 inactive
-        </span>
       </div>
     </div>
   );
