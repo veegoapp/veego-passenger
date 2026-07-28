@@ -1,5 +1,3 @@
-import type { ConfigContext } from 'expo/config';
-
 const googleMapsApiKeyIos = process.env.GOOGLE_MAPS_API_KEY_IOS || "";
 const googleMapsApiKeyAndroid = process.env.GOOGLE_MAPS_API_KEY_ANDROID || "";
 
@@ -14,7 +12,7 @@ if (process.env.NODE_ENV !== 'production') {
   }
 }
 
-export default ({ config }: ConfigContext) => ({
+module.exports = ({ config }) => ({
   ...config,
 
   ios: {
