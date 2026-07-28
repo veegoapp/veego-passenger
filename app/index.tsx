@@ -16,7 +16,6 @@ import type { NormalizedPassengerActiveSession } from '@/src/session/activeSessi
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
-const LANG_KEY = '@veego_lang_selected';
 const ONBOARDING_KEY = '@veego_has_seen_onboarding';
 const { width } = Dimensions.get('window');
 
@@ -58,9 +57,6 @@ async function attemptTokenRefresh(): Promise<boolean> {
 
 async function checkAuthAndNavigate(onAuthenticated: () => Promise<void>) {
   try {
-    const langSelected = await AsyncStorage.getItem(LANG_KEY);
-    if (!langSelected) { router.replace('/lang-select'); return; }
-
     const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
     if (!token) { await routeUnauthenticated(); return; }
 
@@ -83,11 +79,9 @@ async function checkAuthAndNavigate(onAuthenticated: () => Promise<void>) {
     await markOnboardingSeen();
     await onAuthenticated();
   } catch {
-    // Do not fall back to /lang-select on unexpected errors (expired token,
-    // network failure, initializeActiveSession throw, etc.). The user likely
-    // already selected a language — routing them to lang-select resets the
-    // first-launch flow incorrectly. /auth is the safe fallback: it handles
-    // all unauthenticated states and never re-shows the language screen.
+    // /auth is the safe fallback on unexpected errors (expired token,
+    // network failure, initializeActiveSession throw, etc.) — it handles
+    // all unauthenticated states.
     router.replace('/auth');
   }
 }
