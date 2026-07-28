@@ -8,6 +8,7 @@
 
 import api from './client';
 import type { DebtInfo, ShuttleBookingMeta } from '@/constants/data';
+import { checkContract, DebtInfoSchema } from './schemas';
 
 // ── Request / response types ─────────────────────────────────────
 
@@ -173,6 +174,7 @@ export async function submitTripRequest(body: SubmitTripRequestBody): Promise<Su
  */
 export async function getMyDebt(): Promise<DebtInfo> {
   const { data } = await api.get('/shuttle/my-debt');
+  checkContract('Debt info', data, DebtInfoSchema);
   return data;
 }
 

@@ -91,7 +91,7 @@ function mapTransaction(t: RawTransaction): Transaction {
   const isCredit = detectCredit(t);
   const date = formatDate(t.createdAt ?? t.date ?? '');
   return {
-    id: String(t.id ?? Math.random()),
+    id: String(t.id ?? `${t.createdAt ?? t.date ?? ''}_${t.amount ?? 0}_${t.transactionType ?? t.type ?? ''}`),
     type: isCredit ? 'credit' : 'debit',
     titleEn: t.description ?? t.title ?? t.titleEn ?? (isCredit ? i18nEn.tx_wallet_recharge : i18nEn.tx_trip_payment),
     titleAr: t.descriptionAr ?? t.titleAr ?? t.description ?? (isCredit ? i18nAr.tx_wallet_recharge : i18nAr.tx_trip_payment),

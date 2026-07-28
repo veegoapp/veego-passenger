@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
@@ -169,11 +169,6 @@ export default function WalletScreen() {
     setSelectedCharge(null);
   };
 
-  const handleTransfer = () => {
-    Haptics.selectionAsync();
-    Alert.alert(t('transfer_title'), t('transfer_soon_msg'));
-  };
-
   if (walletUnavailable) {
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
@@ -217,7 +212,19 @@ export default function WalletScreen() {
         <Text style={styles.headerSub}>{t('wallet_subtitle')}</Text>
       </View>
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: tabBarHeight }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: tabBarHeight }}
+        refreshControl={
+          <RefreshControl
+            refreshing={walletLoading && hasLoadedWalletOnce}
+            onRefresh={refreshWallet}
+            tintColor={c.inkSoft}
+            colors={[c.ink]}
+          />
+        }
+      >
         <View style={styles.balanceCard}>
           <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3a']} style={styles.balanceGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={styles.balanceGlow} />
@@ -387,26 +394,34 @@ export default function WalletScreen() {
                 <Text style={styles.pmBadgeText}>{t('active')}</Text>
               </View>
             </View>
-            {!paymobEnabled && (
-              <View style={[styles.pmCard, { opacity: 0.6 }]}>
-                <View style={styles.pmIconBox}>
-                  <CreditCard size={20} color={c.inkSoft} />
+            <View style={[styles.pmCard, !paymobEnabled && { opacity: 0.6 }]}>
+              <View style={styles.pmIconBox}>
+                <CreditCard size={20} color={paymobEnabled ? c.ink : c.inkSoft} />
+              </View>
+              <View style={styles.pmMeta}>
+                <Text style={styles.pmName}>{t('payment_methods_online')}</Text>
+                {!paymobEnabled && <Text style={styles.pmSub}>{t('payment_cards_soon')}</Text>}
+              </View>
+              {paymobEnabled ? (
+                <View style={styles.pmBadge}>
+                  <Text style={styles.pmBadgeText}>{t('active')}</Text>
                 </View>
-                <View style={styles.pmMeta}>
-                  <Text style={styles.pmName}>{t('payment_methods_online')}</Text>
-                  <Text style={styles.pmSub}>{t('payment_cards_soon')}</Text>
-                </View>
+              ) : (
                 <View style={[styles.pmBadge, { backgroundColor: 'rgba(148,163,184,0.18)' }]}>
                   <Text style={[styles.pmBadgeText, { color: c.inkSoft }]}>{t('soon')}</Text>
                 </View>
-              </View>
-            )}
+              )}
+            </View>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('tx_history')}</Text>
-          {transactions.length === 0 ? (
+          {walletLoading && !hasLoadedWalletOnce ? (
+            <View style={[gs, styles.txEmpty]}>
+              <ActivityIndicator size="small" color={c.inkSoft} />
+            </View>
+          ) : transactions.length === 0 ? (
             <View style={[gs, styles.txEmpty]}>
               <Clock size={22} color={c.inkSoft} />
               <Text style={styles.txEmptyText}>{t('no_transactions')}</Text>

@@ -40,7 +40,17 @@ export const NotificationItemSchema = z.object({
 export const WalletBalanceSchema = z.object({
   balance: z.union([z.number(), z.string()]).optional(),
   walletBalance: z.union([z.number(), z.string()]).optional(),
+  amount: z.union([z.number(), z.string()]).optional(),
   spent: z.union([z.number(), z.string()]).optional(),
+  monthlySpent: z.union([z.number(), z.string()]).optional(),
+  spentThisMonth: z.union([z.number(), z.string()]).optional(),
+}).passthrough();
+
+/** GET /shuttle/my-debt. */
+export const DebtInfoSchema = z.object({
+  hasDebt: z.boolean().optional(),
+  debtAmount: z.union([z.number(), z.string()]).optional(),
+  offenceCount: z.number().optional(),
 }).passthrough();
 
 /** One item of GET /wallet/transactions. */
