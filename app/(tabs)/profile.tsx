@@ -103,7 +103,7 @@ export default function ProfileScreen() {
         data: err?.response?.data,
         message: err?.message,
       });
-      Alert.alert(t('upload_failed'), serverMessage ?? t('upload_failed_msg'));
+      Alert.alert(t('upload_failed'), serverMessage ?? err?.message ?? t('upload_failed_msg'));
     } finally {
       setAvatarUploading(false);
     }
