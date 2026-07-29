@@ -18,7 +18,8 @@ const REFRESH_KEY = 'veego_refresh_token';
 async function getToken(key: string): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(key);
-  } catch {
+  } catch (err: any) {
+    console.error('[secure store] getToken failed', key, err?.message);
     return null;
   }
 }
@@ -26,13 +27,17 @@ async function getToken(key: string): Promise<string | null> {
 async function setToken(key: string, value: string): Promise<void> {
   try {
     await SecureStore.setItemAsync(key, value);
-  } catch {}
+  } catch (err: any) {
+    console.error('[secure store] setToken failed', key, err?.message);
+  }
 }
 
 async function removeToken(key: string): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(key);
-  } catch {}
+  } catch (err: any) {
+    console.error('[secure store] removeToken failed', key, err?.message);
+  }
 }
 
 export const tokenStore = { getToken, setToken, removeToken, TOKEN_KEY, REFRESH_KEY };

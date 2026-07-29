@@ -74,7 +74,9 @@ export function SafetySheet({
         const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         return { lat: cur.coords.latitude, lng: cur.coords.longitude };
       }
-    } catch {}
+    } catch (err: any) {
+      console.error('[safety sheet] location lookup failed', err?.message);
+    }
     return {
       lat: fallbackCoords?.latitude ?? null,
       lng: fallbackCoords?.longitude ?? null,

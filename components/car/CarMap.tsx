@@ -48,7 +48,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         setUserLocation(coords);
         onUserLocationRef.current?.(coords);
         mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 1000);
-      } catch {}
+      } catch (err: any) {
+        console.error('[car map] initial location fetch failed', err?.message);
+      }
     })();
   }, []);
 

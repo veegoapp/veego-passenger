@@ -21,7 +21,9 @@ export async function saveSession(identifier: string, name?: string): Promise<vo
       SESSION_KEY,
       JSON.stringify({ identifier, name: name || '', loggedInAt: Date.now() }),
     );
-  } catch {}
+  } catch (err: any) {
+    console.error('[session] saveSession failed', err?.message);
+  }
 }
 
 /** Removes the session record (used on logout / failed refresh). */

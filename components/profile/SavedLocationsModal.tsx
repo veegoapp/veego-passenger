@@ -82,7 +82,14 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
           addressQuery, addressSessionToken, language === 'ar' ? 'ar' : 'en', undefined, controller.signal,
         );
         setAddressSuggestions(results);
-      } catch {}
+      } catch (err: any) {
+        if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
+        console.error('[places autocomplete] failed', {
+          status: err?.response?.status,
+          data: err?.response?.data,
+          message: err?.message,
+        });
+      }
     }, 400);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [addressQuery, addressSessionToken, language]);
