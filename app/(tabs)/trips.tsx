@@ -306,16 +306,6 @@ export default function TripsScreen() {
               {t('no_trips').replace('{tab}', t('upcoming'))}
             </Text>
             <Text style={styles.emptySub}>{t('trips_here')}</Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push('/' as any);
-              }}
-              activeOpacity={0.88}
-            >
-              <Text style={styles.emptyBtnText}>{t('browse_routes')}</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <>
@@ -409,8 +399,9 @@ export default function TripsScreen() {
 
               const fadeAnim = getFadeAnim(trip.bookingId || trip.id);
 
-              // Ride history items have no tripId (no detail screen to open) — the card stays non-clickable.
-              const canOpenHistoryDetail = trip.id === 'live' || !!trip.tripId;
+              // Shuttle history opens by tripId; on-demand (car/scooter/delivery) rides
+              // only carry a bookingId — either one is enough to open the detail screen.
+              const canOpenHistoryDetail = trip.id === 'live' || !!trip.tripId || !!trip.bookingId;
 
               return (
                 <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
@@ -420,6 +411,7 @@ export default function TripsScreen() {
                     onPress={canOpenHistoryDetail ? () => {
                       if (trip.id === 'live') { router.push('/ticket'); }
                       else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
+                      else if (trip.bookingId) { router.push(`/trip-detail?id=${trip.bookingId}` as any); }
                       Haptics.selectionAsync();
                     } : undefined}
                   />
