@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import type { Booking, PaymentStatus, Route, ShuttleDirection, ShuttleTripSlot } from '@/constants/data';
@@ -353,36 +353,51 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     tripId: confirmedTripId,
   });
 
+  // Memoized: an inline object literal here would re-render every
+  // useBooking() consumer on every BookingProvider render, regardless of
+  // whether any of these values actually changed (every callback field is
+  // already stable via useCallback above; setSeatCount is a state setter,
+  // stable by default).
+  const value = useMemo(
+    () => ({
+      selectedRoute,
+      tripSheetOpen,
+      confirmSheetOpen,
+      pendingBooking,
+      confirmedBookingId,
+      confirmedTripId,
+      routeLoading,
+      tripsLoading,
+      scheduledTrips,
+      tripsTotal,
+      tripsPage: 1,
+      walletBalance,
+      bookingError,
+      seatCount,
+      setSeatCount,
+      openRoute,
+      closeTripSheet,
+      handleBook,
+      handleConfirm,
+      closeConfirmSheet,
+      fetchTripsForDate,
+      loadMoreTrips,
+      clearBookingError,
+      refreshLineTrips,
+      prepareBooking,
+    }),
+    [
+      selectedRoute, tripSheetOpen, confirmSheetOpen, pendingBooking,
+      confirmedBookingId, confirmedTripId, routeLoading, tripsLoading,
+      scheduledTrips, tripsTotal, walletBalance, bookingError, seatCount,
+      setSeatCount, openRoute, closeTripSheet, handleBook, handleConfirm,
+      closeConfirmSheet, fetchTripsForDate, loadMoreTrips, clearBookingError,
+      refreshLineTrips, prepareBooking,
+    ],
+  );
+
   return (
-    <BookingContext.Provider
-      value={{
-        selectedRoute,
-        tripSheetOpen,
-        confirmSheetOpen,
-        pendingBooking,
-        confirmedBookingId,
-        confirmedTripId,
-        routeLoading,
-        tripsLoading,
-        scheduledTrips,
-        tripsTotal,
-        tripsPage: 1,
-        walletBalance,
-        bookingError,
-        seatCount,
-        setSeatCount,
-        openRoute,
-        closeTripSheet,
-        handleBook,
-        handleConfirm,
-        closeConfirmSheet,
-        fetchTripsForDate,
-        loadMoreTrips,
-        clearBookingError,
-        refreshLineTrips,
-        prepareBooking,
-      }}
-    >
+    <BookingContext.Provider value={value}>
       {children}
     </BookingContext.Provider>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FAVORITES_KEY = '@veego_favorites_v1';
@@ -34,8 +34,16 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
   const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites]);
 
+  // Memoized: an inline object literal here would re-render every
+  // useFavorites() consumer on every FavoritesProvider render, regardless of
+  // whether favorites actually changed.
+  const value = useMemo(
+    () => ({ favorites, isFavorite, toggleFavorite }),
+    [favorites, isFavorite, toggleFavorite],
+  );
+
   return (
-    <FavoritesContext.Provider value={{ favorites, isFavorite, toggleFavorite }}>
+    <FavoritesContext.Provider value={value}>
       {children}
     </FavoritesContext.Provider>
   );

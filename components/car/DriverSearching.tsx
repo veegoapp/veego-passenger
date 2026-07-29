@@ -77,12 +77,12 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
           toValue: 1,
           duration: 1400,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
         Animated.timing(scanAnim, {
           toValue: 0,
           duration: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ])
     );
@@ -169,10 +169,7 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
               styles.scanBar,
               {
                 backgroundColor: accentColor,
-                width: scanAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0%', '100%'],
-                }),
+                transform: [{ scaleX: scanAnim }],
               },
             ]}
           />
@@ -261,7 +258,7 @@ const styles = StyleSheet.create({
     width: '80%', height: 3, borderRadius: 2, overflow: 'hidden',
   },
   scanBar: {
-    height: '100%', borderRadius: 2,
+    height: '100%', width: '100%', borderRadius: 2, transformOrigin: '0% 50%',
   },
 
   // Cancel

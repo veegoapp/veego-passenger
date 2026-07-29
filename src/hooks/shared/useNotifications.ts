@@ -97,7 +97,11 @@ export function useNotifications(): UseNotificationsResult {
         createdAt: data.timestamp ?? new Date().toISOString(),
         unread: true,
       };
-      setNotifications((prev) => [boardedNotif, ...prev]);
+      // Capped: these socket-triggered prepends have no server-side bound,
+      // so without a cap this list could grow for as long as the app session
+      // lasts (unlike fetchNotifications(), which reflects whatever the
+      // server returns).
+      setNotifications((prev) => [boardedNotif, ...prev].slice(0, 100));
     };
 
     const onTripActivated = (data: any) => {
@@ -109,7 +113,7 @@ export function useNotifications(): UseNotificationsResult {
         createdAt: data.activatedAt ?? new Date().toISOString(),
         unread: true,
       };
-      setNotifications((prev) => [activatedNotif, ...prev]);
+      setNotifications((prev) => [activatedNotif, ...prev].slice(0, 100));
 
       Notifications.scheduleNotificationAsync({
         content: {

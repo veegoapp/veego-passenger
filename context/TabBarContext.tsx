@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState } from 'react';
 
 // TAB_BAR_HEIGHT_FALLBACK: a safe default used before the tab bar has measured
 // itself on first render. Derived from the navOuter layout:
@@ -26,8 +26,16 @@ const TabBarContext = createContext<TabBarContextType>({
 export function TabBarProvider({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(true);
   const [tabBarHeight, setTabBarHeight] = useState(TAB_BAR_HEIGHT_FALLBACK);
+  // Memoized: an inline object literal here would re-render every
+  // useTabBar() consumer on every TabBarProvider render, regardless of
+  // whether visible/tabBarHeight actually changed (setVisible/
+  // setTabBarHeight are state setters, already stable by default).
+  const value = useMemo(
+    () => ({ visible, setVisible, tabBarHeight, setTabBarHeight }),
+    [visible, tabBarHeight],
+  );
   return (
-    <TabBarContext.Provider value={{ visible, setVisible, tabBarHeight, setTabBarHeight }}>
+    <TabBarContext.Provider value={value}>
       {children}
     </TabBarContext.Provider>
   );

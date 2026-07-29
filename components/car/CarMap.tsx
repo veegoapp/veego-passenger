@@ -26,7 +26,12 @@ const CAIRO_DEFAULT: Coords = { latitude: 30.0444, longitude: 31.2357 };
 const ROUTE_REFRESH_INTERVAL_MS = 75_000;
 const SIGNIFICANT_MOVE_METERS = 300;
 
-export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType }: CarMapProps) {
+// Wrapped in React.memo: CarServiceScreen re-renders on every driver-location
+// tick (from both a 5s REST poll and a live socket writing into one shared
+// rideState object), and without this CarMap fully re-rendered in lockstep
+// even for state changes that have nothing to do with the map (fare, forms,
+// sheets, etc.) since it wasn't memoized at all.
+export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType }: CarMapProps) {
   const { darkMode } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<Coords>(CAIRO_DEFAULT);
@@ -183,7 +188,7 @@ export function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLoc
       </TouchableOpacity>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   userDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(17,24,39,0.15)', alignItems: 'center', justifyContent: 'center' },
