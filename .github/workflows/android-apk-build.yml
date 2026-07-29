@@ -1,0 +1,101 @@
+name: Android APK Build (GitHub Actions)
+
+# Manual-only secondary build path. Does NOT replace or modify the existing
+# EAS build flow (`pnpm exec eas build --platform android --profile preview`).
+# See docs/github-apk-build.md for usage, secrets, and how this differs from EAS.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_variant:
+        description: "Gradle variant: debug (no secrets needed) or release (optional signing secrets)"
+        required: false
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # This project is Expo Managed (no android/ committed). Generate the
+      # native project only inside this CI run; it is never committed back.
+      - name: Generate native Android project (expo prebuild)
+        if: ${{ hashFiles('android/**') == '' }}
+        run: pnpm exec expo prebuild --platform android --no-install
+        env:
+          # Optional. Without these, the build still succeeds; Google Maps
+          # simply renders blank in the resulting APK (same behavior as local dev).
+          GOOGLE_MAPS_API_KEY_ANDROID: ${{ secrets.GOOGLE_MAPS_API_KEY_ANDROID }}
+          GOOGLE_MAPS_API_KEY_IOS: ${{ secrets.GOOGLE_MAPS_API_KEY_IOS }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Optional: only attempts release signing if a keystore secret was configured.
+      # If skipped, `assembleRelease` still runs using whatever default signing
+      # the generated android/app/build.gradle falls back to.
+      - name: Configure release signing (optional)
+        if: ${{ github.event.inputs.build_variant == 'release' && secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        working-directory: android/app
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          {
+            echo "MYAPP_UPLOAD_STORE_FILE=release.keystore"
+            echo "MYAPP_UPLOAD_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
+            echo "MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            echo "MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
+          } >> ../gradle.properties
+
+      - name: Build APK with Gradle
+        working-directory: android
+        env:
+          BUILD_VARIANT: ${{ github.event.inputs.build_variant }}
+        run: |
+          chmod +x gradlew
+          VARIANT="${BUILD_VARIANT:-debug}"
+          TASK="assemble$(echo "${VARIANT:0:1}" | tr '[:lower:]' '[:upper:]')${VARIANT:1}"
+          ./gradlew "$TASK" --no-daemon
+
+      - name: Locate built APK
+        id: apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found under android/app/build/outputs/apk" >&2
+            exit 1
+          fi
+          echo "Found APK: $APK_PATH"
+          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: veego-android-apk-${{ github.event.inputs.build_variant || 'debug' }}
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 14
