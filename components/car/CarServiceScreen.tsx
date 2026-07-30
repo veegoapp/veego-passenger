@@ -1098,8 +1098,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {/* Phase 3: the status-polling fallback (useRide's `pollingStale`) already
           tracked whether it's failing to reach the server, but nothing showed
           it. Only surfaced when the socket itself is connected — otherwise
-          ConnectionBanner above already covers it — so this never stacks. */}
-      {phase === 'in_ride' && pollingStale && socketConnectionState === 'connected' && (
+          ConnectionBanner above already covers it — so this never stacks.
+          Also suppressed during 'searching' (same reason as ConnectionBanner
+          above): a single slow/failed status poll right after ride creation
+          isn't a real outage, so it shouldn't flash "reconnecting" over the
+          searching map. */}
+      {phase === 'in_ride' && rideState.status !== 'searching' && pollingStale && socketConnectionState === 'connected' && (
         <View
           style={{
             position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50,
