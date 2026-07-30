@@ -217,7 +217,10 @@ function RideOptionsSheetBase({
                     shadowOffset: { width: 0, height: isSelected ? 6 : 2 },
                     shadowOpacity: isDark ? 0 : (isSelected ? 0.14 : 0.05),
                     shadowRadius: isSelected ? 12 : 4,
-                    elevation: isSelected ? 4 : 1,
+                    // Android elevation shadows require an opaque background to
+                    // outline rounded corners; this card's bg is translucent
+                    // (rgba), so elevation renders as a square halo instead.
+                    elevation: 0,
                   },
                 ]}
               >
@@ -298,7 +301,8 @@ function RideOptionsSheetBase({
                     shadowOffset: { width: 0, height: isSelected ? 6 : 2 },
                     shadowOpacity: isDark ? 0 : (isSelected ? 0.14 : 0.05),
                     shadowRadius: isSelected ? 12 : 4,
-                    elevation: isSelected ? 4 : 1,
+                    // See note above: translucent bg + elevation = square halo on Android.
+                    elevation: 0,
                   },
                 ]}
               >
