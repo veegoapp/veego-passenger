@@ -22,6 +22,7 @@ import { getRideEstimate } from '@/src/api/rideService';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { GlassView } from '@/components/ui/GlassView';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
+import { AppAlert } from '@/components/shared/AppAlert';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
@@ -295,6 +296,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [selectedRide, setSelectedRide] = useState<string | null>(null);
   const [safetyOpen, setSafetyOpen]     = useState(false);
   const [searchCancelSheetOpen, setSearchCancelSheetOpen] = useState(false);
+  const [cancelAlert, setCancelAlert] = useState<{ title: string; message: string } | null>(null);
   const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
   const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
@@ -697,19 +699,19 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     if (phase === 'in_ride' && rideState.rideId) {
       const result = await cancelRide(reason || 'Cancelled by passenger');
       if (!result.success) {
-        Alert.alert(t('error'), result.error ?? t('cancel_error'));
+        setCancelAlert({ title: t('error'), message: result.error ?? t('cancel_error') });
         return;
       }
       // Only show a wallet refund message when the passenger actually paid via
       // wallet or card — cash rides never receive a wallet credit even if the
       // backend returns a non-zero refundAmount.
       if (paymentMethod !== 'cash' && result.refundAmount && result.refundAmount > 0) {
-        Alert.alert(
-          t('ride_cancelled_title'),
-          t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
-        );
+        setCancelAlert({
+          title: t('ride_cancelled_title'),
+          message: t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
+        });
       } else {
-        Alert.alert(t('ride_cancelled_title'), t('ride_cancelled_msg'));
+        setCancelAlert({ title: t('ride_cancelled_title'), message: t('ride_cancelled_msg') });
       }
     }
     handleReset();
@@ -1157,6 +1159,13 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
           setSearchCancelSheetOpen(false);
           await handleCancel(reason);
         }}
+      />
+
+      <AppAlert
+        visible={cancelAlert != null}
+        title={cancelAlert?.title ?? ''}
+        message={cancelAlert?.message ?? ''}
+        onDismiss={() => setCancelAlert(null)}
       />
 
       {/* Driver assigned / arrived / started */}

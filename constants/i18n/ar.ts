@@ -385,6 +385,7 @@ export const ar: typeof en = {
   reason_other: 'سبب آخر',
   confirm_cancel: 'تأكيد الإلغاء',
   cancel_error: 'فشل الإلغاء. يرجى المحاولة مجدداً.',
+  ok: 'حسنًا',
   ride_cancelled_title: 'تم إلغاء الرحلة',
   ride_refund_msg: 'تم استرداد {amount} ج.م إلى محفظتك.',
   trip_status_active: 'نشط',
