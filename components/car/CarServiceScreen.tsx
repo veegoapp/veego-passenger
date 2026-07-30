@@ -93,7 +93,9 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: c.isDark ? 0.45 : 0.14,
       shadowRadius: 22,
-      elevation: 10,
+      // Translucent bg above: Android elevation would draw a square halo
+      // around the rounded corners instead of following them.
+      elevation: 0,
       overflow: 'hidden',
     },
     bottomPanel: {
@@ -102,7 +104,9 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       borderWidth: 1, borderColor: c.border, borderBottomWidth: 0,
       paddingBottom: tabBarHeight,
       shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.12, shadowRadius: 16, elevation: 12,
+      shadowOpacity: 0.12, shadowRadius: 16,
+      // Translucent bg above: same square-halo issue on Android.
+      elevation: 0,
     },
     dragHandle: {
       width: 36, height: 4, borderRadius: 2,
