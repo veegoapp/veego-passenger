@@ -175,7 +175,7 @@ export default function SplashPage() {
           </View>
           <View style={styles.iconGlow} />
         </Animated.View>
-        <Text style={styles.wordmark}>VeeGo</Text>
+        <Text style={styles.wordmark}>Vee<Text style={{ color: '#507BE9' }}>Go</Text></Text>
         <Text style={styles.tagline}>{t('tagline')}</Text>
         <View style={styles.barWrap}>
           <Animated.View style={[styles.bar, { width: barWidth, opacity: barOpacity }]} />

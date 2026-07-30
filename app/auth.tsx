@@ -61,7 +61,7 @@ export default function AuthPage() {
             <View style={styles.logoIcon}>
               <Navigation size={24} color={c.white} />
             </View>
-            <Text style={styles.wordmark}>VeeGo</Text>
+            <Text style={styles.wordmark}>Vee<Text style={{ color: '#507BE9' }}>Go</Text></Text>
           </View>
 
           <View style={styles.card}>
