@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Platform, RefreshControl, Animated, Alert,
+  Platform, RefreshControl, Animated,
 } from 'react-native';
 import { router } from 'expo-router';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Ticket, ChevronDown, Wifi } from 'lucide-react-native';
@@ -199,7 +200,7 @@ export default function TripsScreen() {
       // endpoint, replaces the deprecated PATCH /bookings/:id/cancel.
       const result = await cancelBooking(bookingId);
       if (result?.refunded && result.refundAmount > 0) {
-        Alert.alert(t('booking_cancelled_title'), t('ride_refund_msg').replace('{amount}', String(result.refundAmount)));
+        showAppAlert(t('booking_cancelled_title'), t('ride_refund_msg').replace('{amount}', String(result.refundAmount)));
       }
       Animated.timing(anim, {
         toValue: 0,
@@ -210,7 +211,7 @@ export default function TripsScreen() {
         anim.setValue(1);
       });
     } catch (e: any) {
-      Alert.alert(
+      showAppAlert(
         t('error'),
         e?.response?.data?.error ?? e?.response?.data?.message ?? e?.message ?? t('cancel_booking_failed'),
       );

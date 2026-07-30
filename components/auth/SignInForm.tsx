@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { router } from 'expo-router';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -36,9 +37,9 @@ export function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => 
         return;
       }
       if (status === 403) {
-        Alert.alert(t('error'), t('account_blocked'));
+        showAppAlert(t('error'), t('account_blocked'));
       } else {
-        Alert.alert(t('error'), body.error ?? body.message ?? t('sign_in_failed'));
+        showAppAlert(t('error'), body.error ?? body.message ?? t('sign_in_failed'));
       }
     } finally {
       setLoading(false);

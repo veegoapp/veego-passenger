@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Share,
-  Alert, Modal, Pressable,
+  Modal, Pressable,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users, Phone, Car, HelpCircle } from 'lucide-react-native';
@@ -704,7 +705,7 @@ export default function TripDetailScreen() {
   const handleCancelPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const within12h = isWithin12Hours(trip?.departureIso ?? '');
-    Alert.alert(
+    showAppAlert(
       t('cancel_warning_title'),
       within12h ? t('cancel_no_refund') : t('cancel_refund_full'),
       [
@@ -725,13 +726,13 @@ export default function TripDetailScreen() {
       // Replaces deprecated PATCH /bookings/:id/cancel
       const result = await cancelBooking(targetBookingId);
       if (result?.refunded === false) {
-        Alert.alert(
+        showAppAlert(
           t('booking_cancelled_title'),
           t('cancel_no_refund'),
           [{ text: t('confirm'), onPress: () => router.back() }],
         );
       } else if (result?.refunded && result.refundAmount > 0) {
-        Alert.alert(
+        showAppAlert(
           t('booking_cancelled_title'),
           t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
           [{ text: t('confirm'), onPress: () => router.back() }],
@@ -740,7 +741,7 @@ export default function TripDetailScreen() {
         router.back();
       }
     } catch (e: any) {
-      Alert.alert(
+      showAppAlert(
         t('error'),
         e?.response?.data?.message ?? e?.message ?? t('cancel_booking_failed'),
       );
@@ -754,7 +755,7 @@ export default function TripDetailScreen() {
     setShuttleRatingVisible(false);
     if (!trip?.id || !trip?.driverUserId) return;
     if (typeof trip.driverUserId !== 'number') {
-      Alert.alert(t('error'), 'Cannot submit rating: driver information unavailable');
+      showAppAlert(t('error'), 'Cannot submit rating: driver information unavailable');
       return;
     }
     try {

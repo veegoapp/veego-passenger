@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl, Alert,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl,
   Animated, Dimensions, useWindowDimensions, BackHandler,
 } from 'react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, MapPin, Flame, ArrowLeft, ArrowRight } from 'lucide-react-native';
@@ -593,7 +594,7 @@ export default function HomeScreen() {
                 details = null;
               }
               if (!details) {
-                Alert.alert(t('location_error'), t('location_error_msg'));
+                showAppAlert(t('location_error'), t('location_error_msg'));
                 return;
               }
               const resolved: SavedLocation = {

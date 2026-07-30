@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Animated, ScrollView, Alert, BackHandler,
+  Animated, ScrollView, BackHandler,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { GlassView } from '@/components/ui/GlassView';
@@ -189,9 +190,9 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
       }
       const code = e?.response?.data?.error;
       if (code === 'trip_requests_disabled') {
-        Alert.alert('', t('trip_request_disabled'));
+        showAppAlert('', t('trip_request_disabled'));
       } else {
-        Alert.alert('', t('trip_request_error'));
+        showAppAlert('', t('trip_request_error'));
       }
     } finally {
       setLoading(false);

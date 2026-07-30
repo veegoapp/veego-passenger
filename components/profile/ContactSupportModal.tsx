@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Alert,
+  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Platform,
   Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { Check, ImagePlus, X, CircleAlert } from 'lucide-react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
@@ -36,7 +37,7 @@ export function ContactSupportModal({ visible, onClose }: { visible: boolean; on
   const handlePickAttachments = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('photo_permission_title'), t('photo_permission_msg'));
+      showAppAlert(t('photo_permission_title'), t('photo_permission_msg'));
       return;
     }
     const remaining = MAX_ATTACHMENTS - attachments.length;
@@ -85,7 +86,7 @@ export function ContactSupportModal({ visible, onClose }: { visible: boolean; on
 
   const handleSend = async () => {
     if (!selectedIssue || !message.trim()) {
-      Alert.alert(t('error'), t('support_missing_fields'));
+      showAppAlert(t('error'), t('support_missing_fields'));
       return;
     }
     setLoading(true);
@@ -97,7 +98,7 @@ export function ContactSupportModal({ visible, onClose }: { visible: boolean; on
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setSent(true);
     } catch {
-      Alert.alert(t('error'), 'Failed to send your message. Please try again.');
+      showAppAlert(t('error'), 'Failed to send your message. Please try again.');
     } finally {
       setLoading(false);
     }

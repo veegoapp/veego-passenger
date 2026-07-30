@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Animated, Alert, ScrollView, Dimensions, Keyboard,
+  TextInput, Animated, ScrollView, Dimensions, Keyboard,
   // Modal removed — pickup/destination editing now uses the unified inline sheet.
   // KeyboardAvoidingView removed — it caused a jitter loop fighting Animated.spring.
 } from 'react-native';
@@ -22,7 +22,7 @@ import { getRideEstimate } from '@/src/api/rideService';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { GlassView } from '@/components/ui/GlassView';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
-import { AppAlert } from '@/components/shared/AppAlert';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
@@ -296,7 +296,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [selectedRide, setSelectedRide] = useState<string | null>(null);
   const [safetyOpen, setSafetyOpen]     = useState(false);
   const [searchCancelSheetOpen, setSearchCancelSheetOpen] = useState(false);
-  const [cancelAlert, setCancelAlert] = useState<{ title: string; message: string } | null>(null);
   const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
   const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
@@ -571,7 +570,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setPlaceResults([]);
     setPlaceSessionToken(generateSessionToken());
     if (!details) {
-      Alert.alert(t('location_error'), t('location_error_msg'));
+      showAppAlert(t('location_error'), t('location_error_msg'));
       return;
     }
     const coords: Coords = { latitude: details.latitude, longitude: details.longitude };
@@ -609,7 +608,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     const pickup = userCoordsRef.current;
     const dropoff = destCoords;
     if (!pickup || !dropoff) {
-      Alert.alert(t('location_error'), t('location_error_msg'));
+      showAppAlert(t('location_error'), t('location_error_msg'));
       return;
     }
 
@@ -643,14 +642,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
     if (!result.success) {
       if (result.insufficientBalance) {
-        Alert.alert(
+        showAppAlert(
           t('insufficient_balance_title'),
           t('insufficient_balance_msg')
             .replace('{required}', String(result.insufficientBalance.required))
             .replace('{balance}', String(result.insufficientBalance.balance)),
         );
       } else {
-        Alert.alert(t('error'), result.error ?? t('request_ride_failed'));
+        showAppAlert(t('error'), result.error ?? t('request_ride_failed'));
       }
     }
   }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone, paymentMethod]);
@@ -699,19 +698,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     if (phase === 'in_ride' && rideState.rideId) {
       const result = await cancelRide(reason || 'Cancelled by passenger');
       if (!result.success) {
-        setCancelAlert({ title: t('error'), message: result.error ?? t('cancel_error') });
+        showAppAlert(t('error'), result.error ?? t('cancel_error'));
         return;
       }
       // Only show a wallet refund message when the passenger actually paid via
       // wallet or card — cash rides never receive a wallet credit even if the
       // backend returns a non-zero refundAmount.
       if (paymentMethod !== 'cash' && result.refundAmount && result.refundAmount > 0) {
-        setCancelAlert({
-          title: t('ride_cancelled_title'),
-          message: t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
-        });
+        showAppAlert(t('ride_cancelled_title'), t('ride_refund_msg').replace('{amount}', String(result.refundAmount)));
       } else {
-        setCancelAlert({ title: t('ride_cancelled_title'), message: t('ride_cancelled_msg') });
+        showAppAlert(t('ride_cancelled_title'), t('ride_cancelled_msg'));
       }
     }
     handleReset();
@@ -722,7 +718,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   // every render (defeating the memo) even though rideState only changes on
   // driver-location ticks that this card doesn't otherwise care about.
   const handleAssignedCancelPress = useCallback(() => {
-    Alert.alert(t('cancel_trip'), t('cancel_trip_q'), [
+    showAppAlert(t('cancel_trip'), t('cancel_trip_q'), [
       { text: t('no_back'), style: 'cancel' },
       { text: t('yes_cancel'), style: 'destructive', onPress: handleCancel },
     ]);
@@ -1159,13 +1155,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
           setSearchCancelSheetOpen(false);
           await handleCancel(reason);
         }}
-      />
-
-      <AppAlert
-        visible={cancelAlert != null}
-        title={cancelAlert?.title ?? ''}
-        message={cancelAlert?.message ?? ''}
-        onDismiss={() => setCancelAlert(null)}
       />
 
       {/* Driver assigned / arrived / started */}

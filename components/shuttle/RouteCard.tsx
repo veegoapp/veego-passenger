@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { MapPin, Clock, Users, Zap } from 'lucide-react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -157,7 +158,7 @@ export function FeaturedOffers() {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.offersScroll}>
       {offers.map((o) => (
-        <TouchableOpacity key={o.id} activeOpacity={0.9} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); Alert.alert(o.title, o.subtitle); }}>
+        <TouchableOpacity key={o.id} activeOpacity={0.9} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); showAppAlert(o.title, o.subtitle); }}>
           <LinearGradient colors={o.colors} style={styles.offerCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <View style={styles.offerGlow} />
             <View style={styles.offerTop}>

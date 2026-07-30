@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, TextInput, Platform, Linking, KeyboardAvoidingView, Alert,
+  StyleSheet, SafeAreaView, TextInput, Platform, Linking, KeyboardAvoidingView,
 } from 'react-native';
 import { ArrowLeft, ArrowRight, User, Phone, MessageCircle, Save } from 'lucide-react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useTheme } from '@/context/ThemeContext';
 import { getEmergencyContact, updateEmergencyContact } from '@/src/api/userService';
 import { Typography } from '@/constants/typography';
@@ -47,7 +48,7 @@ export default function EmergencyContactModal({ visible, onClose }: EmergencyCon
 
   const handleSave = async () => {
     if (!name.trim() || !phone.trim()) {
-      Alert.alert(t('error'), t('emergency_contact_save_err'));
+      showAppAlert(t('error'), t('emergency_contact_save_err'));
       return;
     }
     setSaving(true);
@@ -57,7 +58,7 @@ export default function EmergencyContactModal({ visible, onClose }: EmergencyCon
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {
-      Alert.alert(t('error'), t('emergency_contact_save_err'));
+      showAppAlert(t('error'), t('emergency_contact_save_err'));
     } finally {
       setSaving(false);
     }
@@ -72,7 +73,7 @@ export default function EmergencyContactModal({ visible, onClose }: EmergencyCon
     if (!savedContact?.phone) return;
     const phoneClean = savedContact.phone.replace(/\D/g, '');
     Linking.openURL(`whatsapp://send?phone=${phoneClean}`).catch(() => {
-      Alert.alert(t('error'), t('whatsapp_emergency_no_contact'));
+      showAppAlert(t('error'), t('whatsapp_emergency_no_contact'));
     });
   };
 

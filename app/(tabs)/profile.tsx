@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl,
+  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl,
   Switch,
 } from 'react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, MapPin } from 'lucide-react-native';
@@ -69,7 +70,7 @@ export default function ProfileScreen() {
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('photo_permission_title'), t('photo_permission_msg'));
+      showAppAlert(t('photo_permission_title'), t('photo_permission_msg'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -103,7 +104,7 @@ export default function ProfileScreen() {
         data: err?.response?.data,
         message: err?.message,
       });
-      Alert.alert(t('upload_failed'), serverMessage ?? err?.message ?? t('upload_failed_msg'));
+      showAppAlert(t('upload_failed'), serverMessage ?? err?.message ?? t('upload_failed_msg'));
     } finally {
       setAvatarUploading(false);
     }
@@ -284,7 +285,7 @@ export default function ProfileScreen() {
           activeOpacity={0.8}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            Alert.alert(t('sign_out'), t('sign_out_q'), [
+            showAppAlert(t('sign_out'), t('sign_out_q'), [
               { text: t('cancel'), style: 'cancel' },
               { text: t('sign_out'), style: 'destructive', onPress: async () => { try { await api.post('/auth/logout'); } catch {} try { await SecureStore.deleteItemAsync('@veego_session_v1'); } catch {} emitAuthEvent('auth:logout'); try { await tokenStore.removeToken(tokenStore.TOKEN_KEY); await tokenStore.removeToken(tokenStore.REFRESH_KEY); } catch {} router.replace('/auth'); } },
             ]);

@@ -1,9 +1,10 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Platform, Animated, Alert,
+  StyleSheet, Platform, Animated,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
@@ -159,7 +160,7 @@ export default function PromoScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(t('promo_code_invalid'), result.message ?? t('promo_code_invalid_msg'));
+      showAppAlert(t('promo_code_invalid'), result.message ?? t('promo_code_invalid_msg'));
     }
   };
 
@@ -169,7 +170,7 @@ export default function PromoScreen() {
       autoApplied.current = true;
       const trimmed = prefillCode.trim().toUpperCase();
       setCode(trimmed);
-      Alert.alert(
+      showAppAlert(
         t('promo_apply') || 'Apply Promo Code',
         `Apply code "${trimmed}"?`,
         [

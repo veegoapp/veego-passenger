@@ -25,6 +25,7 @@ import { ServiceControlProvider } from '@/context/ServiceControlContext';
 import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
 import { TripSheet } from '@/components/shuttle/TripSheet';
 import { ConfirmSheet } from '@/components/shuttle/ConfirmSheet';
+import { AppAlertHost } from '@/components/shared/AppAlertHost';
 import { usePushToken } from '@/src/hooks/shared/usePushToken';
 
 SplashScreen.preventAutoHideAsync();
@@ -214,6 +215,7 @@ function AppShell() {
       </Stack>
       <TripSheet />
       <ConfirmSheet />
+      <AppAlertHost />
     </View>
   );
 }
