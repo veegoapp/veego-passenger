@@ -74,7 +74,13 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') return;
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        // High (not Balanced): Balanced accuracy on Android is allowed to
+        // resolve from cell/WiFi positioning rather than the GPS chip, which
+        // for a whole city commonly collapses to a coarse city-centre point
+        // (for Cairo, right around Tahrir) — arrives fast, but wrong enough
+        // that a ride can get booked with it as the pickup point before a
+        // real GPS fix ever comes in.
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         const coords: Coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setUserLocation(coords);
         onUserLocationRef.current?.(coords);
