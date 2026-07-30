@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
+import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 
 interface LatLng {
   latitude: number;
@@ -49,13 +50,35 @@ export function RealMap({
     return defaultCenter ?? CAIRO;
   }, [pickup, dropoff, driverLocation, stationMarkers, defaultCenter]);
 
-  const routeCoords = useMemo(() => {
+  // Straight line between the available points — shown immediately, then
+  // replaced by the real road-following route once fetchGoogleRoute resolves.
+  const straightLine = useMemo(() => {
     const pts: LatLng[] = [];
     if (driverLocation) pts.push(driverLocation);
     if (pickup) pts.push(pickup);
     if (dropoff) pts.push(dropoff);
     return pts;
   }, [pickup, dropoff, driverLocation]);
+
+  const [routeCoords, setRouteCoords] = useState<LatLng[]>(straightLine);
+
+  useEffect(() => {
+    const origin = driverLocation ?? pickup;
+    const dest = driverLocation ? pickup : dropoff;
+    if (!origin || !dest) {
+      setRouteCoords(straightLine);
+      return;
+    }
+    const waypoints = driverLocation && dropoff ? [dest, dropoff] : [dest];
+    let cancelled = false;
+    setRouteCoords(straightLine);
+    fetchGoogleRoute(origin, waypoints).then((result) => {
+      if (cancelled) return;
+      if (result?.coords?.length) setRouteCoords(result.coords);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickup?.latitude, pickup?.longitude, dropoff?.latitude, dropoff?.longitude, driverLocation?.latitude, driverLocation?.longitude]);
 
   return (
     <View style={[StyleSheet.absoluteFillObject, style]}>
