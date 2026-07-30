@@ -19,6 +19,7 @@ import { useTabBar } from '@/context/TabBarContext';
 import { useRide } from '@/src/hooks/car/useRide';
 import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
+import { GlassView } from '@/components/ui/GlassView';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
@@ -230,21 +231,29 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
     emptyTipText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     card: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
-      backgroundColor: c.isDark ? 'rgba(16,16,32,0.98)' : '#ffffff',
-      borderTopLeftRadius: 28, borderTopRightRadius: 28,
-      padding: Spacing.xl,
-      paddingBottom: tabBarHeight + Spacing.xl,
       elevation: 10, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16,
       shadowOffset: { width: 0, height: -4 },
       zIndex: 999,
     },
+    cardGlass: {
+      borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+      padding: Spacing.xl,
+      paddingBottom: tabBarHeight + Spacing.xl,
+    },
     cardInner: { alignItems: 'center', gap: 6 },
-    statusBadge: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
+    statusBadge: {
+      width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center',
+      shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 6,
+    },
     cardTitle: { fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, letterSpacing: -0.3, fontFamily: 'Inter_700Bold' },
     cardSub: { fontSize: 13, textAlign: 'center' },
-    invoice: { width: '100%', borderRadius: Radius.lg, padding: Spacing.lg, alignItems: 'center', marginVertical: Spacing.md },
+    invoice: {
+      width: '100%', borderRadius: Radius.lg, padding: Spacing.lg, alignItems: 'center', marginVertical: Spacing.md,
+      borderWidth: 1, borderColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    },
     invoiceLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium },
-    invoiceAmount: { fontSize: 26, fontWeight: '800', color: c.ink, marginTop: 2, letterSpacing: -0.5 },
+    invoiceAmount: { fontSize: 30, fontWeight: '800', color: c.ink, marginTop: 2, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
     actionBtn: { width: '100%', height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.xs },
     actionBtnTxt: { fontSize: 15, fontWeight: Typography.weight.bold },
     resumeOverlay: {
@@ -1055,9 +1064,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {/* Completed */}
       {phase === 'completed' && (
         <View style={styles.card}>
+          <GlassView strong borderRadius={28} style={styles.cardGlass}>
           <View style={styles.cardInner}>
             {/* Same ink-gradient check badge as the Driver app's trip-done overlay */}
-            <LinearGradient colors={c.gradientPrimary} style={styles.statusBadge}>
+            <LinearGradient colors={c.gradientPrimary} style={[styles.statusBadge, { shadowColor: c.gradientPrimary[1] }]}>
               <Check size={32} color="#ffffff" strokeWidth={3} />
             </LinearGradient>
             <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('trip_complete')}</Text>
@@ -1076,14 +1086,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
               style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.xs, elevation: 0 }}
             />
           </View>
+          </GlassView>
         </View>
       )}
 
       {/* Cancelled / Timeout */}
       {phase === 'cancelled' && (
         <View style={styles.card}>
+          <GlassView strong borderRadius={28} style={styles.cardGlass}>
           <View style={styles.cardInner}>
-            <View style={[styles.statusBadge, { backgroundColor: c.error }]}>
+            <View style={[styles.statusBadge, { backgroundColor: c.error, shadowColor: c.error }]}>
               <X size={32} color="#ffffff" strokeWidth={3} />
             </View>
             <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{cancelTitle}</Text>
@@ -1098,6 +1110,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
               style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.sm, elevation: 0 }}
             />
           </View>
+          </GlassView>
         </View>
       )}
     </View>

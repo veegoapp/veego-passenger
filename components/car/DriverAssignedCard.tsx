@@ -150,7 +150,7 @@ export function DriverAssignedCard({
           {/* Driver mini-strip */}
           <View style={styles.cockpitDriverRow}>
             {/* Avatar */}
-            <View style={[styles.cockpitAvatar, { backgroundColor: avatarColor }]}>
+            <View style={[styles.cockpitAvatar, { backgroundColor: avatarColor, shadowColor: avatarColor }]}>
               <Text style={styles.cockpitAvatarText}>{initials}</Text>
             </View>
 
@@ -260,7 +260,7 @@ export function DriverAssignedCard({
           <View style={styles.driverBlock}>
             {/* Avatar with ring */}
             <View style={styles.avatarWrap}>
-              <View style={[styles.avatarRing, { borderColor: avatarColor }]}>
+              <View style={[styles.avatarRing, { borderColor: avatarColor, shadowColor: avatarColor }]}>
                 <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
                 </View>
@@ -445,6 +445,7 @@ const styles = StyleSheet.create({
   cockpitAvatar: {
     width: 40, height: 40, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   cockpitAvatarText: {
     color: '#fff', fontSize: 14, fontWeight: '700' as any,
@@ -463,10 +464,12 @@ const styles = StyleSheet.create({
   cockpitIconBtn: {
     width: 48, height: 48, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1,
   },
   sosBtn: {
     flex: 1, height: 48, borderRadius: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 8, elevation: 3,
   },
   sosBtnText: {
     color: '#ffffff', fontSize: 14, fontWeight: '800' as any, letterSpacing: 0.5,
@@ -512,6 +515,7 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 22,
     borderWidth: 2.5, alignItems: 'center', justifyContent: 'center',
     padding: 3,
+    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
   },
   avatarCircle: {
     flex: 1, width: '100%', borderRadius: 18,
@@ -566,6 +570,7 @@ const styles = StyleSheet.create({
     flex: 1, height: 54, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
     gap: 5, borderWidth: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1,
   },
   cancelBtn: {},
   actionLabel: {

@@ -43,6 +43,10 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
   // Scanning bar
   const scanAnim = useRef(new Animated.Value(0)).current;
 
+  // Slow breathing scale on the centre icon — keeps it feeling alive between
+  // ring pulses instead of sitting static at the middle of the animation.
+  const breathe = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     Animated.spring(slideAnim, {
       toValue: visible ? 1 : 0,
@@ -87,19 +91,30 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
       ])
     );
 
+    const breatheLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathe, { toValue: 1.06, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(breathe, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+
     if (visible) {
       ringAnims.forEach((a) => a.start());
       scan.start();
+      breatheLoop.start();
     } else {
       ringAnims.forEach((a) => a.stop());
       scan.stop();
+      breatheLoop.stop();
       rings.forEach((r) => r.setValue(0));
       scanAnim.setValue(0);
+      breathe.setValue(1);
     }
 
     return () => {
       ringAnims.forEach((a) => a.stop());
       scan.stop();
+      breatheLoop.stop();
     };
   }, [visible]);
 
@@ -126,6 +141,10 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
       <View style={styles.body}>
         {/* Radar animation */}
         <View style={styles.radarWrap}>
+          {/* Ambient glow — soft bloom behind the rings, same accent as the
+              centre icon, for depth instead of a flat icon-on-white circle. */}
+          <View style={[styles.glow, { backgroundColor: accentColor, shadowColor: accentColor }]} />
+
           {rings.map((ring, i) => {
             const scale = ring.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1.9] });
             const opacity = ring.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.55, 0] });
@@ -145,11 +164,11 @@ export function DriverSearching({ visible, onCancel, serviceType }: DriverSearch
           })}
 
           {/* Centre icon — same ink gradient treatment as the Driver app's nav icon */}
-          <View style={[styles.iconOuter, { backgroundColor: isDark ? `${accentColor}1F` : `${accentColor}14` }]}>
+          <Animated.View style={[styles.iconOuter, { backgroundColor: isDark ? `${accentColor}1F` : `${accentColor}14`, transform: [{ scale: breathe }] }]}>
             <LinearGradient colors={c.gradientPrimary} style={styles.iconInner}>
               <IconComponent size={22} color="#ffffff" />
             </LinearGradient>
-          </View>
+          </Animated.View>
         </View>
 
         {/* Status text */}
@@ -229,6 +248,15 @@ const styles = StyleSheet.create({
     width: 100, height: 100, borderRadius: 50,
     borderWidth: 1.5,
   },
+  glow: {
+    position: 'absolute',
+    width: 56, height: 56, borderRadius: 28,
+    opacity: 0.5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 30,
+    elevation: 0,
+  },
   iconOuter: {
     width: 68, height: 68, borderRadius: 34,
     alignItems: 'center', justifyContent: 'center',
@@ -236,6 +264,11 @@ const styles = StyleSheet.create({
   iconInner: {
     width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#1e1e28',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 6,
   },
 
   // Text
@@ -265,6 +298,7 @@ const styles = StyleSheet.create({
   cancelBtn: {
     paddingVertical: 13, paddingHorizontal: 40,
     borderRadius: 14, borderWidth: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1,
   },
   cancelText: {
     fontSize: 14, fontWeight: '600' as any,

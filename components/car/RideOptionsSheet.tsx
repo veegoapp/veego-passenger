@@ -95,6 +95,7 @@ export function RideOptionsSheet({
   const { colors: c, t, isRTL } = useTheme();
   const { tabBarHeight } = useTabBar();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const paymentAnim = useRef(new Animated.Value(paymentMethod === 'wallet' ? 1 : 0)).current;
   const TIER_STYLES = getTierStyles(c);
   const SINGLE_META = getSingleMeta(c);
   const carCategories = estimate?.categories ?? [];
@@ -111,6 +112,15 @@ export function RideOptionsSheet({
       mass: 0.8,
     }).start();
   }, [visible]);
+
+  useEffect(() => {
+    Animated.spring(paymentAnim, {
+      toValue: paymentMethod === 'wallet' ? 1 : 0,
+      useNativeDriver: false,
+      damping: 20,
+      stiffness: 220,
+    }).start();
+  }, [paymentMethod]);
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [540, 0] });
   const isDark = c.isDark;
@@ -204,6 +214,10 @@ export function RideOptionsSheet({
                       : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
                     borderColor: isSelected ? style.accent : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'),
                     borderWidth: isSelected ? 1.5 : 1,
+                    shadowOffset: { width: 0, height: isSelected ? 6 : 2 },
+                    shadowOpacity: isDark ? 0 : (isSelected ? 0.14 : 0.05),
+                    shadowRadius: isSelected ? 12 : 4,
+                    elevation: isSelected ? 4 : 1,
                   },
                 ]}
               >
@@ -281,6 +295,10 @@ export function RideOptionsSheet({
                       : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
                     borderColor: isSelected ? meta.accent : (isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.09)'),
                     borderWidth: isSelected ? 1.5 : 1,
+                    shadowOffset: { width: 0, height: isSelected ? 6 : 2 },
+                    shadowOpacity: isDark ? 0 : (isSelected ? 0.14 : 0.05),
+                    shadowRadius: isSelected ? 12 : 4,
+                    elevation: isSelected ? 4 : 1,
                   },
                 ]}
               >
@@ -358,55 +376,57 @@ export function RideOptionsSheet({
           <Text style={[styles.paymentHeading, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)' }]}>
             {t('payment_method_label')}
           </Text>
-          <View style={styles.paymentPills}>
-            <TouchableOpacity
-              onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
-              activeOpacity={0.82}
-              style={[
-                styles.paymentPill,
-                {
-                  backgroundColor: paymentMethod !== 'wallet'
-                    ? (isDark ? '#e8e8f2' : '#1e1e28')
-                    : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
-                  borderColor: paymentMethod !== 'wallet'
-                    ? 'transparent'
-                    : (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.09)'),
-                },
-              ]}
-            >
-              <Banknote size={15} color={paymentMethod !== 'wallet' ? (isDark ? '#1e1e28' : '#ffffff') : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)')} />
-              <Text style={[styles.paymentPillText, {
-                color: paymentMethod !== 'wallet' ? (isDark ? '#1e1e28' : '#ffffff') : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'),
-              }]}>
-                {t('payment_methods_cash')}
-              </Text>
-            </TouchableOpacity>
 
-            {walletAvailable && (
-              <TouchableOpacity
-                onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('wallet'); }}
-                activeOpacity={0.82}
+          {walletAvailable ? (
+            // Segmented control — a single sliding ink-gradient highlight signals
+            // "one of two states", not two separate pressable buttons.
+            <View style={[styles.segmentTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.045)' }]}>
+              <Animated.View
                 style={[
-                  styles.paymentPill,
+                  styles.segmentHighlight,
                   {
-                    backgroundColor: paymentMethod === 'wallet'
-                      ? (isDark ? '#e8e8f2' : '#1e1e28')
-                      : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
-                    borderColor: paymentMethod === 'wallet'
-                      ? 'transparent'
-                      : (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.09)'),
+                    left: paymentAnim.interpolate({ inputRange: [0, 1], outputRange: ['3%', '50%'] }),
+                    shadowColor: '#000',
                   },
                 ]}
               >
-                <Wallet size={15} color={paymentMethod === 'wallet' ? (isDark ? '#1e1e28' : '#ffffff') : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)')} />
+                <LinearGradient colors={c.gradientPrimary} style={StyleSheet.absoluteFill} />
+              </Animated.View>
+
+              <TouchableOpacity
+                onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
+                activeOpacity={0.82}
+                style={styles.segmentBtn}
+              >
+                <Banknote size={15} color={paymentMethod !== 'wallet' ? '#ffffff' : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)')} />
                 <Text style={[styles.paymentPillText, {
-                  color: paymentMethod === 'wallet' ? (isDark ? '#1e1e28' : '#ffffff') : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'),
+                  color: paymentMethod !== 'wallet' ? '#ffffff' : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)'),
+                }]}>
+                  {t('payment_methods_cash')}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('wallet'); }}
+                activeOpacity={0.82}
+                style={styles.segmentBtn}
+              >
+                <Wallet size={15} color={paymentMethod === 'wallet' ? '#ffffff' : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)')} />
+                <Text style={[styles.paymentPillText, {
+                  color: paymentMethod === 'wallet' ? '#ffffff' : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)'),
                 }]}>
                   {t('payment_methods_wallet')}
                 </Text>
               </TouchableOpacity>
-            )}
-          </View>
+            </View>
+          ) : (
+            <View style={[styles.paymentPill, styles.paymentPillSolo, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }]}>
+              <Banknote size={15} color={isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)'} />
+              <Text style={[styles.paymentPillText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.65)' }]}>
+                {t('payment_methods_cash')}
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -491,7 +511,8 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     borderRadius: 18, padding: 14,
-    position: 'relative', overflow: 'hidden',
+    position: 'relative',
+    shadowColor: '#000',
   },
   optionIconZone: {
     width: 54, height: 54, borderRadius: 16,
@@ -536,12 +557,23 @@ const styles = StyleSheet.create({
   // Payment
   paymentSection: { paddingHorizontal: 16, marginBottom: Spacing.lg, gap: Spacing.sm },
   paymentHeading: { fontSize: 10.5, fontWeight: '600' as any, letterSpacing: 0.8, textTransform: 'uppercase' },
-  paymentPills: { flexDirection: 'row', gap: 10 },
-  paymentPill: {
-    flex: 1, height: 46, borderRadius: 14,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderWidth: 1,
+  segmentTrack: {
+    flexDirection: 'row', height: 50, borderRadius: 16, padding: 3,
   },
+  segmentHighlight: {
+    position: 'absolute', top: 3, bottom: 3, width: '47%', borderRadius: 13,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 5,
+  },
+  segmentBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  paymentPill: {
+    height: 46, borderRadius: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8,
+  },
+  paymentPillSolo: { width: '100%' },
   paymentPillText: { fontSize: 13.5, fontWeight: '600' as any },
 
   // Confirm

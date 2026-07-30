@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '@/context/ThemeContext';
 
 interface GlassViewProps {
@@ -10,17 +11,24 @@ interface GlassViewProps {
 }
 
 /**
- * Passenger-side port of the Driver app's GlassView — same glassmorphism
- * card language (translucent panel + hairline border) used for every sheet
- * in the ride-journey flow. No expo-blur dependency here (Driver only uses
- * native blur on iOS light mode; this flat variant matches its Android/dark
- * fallback, which is the same look already rendered there).
+ * Passenger-side port of the Driver app's GlassView. Now matches it exactly:
+ * real native frosted blur on iOS light mode (the Driver app's signature
+ * depth cue), flat translucent panel everywhere else.
  */
 export function GlassView({ style, strong = false, children, borderRadius = 16 }: GlassViewProps) {
   const { colors: c } = useTheme();
   const bg = c.isDark
     ? (strong ? 'rgba(22,22,26,0.98)' : 'rgba(22,22,26,0.94)')
     : (strong ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.85)');
+
+  if (Platform.OS === 'ios' && !c.isDark) {
+    return (
+      <View style={[{ borderRadius, overflow: 'hidden', borderWidth: 1, borderColor: c.border }, style]}>
+        <BlurView intensity={strong ? 80 : 60} tint="light" style={StyleSheet.absoluteFill} />
+        <View style={{ flex: 1 }}>{children}</View>
+      </View>
+    );
+  }
 
   return (
     <View style={[{ backgroundColor: bg, borderRadius, borderWidth: 1, borderColor: c.border }, style]}>
