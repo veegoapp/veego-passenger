@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, MarkerAnimated, AnimatedRegion, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Car, Bike, Package, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
@@ -37,6 +37,33 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   const [userLocation, setUserLocation] = useState<Coords>(CAIRO_DEFAULT);
   const onUserLocationRef = useRef(onUserLocation);
   onUserLocationRef.current = onUserLocation;
+
+  // Animated driver marker — glides between GPS ticks instead of snapping,
+  // and rotates to match heading. Mirrors the pattern already used for the
+  // shuttle driver marker in PassengerTrackingMap.native.tsx.
+  const animatedDriverCoord = useRef(
+    new AnimatedRegion({
+      latitude: driverLocation?.latitude ?? CAIRO_DEFAULT.latitude,
+      longitude: driverLocation?.longitude ?? CAIRO_DEFAULT.longitude,
+      latitudeDelta: 0,
+      longitudeDelta: 0,
+    }),
+  ).current;
+
+  useEffect(() => {
+    if (!driverLocation) return;
+    // Cast: AnimatedRegion.timing()'s type incorrectly requires Animated's
+    // `toValue` field (from Animated.TimingAnimationConfig); the actual runtime
+    // API takes the region-shaped config below. Preserves existing behavior.
+    animatedDriverCoord.timing({
+      latitude: driverLocation.latitude,
+      longitude: driverLocation.longitude,
+      latitudeDelta: 0,
+      longitudeDelta: 0,
+      duration: 800,
+      useNativeDriver: false,
+    } as any).start();
+  }, [driverLocation?.latitude, driverLocation?.longitude]);
 
   useEffect(() => {
     (async () => {
@@ -162,17 +189,24 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         )}
 
         {showDriverMarker && driverLocation && (
-          <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.driverDot}>
-              {serviceType === 'scooter' ? (
-                <Bike size={14} color="#ffffff" />
-              ) : serviceType === 'delivery' ? (
-                <Package size={14} color="#ffffff" />
-              ) : (
-                <Car size={14} color="#ffffff" />
-              )}
+          <MarkerAnimated
+            coordinate={animatedDriverCoord}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={driverLocation.heading ?? 0}
+          >
+            <View style={styles.driverMarker}>
+              <View style={styles.driverArrowHead} />
+              <View style={styles.driverDot}>
+                {serviceType === 'scooter' ? (
+                  <Bike size={14} color="#ffffff" />
+                ) : serviceType === 'delivery' ? (
+                  <Package size={14} color="#ffffff" />
+                ) : (
+                  <Car size={14} color="#ffffff" />
+                )}
+              </View>
             </View>
-          </Marker>
+          </MarkerAnimated>
         )}
 
         {nearbyDrivers && nearbyDrivers.length > 0 && (
@@ -194,6 +228,13 @@ const styles = StyleSheet.create({
   userDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(17,24,39,0.15)', alignItems: 'center', justifyContent: 'center' },
   userDotInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#111827' },
   destPin: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+  driverMarker: { alignItems: 'center' },
+  driverArrowHead: {
+    width: 0, height: 0,
+    borderLeftWidth: 5, borderRightWidth: 5, borderBottomWidth: 7,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+    borderBottomColor: '#2d2d42',
+  },
   driverDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#2d2d42', alignItems: 'center', justifyContent: 'center', elevation: 3 },
   locBtn: {
     position: 'absolute', bottom: 240, right: 16,
