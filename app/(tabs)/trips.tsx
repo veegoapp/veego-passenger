@@ -220,12 +220,18 @@ export default function TripsScreen() {
   };
 
   // ── Dynamic date filter: drop upcoming entries whose departure has already passed ──
-  const now = Date.now();
-  const filteredUpcoming = upcomingTrips.filter((t) => {
-    if (!t.departureIso) return true; // no ISO → keep (unknown future)
-    const ms = new Date(t.departureIso).getTime();
-    return isNaN(ms) || ms >= now - 60 * 60 * 1000; // keep if future or within 1 h grace
-  });
+  // Memoized on upcomingTrips — this was re-filtering (with a fresh `new Date()`
+  // parse per trip) on every render regardless of whether the trip list itself
+  // had changed. Recomputes whenever the list changes (e.g. the next poll
+  // refresh), which is precise enough for a 1h grace window.
+  const filteredUpcoming = useMemo(() => {
+    const now = Date.now();
+    return upcomingTrips.filter((t) => {
+      if (!t.departureIso) return true; // no ISO → keep (unknown future)
+      const ms = new Date(t.departureIso).getTime();
+      return isNaN(ms) || ms >= now - 60 * 60 * 1000; // keep if future or within 1 h grace
+    });
+  }, [upcomingTrips]);
 
   // Build the live card from ActiveSession — real data only, no synthetic values.
   const upcoming = shuttleSession

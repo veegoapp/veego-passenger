@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { memo, useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Linking, Easing } from 'react-native';
 import { MessageCircle, Phone, X, AlertTriangle, Star, Navigation } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -31,7 +31,7 @@ interface DriverAssignedCardProps {
   onSOS?: () => void;
 }
 
-export function DriverAssignedCard({
+function DriverAssignedCardBase({
   visible, carCategoryName, serviceType, destination, driver, rideId, rideStatus,
   waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
@@ -399,6 +399,12 @@ export function DriverAssignedCard({
     </Animated.View>
   );
 }
+
+// CarServiceScreen re-renders on every driver-location tick (socket + 5s
+// poll fallback); this card's own data changes far less often, so memoize
+// it the same way CarMap already is — otherwise it re-renders in lockstep
+// with every location update for no reason.
+export const DriverAssignedCard = memo(DriverAssignedCardBase);
 
 const styles = StyleSheet.create({
   sheet: {

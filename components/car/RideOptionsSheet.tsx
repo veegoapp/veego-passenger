@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
   ActivityIndicator, TextInput,
@@ -85,7 +85,7 @@ interface RideOptionsSheetProps {
   walletAvailable?: boolean;
 }
 
-export function RideOptionsSheet({
+function RideOptionsSheetBase({
   visible, destination, selected, onSelect, onConfirm, onDismiss,
   estimate, estimateLoading, confirming,
   serviceType = 'car', singleEstimate,
@@ -468,6 +468,11 @@ export function RideOptionsSheet({
     </Animated.View>
   );
 }
+
+// CarServiceScreen re-renders on every driver-location tick (socket + 5s
+// poll fallback); this sheet's own data changes far less often, so memoize
+// it the same way CarMap already is.
+export const RideOptionsSheet = memo(RideOptionsSheetBase);
 
 const styles = StyleSheet.create({
   sheet: {

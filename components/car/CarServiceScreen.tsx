@@ -711,6 +711,19 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     handleReset();
   }, [phase, rideState.rideId, cancelRide, handleReset, t, paymentMethod]);
 
+  // Stable identities for DriverAssignedCard's callback props — it's wrapped
+  // in React.memo, and inline arrow functions here would give it a new prop
+  // every render (defeating the memo) even though rideState only changes on
+  // driver-location ticks that this card doesn't otherwise care about.
+  const handleAssignedCancelPress = useCallback(() => {
+    Alert.alert(t('cancel_trip'), t('cancel_trip_q'), [
+      { text: t('no_back'), style: 'cancel' },
+      { text: t('yes_cancel'), style: 'destructive', onPress: handleCancel },
+    ]);
+  }, [t, handleCancel]);
+
+  const handleSOSPress = useCallback(() => setSafetyOpen(true), []);
+
   useImperativeHandle(ref, () => ({
     selectDestination: handleSelectDestination,
   }), [handleSelectDestination]);
@@ -1149,13 +1162,8 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         rideStatus={rideState.status}
         waitingCharge={rideState.waitingCharge}
         waitingChargeStatus={rideState.waitingChargeStatus}
-        onCancel={() => {
-          Alert.alert(t('cancel_trip'), t('cancel_trip_q'), [
-            { text: t('no_back'), style: 'cancel' },
-            { text: t('yes_cancel'), style: 'destructive', onPress: handleCancel },
-          ]);
-        }}
-        onSOS={() => setSafetyOpen(true)}
+        onCancel={handleAssignedCancelPress}
+        onSOS={handleSOSPress}
       />
 
       <SafetySheet

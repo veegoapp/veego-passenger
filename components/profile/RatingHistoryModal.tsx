@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { View, Text, ScrollView, SafeAreaView, Modal } from 'react-native';
+import { View, Text, FlatList, SafeAreaView, Modal } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useTheme } from '@/context/ThemeContext';
@@ -40,18 +40,21 @@ export function RatingHistoryModal({ visible, onClose }: { visible: boolean; onC
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.modal}>
         <ModalHeader title={t('my_ratings')} onClose={onClose} />
-        <ScrollView contentContainerStyle={[styles.modalScroll, { paddingBottom: 40, gap: Spacing.md }]}>
-          {loading && !ratings ? (
-            <AppLoader size={80} style={{ marginTop: 40 }} />
-          ) : !ratings || ratings.length === 0 ? (
-            <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingVertical: 40 }}>
-              {t('ratings_given_empty')}
-            </Text>
-          ) : (
-            ratings.map((r) => {
+        {loading && !ratings ? (
+          <AppLoader size={80} style={{ marginTop: 40 }} />
+        ) : !ratings || ratings.length === 0 ? (
+          <Text style={{ fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingVertical: 40 }}>
+            {t('ratings_given_empty')}
+          </Text>
+        ) : (
+          <FlatList
+            data={ratings}
+            keyExtractor={(r) => String(r.id)}
+            contentContainerStyle={[styles.modalScroll, { paddingBottom: 40, gap: Spacing.md }]}
+            renderItem={({ item: r }) => {
               const score = typeof r.score === 'string' ? parseFloat(r.score) : r.score;
               return (
-                <View key={r.id} style={[styles.groupCard, S.float, { padding: Spacing.lg, gap: Spacing.sm }]}>
+                <View style={[styles.groupCard, S.float, { padding: Spacing.lg, gap: Spacing.sm }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Text style={styles.cardName}>{r.driverName ?? t('driver_label')}</Text>
                     <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -73,9 +76,9 @@ export function RatingHistoryModal({ visible, onClose }: { visible: boolean; onC
                   )}
                 </View>
               );
-            })
-          )}
-        </ScrollView>
+            }}
+          />
+        )}
       </SafeAreaView>
     </Modal>
   );
