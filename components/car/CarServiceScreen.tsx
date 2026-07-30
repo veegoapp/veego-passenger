@@ -19,6 +19,7 @@ import { useTabBar } from '@/context/TabBarContext';
 import { useRide } from '@/src/hooks/car/useRide';
 import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
+import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
@@ -263,7 +264,7 @@ function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good
 }
 
 export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScreenProps>(function CarServiceScreen({ onBack, serviceType = 'car', sheetHeaderOffset = 0 }, ref) {
-  const { colors: c, t, isRTL } = useTheme();
+  const { colors: c, t, isRTL, language } = useTheme();
   const insets      = useSafeAreaInsets();
   const insetTop    = insets.top;
   const { tabBarHeight } = useTabBar();
@@ -300,11 +301,22 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const pickupInputRef = useRef<TextInput>(null);
   const destInputRef   = useRef<TextInput>(null);
 
+  // Backend-proxied Google Places autocomplete for both the pickup and
+  // destination fields (Car/Scooter/Delivery share this component). One
+  // session token per opened sheet, reused across keystrokes for either field
+  // and refreshed after each resolved selection to close the Google billing
+  // session. `placeResults` holds the suggestions for whichever field is
+  // currently active.
+  const [placeSessionToken, setPlaceSessionToken] = useState<string | null>(null);
+  const [placeResults, setPlaceResults]           = useState<PlaceSuggestion[]>([]);
+
   /** Slide the sheet up and focus the correct field after the animation
    *  completes — decouples keyboard from spring to prevent jitter. */
   const expandSheet = useCallback((field: 'pickup' | 'destination') => {
     setActiveField(field);
     setIsDestExpanded(true);
+    setPlaceResults([]);
+    setPlaceSessionToken(generateSessionToken());
     Haptics.selectionAsync();
     Animated.spring(destSheetTop, {
       toValue: insetTop + 60,
@@ -330,6 +342,8 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       setIsDestExpanded(false);
       setPickupQuery('');
       setDestQuery('');
+      setPlaceResults([]);
+      setPlaceSessionToken(null);
       destSheetTop.setValue(SCREEN_H);
     });
   }, [destSheetTop, SCREEN_H]);
@@ -499,6 +513,77 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     }
   }, [fetchEstimate, serviceType, addRecent]);
 
+  // Debounced Places autocomplete for whichever field is active. Fires only
+  // while the sheet is open and a session token exists; needs ≥2 chars (Google
+  // and the backend both reject shorter input). Aborts the in-flight request
+  // on each keystroke/field switch so only the latest query's results show.
+  useEffect(() => {
+    if (!isDestExpanded || !placeSessionToken) return;
+    const query = (activeField === 'pickup' ? pickupQuery : destQuery).trim();
+    if (query.length < 2) { setPlaceResults([]); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const bias = userCoords ? { lat: userCoords.latitude, lng: userCoords.longitude } : undefined;
+        const results = await getPlaceAutocomplete(
+          query,
+          placeSessionToken,
+          language === 'ar' ? 'ar' : 'en',
+          bias,
+          controller.signal,
+          serviceType,
+        );
+        setPlaceResults(results);
+      } catch { /* aborted or failed — leave prior results, field falls back to raw-text entry */ }
+    }, 350);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [isDestExpanded, placeSessionToken, activeField, pickupQuery, destQuery, language, serviceType, userCoords]);
+
+  // Resolve a tapped suggestion to real coordinates via /places/details, then
+  // hand off to the existing pickup/destination handlers (which accept known
+  // coords and skip local geocoding). Refresh the session token afterwards so
+  // the next search starts a fresh Google billing session.
+  const handleSelectPlace = useCallback(async (item: PlaceSuggestion) => {
+    const token = placeSessionToken;
+    if (!token) return;
+    const field = activeField;
+    let details = null;
+    try {
+      details = await getPlaceDetails(item.placeId, token, serviceType);
+    } catch { details = null; }
+    setPlaceResults([]);
+    setPlaceSessionToken(generateSessionToken());
+    if (!details) {
+      Alert.alert(t('location_error'), t('location_error_msg'));
+      return;
+    }
+    const coords: Coords = { latitude: details.latitude, longitude: details.longitude };
+    const label = details.address || details.name || item.description;
+    if (field === 'pickup') {
+      handleSelectPickup(label, coords);
+    } else {
+      handleSelectDestination(label, coords);
+    }
+  }, [placeSessionToken, activeField, serviceType, handleSelectPickup, handleSelectDestination, t]);
+
+  const renderPlaceRow = useCallback((item: PlaceSuggestion) => (
+    <TouchableOpacity
+      key={`place-${item.placeId}`}
+      style={styles.locItem}
+      onPress={() => handleSelectPlace(item)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.locIcon}><MapPin size={16} color={c.inkSoft} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.locText} numberOfLines={1}>{item.mainText || item.description}</Text>
+        {!!item.secondaryText && (
+          <Text style={[styles.locText, { fontSize: 12, color: c.inkSoft }]} numberOfLines={1}>{item.secondaryText}</Text>
+        )}
+      </View>
+      {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+    </TouchableOpacity>
+  ), [styles, c, isRTL, handleSelectPlace]);
+
   const handleConfirmRide = useCallback(async () => {
     if (!selectedRide) return;
     if (serviceType === 'delivery' && (!recipientName.trim() || !recipientPhone.trim())) return;
@@ -566,6 +651,8 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setPaymentMethod('cash');
     setPickupQuery('');
     setDestQuery('');
+    setPlaceResults([]);
+    setPlaceSessionToken(null);
     setIsDestExpanded(false);
     destSheetTop.setValue(SCREEN_H);
   }, [resetRide, destSheetTop, SCREEN_H]);
@@ -867,15 +954,19 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                           <Text style={[styles.locText, { color: c.primary }]}>{t('current_location')}</Text>
                           {isRTL ? <ChevronLeft size={14} color={c.primary} /> : <ChevronRight size={14} color={c.primary} />}
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.locItem}
-                          onPress={() => handleSelectPickup(pickupQuery.trim())}
-                          activeOpacity={0.8}
-                        >
-                          <View style={styles.locIcon}><MapPin size={16} color={c.inkSoft} /></View>
-                          <Text style={styles.locText}>{pickupQuery.trim()}</Text>
-                          {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
-                        </TouchableOpacity>
+                        {placeResults.length > 0 ? (
+                          placeResults.map(renderPlaceRow)
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.locItem}
+                            onPress={() => handleSelectPickup(pickupQuery.trim())}
+                            activeOpacity={0.8}
+                          >
+                            <View style={styles.locIcon}><MapPin size={16} color={c.inkSoft} /></View>
+                            <Text style={styles.locText}>{pickupQuery.trim()}</Text>
+                            {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                          </TouchableOpacity>
+                        )}
                       </>
                     ) : (
                       <>
@@ -924,15 +1015,19 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                   ) : (
                     /* ── Destination suggestions ── */
                     destQuery.trim().length > 0 ? (
-                      <TouchableOpacity
-                        style={styles.locItem}
-                        onPress={() => handleSelectDestination(destQuery.trim())}
-                        activeOpacity={0.8}
-                      >
-                        <View style={styles.locIcon}><MapPin size={16} color={c.inkSoft} /></View>
-                        <Text style={styles.locText}>{destQuery.trim()}</Text>
-                        {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
-                      </TouchableOpacity>
+                      placeResults.length > 0 ? (
+                        <>{placeResults.map(renderPlaceRow)}</>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.locItem}
+                          onPress={() => handleSelectDestination(destQuery.trim())}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.locIcon}><MapPin size={16} color={c.inkSoft} /></View>
+                          <Text style={styles.locText}>{destQuery.trim()}</Text>
+                          {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                        </TouchableOpacity>
+                      )
                     ) : recents.length > 0 ? (
                       <>
                         <Text style={styles.recentsHeader}>{t('recent_searches')}</Text>
