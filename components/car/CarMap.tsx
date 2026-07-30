@@ -6,6 +6,7 @@ import * as Location from 'expo-location';
 import { fetchGoogleRoute } from '@/src/utils/googleDirections';
 import { haversineMeters } from '@/src/utils/geoHelpers';
 import { NearbyDriversLayer } from './NearbyDriversLayer';
+import { SearchingPulse, SEARCHING_PULSE_ANCHOR_Y } from './SearchingPulse';
 import type { NearbyDriver } from '@/src/hooks/car/useNearbyDrivers';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
@@ -20,6 +21,9 @@ interface CarMapProps {
   /** Pre-booking nearby-driver markers — pass undefined/empty once a real driver is assigned. */
   nearbyDrivers?: NearbyDriver[];
   serviceType?: 'car' | 'scooter' | 'delivery';
+  /** True while actively searching for a driver — layers the ripple/arrow
+   *  pulse over the passenger's own-location dot instead of the plain dot. */
+  searching?: boolean;
 }
 
 const CAIRO_DEFAULT: Coords = { latitude: 30.0444, longitude: 31.2357 };
@@ -31,7 +35,7 @@ const SIGNIFICANT_MOVE_METERS = 300;
 // rideState object), and without this CarMap fully re-rendered in lockstep
 // even for state changes that have nothing to do with the map (fare, forms,
 // sheets, etc.) since it wasn't memoized at all.
-export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType }: CarMapProps) {
+export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, searching }: CarMapProps) {
   const { darkMode } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<Coords>(CAIRO_DEFAULT);
@@ -174,11 +178,17 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
           <Polyline coordinates={routeCoords} strokeColor={darkMode ? '#e5e7eb' : '#111827'} strokeWidth={4} />
         )}
 
-        <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
-          <View style={styles.userDot}>
-            <View style={styles.userDotInner} />
-          </View>
-        </Marker>
+        {searching ? (
+          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: SEARCHING_PULSE_ANCHOR_Y }} tracksViewChanges>
+            <SearchingPulse />
+          </Marker>
+        ) : (
+          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.userDot}>
+              <View style={styles.userDotInner} />
+            </View>
+          </Marker>
+        )}
 
         {destCoords && (
           <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 1 }}>

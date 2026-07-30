@@ -20,6 +20,7 @@ import { useRide } from '@/src/hooks/car/useRide';
 import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
 import { GlassView } from '@/components/ui/GlassView';
+import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
@@ -288,6 +289,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   // pickupQuery / destQuery / activeField replace the old single searchQuery — see expandSheet block below
   const [selectedRide, setSelectedRide] = useState<string | null>(null);
   const [safetyOpen, setSafetyOpen]     = useState(false);
+  const [searchCancelSheetOpen, setSearchCancelSheetOpen] = useState(false);
   const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
   const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
@@ -599,10 +601,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     handleReset();
   }, [rideState.rideId, rideState.fare, rideState.driver, destination, handleReset]);
 
-  const handleCancel = useCallback(async () => {
+  const handleCancel = useCallback(async (reason?: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     if (phase === 'in_ride' && rideState.rideId) {
-      const result = await cancelRide('Cancelled by passenger');
+      const result = await cancelRide(reason || 'Cancelled by passenger');
       if (!result.success) {
         Alert.alert(t('error'), result.error ?? t('cancel_error'));
         return;
@@ -660,6 +662,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         onUserLocation={handleUserLocation}
         nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
         serviceType={serviceType}
+        searching={phase === 'in_ride' && rideState.status === 'searching'}
       />
 
       {/* ── Idle state: floating glassmorphic search card + inline expanded search ── */}
@@ -1027,8 +1030,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {/* Searching */}
       <DriverSearching
         visible={phase === 'in_ride' && rideState.status === 'searching'}
-        onCancel={handleCancel}
-        serviceType={serviceType}
+        onCancel={() => setSearchCancelSheetOpen(true)}
+      />
+
+      <CancelReasonSheet
+        visible={searchCancelSheetOpen}
+        mode="ride"
+        onClose={() => setSearchCancelSheetOpen(false)}
+        onConfirm={async (reason) => {
+          setSearchCancelSheetOpen(false);
+          await handleCancel(reason);
+        }}
       />
 
       {/* Driver assigned / arrived / started */}
