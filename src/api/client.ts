@@ -109,14 +109,23 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError: any) {
         refreshQueue = [];
-        await removeToken(TOKEN_KEY);
-        await removeToken(REFRESH_KEY);
+        const rfStatus = refreshError?.response?.status;
         const rfBody = refreshError?.response?.data ?? {};
-        if (refreshError?.response?.status === 403 && rfBody.requiresOtp) {
-          // Phone not yet verified — redirect to OTP screen silently
-          router.replace({ pathname: '/verify-phone', params: { phone: rfBody.phone, maskedPhone: rfBody.maskedPhone ?? rfBody.phone } } as any);
-        } else {
-          router.replace('/auth');
+        // 401/403 (or no refresh token at all) = the refresh token itself
+        // was rejected — session is genuinely over. Anything else (no
+        // response at all, 5xx, timeout, ...) is a connectivity/server
+        // hiccup, not a verdict on the token — don't log the passenger out
+        // over a dropped connection or a server outage.
+        const isDefiniteRejection = refreshError?.message === 'No refresh token' || rfStatus === 401 || rfStatus === 403;
+        if (isDefiniteRejection) {
+          await removeToken(TOKEN_KEY);
+          await removeToken(REFRESH_KEY);
+          if (rfStatus === 403 && rfBody.requiresOtp) {
+            // Phone not yet verified — redirect to OTP screen silently
+            router.replace({ pathname: '/verify-phone', params: { phone: rfBody.phone, maskedPhone: rfBody.maskedPhone ?? rfBody.phone } } as any);
+          } else {
+            router.replace('/auth');
+          }
         }
         return Promise.reject(error);
       } finally {

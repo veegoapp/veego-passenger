@@ -29,17 +29,30 @@ async function routeUnauthenticated(): Promise<void> {
   router.replace('/auth');
 }
 
-async function attemptTokenRefresh(): Promise<boolean> {
+// Return value distinguishes a genuine rejection from a transient failure:
+//   true      — refreshed successfully
+//   false     — the refresh token itself was rejected (or none exists) —
+//               the session is genuinely over, safe to log out
+//   undefined — network error, timeout, or a server/5xx hiccup — we don't
+//               know whether the refresh token is still good, so callers
+//               must NOT log the user out over this (a server outage used
+//               to force every session back to the login screen the
+//               instant an access token expired)
+async function attemptTokenRefresh(): Promise<boolean | undefined> {
   try {
     const refreshToken = await tokenStore.getToken(tokenStore.REFRESH_KEY);
     if (!refreshToken) return false;
     const { data } = await api.post('/auth/refresh', { refreshToken });
     const newToken = data.accessToken ?? data.access_token ?? data.token;
-    if (!newToken) return false;
+    if (!newToken) return undefined;
     await tokenStore.setToken(tokenStore.TOKEN_KEY, newToken);
     return true;
-  } catch {
-    return false;
+  } catch (err: any) {
+    const status = err?.response?.status;
+    // 401/403 = the refresh token itself was rejected. Anything else
+    // (no response at all, 5xx, timeout, ...) is a connectivity/server
+    // hiccup, not a verdict on the token.
+    return (status === 401 || status === 403) ? false : undefined;
   }
 }
 
@@ -53,13 +66,17 @@ async function checkAuthAndNavigate(onAuthenticated: () => Promise<void>) {
 
     if ((payload.exp ?? 0) <= Math.floor(Date.now() / 1000)) {
       const refreshed = await attemptTokenRefresh();
-      if (!refreshed) {
+      if (refreshed === false) {
         await tokenStore.removeToken(tokenStore.TOKEN_KEY);
         await tokenStore.removeToken(tokenStore.REFRESH_KEY);
         await clearSession();
         await routeUnauthenticated();
         return;
       }
+      // true or undefined (transient failure) — proceed either way; a
+      // dropped connection or server hiccup shouldn't force a logout, and
+      // any subsequent API call retries the refresh via the client's own
+      // 401 interceptor.
     }
 
     await onAuthenticated();
@@ -80,7 +97,7 @@ export function useAuthOnResume() {
         const payload = decodeJwtPayload(token);
         if (!payload || (payload.exp ?? 0) <= Math.floor(Date.now() / 1000)) {
           const refreshed = await attemptTokenRefresh();
-          if (!refreshed) {
+          if (refreshed === false) {
             await tokenStore.removeToken(tokenStore.TOKEN_KEY);
             await tokenStore.removeToken(tokenStore.REFRESH_KEY);
             await clearSession();
