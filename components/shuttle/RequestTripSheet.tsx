@@ -3,8 +3,10 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, ScrollView, Alert, BackHandler,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { GlassView } from '@/components/ui/GlassView';
 import * as Haptics from 'expo-haptics';
 import { CheckCircle, X, ArrowRight, ArrowLeft, Clock, RotateCcw } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
@@ -25,10 +27,13 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
     sheet: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
-      backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
-      borderTopLeftRadius: 32, borderTopRightRadius: 32,
-      ...S.float, paddingBottom: Spacing.xxl,
+      ...S.float,
       maxHeight: '88%',
+    },
+    sheetGlass: {
+      borderTopLeftRadius: 32, borderTopRightRadius: 32,
+      borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+      paddingBottom: Spacing.xxl,
     },
     handle: {
       width: 44, height: 5, borderRadius: 2.5,
@@ -84,12 +89,15 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
 
     ctaWrap: { paddingHorizontal: 20, paddingTop: Spacing.lg, paddingBottom: Spacing.lg + insetsBottom },
     ctaBtn: {
+      borderRadius: 20, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 16, elevation: 8,
+    },
+    ctaBtnGradient: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: Spacing.sm, paddingVertical: Spacing.lg, borderRadius: 20,
-      backgroundColor: c.ink,
+      gap: Spacing.sm, paddingVertical: Spacing.lg,
     },
     ctaBtnDisabled: { opacity: 0.35 },
-    ctaBtnText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : '#ffffff' },
+    ctaBtnText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: '#ffffff' },
 
     successWrap: {
       alignItems: 'center', justifyContent: 'center',
@@ -97,16 +105,17 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     },
     successIcon: {
       width: 72, height: 72, borderRadius: 36,
-      backgroundColor: 'rgba(22,163,74,0.12)',
+      backgroundColor: c.isDark ? 'rgba(60,201,122,0.16)' : 'rgba(60,201,122,0.12)',
       alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs,
     },
     successTitle: { fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center' },
     successMsg: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
     doneBtn: {
-      marginTop: Spacing.sm, paddingVertical: 14, paddingHorizontal: 40,
-      borderRadius: 18, backgroundColor: c.ink,
+      marginTop: Spacing.sm, borderRadius: 18, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.24, shadowRadius: 12, elevation: 6,
     },
-    doneBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : '#ffffff' },
+    doneBtnGradient: { paddingVertical: 14, paddingHorizontal: 40 },
+    doneBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: '#ffffff' },
   });
 }
 
@@ -200,6 +209,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
       </Animated.View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+        <GlassView strong borderRadius={32} style={styles.sheetGlass}>
         <View style={styles.handle} />
 
         <View style={styles.header}>
@@ -217,12 +227,14 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
         {success ? (
           <View style={styles.successWrap}>
             <View style={styles.successIcon}>
-              <CheckCircle size={38} color="#16a34a" />
+              <CheckCircle size={38} color={c.success} />
             </View>
             <Text style={styles.successTitle}>{t('trip_request_sent')}</Text>
             <Text style={styles.successMsg}>{t('trip_request_msg')}</Text>
             <TouchableOpacity style={styles.doneBtn} onPress={onClose} activeOpacity={0.85}>
-              <Text style={styles.doneBtnText}>{t('confirm')}</Text>
+              <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.doneBtnGradient}>
+                <Text style={styles.doneBtnText}>{t('confirm')}</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         ) : (
@@ -311,21 +323,24 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
                 onPress={handleSubmit}
                 activeOpacity={0.85}
               >
-                {loading ? (
-                  <AppLoader size={24} />
-                ) : (
-                  <>
-                    <Text style={styles.ctaBtnText}>{t('send_request')}</Text>
-                    {isRTL
-                      ? <ArrowLeft size={18} color={c.isDark ? c.background : '#ffffff'} />
-                      : <ArrowRight size={18} color={c.isDark ? c.background : '#ffffff'} />
-                    }
-                  </>
-                )}
+                <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaBtnGradient}>
+                  {loading ? (
+                    <AppLoader size={24} />
+                  ) : (
+                    <>
+                      <Text style={styles.ctaBtnText}>{t('send_request')}</Text>
+                      {isRTL
+                        ? <ArrowLeft size={18} color="#ffffff" />
+                        : <ArrowRight size={18} color="#ffffff" />
+                      }
+                    </>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </>
         )}
+        </GlassView>
       </Animated.View>
     </View>
   );

@@ -125,8 +125,8 @@ const RIDE_STATUS_LABEL: Record<string, { en: string; ar: string }> = {
 const RIDE_STATUS_COLOR: Record<string, string> = {
   requested: '#f59e0b',
   searching: '#f59e0b',
-  driver_assigned: '#4d9ef6',
-  driver_arrived: '#4d9ef6',
+  driver_assigned: '#1e1e28',
+  driver_arrived: '#1e1e28',
   active: '#55c49a',
   started: '#55c49a',
   completed: '#94a3b8',
@@ -247,7 +247,7 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     mapCard: { marginHorizontal: 20, borderRadius: Radius.xl, overflow: 'hidden', height: 240, backgroundColor: c.mist, marginBottom: Spacing.lg, ...S.float },
     mapLabel: { position: 'absolute', top: 12, left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 },
     mapLabelText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: '#fff' },
-    mapPulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4d9ef6' },
+    mapPulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.ink },
     shareCard: { marginHorizontal: 20, borderRadius: 20, borderWidth: 1.5, borderColor: c.accentMint, backgroundColor: 'rgba(85,196,154,0.06)', padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.lg },
     shareCardText: { flex: 1 },
     shareCardTitle: { fontSize: 13.5, fontWeight: Typography.weight.bold, color: c.ink },
@@ -257,12 +257,14 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
     loadingText: { fontSize: Typography.size.sm, color: c.inkSoft },
     errorText: { fontSize: Typography.size.sm, color: c.badge, textAlign: 'center', marginHorizontal: Spacing.xxl },
-    goBack: { marginTop: Spacing.md, paddingHorizontal: Spacing.xl, paddingVertical: 11, borderRadius: 14, backgroundColor: c.ink },
-    goBackText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.isDark ? c.background : c.white },
-    cancelBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.badge, backgroundColor: 'rgba(220,38,38,0.05)', padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+    goBack: { marginTop: Spacing.md, borderRadius: 14, overflow: 'hidden' },
+    goBackGradient: { paddingHorizontal: Spacing.xl, paddingVertical: 11 },
+    goBackText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: '#ffffff' },
+    cancelBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.badge, backgroundColor: `${c.badge}0D`, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
     cancelBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.badge },
-    rateBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, height: 54, borderRadius: 18, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
-    rateBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : '#fff' },
+    rateBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, height: 54, borderRadius: 18, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.24, shadowRadius: 12, elevation: 6 },
+    rateBtnGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+    rateBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: '#ffffff' },
     sosBtn: {
       position: 'absolute', top: 12, right: 12,
       flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -283,15 +285,15 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     boardedSub:   { fontSize: Typography.size.xs, color: '#16a34a', marginTop: 2 },
     etaCard: {
       marginHorizontal: 20, marginBottom: Spacing.md,
-      backgroundColor: c.isDark ? 'rgba(37,99,235,0.15)' : '#eff6ff',
+      backgroundColor: c.mist,
       borderRadius: 18, padding: 14, borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(37,99,235,0.3)' : '#bfdbfe',
+      borderColor: c.border,
       gap: Spacing.sm,
     },
     etaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     etaLabel: { flex: 1, fontSize: 13, color: c.inkSoft },
-    etaValue: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#2563eb' },
-    etaDivider: { height: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : '#dbeafe' },
+    etaValue: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: c.ink },
+    etaDivider: { height: 1, backgroundColor: c.border },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl },
     modalBox: { borderRadius: Radius.xl, padding: Spacing.xl, width: '100%', maxWidth: 380, gap: Spacing.md },
     modalTitle: { fontSize: 17, fontWeight: Typography.weight.bold, textAlign: 'center' },
@@ -302,14 +304,14 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     nextStopCard: {
       marginHorizontal: 20, marginBottom: Spacing.sm,
       flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-      backgroundColor: c.isDark ? 'rgba(37,99,235,0.12)' : '#eff6ff',
+      backgroundColor: c.mist,
       borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10,
-      borderWidth: 1, borderColor: c.isDark ? 'rgba(37,99,235,0.25)' : '#bfdbfe',
+      borderWidth: 1, borderColor: c.border,
     },
     nextStopLabel: { fontSize: 11, color: c.inkSoft, fontWeight: Typography.weight.semibold },
     nextStopName: { flex: 1, fontSize: 13, fontWeight: Typography.weight.bold, color: c.ink, textAlign: isRTL ? 'right' : 'left' },
-    helpBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: '#4d9ef6', backgroundColor: 'rgba(77,158,246,0.06)', padding: 14, flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: Spacing.sm },
-    helpBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: '#4d9ef6' },
+    helpBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.isDark ? 'rgba(232,232,242,0.25)' : 'rgba(30,30,40,0.15)', backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: 14, flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: Spacing.sm },
+    helpBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
   });
 }
 
@@ -820,7 +822,9 @@ export default function TripDetailScreen() {
         <View style={[styles.loadingBox]}>
           <Text style={styles.errorText}>{error ?? t('trip_not_found')}</Text>
           <TouchableOpacity style={styles.goBack} onPress={() => router.back()}>
-            <Text style={styles.goBackText}>{t('go_back')}</Text>
+            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goBackGradient}>
+              <Text style={styles.goBackText}>{t('go_back')}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -937,7 +941,7 @@ export default function TripDetailScreen() {
             onPress={() => setSupportOpen(true)}
             activeOpacity={0.8}
           >
-            <HelpCircle size={14} color="#4d9ef6" />
+            <HelpCircle size={14} color={c.ink} />
             <Text style={styles.helpBtnText}>Need Help?</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -959,8 +963,8 @@ export default function TripDetailScreen() {
 
   const statusColor: Record<string, string> = {
     waiting_driver: '#f59e0b',
-    scheduled: '#4d9ef6',
-    driver_assigned: '#4d9ef6',
+    scheduled: c.ink,
+    driver_assigned: c.ink,
     active: '#55c49a',
     boarding: '#55c49a',
     completed: c.silver,
@@ -1071,7 +1075,7 @@ export default function TripDetailScreen() {
         {/* Next stop card — shown whenever there is a target station ahead */}
         {showMap && nextStation != null && (
           <View style={styles.nextStopCard}>
-            <MapPin size={14} color="#2563eb" />
+            <MapPin size={14} color={c.ink} />
             <Text style={styles.nextStopLabel}>
               {boarded ? 'المحطة القادمة' : 'محطة الركوب'}
             </Text>
@@ -1096,7 +1100,7 @@ export default function TripDetailScreen() {
         {showMap && !boarded && etaMinutes != null && driverLocation && (
           <View style={styles.etaCard}>
             <View style={styles.etaRow}>
-              <Clock size={14} color="#2563eb" />
+              <Clock size={14} color={c.ink} />
               <Text style={styles.etaLabel}>وقت الوصول لمحطتك</Text>
               <Text style={styles.etaValue}>~{etaMinutes} دقيقة</Text>
             </View>
@@ -1120,8 +1124,10 @@ export default function TripDetailScreen() {
             onPress={() => setShuttleRatingVisible(true)}
             activeOpacity={0.85}
           >
-            <Star size={16} color="#f5a623" fill="#f5a623" />
-            <Text style={styles.rateBtnText}>{t('rate_driver')}</Text>
+            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.rateBtnGradient}>
+              <Star size={16} color="#ffffff" fill="#ffffff" />
+              <Text style={styles.rateBtnText}>{t('rate_driver')}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
@@ -1165,7 +1171,7 @@ export default function TripDetailScreen() {
           onPress={() => setSupportOpen(true)}
           activeOpacity={0.8}
         >
-          <HelpCircle size={14} color="#4d9ef6" />
+          <HelpCircle size={14} color={c.ink} />
           <Text style={styles.helpBtnText}>Need Help?</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -1175,7 +1181,7 @@ export default function TripDetailScreen() {
         visible={shuttleRatingVisible}
         driverName={trip?.driverName ?? t('your_driver')}
         driverInitials={(trip?.driverName ?? 'D').charAt(0).toUpperCase()}
-        driverColor="#2563eb"
+        driverColor={c.ink}
         onSubmit={(stars) => handleShuttleRatingSubmit(stars)}
         onSkip={() => setShuttleRatingVisible(false)}
       />

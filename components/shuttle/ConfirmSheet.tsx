@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, TextInput, BackHandler } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { GlassView } from '@/components/ui/GlassView';
 import { Calendar, Clock, Users, Check, Tag, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -14,54 +16,58 @@ import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
-function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
-  const cardBg = c.isDark ? 'rgba(30,32,54,0.9)' : 'rgba(255,255,255,0.8)';
+function makeStyles(c: ThemeColors, insetsBottom: number) {
   return StyleSheet.create({
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-    sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, ...gs, borderTopLeftRadius: 32, borderTopRightRadius: 32, ...S.float, backgroundColor: c.white },
+    sheet: { position: 'absolute', bottom: 0, left: 0, right: 0, ...S.float },
+    sheetGlass: {
+      borderTopLeftRadius: 32, borderTopRightRadius: 32,
+      borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+    },
     handle: { width: 48, height: 6, borderRadius: 3, backgroundColor: c.isDark ? 'rgba(120,120,160,0.4)' : 'rgba(195,195,204,0.7)', alignSelf: 'center', marginTop: Spacing.md },
     content: { padding: Spacing.xl, paddingBottom: Spacing.xl + insetsBottom, gap: Spacing.md },
     reviewHeader: { alignItems: 'center', marginBottom: Spacing.xs },
     reviewLabel: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.4 },
     reviewRoute: { fontSize: 20, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.4, marginTop: Spacing.xs },
     reviewCode: { fontSize: 11.5, color: c.inkSoft, marginTop: 2 },
-    infoCard: { backgroundColor: cardBg, borderRadius: 20, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center' },
+    infoCard: { padding: Spacing.lg, flexDirection: 'row', alignItems: 'center' },
     infoHalf: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     infoDivider: { width: 1, height: 40, backgroundColor: c.border, marginHorizontal: Spacing.xs },
     infoIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     infoLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: c.inkSoft },
     infoValue: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink, marginTop: 1 },
-    routeCard: { backgroundColor: cardBg, borderRadius: 20, padding: Spacing.lg, flexDirection: 'row', gap: Spacing.lg },
+    routeCard: { padding: Spacing.lg, flexDirection: 'row', gap: Spacing.lg },
     routeTimeline: { alignItems: 'center', paddingTop: Spacing.xs },
     rtDotTop: { width: 12, height: 12, borderRadius: 6, backgroundColor: c.ink },
     rtLine: { width: 2, flex: 1, backgroundColor: c.silver, marginVertical: Spacing.xs, minHeight: 20 },
     rtDotBottom: { width: 12, height: 12, borderRadius: 6, backgroundColor: c.ink },
     routeStation: { fontSize: 13.5, fontWeight: Typography.weight.semibold, color: c.ink, marginTop: 2 },
     routeArea: { fontSize: 11, color: c.inkSoft, marginTop: 1 },
-    paxCard: { backgroundColor: cardBg, borderRadius: 20, padding: Spacing.lg, gap: Spacing.md },
+    paxCard: { padding: Spacing.lg, gap: Spacing.md },
     paxRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     thinDivider: { height: 1, backgroundColor: c.border, opacity: 0.6 },
     totalRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
     totalLabel: { fontSize: Typography.size.xs, color: c.inkSoft },
     totalValue: { fontSize: 24, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.5 },
     totalValueStruck: { fontSize: Typography.size.lg, fontWeight: Typography.weight.regular, color: c.inkSoft, textDecorationLine: 'line-through', marginBottom: 2 },
-    totalValueDiscounted: { fontSize: 24, fontWeight: Typography.weight.bold, color: '#22a06b', letterSpacing: -0.5 },
-    promoSection: { backgroundColor: cardBg, borderRadius: 20, padding: Spacing.lg, gap: 10 },
+    totalValueDiscounted: { fontSize: 24, fontWeight: Typography.weight.bold, color: c.success, letterSpacing: -0.5 },
+    promoSection: { padding: Spacing.lg, gap: 10 },
     promoInputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     promoInput: { flex: 1, height: 44, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border, paddingHorizontal: 14, fontSize: Typography.size.sm, color: c.ink, backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : '#fafafa' },
     promoApplyBtn: { height: 44, paddingHorizontal: 18, borderRadius: Radius.md, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
     promoApplyBtnDisabled: { opacity: 0.4 },
     promoApplyText: { fontSize: 13, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : c.white },
-    paymentSection: { backgroundColor: cardBg, borderRadius: 20, padding: Spacing.lg, gap: Spacing.sm },
+    paymentSection: { padding: Spacing.lg, gap: Spacing.sm },
     paymentChips: { flexDirection: 'row', gap: Spacing.sm },
     paymentChip: { flex: 1, height: 44, borderRadius: Radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
     paymentChipText: { fontSize: 13.5, fontWeight: Typography.weight.semibold },
-    promoSuccess: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(34,160,107,0.12)', borderRadius: 10, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-    promoSuccessText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: '#22a06b', flex: 1 },
-    promoError: { fontSize: 12.5, color: '#e0584a', paddingHorizontal: 2 },
-    confirmBtn: { height: 56, borderRadius: 20, backgroundColor: c.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, ...S.float, marginTop: Spacing.xs },
+    promoSuccess: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: c.isDark ? 'rgba(60,201,122,0.16)' : 'rgba(60,201,122,0.12)', borderRadius: 10, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+    promoSuccessText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.success, flex: 1 },
+    promoError: { fontSize: 12.5, color: c.error, paddingHorizontal: 2 },
+    confirmBtn: { height: 56, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 16, elevation: 8, marginTop: Spacing.xs },
+    confirmBtnGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
     confirmBtnDisabled: { opacity: 0.6 },
-    confirmBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
+    confirmBtnText: { color: '#ffffff', fontSize: 15, fontWeight: Typography.weight.semibold },
     editBtn: { height: 44, alignItems: 'center', justifyContent: 'center' },
     editBtnText: { fontSize: 13, color: c.inkSoft, fontWeight: Typography.weight.medium },
   });
@@ -69,9 +75,9 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
 
 export function ConfirmSheet() {
   const { confirmSheetOpen, closeConfirmSheet, pendingBooking, handleConfirm } = useBooking();
-  const { colors: c, glassStyle: gs, t } = useTheme();
+  const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => makeStyles(c, gs, insets.bottom), [c, gs, insets.bottom]);
+  const styles = useMemo(() => makeStyles(c, insets.bottom), [c, insets.bottom]);
   const { validateCode } = usePromos();
   const { walletFeature } = usePaymentConfig();
   const walletAvailable = walletFeature.isEnabled && walletFeature.displayMode === 'live';
@@ -167,6 +173,7 @@ export function ConfirmSheet() {
         <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={closeConfirmSheet} activeOpacity={1} />
       </Animated.View>
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
+        <GlassView strong borderRadius={32} style={styles.sheetGlass}>
         <View style={styles.handle} />
         <View style={styles.content}>
             <View style={styles.reviewHeader}>
@@ -175,7 +182,7 @@ export function ConfirmSheet() {
               <Text style={styles.reviewCode}>Line {booking.route.code}</Text>
             </View>
 
-            <View style={styles.infoCard}>
+            <GlassView borderRadius={20} style={styles.infoCard}>
               <View style={styles.infoHalf}>
                 <View style={styles.infoIcon}><Calendar size={16} color={c.ink} /></View>
                 <View>
@@ -191,9 +198,9 @@ export function ConfirmSheet() {
                   <Text style={styles.infoValue}>{booking.time}</Text>
                 </View>
               </View>
-            </View>
+            </GlassView>
 
-            <View style={styles.routeCard}>
+            <GlassView borderRadius={20} style={styles.routeCard}>
               <View style={styles.routeTimeline}>
                 <View style={styles.rtDotTop} />
                 <View style={styles.rtLine} />
@@ -212,9 +219,9 @@ export function ConfirmSheet() {
                   <Text style={styles.routeArea}>{booking.route.path[booking.toIdx].area}</Text>
                 </View>
               </View>
-            </View>
+            </GlassView>
 
-            <View style={styles.paxCard}>
+            <GlassView borderRadius={20} style={styles.paxCard}>
               <View style={styles.paxRow}>
                 <View style={styles.infoIcon}><Users size={16} color={c.ink} /></View>
                 <View>
@@ -238,9 +245,9 @@ export function ConfirmSheet() {
                   <Text style={styles.totalValue}>{booking.price} {t('egp')}</Text>
                 )}
               </View>
-            </View>
+            </GlassView>
 
-            <View style={styles.paymentSection}>
+            <GlassView borderRadius={20} style={styles.paymentSection}>
               <Text style={styles.infoLabel}>{t('payment_method_label')}</Text>
               <View style={styles.paymentChips}>
                 <TouchableOpacity
@@ -276,9 +283,9 @@ export function ConfirmSheet() {
                   </TouchableOpacity>
                 )}
               </View>
-            </View>
+            </GlassView>
 
-            <View style={styles.promoSection}>
+            <GlassView borderRadius={20} style={styles.promoSection}>
               <View style={styles.promoInputRow}>
                 <Tag size={16} color={c.inkSoft} />
                 <TextInput
@@ -307,14 +314,14 @@ export function ConfirmSheet() {
                 <View style={styles.promoSuccess}>
                   <Text style={styles.promoSuccessText}>{t('discount_applied').replace('{amount}', promoDiscount)}</Text>
                   <TouchableOpacity onPress={clearPromo} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <X size={16} color="#22a06b" />
+                    <X size={16} color={c.success} />
                   </TouchableOpacity>
                 </View>
               )}
               {promoStatus === 'invalid' && (
                 <Text style={styles.promoError}>{promoError}</Text>
               )}
-            </View>
+            </GlassView>
 
             <TouchableOpacity
               style={[styles.confirmBtn, confirming && styles.confirmBtnDisabled]}
@@ -322,19 +329,22 @@ export function ConfirmSheet() {
               onPress={onConfirmPress}
               disabled={confirming}
             >
-              {confirming ? (
-                <AppLoader size={24} />
-              ) : (
-                <>
-                  <Check size={16} color={c.isDark ? c.background : c.white} />
-                  <Text style={styles.confirmBtnText}>{t('confirm_booking')}</Text>
-                </>
-              )}
+              <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.confirmBtnGradient}>
+                {confirming ? (
+                  <AppLoader size={24} />
+                ) : (
+                  <>
+                    <Check size={16} color="#ffffff" />
+                    <Text style={styles.confirmBtnText}>{t('confirm_booking')}</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={closeConfirmSheet} style={styles.editBtn} activeOpacity={0.7} disabled={confirming}>
               <Text style={styles.editBtnText}>{t('edit_details')}</Text>
             </TouchableOpacity>
           </View>
+        </GlassView>
         </Animated.View>
     </View>
   );

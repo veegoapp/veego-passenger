@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, Platform, ActivityIndicator, Alert, BackHandler,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
+import { GlassView } from '@/components/ui/GlassView';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
@@ -35,8 +37,12 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
     sheet: {
       position: 'absolute', bottom: 0, left: 0, right: 0, height: '92%',
-      backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
-      borderTopLeftRadius: 36, borderTopRightRadius: 36, ...S.float,
+      ...S.float,
+    },
+    sheetGlass: {
+      flex: 1,
+      borderTopLeftRadius: 36, borderTopRightRadius: 36,
+      borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
     },
     handle: {
       width: 44, height: 5, borderRadius: 2.5,
@@ -243,29 +249,31 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
     cta: {
       padding: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.lg + insetsBottom,
       borderTopWidth: 1, borderTopColor: c.border,
-      backgroundColor: c.isDark ? '#16162a' : '#f5f5fa',
     },
     ctaBtn: {
-      height: 58, borderRadius: 22, backgroundColor: c.ink,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-      shadowColor: c.ink, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
+      height: 58, borderRadius: 22, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
     },
-    ctaBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: Typography.weight.bold, letterSpacing: -0.2 },
+    ctaBtnGradient: {
+      flex: 1,
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    },
+    ctaBtnText: { color: '#ffffff', fontSize: 15.5, fontWeight: Typography.weight.bold, letterSpacing: -0.2 },
 
     /* Request a Trip */
     requestTripBtn: {
       marginHorizontal: Spacing.lg, marginTop: 14, marginBottom: 2,
-      borderRadius: Radius.lg,
-      shadowColor: c.ink, shadowOffset: { width: 0, height: 4 },
+      borderRadius: Radius.lg, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
     },
     requestTripBtnInner: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: Spacing.sm, paddingVertical: 14, paddingHorizontal: 20, borderRadius: Radius.lg,
-      backgroundColor: c.isDark ? '#2a2a3a' : '#BDB76B',
-      borderWidth: 0,
+      backgroundColor: c.isDark ? 'rgba(85,196,154,0.16)' : 'rgba(85,196,154,0.12)',
+      borderWidth: 1, borderColor: c.isDark ? 'rgba(85,196,154,0.4)' : 'rgba(85,196,154,0.32)',
     },
-    requestTripBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
+    requestTripBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.accent, letterSpacing: -0.2 },
 
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
@@ -456,6 +464,7 @@ export function TripSheet() {
       </Animated.View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
+        <GlassView strong borderRadius={36} style={styles.sheetGlass}>
         <View style={styles.handle} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -477,7 +486,7 @@ export function TripSheet() {
               activeOpacity={0.82}
             >
               <View style={styles.requestTripBtnInner}>
-                <Ticket size={16} color={c.ink} strokeWidth={2} />
+                <Ticket size={16} color={c.accent} strokeWidth={2} />
                 <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
               </View>
             </TouchableOpacity>
@@ -636,16 +645,19 @@ export function TripSheet() {
               } as any);
             }}
           >
-            <Text style={styles.ctaBtnText}>
-              {!shuttleServiceEnabled
-                ? 'Service Unavailable'
-                : !valid
-                ? t('select_trip')
-                : t('continue_btn')}
-            </Text>
-            {valid && shuttleServiceEnabled && (isRTL ? <ArrowLeft size={18} color={c.isDark ? c.background : c.white} /> : <ArrowRight size={18} color={c.isDark ? c.background : c.white} />)}
+            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaBtnGradient}>
+              <Text style={styles.ctaBtnText}>
+                {!shuttleServiceEnabled
+                  ? 'Service Unavailable'
+                  : !valid
+                  ? t('select_trip')
+                  : t('continue_btn')}
+              </Text>
+              {valid && shuttleServiceEnabled && (isRTL ? <ArrowLeft size={18} color="#ffffff" /> : <ArrowRight size={18} color="#ffffff" />)}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
+        </GlassView>
       </Animated.View>
 
       <RequestTripSheet
