@@ -86,6 +86,20 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   }, []);
 
   useEffect(() => {
+    // While actively searching (no driver yet), the destination is no
+    // longer relevant to what the passenger needs to see — stay tightly
+    // framed on their own location instead of zooming out to fit the
+    // whole (possibly many-km) route to the destination.
+    if (searching) {
+      setTimeout(() => {
+        mapRef.current?.animateToRegion(
+          { ...userLocation, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+          600,
+        );
+      }, 400);
+      return;
+    }
+
     const pts: Coords[] = [userLocation];
     if (destCoords) pts.push(destCoords);
     if (showDriverMarker && driverLocation) pts.push(driverLocation);
@@ -96,7 +110,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         animated: true,
       });
     }, 400);
-  }, [destCoords, showDriverMarker, userLocation]);
+  }, [destCoords, showDriverMarker, userLocation, searching]);
 
   const [routeCoords, setRouteCoords] = useState<Coords[]>([]);
   const routeFetchKeyRef = useRef<string | null>(null);

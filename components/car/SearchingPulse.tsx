@@ -36,6 +36,11 @@ export function SearchingPulse() {
   const blink = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // useNativeDriver: false throughout — this view is a react-native-maps
+    // custom marker with tracksViewChanges enabled, which re-snapshots the
+    // view from the JS-measured layout on Android. Native-driven animations
+    // update transforms on the native side directly, outside that snapshot
+    // pipeline, which can leave the captured marker bitmap frozen or blank.
     const ringAnims = rings.map((ring, i) =>
       Animated.loop(
         Animated.sequence([
@@ -44,17 +49,17 @@ export function SearchingPulse() {
             toValue: 1,
             duration: RING_DURATION,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
-          Animated.timing(ring, { toValue: 0, duration: 0, useNativeDriver: true }),
+          Animated.timing(ring, { toValue: 0, duration: 0, useNativeDriver: false }),
         ])
       )
     );
 
     const blinkAnim = Animated.loop(
       Animated.sequence([
-        Animated.timing(blink, { toValue: 1, duration: BLINK_DURATION, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(blink, { toValue: 0, duration: BLINK_DURATION, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(blink, { toValue: 1, duration: BLINK_DURATION, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(blink, { toValue: 0, duration: BLINK_DURATION, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
       ])
     );
 
@@ -104,6 +109,11 @@ export function SearchingPulse() {
 const styles = StyleSheet.create({
   container: {
     width: SEARCHING_PULSE_WIDTH,
+    // react-native-maps needs an explicit height on a custom marker's root
+    // view to snapshot it correctly on Android — without one, the height is
+    // only known after the child layout pass, and the very first snapshot
+    // (before that pass lands) can be captured at zero height, i.e. invisible.
+    height: SEARCHING_PULSE_HEIGHT,
     alignItems: 'center',
   },
   ringHost: {
