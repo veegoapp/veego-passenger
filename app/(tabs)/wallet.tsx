@@ -1,10 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, RefreshControl } from 'react-native';
-import { AppLoader } from '@/components/ui/AppLoader';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TrendingDown, Plus, ArrowUp, Tag, PlusCircle, CheckCircle, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
+import { TrendingDown, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { useTabBar } from '@/context/TabBarContext';
@@ -12,13 +10,9 @@ import { ThemeColors, S } from '@/constants/colors';
 import { useWallet } from '@/src/hooks/shared/useWallet';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
-import { useWalletRecharge } from '@/src/hooks/shared/useWalletRecharge';
-import { PaymobCheckoutModal } from '@/components/wallet/PaymobCheckoutModal';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
-
-const CHARGE_OPTIONS = [50, 100, 200, 500];
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -35,19 +29,8 @@ function makeStyles(c: ThemeColors) {
     balanceStats: { flexDirection: 'row', gap: Spacing.lg, marginTop: Spacing.xs },
     balanceStat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     balanceStatText: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.65)' },
-    actionRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 20 },
-    actionBtn: { flex: 1, height: 52, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
-    actionBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
     section: { marginBottom: 20 },
     sectionLabel: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 24, marginBottom: 10 },
-    chargeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20 },
-    chargeBtn: { width: '47%', height: 52, borderRadius: 18, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-    chargeBtnText: { fontSize: 15, fontWeight: Typography.weight.semibold },
-    confirmChargeBtn: {
-      marginHorizontal: 20, marginTop: 14, height: 52, borderRadius: 18,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
-    },
-    confirmChargeBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold },
     txList: { paddingHorizontal: 20, gap: 10 },
     txCard: { borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: c.white },
     txEmpty: { marginHorizontal: 20, borderRadius: 20, padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm, backgroundColor: c.white },
@@ -97,13 +80,6 @@ function makeStyles(c: ThemeColors) {
     },
     walletErrorText: { flex: 1, fontSize: Typography.size.xs, lineHeight: 17, color: '#e0584a' },
     walletErrorRetry: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: '#e0584a' },
-    rechargeStatusBanner: {
-      marginHorizontal: 20, marginTop: Spacing.xs, marginBottom: Spacing.lg, borderRadius: 18,
-      paddingHorizontal: Spacing.lg, paddingVertical: 14,
-      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-      backgroundColor: c.white,
-    },
-    rechargeStatusText: { flex: 1, fontSize: 13, color: c.inkSoft, lineHeight: 18 },
   });
 }
 
@@ -113,7 +89,6 @@ export default function WalletScreen() {
   const { tabBarHeight } = useTabBar();
   const { colors: c, glassStyle: gs, t, language } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const [selectedCharge, setSelectedCharge] = useState<number | null>(null);
   const isAr = language === 'ar';
 
   const { balance, spent, transactions, loading: walletLoading, error: walletError, refresh: refreshWallet } = useWallet();
@@ -125,49 +100,6 @@ export default function WalletScreen() {
   const { walletFeature, paymentMethods } = usePaymentConfig();
   const paymobEnabled = paymentMethods.some((m) => m.key === 'paymob');
   const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
-
-  const recharge = useWalletRecharge();
-  const rechargeBusy = recharge.status !== 'idle';
-
-  // Reacts to the Paymob checkout outcome exactly once per attempt. The
-  // "Recharged!" alert only ever fires from the 'confirmed' branch, which is
-  // reached solely via useWalletRecharge polling GET /wallet after checkout —
-  // never immediately on submit and never on the checkout redirect alone.
-  useEffect(() => {
-    if (recharge.status === 'confirmed') {
-      refreshWallet();
-      Alert.alert(
-        t('recharged_title'),
-        t('recharged_body').replace('{amount}', String(recharge.amountEGP ?? '')),
-      );
-      recharge.reset();
-    } else if (recharge.status === 'failed') {
-      // errorMessage is only set when session creation itself failed (e.g.
-      // Paymob disabled, network error) — a checkout that opened and was
-      // then declined/failed by Paymob carries no errorMessage here.
-      if (recharge.errorMessage) {
-        Alert.alert(t('recharge_start_error_title'), recharge.errorMessage);
-      } else {
-        Alert.alert(t('recharge_failed_title'), t('recharge_failed_body'));
-      }
-      recharge.reset();
-    } else if (recharge.status === 'cancelled') {
-      Alert.alert(t('recharge_cancelled_title'), t('recharge_cancelled_body'));
-      recharge.reset();
-    } else if (recharge.status === 'timeout') {
-      refreshWallet();
-      Alert.alert(t('recharge_timeout_title'), t('recharge_timeout_body'));
-      recharge.reset();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recharge.status]);
-
-  const handleConfirmCharge = () => {
-    if (!selectedCharge || rechargeBusy) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    recharge.startRecharge(selectedCharge);
-    setSelectedCharge(null);
-  };
 
   if (walletUnavailable) {
     return (
@@ -290,95 +222,6 @@ export default function WalletScreen() {
           </View>
         )}
 
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: c.ink, opacity: rechargeBusy ? 0.7 : 1 }]}
-            activeOpacity={0.85}
-            disabled={rechargeBusy}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              if (!selectedCharge) {
-                Alert.alert(t('select_amount_title'), t('select_amount_body'));
-              } else {
-                handleConfirmCharge();
-              }
-            }}
-          >
-            {rechargeBusy ? (
-              <AppLoader size={24} />
-            ) : (
-              <Plus size={20} color={c.isDark ? c.background : c.white} />
-            )}
-            <Text style={[styles.actionBtnText, { color: c.isDark ? c.background : c.white }]}>{t('recharge')}</Text>
-          </TouchableOpacity>
-          <View style={{ flex: 1, gap: Spacing.xs }}>
-            <TouchableOpacity
-              style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border, opacity: 0.45 }]}
-              activeOpacity={1}
-              disabled
-            >
-              <ArrowUp size={20} color={c.ink} />
-              <Text style={[styles.actionBtnText, { color: c.ink }]}>{t('transfer')}</Text>
-            </TouchableOpacity>
-            <Text style={{ fontSize: 10, color: c.inkSoft, textAlign: 'center', fontWeight: Typography.weight.semibold }}>Coming Soon</Text>
-          </View>
-          <TouchableOpacity
-            style={[gs, styles.actionBtn, { borderWidth: 1, borderColor: c.border }]}
-            activeOpacity={0.85}
-            onPress={() => {
-              Haptics.selectionAsync();
-              router.push('/promo');
-            }}
-          >
-            <Tag size={18} color="#55c49a" />
-            <Text style={[styles.actionBtnText, { color: '#55c49a' }]}>{t('promo_title')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {(recharge.status === 'initiating' || recharge.status === 'confirming') && (
-          <View style={[gs, styles.rechargeStatusBanner]}>
-            <ActivityIndicator size="small" color={c.ink} />
-            <Text style={styles.rechargeStatusText}>
-              {recharge.status === 'initiating' ? t('recharge_starting') : t('recharge_confirming_body')}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>{t('quick_recharge')}</Text>
-          <View style={styles.chargeGrid}>
-            {CHARGE_OPTIONS.map((amount) => {
-              const selected = selectedCharge === amount;
-              return (
-                <TouchableOpacity
-                  key={amount}
-                  style={[styles.chargeBtn, { backgroundColor: selected ? c.ink : c.white, borderColor: selected ? c.ink : c.border }]}
-                  onPress={() => {
-                    setSelectedCharge(selected ? null : amount);
-                    Haptics.selectionAsync();
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <PlusCircle size={16} color={selected ? (c.isDark ? c.background : c.white) : c.inkSoft} />
-                  <Text style={[styles.chargeBtnText, { color: selected ? (c.isDark ? c.background : c.white) : c.ink }]}>{amount} {t('egp')}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {selectedCharge && (
-            <TouchableOpacity
-              style={[styles.confirmChargeBtn, { backgroundColor: c.accentMint }]}
-              onPress={handleConfirmCharge}
-              activeOpacity={0.88}
-            >
-              <CheckCircle size={18} color="#ffffff" />
-              <Text style={[styles.confirmChargeBtnText, { color: '#ffffff' }]}>
-                {t('confirm_recharge_btn').replace('{amount}', String(selectedCharge))}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
         <View style={styles.pmSection}>
           <Text style={styles.sectionLabel}>{t('payment_title')}</Text>
           <View style={{ paddingHorizontal: 20, gap: 10 }}>
@@ -447,13 +290,6 @@ export default function WalletScreen() {
           )}
         </View>
       </ScrollView>
-
-      <PaymobCheckoutModal
-        visible={recharge.status === 'checkout'}
-        iframeUrl={recharge.iframeUrl}
-        merchantOrderId={recharge.merchantOrderId}
-        onClose={recharge.handleCheckoutClose}
-      />
     </LinearGradient>
   );
 }
