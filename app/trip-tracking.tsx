@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { GlassView } from '@/components/ui/GlassView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, MapPin, Navigation, Phone, ShieldAlert, Star } from 'lucide-react-native';
 import { SafetySheet } from '@/components/shared/SafetySheet';
 import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useTheme } from '@/context/ThemeContext';
+import type { ThemeColors } from '@/constants/colors';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import { getSocket, getSocketSync } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
@@ -29,14 +32,16 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   timeout: 'status_request_timeout',
 };
 
+// Aligned to the app's theme tokens (constants/colors.ts) — driver_assigned/started
+// previously used an off-brand blue (#2563eb) with no relation to the ink+mint identity.
 const STATUS_COLORS: Record<string, string> = {
-  searching: '#f59e0b',
-  driver_assigned: '#2563eb',
-  arrived: '#22c55e',
-  started: '#2563eb',
-  completed: '#10b981',
-  cancelled: '#ef4444',
-  timeout: '#ef4444',
+  searching: '#D5A623',
+  driver_assigned: '#1e1e28',
+  arrived: '#3CC97A',
+  started: '#1e1e28',
+  completed: '#3CC97A',
+  cancelled: '#E85454',
+  timeout: '#E85454',
 };
 
 type TripStatus = keyof typeof STATUS_LABEL_KEYS;
@@ -52,7 +57,8 @@ function normalizeVehicleType(raw: unknown): 'car' | 'scooter' {
 export default function TripTrackingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isRTL, t } = useTheme();
+  const { colors: c, isRTL, t } = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const params = useLocalSearchParams<{
     id?: string;
     rideId?: string;
@@ -319,7 +325,7 @@ export default function TripTrackingScreen() {
     return (
       <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
         <AppLoader />
-        <Text style={{ color: 'rgba(255,255,255,0.6)', marginTop: Spacing.md, fontSize: Typography.size.sm }}>{t('loading_ride')}</Text>
+        <Text style={{ color: c.inkSoft, marginTop: Spacing.md, fontSize: Typography.size.sm }}>{t('loading_ride')}</Text>
       </View>
     );
   }
@@ -327,14 +333,16 @@ export default function TripTrackingScreen() {
   if (deepLinkError) {
     return (
       <View style={[styles.root, { alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }]}>
-        <Text style={{ color: '#ef4444', fontSize: Typography.size.md, fontWeight: Typography.weight.bold, textAlign: 'center', marginBottom: Spacing.sm }}>{t('ride_not_found')}</Text>
-        <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textAlign: 'center', marginBottom: Spacing.xl }}>{deepLinkError}</Text>
+        <Text style={{ color: c.error, fontSize: Typography.size.md, fontWeight: Typography.weight.bold, textAlign: 'center', marginBottom: Spacing.sm }}>{t('ride_not_found')}</Text>
+        <Text style={{ color: c.inkSoft, fontSize: 13, textAlign: 'center', marginBottom: Spacing.xl }}>{deepLinkError}</Text>
         <TouchableOpacity
           style={[styles.doneBtn, { paddingHorizontal: Spacing.xxl }]}
           onPress={() => router.replace('/(tabs)' as any)}
           activeOpacity={0.9}
         >
-          <Text style={styles.doneBtnText}>{t('go_home')}</Text>
+          <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.doneBtnGradient}>
+            <Text style={styles.doneBtnText}>{t('go_home')}</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     );
@@ -353,7 +361,7 @@ export default function TripTrackingScreen() {
       {/* Top bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.85}>
-          {isRTL ? <ArrowRight size={20} color="#fff" /> : <ArrowLeft size={20} color="#fff" />}
+          {isRTL ? <ArrowRight size={20} color="#ffffff" /> : <ArrowLeft size={20} color="#ffffff" />}
         </TouchableOpacity>
         <View style={[styles.statusPill, { backgroundColor: statusColor + '22', borderColor: statusColor }]}>
           {status === 'searching' && (
@@ -391,7 +399,7 @@ export default function TripTrackingScreen() {
       <ConnectionBanner style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', zIndex: 40 }} />
 
       {/* Bottom card */}
-      <View style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>
+      <GlassView strong borderRadius={Radius.xl} style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>
         {/* Driver info */}
         {driverInfo.name ? (
           <View style={styles.driverRow}>
@@ -405,7 +413,7 @@ export default function TripTrackingScreen() {
               <View style={styles.driverMeta}>
                 {driverInfo.rating && (
                   <View style={styles.ratingRow}>
-                    <Star size={11} color="#f59e0b" fill="#f59e0b" />
+                    <Star size={11} color={c.accent} fill={c.accent} />
                     <Text style={styles.ratingText}>{parseFloat(driverInfo.rating).toFixed(1)}</Text>
                   </View>
                 )}
@@ -420,14 +428,14 @@ export default function TripTrackingScreen() {
                 activeOpacity={0.85}
                 onPress={() => Linking.openURL(`tel:${driverInfo.phone}`)}
               >
-                <Phone size={18} color="#2563eb" />
+                <Phone size={18} color={c.ink} />
               </TouchableOpacity>
             ) : null}
           </View>
         ) : (
           <View style={styles.driverRow}>
             <View style={styles.driverAvatar}>
-              <Navigation size={18} color="#fff" />
+              <Navigation size={18} color="#ffffff" />
             </View>
             <View style={styles.driverInfo}>
               <Text style={styles.driverName}>{t('your_driver')}</Text>
@@ -441,14 +449,14 @@ export default function TripTrackingScreen() {
           <View style={styles.routeRow}>
             {pickup && (
               <View style={styles.routeItem}>
-                <View style={[styles.routeDot, { backgroundColor: '#22c55e' }]} />
+                <View style={[styles.routeDot, { backgroundColor: c.success }]} />
                 <Text style={styles.routeText} numberOfLines={1}>{t('pickup')}</Text>
               </View>
             )}
             {pickup && dropoff && <View style={styles.routeDash} />}
             {dropoff && (
               <View style={styles.routeItem}>
-                <MapPin size={10} color="#ef4444" />
+                <MapPin size={10} color={c.error} />
                 <Text style={styles.routeText} numberOfLines={1}>{t('dropoff')}</Text>
               </View>
             )}
@@ -457,91 +465,94 @@ export default function TripTrackingScreen() {
 
         {isTerminal && (
           <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()} activeOpacity={0.9}>
-            <Text style={styles.doneBtnText}>
-              {status === 'completed' ? t('done') : t('go_back')}
-            </Text>
+            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.doneBtnGradient}>
+              <Text style={styles.doneBtnText}>
+                {status === 'completed' ? t('done') : t('go_back')}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         )}
-      </View>
+      </GlassView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0d0e22' },
+function makeStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
 
-  topBar: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
-    paddingHorizontal: Spacing.lg, paddingBottom: 10,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-  },
-  backBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: Spacing.sm,
-    borderRadius: 99, borderWidth: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 13, fontWeight: Typography.weight.semibold },
-  sosBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#dc2626', borderRadius: 99,
-    paddingHorizontal: Spacing.md, paddingVertical: 8,
-    shadowColor: '#dc2626', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45, shadowRadius: 8, elevation: 6,
-  },
-  sosBtnText: { fontSize: Typography.size.xs, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+    topBar: {
+      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30,
+      paddingHorizontal: Spacing.lg, paddingBottom: 10,
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+    },
+    backBtn: {
+      width: 42, height: 42, borderRadius: 21,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    statusPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingVertical: Spacing.sm,
+      borderRadius: 99, borderWidth: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    statusDot: { width: 7, height: 7, borderRadius: 4 },
+    statusText: { fontSize: 13, fontWeight: Typography.weight.semibold },
+    sosBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: c.error, borderRadius: 99,
+      paddingHorizontal: Spacing.md, paddingVertical: 8,
+      shadowColor: c.error, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.45, shadowRadius: 8, elevation: 6,
+    },
+    sosBtnText: { fontSize: Typography.size.xs, fontWeight: '800', color: '#ffffff', letterSpacing: 0.5 },
 
-  card: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(13,14,34,0.97)',
-    borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl,
-    paddingTop: 20, paddingHorizontal: 20,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
-  },
+    card: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl,
+      borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+      paddingTop: 20, paddingHorizontal: 20,
+    },
 
-  driverRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: Spacing.lg,
-  },
-  driverAvatar: {
-    width: 46, height: 46, borderRadius: 23,
-    backgroundColor: '#2563eb',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  driverAvatarText: { color: '#fff', fontSize: Typography.size.lg, fontWeight: Typography.weight.bold },
-  driverInfo: { flex: 1 },
-  driverName: { color: '#fff', fontSize: Typography.size.md, fontWeight: Typography.weight.bold },
-  driverMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 2 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { color: '#f59e0b', fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
-  vehicleText: { color: 'rgba(255,255,255,0.55)', fontSize: Typography.size.xs },
-  callBtn: {
-    width: 42, height: 42, borderRadius: 21,
-    borderWidth: 1, borderColor: 'rgba(37,99,235,0.4)',
-    backgroundColor: 'rgba(37,99,235,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-  },
+    driverRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: Spacing.lg,
+    },
+    driverAvatar: {
+      width: 46, height: 46, borderRadius: 23,
+      backgroundColor: c.ink,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    driverAvatarText: { color: '#ffffff', fontSize: Typography.size.lg, fontWeight: Typography.weight.bold },
+    driverInfo: { flex: 1 },
+    driverName: { color: c.ink, fontSize: Typography.size.md, fontWeight: Typography.weight.bold },
+    driverMeta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: 2 },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    ratingText: { color: c.inkSoft, fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
+    vehicleText: { color: c.inkSoft, fontSize: Typography.size.xs },
+    callBtn: {
+      width: 42, height: 42, borderRadius: 21,
+      borderWidth: 1, borderColor: c.border,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+      alignItems: 'center', justifyContent: 'center',
+    },
 
-  routeRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs,
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
-    marginBottom: Spacing.xs,
-  },
-  routeItem: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  routeDot: { width: 9, height: 9, borderRadius: 5 },
-  routeText: { color: 'rgba(255,255,255,0.7)', fontSize: Typography.size.xs, flex: 1 },
-  routeDash: { width: 20, height: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 6 },
+    routeRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs,
+      borderTopWidth: 1, borderTopColor: c.border,
+      marginBottom: Spacing.xs,
+    },
+    routeItem: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+    routeDot: { width: 9, height: 9, borderRadius: 5 },
+    routeText: { color: c.inkSoft, fontSize: Typography.size.xs, flex: 1 },
+    routeDash: { width: 20, height: 1, backgroundColor: c.border, marginHorizontal: 6 },
 
-  doneBtn: {
-    marginTop: Spacing.md, backgroundColor: '#2563eb',
-    borderRadius: 14, paddingVertical: 14,
-    alignItems: 'center',
-  },
-  doneBtnText: { color: '#fff', fontWeight: Typography.weight.bold, fontSize: 15 },
-});
+    doneBtn: {
+      marginTop: Spacing.md, borderRadius: 14, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.24, shadowRadius: 12, elevation: 6,
+    },
+    doneBtnGradient: { paddingVertical: 14, alignItems: 'center' },
+    doneBtnText: { color: '#ffffff', fontWeight: Typography.weight.bold, fontSize: 15 },
+  });
+}

@@ -215,18 +215,18 @@ function makeStyles(c: ThemeColors) {
     /* Actions */
     actions: { gap: 10 },
     primaryBtn: {
-      height: 58, borderRadius: 22, backgroundColor: c.ink,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-      shadowColor: c.ink, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 20, elevation: 10,
+      height: 58, borderRadius: 22, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 20, elevation: 10,
     },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15.5, fontWeight: Typography.weight.bold },
+    primaryBtnGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    primaryBtnText: { color: '#ffffff', fontSize: 15.5, fontWeight: Typography.weight.bold },
     secondaryBtn: { height: 48, alignItems: 'center', justifyContent: 'center' },
     secondaryBtnText: { fontSize: Typography.size.sm, color: c.inkSoft },
     goHomeBtn: {
-      marginTop: 20, height: 52, paddingHorizontal: 28, borderRadius: 18,
-      backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
+      marginTop: 20, borderRadius: 18, overflow: 'hidden',
     },
-    goHomeBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
+    goHomeBtnGradient: { height: 52, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center' },
+    goHomeBtnText: { color: '#ffffff', fontSize: 15, fontWeight: Typography.weight.semibold },
   });
 }
 
@@ -394,7 +394,9 @@ export default function TicketScreen() {
           {t('ticket_load_error')}
         </Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.goHomeBtn}>
-          <Text style={styles.goHomeBtnText}>{t('go_back')}</Text>
+          <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goHomeBtnGradient}>
+            <Text style={styles.goHomeBtnText}>{t('go_back')}</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </LinearGradient>
     );
@@ -479,7 +481,7 @@ export default function TicketScreen() {
 
           {/* Header — dark gradient with route info */}
           <LinearGradient
-            colors={[c.ink, c.isDark ? '#1e1e3a' : '#1a1a32']}
+            colors={c.gradientPrimary}
             style={styles.ticketHeader}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           >
@@ -593,8 +595,10 @@ export default function TicketScreen() {
         {/* ── Action buttons ── */}
         <View style={styles.actions}>
           <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.9} onPress={() => router.replace('/(tabs)/trips')}>
-            <Text style={styles.primaryBtnText}>{t('view_all_trips')}</Text>
-            <Ticket size={18} color={c.isDark ? c.background : '#ffffff'} />
+            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGradient}>
+              <Text style={styles.primaryBtnText}>{t('view_all_trips')}</Text>
+              <Ticket size={18} color="#ffffff" />
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8} onPress={() => router.replace('/(tabs)')}>

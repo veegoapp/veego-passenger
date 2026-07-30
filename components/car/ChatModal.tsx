@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, MessageCircle, Hourglass, Send } from 'lucide-re
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
+import { GlassView } from '@/components/ui/GlassView';
 import { useRideChat } from '@/src/hooks/car/useRideChat';
 import { useState } from 'react';
 import { Typography } from '@/constants/typography';
@@ -42,18 +43,18 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const bgColor = c.isDark ? '#0f0f1e' : '#f4f4f8';
-  const headerBg = c.isDark ? '#1a1a2e' : '#ffffff';
-  const inputBg = c.isDark ? '#1a1a2e' : '#ffffff';
-
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: bgColor }}
+        style={{ flex: 1, backgroundColor: c.background }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={[styles.header, { backgroundColor: headerBg, paddingTop: insets.top + 4 }]}>
-          <TouchableOpacity onPress={onClose} activeOpacity={0.8} style={styles.backBtn}>
+        <GlassView strong borderRadius={0} style={[styles.header, { paddingTop: insets.top + 4 }]}>
+          <TouchableOpacity
+            onPress={onClose}
+            activeOpacity={0.8}
+            style={[styles.backBtn, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: c.border }]}
+          >
             {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
           </TouchableOpacity>
           <View style={styles.headerMeta}>
@@ -64,11 +65,11 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             </View>
             <View>
               <Text style={[styles.headerName, { color: c.ink }]}>{driverName}</Text>
-              <Text style={[styles.headerSub, { color: c.accentMint }]}>● Online</Text>
+              <Text style={[styles.headerSub, { color: c.accent }]}>● Online</Text>
             </View>
           </View>
           <View style={{ width: 36 }} />
-        </View>
+        </GlassView>
 
         {messages.length === 0 ? (
           <View style={styles.emptyState}>
@@ -90,7 +91,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
                 <View style={[
                   styles.bubbleInner,
                   item.isDriver
-                    ? { backgroundColor: c.isDark ? '#1e1e32' : '#ffffff', borderBottomLeftRadius: 4 }
+                    ? { backgroundColor: c.mist, borderBottomLeftRadius: 4 }
                     : { backgroundColor: c.ink, borderBottomRightRadius: 4 },
                 ]}>
                   <Text style={[styles.bubbleText, { color: item.isDriver ? c.ink : (c.isDark ? c.background : c.white) }]}>
@@ -108,13 +109,13 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
         <View style={[
           styles.inputBar,
           {
-            backgroundColor: inputBg,
+            backgroundColor: c.surface,
             paddingBottom: insets.bottom + 8,
             borderTopColor: c.border,
           },
         ]}>
           <TextInput
-            style={[styles.input, { color: c.ink, backgroundColor: c.isDark ? '#252540' : '#f2f2f5' }]}
+            style={[styles.input, { color: c.ink, backgroundColor: c.mist }]}
             placeholder={t('type_message')}
             placeholderTextColor={c.inkSoft}
             value={text}
@@ -147,7 +148,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.md,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: Shadows.small.elevation,
   },
-  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerMeta: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   driverAvatarText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold },

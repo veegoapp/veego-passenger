@@ -7,6 +7,7 @@ import { Check, Star } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { GlassView } from '@/components/ui/GlassView';
 import { Animation } from '@/constants/animations';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -75,28 +76,24 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
   }, [onSkip]);
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] });
-  const sheetBg = c.isDark ? 'rgba(14,14,28,0.99)' : 'rgba(250,250,252,0.99)';
-  const borderCol = c.isDark ? 'rgba(90,95,160,0.25)' : 'rgba(0,0,0,0.06)';
 
   return (
     <Animated.View
       style={[
         styles.sheet,
         {
-          backgroundColor: sheetBg,
-          borderTopColor: borderCol,
-          paddingBottom: insets.bottom + 32,
           opacity: slideAnim,
           transform: [{ translateY }],
         },
       ]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={styles.handle} />
+      <GlassView strong borderRadius={28} style={[styles.sheetGlass, { paddingBottom: insets.bottom + 32 }]}>
+      <View style={[styles.handle, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }]} />
 
       {submitted ? (
         <View style={styles.successWrap}>
-          <Animated.View style={[styles.successCircle, { transform: [{ scale: checkScale }] }]}>
+          <Animated.View style={[styles.successCircle, { backgroundColor: c.accent, transform: [{ scale: checkScale }] }]}>
             <Check size={38} color="#ffffff" />
           </Animated.View>
           <Text style={[styles.successTitle, { color: c.ink }]}>{t('thanks_rating')}</Text>
@@ -116,8 +113,8 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
                 <Animated.View style={{ transform: [{ scale: starScale[n - 1] }] }}>
                   <Star
                     size={40}
-                    color={n <= stars ? '#FFB000' : c.silver}
-                    fill={n <= stars ? '#FFB000' : 'none'}
+                    color={n <= stars ? c.accent : c.silver}
+                    fill={n <= stars ? c.accent : 'none'}
                   />
                 </Animated.View>
               </TouchableOpacity>
@@ -138,7 +135,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
 
           <View style={styles.btnRow}>
             <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: stars > 0 ? '#55c49a' : c.mist, opacity: stars > 0 ? 1 : 0.5 }]}
+              style={[styles.submitBtn, { backgroundColor: stars > 0 ? c.accent : c.mist, opacity: stars > 0 ? 1 : 0.5 }]}
               onPress={handleSubmit}
               activeOpacity={0.85}
             >
@@ -150,6 +147,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
           </View>
         </View>
       )}
+      </GlassView>
     </Animated.View>
   );
 }
@@ -160,20 +158,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -16 },
     shadowOpacity: 0.35,
     shadowRadius: 32,
     elevation: 28,
-    paddingTop: 6,
     zIndex: 1000,
   },
-  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(150,150,180,0.4)', alignSelf: 'center', marginBottom: Spacing.lg },
+  sheetGlass: {
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
+    paddingTop: 6,
+  },
+  handle: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: Spacing.lg },
   inner: { paddingHorizontal: Spacing.xl, alignItems: 'center', gap: 14 },
   avatar: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#ffffff', fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
@@ -188,7 +185,7 @@ const styles = StyleSheet.create({
   skipBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
   skipText: { fontSize: 13.5 },
   successWrap: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.sm, alignItems: 'center', gap: 14 },
-  successCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center' },
+  successCircle: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
   successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, letterSpacing: -0.4 },
   successSub: { fontSize: 13.5, marginTop: -8 },
 });
