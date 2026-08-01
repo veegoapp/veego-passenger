@@ -28,6 +28,7 @@ import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
 import { TripSheet } from '@/components/shuttle/TripSheet';
 import { ConfirmSheet } from '@/components/shuttle/ConfirmSheet';
 import { AppAlertHost } from '@/components/shared/AppAlertHost';
+import { ActiveRideBanner } from '@/components/shared/ActiveRideBanner';
 import { usePushToken } from '@/src/hooks/shared/usePushToken';
 
 SplashScreen.preventAutoHideAsync();
@@ -264,6 +265,7 @@ function AppShell() {
       <TripSheet />
       <ConfirmSheet />
       <AppAlertHost />
+      <ActiveRideBanner />
     </View>
   );
 }

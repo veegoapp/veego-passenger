@@ -694,4 +694,10 @@ export const en = {
 
   shuttle_direction_outbound: 'Outbound',
   shuttle_direction_return: 'Return',
+
+  active_ride_banner_searching: 'Finding your driver…',
+  active_ride_banner_assigned: 'Driver is on the way',
+  active_ride_banner_arrived: 'Driver has arrived',
+  active_ride_banner_started: 'Trip in progress',
+  active_ride_banner_tap: 'Tap to return',
 };

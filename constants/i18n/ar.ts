@@ -696,4 +696,10 @@ export const ar: typeof en = {
 
   shuttle_direction_outbound: 'ذهاب',
   shuttle_direction_return: 'عودة',
+
+  active_ride_banner_searching: 'جاري البحث عن سائق…',
+  active_ride_banner_assigned: 'السائق في الطريق',
+  active_ride_banner_arrived: 'وصل السائق',
+  active_ride_banner_started: 'الرحلة جارية',
+  active_ride_banner_tap: 'اضغط للعودة',
 };
