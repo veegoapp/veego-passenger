@@ -1,6 +1,8 @@
 import '@/src/hooks/shared/backgroundLocationTask';
 import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, Animated, Easing, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Navigation } from 'lucide-react-native';
 import { Stack, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -28,6 +30,52 @@ import { ConfirmSheet } from '@/components/shuttle/ConfirmSheet';
 import { usePushToken } from '@/src/hooks/shared/usePushToken';
 
 SplashScreen.preventAutoHideAsync();
+
+// Inline splash shown while fonts/assets load — replaces the blank native splash.
+// Uses hardcoded light-mode palette so it works before ThemeProvider mounts.
+function InlineSplash() {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale   = useRef(new Animated.Value(0.92)).current;
+  const barWidth = useRef(new Animated.Value(0)).current;
+  const { width } = Dimensions.get('window');
+  const BAR_W = 220;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.spring(scale,   { toValue: 1, friction: 7, tension: 60, useNativeDriver: true }),
+    ]).start();
+    Animated.timing(barWidth, {
+      toValue: BAR_W,
+      duration: 2800,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, []);
+
+  return (
+    <LinearGradient colors={['#f4f4fb', '#ededf4']} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{ alignItems: 'center', gap: 24, opacity, transform: [{ scale }] }}>
+        <View style={{ width: 100, height: 100, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{
+            width: 80, height: 80, borderRadius: 28, backgroundColor: '#1e1e28',
+            alignItems: 'center', justifyContent: 'center',
+            shadowColor: '#1e1e28', shadowOffset: { width: 0, height: 14 },
+            shadowOpacity: 0.25, shadowRadius: 32, elevation: 10,
+          }}>
+            <Navigation size={32} color="#ffffff" />
+          </View>
+        </View>
+        <Text style={{ fontSize: 46, fontWeight: '700', color: '#1e1e28', letterSpacing: -2.5 }}>
+          Vee<Text style={{ color: '#507BE9' }}>Go</Text>
+        </Text>
+        <View style={{ width: BAR_W, height: 4, borderRadius: 2, backgroundColor: '#e0e0ea', overflow: 'hidden' }}>
+          <Animated.View style={{ height: 4, borderRadius: 2, backgroundColor: '#1e1e28', width: barWidth }} />
+        </View>
+      </Animated.View>
+    </LinearGradient>
+  );
+}
 
 const IMAGE_ASSETS = [
   require('../assets/images/icon.png'),
@@ -248,7 +296,7 @@ export default function RootLayout() {
     }
   }, [allReady]);
 
-  if (!allReady) return null;
+  if (!allReady) return <InlineSplash />;
 
   return (
     <View style={{ flex: 1 }}>
