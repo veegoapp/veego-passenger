@@ -248,6 +248,18 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       padding: Spacing.xl,
       paddingBottom: tabBarHeight + Spacing.xl,
     },
+    cardSurface: {
+      borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+      borderWidth: 1, borderBottomWidth: 0,
+      padding: Spacing.xl,
+      paddingBottom: tabBarHeight + Spacing.xl,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: 0.08,
+      shadowRadius: 20,
+      elevation: 10,
+    },
     cardInner: { alignItems: 'center', gap: 6 },
     statusBadge: {
       width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center',
@@ -1185,53 +1197,53 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {/* Completed */}
       {phase === 'completed' && (
         <View style={styles.card}>
-          <GlassView strong borderRadius={28} style={styles.cardGlass}>
-          <View style={styles.cardInner}>
-            {/* Same ink-gradient check badge as the Driver app's trip-done overlay */}
-            <LinearGradient colors={c.gradientPrimary} style={[styles.statusBadge, { shadowColor: c.gradientPrimary[1] }]}>
-              <Check size={32} color="#ffffff" strokeWidth={3} />
-            </LinearGradient>
-            <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('trip_complete')}</Text>
-            <Text style={[styles.cardSub, { color: c.inkSoft }]}>{t('payment_paid')}</Text>
-            {rideState.fare != null && (
-              <View style={[styles.invoice, { backgroundColor: c.mist }]}>
-                <Text style={[styles.invoiceLabel, { color: c.inkSoft }]}>{t('total_fare')}</Text>
-                <Text style={styles.invoiceAmount}>{rideState.fare.toFixed(2)} {t('egp')}</Text>
-              </View>
-            )}
-            <VeeGoButton
-              title={t('done')}
-              onPress={handleFinishRide}
-              variant="primary"
-              size="large"
-              style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.xs, elevation: 0 }}
-            />
+          <View style={[styles.cardSurface, { backgroundColor: c.isDark ? '#16162a' : '#ffffff', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+            <View style={styles.cardInner}>
+              {/* Check badge */}
+              <LinearGradient colors={c.gradientPrimary} style={[styles.statusBadge, { shadowColor: c.gradientPrimary[1] }]}>
+                <Check size={32} color="#ffffff" strokeWidth={3} />
+              </LinearGradient>
+              <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('trip_complete')}</Text>
+              <Text style={[styles.cardSub, { color: c.inkSoft }]}>{t('payment_paid')}</Text>
+              {rideState.fare != null && (
+                <View style={[styles.invoice, { backgroundColor: c.isDark ? '#1e1e32' : '#f8f8fb', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+                  <Text style={[styles.invoiceLabel, { color: c.inkSoft }]}>{t('total_fare')}</Text>
+                  <Text style={styles.invoiceAmount}>{rideState.fare.toFixed(2)} {t('egp')}</Text>
+                </View>
+              )}
+              <VeeGoButton
+                title={t('done')}
+                onPress={handleFinishRide}
+                variant="primary"
+                size="large"
+                style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.xs, elevation: 0 }}
+              />
+            </View>
           </View>
-          </GlassView>
         </View>
       )}
 
       {/* Cancelled / Timeout */}
       {phase === 'cancelled' && (
         <View style={styles.card}>
-          <GlassView strong borderRadius={28} style={styles.cardGlass}>
-          <View style={styles.cardInner}>
-            <View style={[styles.statusBadge, { backgroundColor: c.error, shadowColor: c.error }]}>
-              <X size={32} color="#ffffff" strokeWidth={3} />
+          <View style={[styles.cardSurface, { backgroundColor: c.isDark ? '#16162a' : '#ffffff', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+            <View style={styles.cardInner}>
+              <View style={[styles.statusBadge, { backgroundColor: c.error, shadowColor: c.error }]}>
+                <X size={32} color="#ffffff" strokeWidth={3} />
+              </View>
+              <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{cancelTitle}</Text>
+              {cancelSubtitle ? (
+                <Text style={[styles.cardSub, { color: c.inkSoft }]}>{cancelSubtitle}</Text>
+              ) : null}
+              <VeeGoButton
+                title={t('try_again')}
+                onPress={handleReset}
+                variant="primary"
+                size="large"
+                style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.sm, elevation: 0 }}
+              />
             </View>
-            <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{cancelTitle}</Text>
-            {cancelSubtitle ? (
-              <Text style={[styles.cardSub, { color: c.inkSoft }]}>{cancelSubtitle}</Text>
-            ) : null}
-            <VeeGoButton
-              title={t('try_again')}
-              onPress={handleReset}
-              variant="primary"
-              size="large"
-              style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.sm, elevation: 0 }}
-            />
           </View>
-          </GlassView>
         </View>
       )}
     </View>

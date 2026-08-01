@@ -1,1 +1,2 @@
 - [ActiveSession cold start](active-session-cold-start.md) — cold-start navigation must await authenticated REST session initialization; socket snapshots can refine the result afterward.
+- [Car/Scooter/Delivery UI redesign](car-ui-redesign.md) — GlassView replaced with clean white solid cards across all ride-flow sheets; design reference is github.com/veegoapp/ride-smooth-sheets.

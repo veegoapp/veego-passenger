@@ -4,11 +4,9 @@ import { MessageCircle, Phone, X, AlertTriangle, Star, Navigation } from 'lucide
 import * as Haptics from 'expo-haptics';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
-import { GlassView } from '@/components/ui/GlassView';
 import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
@@ -57,7 +55,7 @@ function DriverAssignedCardBase({
     if (rideStatus === 'arrived') {
       pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(arrivedPulse, { toValue: 1.18, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(arrivedPulse, { toValue: 1.08, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
           Animated.timing(arrivedPulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       );
@@ -93,10 +91,10 @@ function DriverAssignedCardBase({
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
   const isDark = c.isDark;
-  // Circular action buttons use a primary-tint background — same treatment
-  // as the Driver app's message/call buttons (`colors.primary + '26'`).
-  const surfaceBg = c.primary + (isDark ? '26' : '14');
-  const borderCol = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+  const sheetBg = isDark ? '#16162a' : '#ffffff';
+  const borderColor = isDark ? '#2c2c46' : '#e5e5ea';
+  const mutedText = isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.4)';
+  const surfaceBg = isDark ? '#1e1e32' : '#f8f8fb';
 
   const avatarColor = driver?.vehicleColor ?? c.primary;
   const initials = driver?.name
@@ -106,8 +104,6 @@ function DriverAssignedCardBase({
   const isStarted = rideStatus === 'started';
   const isArrived = rideStatus === 'arrived';
 
-  // Star rating display (up to 5) — mint accent, matching the Driver app's
-  // rating stars in both the request card and the completed-ride sheet.
   const rating = driver?.rating ?? null;
   const fullStars = rating != null ? Math.floor(rating) : 0;
 
@@ -115,330 +111,298 @@ function DriverAssignedCardBase({
     <Animated.View
       style={[
         styles.sheet,
-        {
-          opacity: slideAnim,
-          transform: [{ translateY }],
-        },
+        { opacity: slideAnim, transform: [{ translateY }] },
       ]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <GlassView strong borderRadius={28} style={[styles.sheetGlass, { paddingBottom: tabBarHeight + 20 }]}>
-      <View style={[styles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }]} />
+      <View style={[styles.sheetSurface, { backgroundColor: sheetBg, paddingBottom: tabBarHeight + 20 }]}>
+        <View style={[styles.handle, { backgroundColor: borderColor }]} />
 
-      {/* ════════════════════════════════════════════
-          ACTIVE RIDE — compact cockpit layout
-      ════════════════════════════════════════════ */}
-      {isStarted ? (
-        <View style={styles.cockpit}>
+        {/* ════════════════════════════════════════════
+            ACTIVE RIDE — cockpit layout (started)
+        ════════════════════════════════════════════ */}
+        {isStarted ? (
+          <View style={styles.cockpit}>
 
-          {/* Status strip */}
-          <View style={[styles.cockpitStatus, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: borderCol }]}>
-            <View style={styles.cockpitStatusLeft}>
-              <Animated.View style={[styles.enRouteDot, { opacity: enRouteDot, backgroundColor: c.primary }]} />
-              <Text style={[styles.cockpitStatusLabel, { color: c.primary }]}>
-                {t('driver_en_route')}
-              </Text>
-            </View>
-            <View style={styles.cockpitStatusRight}>
-              <Navigation size={12} color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'} />
-              <Text style={[styles.cockpitDest, { color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)' }]} numberOfLines={1}>
-                {destination ?? '—'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Driver mini-strip */}
-          <View style={styles.cockpitDriverRow}>
-            {/* Avatar */}
-            <View style={[styles.cockpitAvatar, { backgroundColor: avatarColor, shadowColor: avatarColor }]}>
-              <Text style={styles.cockpitAvatarText}>{initials}</Text>
-            </View>
-
-            <View style={styles.cockpitDriverMeta}>
-              <Text style={[styles.cockpitDriverName, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
-                {driver?.name ?? '—'}
-              </Text>
-              <Text style={[styles.cockpitVehicle, { color: isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.42)' }]} numberOfLines={1}>
-                {[driver?.vehicle, driver?.plateNumber].filter(Boolean).join(' · ') || '—'}
-              </Text>
-            </View>
-
-            {/* Waiting charge */}
-            {waitingChargeStatus === 'active' && waitingCharge != null && (
-              <View style={[styles.cockpitWait, { backgroundColor: c.warning + '1F', borderColor: c.warning }]}>
-                <Text style={[styles.cockpitWaitText, { color: c.warning }]}>
-                  +{waitingCharge.toFixed(2)} {t('egp')}
+            {/* Status strip */}
+            <View style={[styles.cockpitStatus, { backgroundColor: surfaceBg, borderColor }]}>
+              <View style={styles.cockpitStatusLeft}>
+                <Animated.View style={[styles.enRouteDot, { opacity: enRouteDot, backgroundColor: c.accent }]} />
+                <Text style={[styles.cockpitStatusLabel, { color: c.accent }]}>
+                  {t('driver_en_route')}
                 </Text>
               </View>
-            )}
-          </View>
-
-          {/* Cockpit actions */}
-          <View style={styles.cockpitActions}>
-            <TouchableOpacity
-              style={[styles.cockpitIconBtn, { backgroundColor: surfaceBg, borderColor: 'transparent' }]}
-              onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-              activeOpacity={0.78}
-            >
-              <MessageCircle size={18} color={c.primary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.cockpitIconBtn,
-                { backgroundColor: surfaceBg, borderColor: 'transparent', opacity: driver?.phone ? 1 : 0.38 },
-              ]}
-              onPress={handleCall}
-              disabled={!driver?.phone}
-              activeOpacity={0.78}
-            >
-              <Phone size={18} color={c.primary} />
-            </TouchableOpacity>
-
-            {/* SOS — dominant, full label, same solid destructive treatment
-                the Driver app uses for its own SOS button. */}
-            <TouchableOpacity
-              style={[styles.sosBtn, { backgroundColor: c.error }]}
-              onPress={() => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                onSOS?.();
-              }}
-              activeOpacity={0.82}
-              accessibilityLabel="Send SOS"
-            >
-              <AlertTriangle size={16} color="#ffffff" />
-              <Text style={styles.sosBtnText}>SOS</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        /* ════════════════════════════════════════════
-           DRIVER ASSIGNED / ARRIVED — identity card
-        ════════════════════════════════════════════ */
-        <View style={styles.assignedBody}>
-
-          {/* ── ETA hero ── */}
-          {isArrived ? (
-            <Animated.View
-              style={[
-                styles.arrivedBadge,
-                { backgroundColor: c.success + '1F', borderColor: c.success + '59', transform: [{ scale: arrivedPulse }] },
-              ]}
-            >
-              <View style={[styles.arrivedDot, { backgroundColor: c.success }]} />
-              <Text style={[styles.arrivedText, { color: c.success }]}>
-                {t('status_driver_arrived')}
-              </Text>
-            </Animated.View>
-          ) : (
-            <View style={styles.etaHero}>
-              <View style={styles.etaNumberRow}>
-                <Text style={[styles.etaNumber, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
-                  {driver?.eta ?? '—'}
+              <View style={styles.cockpitStatusRight}>
+                <Navigation size={12} color={mutedText} />
+                <Text style={[styles.cockpitDest, { color: mutedText }]} numberOfLines={1}>
+                  {destination ?? '—'}
                 </Text>
-                <View style={styles.etaUnit}>
-                  <Text style={[styles.etaUnitTop, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.45)' }]}>
-                    {t('min')}
-                  </Text>
-                  <Text style={[styles.etaUnitBottom, { color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)' }]}>
-                    {t('driver_arriving')}
-                  </Text>
-                </View>
-              </View>
-              {destination && (
-                <Text style={[styles.etaDest, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }]} numberOfLines={1}>
-                  → {destination}
-                </Text>
-              )}
-            </View>
-          )}
-
-          {/* Divider */}
-          <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }]} />
-
-          {/* ── Driver identity ── */}
-          <View style={styles.driverBlock}>
-            {/* Avatar with ring */}
-            <View style={styles.avatarWrap}>
-              <View style={[styles.avatarRing, { borderColor: avatarColor, shadowColor: avatarColor }]}>
-                <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
-                  <Text style={styles.avatarInitials}>{initials}</Text>
-                </View>
               </View>
             </View>
 
-            {/* Driver info */}
-            <View style={styles.driverInfo}>
-              <View style={styles.driverNameRow}>
-                <Text style={[styles.driverName, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
+            {/* Driver mini-strip */}
+            <View style={[styles.cockpitDriverRow, { backgroundColor: surfaceBg, borderColor }]}>
+              <View style={[styles.cockpitAvatar, { backgroundColor: avatarColor }]}>
+                <Text style={styles.cockpitAvatarText}>{initials}</Text>
+              </View>
+              <View style={styles.cockpitDriverMeta}>
+                <Text style={[styles.cockpitDriverName, { color: c.ink }]}>
                   {driver?.name ?? '—'}
                 </Text>
-                {/* Car category badge — shows the actual selected category name
-                    (Economy, Economy Plus, Comfort, ...), not a hardcoded pair. */}
-                {serviceType === 'car' && !!carCategoryName && (
-                  <View style={[
-                    styles.tierBadge,
-                    { backgroundColor: c.accent + '1A', borderColor: c.accent + '59' },
-                  ]}>
-                    <Text style={[
-                      styles.tierBadgeText,
-                      { color: c.accent },
-                    ]}>
-                      {carCategoryName}
-                    </Text>
+                <Text style={[styles.cockpitVehicle, { color: mutedText }]} numberOfLines={1}>
+                  {[driver?.vehicle, driver?.plateNumber].filter(Boolean).join(' · ') || '—'}
+                </Text>
+              </View>
+              {waitingChargeStatus === 'active' && waitingCharge != null && (
+                <View style={[styles.waitBadge, { backgroundColor: c.warning + '1F', borderColor: c.warning + '4D' }]}>
+                  <Text style={[styles.waitBadgeText, { color: c.warning }]}>
+                    +{waitingCharge.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Cockpit actions */}
+            <View style={styles.cockpitActions}>
+              <TouchableOpacity
+                style={[styles.cockpitIconBtn, { backgroundColor: surfaceBg, borderColor }]}
+                onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
+                activeOpacity={0.78}
+              >
+                <MessageCircle size={18} color={c.ink} strokeWidth={1.8} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.cockpitIconBtn,
+                  { backgroundColor: surfaceBg, borderColor, opacity: driver?.phone ? 1 : 0.38 },
+                ]}
+                onPress={handleCall}
+                disabled={!driver?.phone}
+                activeOpacity={0.78}
+              >
+                <Phone size={18} color={c.ink} strokeWidth={1.8} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.sosBtn]}
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  onSOS?.();
+                }}
+                activeOpacity={0.82}
+                accessibilityLabel="Send SOS"
+              >
+                <AlertTriangle size={16} color="#ffffff" />
+                <Text style={styles.sosBtnText}>SOS</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          /* ════════════════════════════════════════════
+             DRIVER ASSIGNED / ARRIVED — identity card
+          ════════════════════════════════════════════ */
+          <View style={styles.assignedBody}>
+
+            {/* ── ETA / Arrived hero ── */}
+            {isArrived ? (
+              <Animated.View
+                style={[
+                  styles.arrivedBadge,
+                  { backgroundColor: c.success + '18', borderColor: c.success + '50', transform: [{ scale: arrivedPulse }] },
+                ]}
+              >
+                <View style={[styles.arrivedDot, { backgroundColor: c.success }]} />
+                <Text style={[styles.arrivedText, { color: c.success }]}>
+                  {t('status_driver_arrived')}
+                </Text>
+              </Animated.View>
+            ) : (
+              <View style={styles.etaHero}>
+                <View style={styles.etaNumberRow}>
+                  <Text style={[styles.etaNumber, { color: c.ink }]}>
+                    {driver?.eta ?? '—'}
+                  </Text>
+                  <View style={styles.etaUnit}>
+                    <Text style={[styles.etaUnitTop, { color: mutedText }]}>{t('min')}</Text>
+                    <Text style={[styles.etaUnitBottom, { color: mutedText }]}>{t('driver_arriving')}</Text>
                   </View>
+                </View>
+                {destination && (
+                  <Text style={[styles.etaDest, { color: mutedText }]} numberOfLines={1}>
+                    → {destination}
+                  </Text>
                 )}
               </View>
+            )}
 
-              {/* Star rating — mint accent, same as the Driver app */}
-              <View style={styles.starsRow}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={13}
-                    color={c.accent}
-                    fill={i < fullStars ? c.accent : 'transparent'}
-                  />
-                ))}
-                {rating != null && (
-                  <Text style={[styles.ratingText, { color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)' }]}>
-                    {rating.toFixed(1)}
+            {/* Divider */}
+            <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+            {/* ── Driver identity card ── */}
+            <View style={[styles.driverCard, { backgroundColor: surfaceBg, borderColor }]}>
+              {/* Avatar */}
+              <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </View>
+
+              {/* Info */}
+              <View style={styles.driverInfo}>
+                <View style={styles.driverNameRow}>
+                  <Text style={[styles.driverName, { color: c.ink }]}>
+                    {driver?.name ?? '—'}
+                  </Text>
+                  {serviceType === 'car' && !!carCategoryName && (
+                    <View style={[styles.categoryBadge, { backgroundColor: c.accent + '18', borderColor: c.accent + '50' }]}>
+                      <Text style={[styles.categoryBadgeText, { color: c.accent }]}>
+                        {carCategoryName}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Stars */}
+                <View style={styles.starsRow}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={13}
+                      color={c.accent}
+                      fill={i < fullStars ? c.accent : 'transparent'}
+                    />
+                  ))}
+                  {rating != null && (
+                    <Text style={[styles.ratingText, { color: mutedText }]}>
+                      {rating.toFixed(1)}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Vehicle */}
+                {driver?.vehicle && (
+                  <Text style={[styles.vehicleText, { color: mutedText }]}>
+                    {driver.vehicle}
                   </Text>
                 )}
               </View>
 
-              {/* Vehicle info */}
-              {driver?.vehicle && (
-                <Text style={[styles.vehicleText, { color: isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)' }]}>
-                  {driver.vehicle}
-                </Text>
+              {/* Plate */}
+              {driver?.plateNumber && (
+                <View style={[styles.plateBadge, { backgroundColor: isDark ? '#2c2c46' : '#f2f2f5', borderColor }]}>
+                  <View style={[styles.plateStripe, { backgroundColor: avatarColor }]} />
+                  <Text style={[styles.plateText, { color: c.ink }]}>
+                    {driver.plateNumber}
+                  </Text>
+                </View>
               )}
             </View>
 
-            {/* Plate badge */}
-            {driver?.plateNumber && (
-              <View style={[styles.plateBadge, {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#F3F4F6',
-                borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EB',
-              }]}>
-                <View style={[styles.plateStripe, { backgroundColor: avatarColor }]} />
-                <Text style={[styles.plateText, { color: isDark ? '#e8e8f2' : '#1e1e28' }]}>
-                  {driver.plateNumber}
+            {/* Waiting charge banner */}
+            {waitingChargeStatus === 'active' && waitingCharge != null && (
+              <View style={[styles.waitingBanner, { backgroundColor: c.warning + '12', borderColor: c.warning + '40' }]}>
+                <View style={[styles.waitingDot, { backgroundColor: c.warning }]} />
+                <Text style={[styles.waitingText, { color: c.warning }]}>
+                  {t('waiting_charge')}: {waitingCharge.toFixed(2)} {t('egp')}
                 </Text>
               </View>
             )}
-          </View>
 
-          {/* Waiting charge — same amber/warning treatment as the Driver
-              app's waiting-fee ticker on the ride screen. */}
-          {waitingChargeStatus === 'active' && waitingCharge != null && (
-            <View style={[styles.waitingBanner, { backgroundColor: c.warning + '14', borderColor: c.warning + '4D' }]}>
-              <View style={[styles.waitingDot, { backgroundColor: c.warning }]} />
-              <Text style={[styles.waitingText, { color: c.warning }]}>
-                {t('waiting_charge')}: {waitingCharge.toFixed(2)} {t('egp')}
-              </Text>
+            {/* ── Action buttons ── */}
+            <View style={[styles.actionRow, { borderTopColor: borderColor }]}>
+              {/* Chat */}
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: surfaceBg, borderColor }]}
+                onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
+                activeOpacity={0.78}
+              >
+                <MessageCircle size={20} color={c.ink} strokeWidth={1.8} />
+                <Text style={[styles.actionLabel, { color: c.inkSoft }]}>
+                  {t('chat')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Call */}
+              <TouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: surfaceBg, borderColor, opacity: driver?.phone ? 1 : 0.35 },
+                ]}
+                onPress={handleCall}
+                disabled={!driver?.phone}
+                activeOpacity={0.78}
+              >
+                <Phone size={20} color={c.ink} strokeWidth={1.8} />
+                <Text style={[styles.actionLabel, { color: c.inkSoft }]}>
+                  {t('call') ?? 'Call'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Cancel */}
+              <TouchableOpacity
+                style={[styles.actionBtn, { borderColor: c.error + '40', backgroundColor: c.error + '10' }]}
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  onCancel();
+                }}
+                activeOpacity={0.78}
+              >
+                <X size={20} color={c.error} />
+                <Text style={[styles.actionLabel, { color: c.error }]}>
+                  {t('cancel')}
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
-
-          {/* ── Actions ── */}
-          <View style={[styles.actionRow, { borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }]}>
-            {/* Chat — primary-tint circular treatment, same as the Driver app */}
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: surfaceBg, borderColor: 'transparent' }]}
-              onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-              activeOpacity={0.78}
-            >
-              <MessageCircle size={20} color={c.primary} />
-              <Text style={[styles.actionLabel, { color: c.primary }]}>
-                {t('chat')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Call */}
-            <TouchableOpacity
-              style={[
-                styles.actionBtn,
-                { backgroundColor: surfaceBg, borderColor: 'transparent', opacity: driver?.phone ? 1 : 0.35 },
-              ]}
-              onPress={handleCall}
-              disabled={!driver?.phone}
-              activeOpacity={0.78}
-            >
-              <Phone size={20} color={c.primary} />
-              <Text style={[styles.actionLabel, { color: c.primary }]}>
-                {t('call') ?? 'Call'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Cancel — plain destructive tint, same family as the Driver
-                app's error color. */}
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.cancelBtn, { borderColor: c.error + '40', backgroundColor: c.error + '12' }]}
-              onPress={() => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                onCancel();
-              }}
-              activeOpacity={0.78}
-            >
-              <X size={20} color={c.error} />
-              <Text style={[styles.actionLabel, { color: c.error }]}>
-                {t('cancel')}
-              </Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      )}
+        )}
 
-      <ChatModal
-        visible={chatOpen}
-        onClose={() => setChatOpen(false)}
-        driverName={driver?.name ?? ''}
-        tripId={rideId ?? null}
-      />
-      </GlassView>
+        <ChatModal
+          visible={chatOpen}
+          onClose={() => setChatOpen(false)}
+          driverName={driver?.name ?? ''}
+          tripId={rideId ?? null}
+        />
+      </View>
     </Animated.View>
   );
 }
 
-// CarServiceScreen re-renders on every driver-location tick (socket + 5s
-// poll fallback); this card's own data changes far less often, so memoize
-// it the same way CarMap already is — otherwise it re-renders in lockstep
-// with every location update for no reason.
+// CarServiceScreen re-renders on every driver-location tick; memoize to avoid
+// re-rendering on every location update.
 export const DriverAssignedCard = memo(DriverAssignedCardBase);
 
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -14 },
-    shadowOpacity: 0.32, shadowRadius: 30, elevation: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 26,
     zIndex: 999,
   },
-  sheetGlass: {
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
-    paddingTop: 8,
+  sheetSurface: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 10,
   },
   handle: {
-    width: 36, height: 4, borderRadius: 2,
-    alignSelf: 'center', marginBottom: Spacing.lg,
+    width: 40, height: 4, borderRadius: 2,
+    alignSelf: 'center', marginBottom: 16,
   },
 
   // ── Active ride cockpit ──────────────────────────────────────────
   cockpit: {
-    paddingHorizontal: 18, gap: 14, paddingBottom: Spacing.xs,
+    paddingHorizontal: 16, gap: 10, paddingBottom: Spacing.xs,
   },
   cockpitStatus: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1,
   },
   cockpitStatusLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  enRouteDot: {
-    width: 8, height: 8, borderRadius: 4,
-  },
+  enRouteDot: { width: 8, height: 8, borderRadius: 4 },
   cockpitStatusLabel: {
-    fontSize: 11, fontWeight: '700' as any, letterSpacing: 1.2,
-    textTransform: 'uppercase' as any,
+    fontSize: 11, fontWeight: '700' as any, letterSpacing: 1.0, textTransform: 'uppercase' as any,
   },
   cockpitStatusRight: {
     flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1,
@@ -447,45 +411,44 @@ const styles = StyleSheet.create({
   cockpitDest: { fontSize: 12, fontWeight: '500' as any, flex: 1, textAlign: 'right' },
   cockpitDriverRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1,
   },
   cockpitAvatar: {
     width: 40, height: 40, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
-  cockpitAvatarText: {
-    color: '#fff', fontSize: 14, fontWeight: '700' as any,
-  },
+  cockpitAvatarText: { color: '#fff', fontSize: 14, fontWeight: '700' as any },
   cockpitDriverMeta: { flex: 1 },
   cockpitDriverName: { fontSize: 15, fontWeight: '700' as any, letterSpacing: -0.2 },
   cockpitVehicle: { fontSize: 12, fontWeight: '500' as any, marginTop: 2 },
-  cockpitWait: {
-    borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1,
+  waitBadge: {
+    borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1,
   },
-  cockpitWaitText: { fontSize: 11, fontWeight: '700' as any },
+  waitBadgeText: { fontSize: 11, fontWeight: '700' as any },
   cockpitActions: {
     flexDirection: 'row', gap: 10, alignItems: 'center',
   },
   cockpitIconBtn: {
-    width: 48, height: 48, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5,
-    // bg is translucent (surfaceBg); Android elevation would draw a square halo.
+    width: 50, height: 50, borderRadius: 14, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
     elevation: 0,
   },
   sosBtn: {
-    flex: 1, height: 48, borderRadius: 14,
+    flex: 1, height: 50, borderRadius: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 8, elevation: 3,
+    backgroundColor: '#E85454',
+    shadowColor: '#E85454',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  sosBtnText: {
-    color: '#ffffff', fontSize: 14, fontWeight: '800' as any, letterSpacing: 0.5,
-  },
+  sosBtnText: { color: '#ffffff', fontSize: 14, fontWeight: '800' as any, letterSpacing: 0.5 },
 
   // ── Driver assigned / arrived ───────────────────────────────────
   assignedBody: {
-    paddingHorizontal: 18, gap: 16, paddingBottom: Spacing.xs,
+    paddingHorizontal: 16, gap: 14, paddingBottom: Spacing.xs,
   },
 
   // ETA hero
@@ -493,7 +456,6 @@ const styles = StyleSheet.create({
   etaNumberRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   etaNumber: {
     fontSize: 52, fontWeight: '800' as any, letterSpacing: -2, lineHeight: 56,
-    fontFamily: 'Inter_700Bold',
   },
   etaUnit: { paddingBottom: 8, gap: 2 },
   etaUnitTop: { fontSize: 15, fontWeight: '600' as any },
@@ -503,67 +465,49 @@ const styles = StyleSheet.create({
   // Arrived badge
   arrivedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 12,
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
     borderWidth: 1, alignSelf: 'stretch',
   },
-  arrivedDot: {
-    width: 10, height: 10, borderRadius: 5,
-  },
+  arrivedDot: { width: 10, height: 10, borderRadius: 5 },
   arrivedText: { fontSize: 15, fontWeight: '700' as any },
 
   // Divider
   divider: { height: 1 },
 
-  // Driver block
-  driverBlock: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-  },
-  avatarWrap: { flexShrink: 0 },
-  avatarRing: {
-    width: 72, height: 72, borderRadius: 22,
-    borderWidth: 2.5, alignItems: 'center', justifyContent: 'center',
-    padding: 3,
-    shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
+  // Driver identity card
+  driverCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14,
+    borderWidth: 1,
   },
   avatarCircle: {
-    flex: 1, width: '100%', borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
+    width: 52, height: 52, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  avatarInitials: {
-    color: '#ffffff', fontSize: 22, fontWeight: '800' as any, letterSpacing: -0.5,
-  },
+  avatarInitials: { color: '#ffffff', fontSize: 18, fontWeight: '800' as any },
   driverInfo: { flex: 1, gap: 4 },
   driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  driverName: {
-    fontSize: 20, fontWeight: '700' as any, letterSpacing: -0.4,
-  },
-  tierBadge: {
+  driverName: { fontSize: 17, fontWeight: '700' as any, letterSpacing: -0.3 },
+  categoryBadge: {
     borderRadius: 6, borderWidth: 1,
     paddingHorizontal: 7, paddingVertical: 2,
   },
-  tierBadgeText: {
-    fontSize: 10, fontWeight: '700' as any, letterSpacing: 0.5, textTransform: 'uppercase' as any,
-  },
+  categoryBadgeText: { fontSize: 10, fontWeight: '700' as any, letterSpacing: 0.5, textTransform: 'uppercase' as any },
   starsRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   ratingText: { fontSize: 12, fontWeight: '600' as any, marginLeft: 4 },
   vehicleText: { fontSize: 12.5, fontWeight: '500' as any },
-
-  // Plate badge
   plateBadge: {
     borderRadius: 10, borderWidth: 1,
     overflow: 'hidden', alignItems: 'center',
-    flexShrink: 0, minWidth: 66,
+    flexShrink: 0, minWidth: 62,
   },
-  plateStripe: { height: 5, width: '100%' },
-  plateText: {
-    fontSize: 12, fontWeight: '800' as any, letterSpacing: 1.2,
-    paddingHorizontal: 10, paddingVertical: 5,
-  },
+  plateStripe: { height: 4, width: '100%' },
+  plateText: { fontSize: 12, fontWeight: '800' as any, letterSpacing: 1.2, paddingHorizontal: 8, paddingVertical: 5 },
 
   // Waiting charge
   waitingBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 10,
+    borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1,
   },
   waitingDot: { width: 8, height: 8, borderRadius: 4 },
@@ -578,11 +522,8 @@ const styles = StyleSheet.create({
     flex: 1, height: 54, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
     gap: 5, borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5,
-    // bg is translucent (surfaceBg); Android elevation would draw a square halo.
     elevation: 0,
   },
-  cancelBtn: {},
   actionLabel: {
     fontSize: 11, fontWeight: '600' as any, letterSpacing: 0.2,
   },
