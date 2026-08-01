@@ -683,6 +683,13 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     // serviceType guard
     if (serviceType && activeRideSnapshot.rideType !== serviceType) return;
 
+    // Terminal guard — never re-apply a cancelled/completed/timeout snapshot.
+    // This prevents a race where the user presses "Try Again" (resetting rideId
+    // to null) before ActiveSession clears its snapshot: without this guard the
+    // sync would re-stamp the old terminal rideId back onto the reset state and
+    // push phase back to 'cancelled', blocking a new booking.
+    if (TERMINAL_STATUSES.includes(activeRideSnapshot.status)) return;
+
     const snapRideId = activeRideSnapshot.rideId;
 
     // rideId guard: only apply when there's no conflicting local ride
