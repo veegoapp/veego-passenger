@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
 import MapView, { Marker, Polyline, AnimatedRegion, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Car, Bike as ScooterIcon, Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
@@ -492,19 +492,26 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
             rotation={heading}
             title={t('driver_label')}
           >
-            {/* Arrow + body: arrow tip always points in the direction of travel */}
-            <View style={styles.busWrapper}>
-              <View style={styles.busArrowHead} />
-              <View style={styles.busBody}>
-                {vehicleType === 'car' ? (
-                  <Car size={18} color="#fff" />
-                ) : vehicleType === 'scooter' ? (
-                  <ScooterIcon size={18} color="#fff" />
-                ) : (
-                  <Text style={styles.busTxt}>🚌</Text>
-                )}
+            {vehicleType === 'car' ? (
+              /* Custom car image — rotates with heading via MarkerAnimated's rotation prop */
+              <Image
+                source={require('@/assets/images/car-marker.png')}
+                style={styles.carMarkerImage}
+                resizeMode="contain"
+              />
+            ) : (
+              /* Arrow + body for scooter / shuttle */
+              <View style={styles.busWrapper}>
+                <View style={styles.busArrowHead} />
+                <View style={styles.busBody}>
+                  {vehicleType === 'scooter' ? (
+                    <ScooterIcon size={18} color="#fff" />
+                  ) : (
+                    <Text style={styles.busTxt}>🚌</Text>
+                  )}
+                </View>
               </View>
-            </View>
+            )}
           </MarkerAnimated>
         )}
       </MapView>
@@ -557,6 +564,7 @@ const styles = StyleSheet.create({
   markerDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
 
   // Bus marker: arrow tip (top) + body (bottom), entire marker rotates with heading
+  carMarkerImage: { width: 48, height: 48 },
   busWrapper: { alignItems: 'center' },
   busArrowHead: {
     width: 0, height: 0,
