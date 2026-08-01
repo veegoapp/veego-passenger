@@ -267,6 +267,10 @@ export default function TripsScreen() {
   const showHistoryLoading  = loading && pastTrips.length === 0 && !error;
   const showHistoryError    = !!error && !loading && pastTrips.length === 0;
 
+  // Single page-level loader: both sections still fetching and have no data yet.
+  // Prevents two spinners appearing simultaneously on first load.
+  const showPageLoading = showUpcomingLoading && showHistoryLoading;
+
   return (
     <LinearGradient colors={c.luxeSoftGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
@@ -286,14 +290,19 @@ export default function TripsScreen() {
           />
         }
       >
-        {/* ── Upcoming section ───────────────────────────────────────────── */}
-        <Text style={styles.sectionTitle}>{t('upcoming')}</Text>
-
-        {showUpcomingLoading ? (
-          <View style={styles.loadingWrap}>
+        {/* ── Single page-level loader (first load only) ─────────────────── */}
+        {showPageLoading && (
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 80 }}>
             <AppLoader size={80} />
           </View>
-        ) : showUpcomingError ? (
+        )}
+
+        {/* ── Upcoming section ───────────────────────────────────────────── */}
+        {!showPageLoading && <Text style={styles.sectionTitle}>{t('upcoming')}</Text>}
+
+        {!showPageLoading && showUpcomingLoading ? (
+          null
+        ) : !showPageLoading && showUpcomingError ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
               <Ticket size={28} color={c.silver} />
@@ -363,13 +372,15 @@ export default function TripsScreen() {
           </>
         )}
 
-        {/* ── Divider ────────────────────────────────────────────────────── */}
-        <View style={styles.sectionDivider} />
+        {/* ── Divider + Past section (hidden while full-page loader is active) ── */}
+        {!showPageLoading && (
+          <>
+            <View style={styles.sectionDivider} />
+            <Text style={styles.sectionTitle}>{t('past')}</Text>
+          </>
+        )}
 
-        {/* ── Past section ───────────────────────────────────────────────── */}
-        <Text style={styles.sectionTitle}>{t('past')}</Text>
-
-        {showHistoryLoading ? (
+        {!showPageLoading && (showHistoryLoading ? (
           <View style={styles.loadingWrap}>
             <AppLoader size={80} />
           </View>
@@ -426,7 +437,7 @@ export default function TripsScreen() {
               );
             })}
           </>
-        )}
+        ))}
 
         {/* ── Load more (past) ───────────────────────────────────────────── */}
         {hasMore && (
