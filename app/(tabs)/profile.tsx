@@ -6,7 +6,7 @@ import {
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages, MapPin } from 'lucide-react-native';
+import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -25,7 +25,6 @@ import { NotificationsModal } from '@/components/profile/NotificationsModal';
 import { HelpFaqModal } from '@/components/profile/HelpFaqModal';
 import { ContactSupportModal } from '@/components/profile/ContactSupportModal';
 import { RatingHistoryModal } from '@/components/profile/RatingHistoryModal';
-import { SavedLocationsModal } from '@/components/profile/SavedLocationsModal';
 import { makeStyles, useProfileInfo } from '@/components/profile/shared';
 
 type ProfileScreen =
@@ -37,7 +36,6 @@ type ProfileScreen =
   | 'ratings_history'
   | 'terms'
   | 'emergency_contact'
-  | 'saved_locations'
   | null;
 
 export default function ProfileScreen() {
@@ -169,7 +167,6 @@ export default function ProfileScreen() {
           <View style={[gs, styles.groupCard]}>
             {[
               { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileScreen },
-              { icon: MapPin, label: t('saved_locations'), value: undefined as string | undefined, screen: 'saved_locations' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileScreen },
               { icon: Star, label: t('my_ratings'), value: undefined as string | undefined, screen: 'ratings_history' as ProfileScreen },
               { icon: Shield, label: t('emergency_contact_section'), value: undefined as string | undefined, screen: 'emergency_contact' as ProfileScreen },
@@ -312,7 +309,6 @@ export default function ProfileScreen() {
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
       <RatingHistoryModal visible={activeModal === 'ratings_history'} onClose={close} />
-      <SavedLocationsModal visible={activeModal === 'saved_locations'} onClose={close} />
       <TermsModal
         visible={activeModal === 'terms'}
         onClose={close}
