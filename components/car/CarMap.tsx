@@ -42,6 +42,11 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   const onUserLocationRef = useRef(onUserLocation);
   onUserLocationRef.current = onUserLocation;
 
+  // Track map readiness so animateToRegion is never called before the map
+  // has fully initialised (which silently discards the call).
+  const mapReadyRef = useRef(false);
+  const pendingLocationRef = useRef<Coords | null>(null);
+
   // Animated driver marker — glides between GPS ticks instead of snapping,
   // and rotates to match heading. Mirrors the pattern already used for the
   // shuttle driver marker in PassengerTrackingMap.native.tsx.
@@ -78,7 +83,12 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         const coords: Coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setUserLocation(coords);
         onUserLocationRef.current?.(coords);
-        mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 1000);
+        if (mapReadyRef.current) {
+          mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 800);
+        } else {
+          // Map isn't ready yet — store the coords and animate once it is.
+          pendingLocationRef.current = coords;
+        }
       } catch (err: any) {
         console.error('[car map] initial location fetch failed', err?.message);
       }
@@ -169,12 +179,23 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
-        initialRegion={{ ...userLocation, latitudeDelta: 0.015, longitudeDelta: 0.015 }}
+        initialRegion={{ ...CAIRO_DEFAULT, latitudeDelta: 0.015, longitudeDelta: 0.015 }}
         showsUserLocation={false}
         customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
         // @ts-expect-error react-native-maps@1.20.1 types no longer declare
         // compassEnabled, but the native view still supports and uses it.
         compassEnabled={false}
+        onMapReady={() => {
+          mapReadyRef.current = true;
+          // If location arrived before the map finished loading, animate now.
+          if (pendingLocationRef.current) {
+            mapRef.current?.animateToRegion(
+              { ...pendingLocationRef.current, latitudeDelta: 0.012, longitudeDelta: 0.012 },
+              800,
+            );
+            pendingLocationRef.current = null;
+          }
+        }}
       >
         {routeCoords.length > 0 && (
           <Polyline coordinates={routeCoords} strokeColor={darkMode ? '#e5e7eb' : '#111827'} strokeWidth={4} />
