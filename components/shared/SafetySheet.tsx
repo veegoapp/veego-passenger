@@ -67,7 +67,10 @@ export function SafetySheet({
 
   const getCoords = useCallback(async (): Promise<{ lat: number | null; lng: number | null }> => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      let status = (await Location.getForegroundPermissionsAsync()).status;
+      if (status !== 'granted') {
+        status = (await Location.requestForegroundPermissionsAsync()).status;
+      }
       if (status === 'granted') {
         const last = await Location.getLastKnownPositionAsync();
         if (last) return { lat: last.coords.latitude, lng: last.coords.longitude };

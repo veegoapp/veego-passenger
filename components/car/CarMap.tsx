@@ -77,7 +77,10 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   useEffect(() => {
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        let status = (await Location.getForegroundPermissionsAsync()).status;
+        if (status !== 'granted') {
+          status = (await Location.requestForegroundPermissionsAsync()).status;
+        }
         if (status !== 'granted') return;
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const coords: Coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };

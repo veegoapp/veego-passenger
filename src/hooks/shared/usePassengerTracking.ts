@@ -186,9 +186,16 @@ export function usePassengerTracking({
       try {
         const available = await TaskManager.isAvailableAsync();
         if (available) {
-          const { status: fg } = await Location.requestForegroundPermissionsAsync();
+          // Check before requesting — never re-prompt if already decided.
+          let fg = (await Location.getForegroundPermissionsAsync()).status;
+          if (fg !== 'granted') {
+            fg = (await Location.requestForegroundPermissionsAsync()).status;
+          }
           if (fg === 'granted') {
-            const { status: bg } = await Location.requestBackgroundPermissionsAsync();
+            let bg = (await Location.getBackgroundPermissionsAsync()).status;
+            if (bg === 'undetermined') {
+              bg = (await Location.requestBackgroundPermissionsAsync()).status;
+            }
             if (bg === 'granted') {
               const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
               if (!started) {

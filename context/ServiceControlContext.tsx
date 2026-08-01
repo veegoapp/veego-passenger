@@ -63,7 +63,10 @@ async function resolveUserZoneId(
 
 async function fetchUserZoneId(): Promise<number | null> {
   try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    let status = (await Location.getForegroundPermissionsAsync()).status;
+    if (status !== 'granted') {
+      status = (await Location.requestForegroundPermissionsAsync()).status;
+    }
     if (status !== 'granted') return null;
 
     const loc = await Location.getCurrentPositionAsync({
