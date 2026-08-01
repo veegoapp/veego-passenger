@@ -47,9 +47,18 @@ export function HomeHeader({ styles, gs, c, t, greetingKey, firstName, avatarIni
 }) {
   return (
     <View style={styles.header}>
-      <View>
-        <Text style={styles.greeting}>{t(greetingKey)}</Text>
-        <Text style={styles.greetingName}>{firstName}</Text>
+      <View style={styles.headerLeft}>
+        <View style={styles.brandLockup}>
+          <View style={styles.brandIcon}>
+            <Navigation size={16} color="#ffffff" />
+          </View>
+          <Text style={styles.wordmark}>Vee<Text style={styles.wordmarkAccent}>Go</Text></Text>
+        </View>
+        <View style={styles.headerDivider} />
+        <View>
+          <Text style={styles.greeting}>{t(greetingKey)}</Text>
+          <Text style={styles.greetingName}>{firstName}</Text>
+        </View>
       </View>
       <View style={styles.headerRight}>
         <TouchableOpacity style={[gs, styles.iconBtn]} onPress={onNotifications}>

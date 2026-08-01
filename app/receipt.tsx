@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Alert,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Star, Wallet, X, Banknote } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -117,7 +118,7 @@ export default function ReceiptScreen() {
       // No rideId means there's nothing to submit the rating against —
       // surface the failure instead of silently marking as rated.
       setRatingVisible(false);
-      Alert.alert(t('error'), t('rating_submit_failed'));
+      showAppAlert(t('error'), t('rating_submit_failed'));
       router.replace('/(tabs)' as any);
       return;
     }
@@ -125,7 +126,7 @@ export default function ReceiptScreen() {
       await api.post(`/rides/${params.rideId}/rate-driver`, { rating: stars, comment });
       setAlreadyRated(true);
     } catch {
-      Alert.alert(t('error'), t('rating_submit_failed'));
+      showAppAlert(t('error'), t('rating_submit_failed'));
       // Not marking alreadyRated — the rating wasn't actually saved, so the
       // prompt should still offer to retry next time this receipt is seen.
     }

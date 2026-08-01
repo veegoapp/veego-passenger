@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import type { Booking, PaymentStatus, Route, ShuttleDirection, ShuttleTripSlot } from '@/constants/data';
 import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
@@ -231,7 +231,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const svc = getServiceRef.current('shuttle');
     if (svc && (!svc.isEnabled || svc.displayMode !== 'live')) {
       const msg = svc.unavailableMessage ?? t('service_unavailable');
-      Alert.alert(t('service_unavailable'), msg);
+      showAppAlert(t('service_unavailable'), msg);
       return;
     }
 
@@ -246,7 +246,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     // Client-side guard only — server must enforce seat count limits
     if (!seatCount || seatCount < 1 || seatCount > 2 || !Number.isInteger(seatCount)) {
-      Alert.alert(t('error'), t('invalid_seat_count'));
+      showAppAlert(t('error'), t('invalid_seat_count'));
       confirmingRef.current = false;
       return;
     }
@@ -313,7 +313,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         const required = typeof respData?.required === 'number' ? respData.required : undefined;
         const availableBalance = typeof respData?.balance === 'number' ? respData.balance : undefined;
         setBookingError(msg);
-        Alert.alert(
+        showAppAlert(
           t('insufficient_balance_title'),
           required != null && availableBalance != null
             ? t('insufficient_balance_msg')
@@ -326,13 +326,13 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         const isDuplicate = msg.toLowerCase().includes('already have');
         if (isDuplicate) {
           setBookingError(t('already_booked_msg'));
-          Alert.alert(t('already_booked_title'), t('already_booked_msg'));
+          showAppAlert(t('already_booked_title'), t('already_booked_msg'));
         } else {
           setBookingError(t('seats_taken_msg'));
-          Alert.alert(t('seats_taken_title'), t('seats_taken_msg'));
+          showAppAlert(t('seats_taken_title'), t('seats_taken_msg'));
         }
       } else {
-        Alert.alert(t('booking_failed_title'), msg);
+        showAppAlert(t('booking_failed_title'), msg);
       }
     } finally {
       confirmingRef.current = false;

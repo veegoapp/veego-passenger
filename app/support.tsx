@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Platform, Alert, KeyboardAvoidingView,
+  StyleSheet, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, Check, MessageCircle, Phone } from 'lucide-react-native';
@@ -100,7 +101,7 @@ export default function SupportScreen() {
 
   const handleSend = async () => {
     if (!selectedIssue || !message.trim()) {
-      Alert.alert(t('error'), t('support_missing_fields'));
+      showAppAlert(t('error'), t('support_missing_fields'));
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -116,7 +117,7 @@ export default function SupportScreen() {
       const status = e?.response?.status;
       if (status && status !== 404 && status !== 501 && status >= 400 && status < 500) {
         const msg = getErrorMessage(e?.response?.data?.code, e?.response?.data?.message ?? t('send_failed'));
-        Alert.alert(t('error'), msg);
+        showAppAlert(t('error'), msg);
         setSending(false);
         return;
       }
@@ -169,7 +170,7 @@ export default function SupportScreen() {
                   activeOpacity={0.85}
                   onPress={() => {
                     Haptics.selectionAsync();
-                    Alert.alert(item.label, item.sub);
+                    showAppAlert(item.label, item.sub);
                   }}
                 >
                   <View style={[styles.contactIcon, { backgroundColor: item.bg }]}>

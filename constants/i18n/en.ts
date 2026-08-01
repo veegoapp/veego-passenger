@@ -384,6 +384,7 @@ export const en = {
   reason_other: 'Other',
   confirm_cancel: 'Confirm cancellation',
   cancel_error: 'Failed to cancel. Please try again.',
+  ok: 'OK',
   ride_cancelled_title: 'Ride Cancelled',
   ride_refund_msg: '{amount} EGP has been refunded to your wallet.',
   trip_status_active: 'Active',

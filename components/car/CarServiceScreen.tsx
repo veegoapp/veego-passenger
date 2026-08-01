@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform,
-  TextInput, Animated, Alert, ScrollView, Dimensions, Keyboard,
+  TextInput, Animated, ScrollView, Dimensions, Keyboard,
   // Modal removed — pickup/destination editing now uses the unified inline sheet.
   // KeyboardAvoidingView removed — it caused a jitter loop fighting Animated.spring.
 } from 'react-native';
@@ -22,6 +22,7 @@ import { getRideEstimate } from '@/src/api/rideService';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { GlassView } from '@/components/ui/GlassView';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
@@ -93,7 +94,9 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: c.isDark ? 0.45 : 0.14,
       shadowRadius: 22,
-      elevation: 10,
+      // Translucent bg above: Android elevation would draw a square halo
+      // around the rounded corners instead of following them.
+      elevation: 0,
       overflow: 'hidden',
     },
     bottomPanel: {
@@ -102,7 +105,9 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       borderWidth: 1, borderColor: c.border, borderBottomWidth: 0,
       paddingBottom: tabBarHeight,
       shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.12, shadowRadius: 16, elevation: 12,
+      shadowOpacity: 0.12, shadowRadius: 16,
+      // Translucent bg above: same square-halo issue on Android.
+      elevation: 0,
     },
     dragHandle: {
       width: 36, height: 4, borderRadius: 2,
@@ -565,7 +570,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setPlaceResults([]);
     setPlaceSessionToken(generateSessionToken());
     if (!details) {
-      Alert.alert(t('location_error'), t('location_error_msg'));
+      showAppAlert(t('location_error'), t('location_error_msg'));
       return;
     }
     const coords: Coords = { latitude: details.latitude, longitude: details.longitude };
@@ -603,7 +608,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     const pickup = userCoordsRef.current;
     const dropoff = destCoords;
     if (!pickup || !dropoff) {
-      Alert.alert(t('location_error'), t('location_error_msg'));
+      showAppAlert(t('location_error'), t('location_error_msg'));
       return;
     }
 
@@ -637,14 +642,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
     if (!result.success) {
       if (result.insufficientBalance) {
-        Alert.alert(
+        showAppAlert(
           t('insufficient_balance_title'),
           t('insufficient_balance_msg')
             .replace('{required}', String(result.insufficientBalance.required))
             .replace('{balance}', String(result.insufficientBalance.balance)),
         );
       } else {
-        Alert.alert(t('error'), result.error ?? t('request_ride_failed'));
+        showAppAlert(t('error'), result.error ?? t('request_ride_failed'));
       }
     }
   }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone, paymentMethod]);
@@ -693,19 +698,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     if (phase === 'in_ride' && rideState.rideId) {
       const result = await cancelRide(reason || 'Cancelled by passenger');
       if (!result.success) {
-        Alert.alert(t('error'), result.error ?? t('cancel_error'));
+        showAppAlert(t('error'), result.error ?? t('cancel_error'));
         return;
       }
       // Only show a wallet refund message when the passenger actually paid via
       // wallet or card — cash rides never receive a wallet credit even if the
       // backend returns a non-zero refundAmount.
       if (paymentMethod !== 'cash' && result.refundAmount && result.refundAmount > 0) {
-        Alert.alert(
-          t('ride_cancelled_title'),
-          t('ride_refund_msg').replace('{amount}', String(result.refundAmount)),
-        );
+        showAppAlert(t('ride_cancelled_title'), t('ride_refund_msg').replace('{amount}', String(result.refundAmount)));
       } else {
-        Alert.alert(t('ride_cancelled_title'), t('ride_cancelled_msg'));
+        showAppAlert(t('ride_cancelled_title'), t('ride_cancelled_msg'));
       }
     }
     handleReset();
@@ -716,7 +718,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   // every render (defeating the memo) even though rideState only changes on
   // driver-location ticks that this card doesn't otherwise care about.
   const handleAssignedCancelPress = useCallback(() => {
-    Alert.alert(t('cancel_trip'), t('cancel_trip_q'), [
+    showAppAlert(t('cancel_trip'), t('cancel_trip_q'), [
       { text: t('no_back'), style: 'cancel' },
       { text: t('yes_cancel'), style: 'destructive', onPress: handleCancel },
     ]);

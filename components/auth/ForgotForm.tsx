@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone } from 'lucide-react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
@@ -110,7 +111,7 @@ export function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }
     try {
       await api.post('/auth/reset-password', { phone: phone.trim(), token: otp, newPassword: password });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(t('verify'), t('password_reset_success'));
+      showAppAlert(t('verify'), t('password_reset_success'));
       onSuccess(phone.trim());
     } catch (e: any) {
       const status = e?.response?.status;

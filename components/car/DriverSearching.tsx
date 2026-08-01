@@ -86,7 +86,10 @@ const styles = StyleSheet.create({
   cancelBtn: {
     paddingVertical: 15, alignItems: 'center', justifyContent: 'center',
     borderRadius: 14, borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6,
+    // Translucent (rgba) background above means Android elevation can't
+    // trace the rounded corners and draws a square shadow instead — off.
+    elevation: 0,
   },
   cancelText: {
     fontSize: 15, fontWeight: '600' as any,

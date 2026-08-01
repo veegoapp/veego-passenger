@@ -573,6 +573,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
     shadowRadius: 6,
-    elevation: 6,
+    // Translucent bg: Android elevation would draw a square halo, not a circle.
+    elevation: 0,
   },
 });

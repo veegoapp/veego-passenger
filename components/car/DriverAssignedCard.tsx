@@ -470,7 +470,9 @@ const styles = StyleSheet.create({
   cockpitIconBtn: {
     width: 48, height: 48, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center', borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5,
+    // bg is translucent (surfaceBg); Android elevation would draw a square halo.
+    elevation: 0,
   },
   sosBtn: {
     flex: 1, height: 48, borderRadius: 14,
@@ -576,7 +578,9 @@ const styles = StyleSheet.create({
     flex: 1, height: 54, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
     gap: 5, borderWidth: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5,
+    // bg is translucent (surfaceBg); Android elevation would draw a square halo.
+    elevation: 0,
   },
   cancelBtn: {},
   actionLabel: {

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail, Check } from 'lucide-react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
@@ -42,7 +43,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const handleSignUp = async () => {
     if (!canSubmit) return;
     if (password.length < 8) {
-      Alert.alert(t('error'), t('password_min'));
+      showAppAlert(t('error'), t('password_min'));
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -73,7 +74,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
       onSuccess();
     } catch (e: any) {
       const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? t('register_failed');
-      Alert.alert(t('error'), msg);
+      showAppAlert(t('error'), msg);
     } finally {
       setLoading(false);
     }

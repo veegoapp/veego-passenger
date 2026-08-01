@@ -2,8 +2,9 @@ import React, {
   createContext, useContext, useState, useEffect,
   useCallback, useMemo, useRef,
 } from 'react';
-import { Alert, AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import api from '@/src/api/client';
 import { tokenStore } from '@/src/api/client';
 import { getSocket, disconnectSocket } from '@/src/api/socket';
@@ -290,7 +291,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
 
     if (mode === 'unavailable') {
       if (svc.unavailableMessage) {
-        Alert.alert('Service Unavailable', svc.unavailableMessage);
+        showAppAlert('Service Unavailable', svc.unavailableMessage);
       }
       return;
     }

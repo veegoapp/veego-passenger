@@ -74,7 +74,11 @@ export function SafetySheet({
       if (status === 'granted') {
         const last = await Location.getLastKnownPositionAsync();
         if (last) return { lat: last.coords.latitude, lng: last.coords.longitude };
-        const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        // High (not Balanced): this location is sent to the passenger's
+        // emergency contact / support during an SOS — Balanced can resolve
+        // to a coarse cell/WiFi-derived city-centre point on Android instead
+        // of a real GPS fix, which is the last place accuracy should be cut.
+        const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         return { lat: cur.coords.latitude, lng: cur.coords.longitude };
       }
     } catch (err: any) {

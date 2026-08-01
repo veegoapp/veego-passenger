@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl, Alert,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, RefreshControl,
   Animated, Dimensions, useWindowDimensions, BackHandler,
 } from 'react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, MapPin, Flame, ArrowLeft, ArrowRight } from 'lucide-react-native';
@@ -57,7 +58,13 @@ type ServiceMode = 'shuttle' | 'car' | 'scooter' | 'delivery';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: Spacing.md, zIndex: 10 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: Spacing.md, zIndex: 10 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
+    brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    brandIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
+    wordmark: { fontSize: 18, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.3, fontFamily: 'Inter_700Bold' },
+    wordmarkAccent: { color: '#507BE9' },
+    headerDivider: { width: 1, height: 26, backgroundColor: c.border },
     greeting: { fontSize: 11, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium },
     greetingName: { fontSize: 20, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.5 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -593,7 +600,7 @@ export default function HomeScreen() {
                 details = null;
               }
               if (!details) {
-                Alert.alert(t('location_error'), t('location_error_msg'));
+                showAppAlert(t('location_error'), t('location_error_msg'));
                 return;
               }
               const resolved: SavedLocation = {

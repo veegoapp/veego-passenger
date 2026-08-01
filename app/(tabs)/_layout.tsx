@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { Navigation, Ticket, Wallet, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -164,7 +165,7 @@ function VeeGoTabBar({ state, navigation }: BottomTabBarProps) {
               activeOpacity={0.8}
               onPress={() => {
                 if (isDisabledWallet) {
-                  Alert.alert(
+                  showAppAlert(
                     t('wallet_title'),
                     walletFeature.unavailableMessage || t('wallet_coming_soon_msg'),
                   );
@@ -242,7 +243,9 @@ const styles = StyleSheet.create({
   navInner: {
     flexDirection: 'row', direction: 'ltr', borderRadius: 30,
     paddingVertical: 6, paddingHorizontal: 6,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 5,
+    // bg set at usage site is translucent (rgba); Android elevation would
+    // draw a square halo around this pill instead of following its radius.
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 0,
   },
   navItem: {
     flex: 1, alignItems: 'center', justifyContent: 'center',

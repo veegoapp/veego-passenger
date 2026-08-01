@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, Alert,
+  View, Text, ScrollView, TouchableOpacity,
   Modal, TextInput, KeyboardAvoidingView, SafeAreaView, Platform,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { Home, Briefcase, MapPin, Pencil, Trash2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -105,7 +106,7 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
     try {
       const details = await getPlaceDetails(s.placeId, addressSessionToken);
       if (!details) {
-        Alert.alert(t('error'), t('location_error_msg'));
+        showAppAlert(t('error'), t('location_error_msg'));
         return;
       }
       setFormAddress(details.address || s.description);
@@ -114,7 +115,7 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
       setAddressSuggestions([]);
       setAddressSessionToken(null);
     } catch {
-      Alert.alert(t('error'), t('location_error_msg'));
+      showAppAlert(t('error'), t('location_error_msg'));
     }
   };
 
@@ -147,7 +148,7 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
   const handleSave = async () => {
     if (saving) return;
     if (!formName.trim() || !formCoords) {
-      Alert.alert(t('error'), t('saved_location_missing_fields'));
+      showAppAlert(t('error'), t('saved_location_missing_fields'));
       return;
     }
     setSaving(true);
@@ -173,9 +174,9 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
       const msg: string = e?.response?.data?.message ?? e?.response?.data?.error ?? '';
       if (status === 409) {
         const isMax = /max|limit|20/i.test(msg);
-        Alert.alert(t('error'), isMax ? t('saved_locations_limit_reached') : t('saved_location_duplicate'));
+        showAppAlert(t('error'), isMax ? t('saved_locations_limit_reached') : t('saved_location_duplicate'));
       } else {
-        Alert.alert(t('error'), msg || t('saved_location_save_failed'));
+        showAppAlert(t('error'), msg || t('saved_location_save_failed'));
       }
     } finally {
       setSaving(false);
@@ -183,7 +184,7 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
   };
 
   const handleDelete = (loc: SavedLocationRecord) => {
-    Alert.alert(t('delete_saved_location'), t('delete_saved_location_confirm'), [
+    showAppAlert(t('delete_saved_location'), t('delete_saved_location_confirm'), [
       { text: t('cancel'), style: 'cancel' },
       {
         text: t('delete_saved_location'),
@@ -194,7 +195,7 @@ export function SavedLocationsModal({ visible, onClose }: { visible: boolean; on
             emitSavedLocationsEvent('savedLocations:changed');
             await refresh();
           } catch (e: any) {
-            Alert.alert(t('error'), e?.response?.data?.message ?? t('saved_location_save_failed'));
+            showAppAlert(t('error'), e?.response?.data?.message ?? t('saved_location_save_failed'));
           }
         },
       },

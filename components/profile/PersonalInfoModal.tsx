@@ -1,10 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
 import {
-  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Alert,
+  View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Platform,
   Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { Camera, Eye, EyeOff, KeyRound, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { showAppAlert } from '@/components/shared/AppAlertHost';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { updatePassword } from '@/src/api/userService';
@@ -63,21 +64,21 @@ export function PersonalInfoModal({
 
   const handleChangePassword = async () => {
     if (!currentPw || !newPw || !confirmPw) {
-      Alert.alert(t('error'), t('password_fill_all'));
+      showAppAlert(t('error'), t('password_fill_all'));
       return;
     }
     if (newPw !== confirmPw) {
-      Alert.alert(t('error'), t('passwords_no_match'));
+      showAppAlert(t('error'), t('passwords_no_match'));
       return;
     }
     try {
       await updatePassword(currentPw, newPw);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(t('saved'), t('password_updated'));
+      showAppAlert(t('saved'), t('password_updated'));
       setPwOpen(false);
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
     } catch (e: any) {
-      Alert.alert(t('error'), e?.response?.data?.message ?? t('password_change_failed'));
+      showAppAlert(t('error'), e?.response?.data?.message ?? t('password_change_failed'));
     }
   };
 

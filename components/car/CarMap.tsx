@@ -82,7 +82,13 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
           status = (await Location.requestForegroundPermissionsAsync()).status;
         }
         if (status !== 'granted') return;
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        // High (not Balanced): Balanced accuracy on Android is allowed to
+        // resolve from cell/WiFi positioning rather than the GPS chip, which
+        // for a whole city commonly collapses to a coarse city-centre point
+        // (for Cairo, right around Tahrir) — arrives fast, but wrong enough
+        // that a ride can get booked with it as the pickup point before a
+        // real GPS fix ever comes in.
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
         const coords: Coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setUserLocation(coords);
         onUserLocationRef.current?.(coords);
@@ -99,6 +105,20 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   }, []);
 
   useEffect(() => {
+    // While actively searching (no driver yet), the destination is no
+    // longer relevant to what the passenger needs to see — stay tightly
+    // framed on their own location instead of zooming out to fit the
+    // whole (possibly many-km) route to the destination.
+    if (searching) {
+      setTimeout(() => {
+        mapRef.current?.animateToRegion(
+          { ...userLocation, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+          600,
+        );
+      }, 400);
+      return;
+    }
+
     const pts: Coords[] = [userLocation];
     if (destCoords) pts.push(destCoords);
     if (showDriverMarker && driverLocation) pts.push(driverLocation);
@@ -109,7 +129,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         animated: true,
       });
     }, 400);
-  }, [destCoords, showDriverMarker, userLocation]);
+  }, [destCoords, showDriverMarker, userLocation, searching]);
 
   const [routeCoords, setRouteCoords] = useState<Coords[]>([]);
   const routeFetchKeyRef = useRef<string | null>(null);
