@@ -367,14 +367,20 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     return pts;
   }, [visibleStations, driverLocation]);
 
+  // Fallback straight-line while Google route is loading.
+  // Phase-aware: driver_arriving → driver→pickup, trip_started → driver→dropoff.
+  // Never draws pickup→dropoff — that's irrelevant until the trip starts AND
+  // we have a driver position.
   const fallbackCoords = useMemo((): LatLng[] => {
     if (sorted.length > 0) return [];
-    const pts: LatLng[] = [];
-    if (driverLocation) pts.push(driverLocation);
-    if (pickup)         pts.push(pickup);
-    if (dropoff)        pts.push(dropoff);
-    return pts;
-  }, [sorted, driverLocation, pickup, dropoff]);
+    if (!driverLocation) return [];   // no driver position yet — nothing to draw
+    const target =
+      tripPhase === 'driver_arriving' ? (pickup ?? null) :
+      tripPhase === 'trip_started'    ? (dropoff ?? null) :
+      null;
+    if (!target) return [];
+    return [driverLocation, target];
+  }, [sorted, driverLocation, pickup, dropoff, tripPhase]);
 
   const initCenter = { latitude: initLat, longitude: initLng };
 
