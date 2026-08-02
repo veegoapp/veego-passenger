@@ -153,97 +153,10 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   const fittedPhaseRef = useRef<string | null>(null);
   const fittedShuttleTargetRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (!driverLocation) return;
-    if (isUserPanning) return;
-
-    // ── Shuttle path ──────────────────────────────────────────────────────────
-    if (sorted.length > 0) {
-      const shuttleTarget = targetStation
-        ? { latitude: targetStation.latitude, longitude: targetStation.longitude }
-        : null;
-      const targetId = targetStation?.id ?? null;
-      // Only re-fit when the target station changes, not on every GPS tick.
-      if (fittedShuttleTargetRef.current === targetId) {
-        // Just follow driver smoothly between fits.
-        mapRef.current?.animateToRegion(
-          { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-          600,
-        );
-        return;
-      }
-      fittedShuttleTargetRef.current = targetId;
-      if (shuttleTarget) {
-        mapRef.current?.fitToCoordinates(
-          [driverLocation, shuttleTarget],
-          { edgePadding: FIT_PADDING, animated: true },
-        );
-      } else {
-        mapRef.current?.animateToRegion(
-          { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-          600,
-        );
-      }
-      return;
-    }
-
-    // ── Car/scooter/delivery: no active phase — leave camera alone ───────────
-    if (!tripPhase) return;
-
-    const secondPoint =
-      tripPhase === 'driver_arriving' ? (pickup ?? null) :
-      tripPhase === 'trip_started'    ? (dropoff ?? null) :
-      null;
-
-    // Re-fit only when the phase changes (new destination target); on every
-    // subsequent GPS tick just animate the camera to follow the driver.
-    if (fittedPhaseRef.current === tripPhase) {
-      if (secondPoint) {
-        // Smooth follow — keep driver in frame without re-zooming.
-        mapRef.current?.animateToRegion(
-          { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-          600,
-        );
-      }
-      return;
-    }
-
-    // Phase changed (or first load) — do the full fit.
-    fittedPhaseRef.current = tripPhase;
-
-    if (!secondPoint) {
-      mapRef.current?.animateToRegion(
-        { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-        600,
-      );
-      return;
-    }
-
-    mapRef.current?.fitToCoordinates(
-      [driverLocation, secondPoint],
-      { edgePadding: FIT_PADDING, animated: true },
-    );
-  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length, tripPhase, isUserPanning, pickup, dropoff, targetStation]);
-
-  // Recenter: fit the same phase-appropriate pair and clear the pan flag.
-  const handleRecenter = useCallback(() => {
-    if (!driverLocation || !tripPhase) return;
-    const secondPoint =
-      tripPhase === 'driver_arriving' ? (pickup ?? null) :
-      tripPhase === 'trip_started'    ? (dropoff ?? null) :
-      null;
-    if (!secondPoint) return;
-    setIsUserPanning(false);
-    mapRef.current?.fitToCoordinates(
-      [driverLocation, secondPoint],
-      { edgePadding: FIT_PADDING, animated: true },
-    );
-  }, [driverLocation, tripPhase, pickup, dropoff]);
-
   // ── ETA/route target station ─────────────────────────────────────────────────
-  // The passenger's own boarding station if it's still upcoming; otherwise the
-  // next station the bus will reach. Both the Directions route below and the
-  // ETA are scoped to "how long until MY stop", not "until the end of the line".
+  // Declared here (before the camera effect) because the camera effect uses
+  // targetStation to fit the shuttle target. waypointsToTarget is also hoisted
+  // so all station-derived values are co-located.
   const targetStation = useMemo(() => {
     const remaining = sorted.filter((s) => s.status !== 'completed');
     if (remaining.length === 0) return null;
@@ -261,6 +174,105 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     const upToTarget = idx >= 0 ? remaining.slice(0, idx + 1) : [targetStation];
     return upToTarget.map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
   }, [sorted, targetStation]);
+
+  useEffect(() => {
+    if (!driverLocation) return;
+    if (isUserPanning) return;
+
+    // ── Shuttle path ──────────────────────────────────────────────────────────
+    if (sorted.length > 0) {
+      const shuttleTarget = targetStation
+        ? { latitude: targetStation.latitude, longitude: targetStation.longitude }
+        : null;
+      const targetId = targetStation?.id ?? null;
+      // Only re-fit when the target station changes, not on every GPS tick.
+      if (fittedShuttleTargetRef.current === targetId) {
+        // Just follow driver smoothly between fits.
+        runOrQueueCamera(() => {
+          mapRef.current?.animateToRegion(
+            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+            600,
+          );
+        });
+        return;
+      }
+      fittedShuttleTargetRef.current = targetId;
+      if (shuttleTarget) {
+        runOrQueueCamera(() => {
+          mapRef.current?.fitToCoordinates(
+            [driverLocation, shuttleTarget],
+            { edgePadding: FIT_PADDING, animated: true },
+          );
+        });
+      } else {
+        runOrQueueCamera(() => {
+          mapRef.current?.animateToRegion(
+            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+            600,
+          );
+        });
+      }
+      return;
+    }
+
+    // ── Car/scooter/delivery: no active phase — leave camera alone ───────────
+    if (!tripPhase) return;
+
+    const secondPoint =
+      tripPhase === 'driver_arriving' ? (pickup ?? null) :
+      tripPhase === 'trip_started'    ? (dropoff ?? null) :
+      null;
+
+    // Re-fit only when the phase changes (new destination target); on every
+    // subsequent GPS tick just animate the camera to follow the driver.
+    if (fittedPhaseRef.current === tripPhase) {
+      if (secondPoint) {
+        // Smooth follow — keep driver in frame without re-zooming.
+        runOrQueueCamera(() => {
+          mapRef.current?.animateToRegion(
+            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+            600,
+          );
+        });
+      }
+      return;
+    }
+
+    // Phase changed (or first load) — do the full fit.
+    fittedPhaseRef.current = tripPhase;
+
+    if (!secondPoint) {
+      runOrQueueCamera(() => {
+        mapRef.current?.animateToRegion(
+          { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
+          600,
+        );
+      });
+      return;
+    }
+
+    runOrQueueCamera(() => {
+      mapRef.current?.fitToCoordinates(
+        [driverLocation, secondPoint],
+        { edgePadding: FIT_PADDING, animated: true },
+      );
+    });
+  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length, tripPhase, isUserPanning, pickup, dropoff, targetStation]);
+
+  // Recenter: fit the same phase-appropriate pair and clear the pan flag.
+  const handleRecenter = useCallback(() => {
+    if (!driverLocation || !tripPhase) return;
+    const secondPoint =
+      tripPhase === 'driver_arriving' ? (pickup ?? null) :
+      tripPhase === 'trip_started'    ? (dropoff ?? null) :
+      null;
+    if (!secondPoint) return;
+    setIsUserPanning(false);
+    mapRef.current?.fitToCoordinates(
+      [driverLocation, secondPoint],
+      { edgePadding: FIT_PADDING, animated: true },
+    );
+  }, [driverLocation, tripPhase, pickup, dropoff]);
 
   // ── Google Directions route — refreshed periodically while the trip is live ──
   const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
@@ -318,6 +330,8 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
       lastFetchOriginRef.current = null;
       lastFetchAtRef.current = 0;
       prevTripPhaseRef.current = null;
+      // Clear the phase-fit guard so a new ride triggers a fresh camera fit.
+      fittedPhaseRef.current = null;
       return;
     }
 
@@ -344,7 +358,9 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     lastFetchOriginRef.current = { latitude: driverLocation.latitude, longitude: driverLocation.longitude };
     lastFetchAtRef.current = now;
 
+    let cancelled = false;
     fetchGoogleRoute(driverLocation, [routeTarget]).then((result) => {
+      if (cancelled) return;
       if (result?.coords?.length) {
         setRouteCoords(result.coords);
         if (result.durationSeconds !== null) {
@@ -354,6 +370,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
       // On failure keep existing routeCoords; straight-line fallback renders
       // below until a successful response arrives.
     });
+    return () => { cancelled = true; };
   }, [driverLocation?.latitude, driverLocation?.longitude, pickup, dropoff, sorted.length, tripPhase]);
 
   // ── ETA ─────────────────────────────────────────────────────────────────────
@@ -443,6 +460,14 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
         zoomEnabled
         pitchEnabled={false}
         customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
+        onMapReady={() => {
+          mapReadyRef.current = true;
+          // Drain any camera action that queued before the map was ready.
+          if (pendingCameraRef.current) {
+            pendingCameraRef.current();
+            pendingCameraRef.current = null;
+          }
+        }}
         onPanDrag={() => setIsUserPanning(true)}
       >
         {/* Completed leg — straight line between visited stops (green) */}

@@ -109,12 +109,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         const coords: Coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setUserLocation(coords);
         onUserLocationRef.current?.(coords);
-        if (mapReadyRef.current) {
+        runOrQueueCamera(() => {
           mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 800);
-        } else {
-          // Map isn't ready yet — store the coords and animate once it is.
-          pendingLocationRef.current = coords;
-        }
+        });
       } catch (err: any) {
         console.error('[car map] initial location fetch failed', err?.message);
       }
@@ -122,31 +119,55 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   }, []);
 
   useEffect(() => {
-    // While actively searching (no driver yet), the destination is no
-    // longer relevant to what the passenger needs to see — stay tightly
-    // framed on their own location instead of zooming out to fit the
-    // whole (possibly many-km) route to the destination.
+    // Searching: tightly frame the passenger's own position; no destination needed.
     if (searching) {
-      setTimeout(() => {
+      driverFittedRef.current = false;
+      runOrQueueCamera(() => {
         mapRef.current?.animateToRegion(
           { ...userLocation, latitudeDelta: 0.01, longitudeDelta: 0.01 },
           600,
         );
-      }, 400);
+      });
       return;
     }
 
+    if (showDriverMarker && driverLocation) {
+      if (!driverFittedRef.current) {
+        // First time the driver is visible — fit driver + user + destination.
+        driverFittedRef.current = true;
+        const pts: Coords[] = [userLocation, driverLocation];
+        if (destCoords) pts.push(destCoords);
+        runOrQueueCamera(() => {
+          mapRef.current?.fitToCoordinates(pts, {
+            edgePadding: { top: 80, right: 60, bottom: 340, left: 60 },
+            animated: true,
+          });
+        });
+      } else {
+        // Already fitted — smoothly follow the driver on subsequent ticks.
+        runOrQueueCamera(() => {
+          mapRef.current?.animateToRegion(
+            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, latitudeDelta: 0.012, longitudeDelta: 0.012 },
+            600,
+          );
+        });
+      }
+      return;
+    }
+
+    // Driver not visible — reset so re-assignment triggers a fresh fit.
+    driverFittedRef.current = false;
+
     const pts: Coords[] = [userLocation];
     if (destCoords) pts.push(destCoords);
-    if (showDriverMarker && driverLocation) pts.push(driverLocation);
     if (pts.length < 2) return;
-    setTimeout(() => {
+    runOrQueueCamera(() => {
       mapRef.current?.fitToCoordinates(pts, {
         edgePadding: { top: 80, right: 60, bottom: 340, left: 60 },
         animated: true,
       });
-    }, 400);
-  }, [destCoords, showDriverMarker, userLocation, searching]);
+    });
+  }, [destCoords, showDriverMarker, driverLocation?.latitude, driverLocation?.longitude, userLocation, searching]);
 
   const [routeCoords, setRouteCoords] = useState<Coords[]>([]);
   const routeFetchKeyRef = useRef<string | null>(null);
@@ -227,13 +248,10 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         compassEnabled={false}
         onMapReady={() => {
           mapReadyRef.current = true;
-          // If location arrived before the map finished loading, animate now.
-          if (pendingLocationRef.current) {
-            mapRef.current?.animateToRegion(
-              { ...pendingLocationRef.current, latitudeDelta: 0.012, longitudeDelta: 0.012 },
-              800,
-            );
-            pendingLocationRef.current = null;
+          // Drain any camera action that queued before the map was ready.
+          if (pendingCameraRef.current) {
+            pendingCameraRef.current();
+            pendingCameraRef.current = null;
           }
         }}
       >
