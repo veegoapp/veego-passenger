@@ -24,7 +24,6 @@ interface RealMapProps {
   defaultCenter?: LatLng;
 }
 
-const CAIRO: LatLng = { latitude: 30.0444, longitude: 31.2357 };
 const DELTA = { latitudeDelta: 0.04, longitudeDelta: 0.04 };
 
 function centroid(points: LatLng[]): LatLng {
@@ -44,10 +43,12 @@ export function RealMap({
   defaultCenter,
 }: RealMapProps) {
   const { t, darkMode } = useTheme();
-  const center = useMemo(() => {
+  const center = useMemo((): LatLng | null => {
     const pts = [pickup, dropoff, driverLocation, ...stationMarkers].filter(Boolean) as LatLng[];
     if (pts.length > 0) return centroid(pts);
-    return defaultCenter ?? CAIRO;
+    // No Cairo fallback (audit L3) — when no real points are available, omit
+    // initialRegion entirely rather than forcing the map to center on Cairo.
+    return defaultCenter ?? null;
   }, [pickup, dropoff, driverLocation, stationMarkers, defaultCenter]);
 
   // Straight line between the available points — shown immediately, then
@@ -85,7 +86,9 @@ export function RealMap({
       <MapView
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
-        initialRegion={{ ...center, ...DELTA }}
+        // Only set initialRegion when we have a real centroid — avoids briefly
+        // centering on a hardcoded fallback before real coordinates are available (audit L3).
+        {...(center ? { initialRegion: { ...center, ...DELTA } } : {})}
         showsUserLocation={false}
         showsCompass={false}
         toolbarEnabled={false}

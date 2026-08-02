@@ -228,69 +228,59 @@ export function usePassengerTracking({
       if (intervalRef.current) {
         stopTracking();
       }
+      // Ensure background task is also stopped when tracking is deactivated.
+      (async () => { await stopBackgroundTask(); })();
       return;
     }
 
-    // Start background location task when active (best-effort; falls back to setInterval)
-    (async () => {
-      try {
-        const available = await TaskManager.isAvailableAsync();
-        if (available) {
-          // Check before requesting — never re-prompt if already decided.
-          let fg = (await Location.getForegroundPermissionsAsync()).status;
-          if (fg !== 'granted') {
-            fg = (await Location.requestForegroundPermissionsAsync()).status;
-          }
-          if (fg === 'granted') {
-            let bg = (await Location.getBackgroundPermissionsAsync()).status;
-            if (bg === 'undetermined') {
-              bg = (await Location.requestBackgroundPermissionsAsync()).status;
-            }
-            if (bg === 'granted') {
-              const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
-              if (!started) {
-                await Location.startLocationUpdatesAsync(PASSENGER_LOCATION_TASK, {
-                  accuracy: Location.Accuracy.Balanced,
-                  timeInterval: TRACKING_INTERVAL_MS,
-                  distanceInterval: 200,
-                  foregroundService: {
-                    notificationTitle: 'VeeGo',
-                    notificationBody: 'Tracking your trip location.',
-                    notificationColor: '#2d2d42',
-                  },
-                  activityType: Location.ActivityType.Other,
-                  showsBackgroundLocationIndicator: true,
-                  pausesUpdatesAutomatically: false,
-                });
-              }
-            }
-          }
-        }
-      } catch {
-        // Background task start is best-effort; setInterval handles foreground coverage
-      }
-    })();
+    // ── Mode selection: foreground XOR background — never both simultaneously ──
+    // Running setInterval while the background task is also active causes
+    // duplicate location snapshots, wastes battery, and doubles network traffic.
+    // AppState determines which mode is appropriate at activation time; the
+    // change listener below switches modes whenever the app transitions.
 
-    // Fire immediately on activation, then every 15 seconds (foreground coverage)
-    tick();
-    intervalRef.current = setInterval(tick, TRACKING_INTERVAL_MS);
+    const currentState = AppState.currentState;
+
+    if (currentState === 'active') {
+      // Foreground: stop any lingering background task, then use setInterval.
+      (async () => { await stopBackgroundTask(); })();
+      tick();
+      intervalRef.current = setInterval(tick, TRACKING_INTERVAL_MS);
+    } else {
+      // Background / inactive: stop any lingering interval, then use background task.
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      (async () => { await startBackgroundTask(); })();
+    }
+
+    // Switch modes whenever the app transitions between foreground and background.
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        // App came to foreground — stop background task, start interval.
+        (async () => { await stopBackgroundTask(); })();
+        if (!intervalRef.current) {
+          tick();
+          intervalRef.current = setInterval(tick, TRACKING_INTERVAL_MS);
+        }
+      } else if (nextState === 'background' || nextState === 'inactive') {
+        // App went to background — stop interval, start background task.
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        (async () => { await startBackgroundTask(); })();
+      }
+    });
 
     return () => {
+      sub.remove();
       stopTracking();
-      // Stop background location task. Uses an async IIFE because effect
-      // cleanups must return void, not Promise. Logs a warning on failure
-      // instead of silently swallowing the error — a missed stop means the
-      // background task continues running after the trip ends, draining battery.
-      (async () => {
-        try {
-          const available = await TaskManager.isAvailableAsync();
-          if (!available) return;
-          const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
-          if (started) await Location.stopLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
-        } catch (err) {
-          console.warn('[usePassengerTracking] Failed to stop background location task:', err);
-        }
-      })();
+      // Stop background location task on cleanup. Uses an async IIFE because
+      // effect cleanups must return void. Logs a warning on failure — a missed
+      // stop means the background task continues after the trip ends, draining battery.
+      (async () => { await stopBackgroundTask(); })();
     };
   }, [isActive, tick, stopTracking]);
 }

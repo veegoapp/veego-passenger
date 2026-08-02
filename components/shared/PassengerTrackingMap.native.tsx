@@ -53,7 +53,8 @@ export interface TrackingMapProps {
   onTargetStationChange?: (station: Station | null) => void;
 }
 
-const DEFAULT_CENTER: LatLng = { latitude: 30.0444, longitude: 31.2357 };
+// DEFAULT_CENTER (Cairo) removed (audit L3) — AnimatedRegion init uses 0/0,
+// which is never displayed since the marker requires a real driverLocation.
 const FOLLOW_DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
 // Directions route/ETA refresh cadence — refetch at most this often, or
 // sooner if the driver has moved a meaningful distance since the last fetch.
@@ -100,8 +101,11 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   }, [sorted, passengerStationId, boarded]);
 
   // ── Driver marker animation ──────────────────────────────────────────────────
-  const initLat = driverLocation?.latitude ?? pickup?.latitude ?? DEFAULT_CENTER.latitude;
-  const initLng = driverLocation?.longitude ?? pickup?.longitude ?? DEFAULT_CENTER.longitude;
+  // Use 0/0 as the AnimatedRegion seed when no real coords are available yet —
+  // the marker is never rendered without a driverLocation, so 0/0 is never
+  // visible. Cairo is no longer used as a fallback (audit L3).
+  const initLat = driverLocation?.latitude ?? pickup?.latitude ?? 0;
+  const initLng = driverLocation?.longitude ?? pickup?.longitude ?? 0;
 
   const animatedCoord = useRef(
     new AnimatedRegion({ latitude: initLat, longitude: initLng, latitudeDelta: 0, longitudeDelta: 0 }),
@@ -462,7 +466,9 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFill}
-        initialRegion={{ ...initCenter, ...FOLLOW_DELTA }}
+        // Only pass initialRegion when a real seed point is available — avoids
+        // briefly showing the map at 0/0 or a hardcoded city before GPS resolves (audit L3).
+        {...((driverLocation ?? pickup) ? { initialRegion: { ...initCenter, ...FOLLOW_DELTA } } : {})}
         showsUserLocation={false}
         showsCompass={false}
         toolbarEnabled={false}

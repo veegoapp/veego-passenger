@@ -26,7 +26,10 @@ interface CarMapProps {
   searching?: boolean;
 }
 
-const CAIRO_DEFAULT: Coords = { latitude: 30.0444, longitude: 31.2357 };
+// CAIRO_DEFAULT removed (audit L3) — AnimatedRegion still needs finite init
+// numbers, so 0/0 is used below; the marker is never visible without a real
+// driverLocation, so these coordinates are never shown to the user.
+const ANIMATED_INIT: Coords = { latitude: 0, longitude: 0 };
 const ROUTE_REFRESH_INTERVAL_MS = 75_000;
 const SIGNIFICANT_MOVE_METERS = 300;
 
@@ -71,8 +74,8 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   // shuttle driver marker in PassengerTrackingMap.native.tsx.
   const animatedDriverCoord = useRef(
     new AnimatedRegion({
-      latitude: driverLocation?.latitude ?? CAIRO_DEFAULT.latitude,
-      longitude: driverLocation?.longitude ?? CAIRO_DEFAULT.longitude,
+      latitude: driverLocation?.latitude ?? ANIMATED_INIT.latitude,
+      longitude: driverLocation?.longitude ?? ANIMATED_INIT.longitude,
       latitudeDelta: 0,
       longitudeDelta: 0,
     }),
@@ -249,7 +252,8 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
-        initialRegion={{ ...CAIRO_DEFAULT, latitudeDelta: 0.015, longitudeDelta: 0.015 }}
+        // No initialRegion — map waits for the real GPS fix (animateToRegion fires
+        // once location resolves). Avoids briefly centering on Cairo (audit L3).
         showsUserLocation={false}
         customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
         // @ts-expect-error react-native-maps@1.20.1 types no longer declare

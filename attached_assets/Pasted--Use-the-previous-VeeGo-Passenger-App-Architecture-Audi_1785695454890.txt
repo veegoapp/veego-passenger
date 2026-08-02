@@ -1,0 +1,122 @@
+فى اخر سيشن كنت  اديتك البرومت ده 
+Use the previous VeeGo Passenger App Architecture Audit findings as the source of truth.
+
+Implement ONLY the remaining unresolved issues. Do not run a new audit. Do not redesign existing systems. Stabilize the current implementation.
+
+1) Passenger tracking duplication (M1)
+
+Problem:
+The app currently runs both:
+
+- Foreground tracking ("setInterval" inside "usePassengerTracking")
+- Background tracking ("expo-task-manager")
+
+at the same time during active rides, which can cause duplicate location snapshots, unnecessary battery usage, and extra network traffic.
+
+Fix:
+
+- Keep the existing tracking architecture.
+- Prevent foreground and background tracking from running simultaneously.
+- Use the correct mode depending on app state.
+- Keep existing offline snapshot handling.
+- Do not remove background tracking support.
+
+Verify cleanup remains reliable.
+
+---
+
+2) Wallet socket event name mismatch (L2)
+
+Backend verification confirmed:
+
+Canonical backend event:
+"wallet:feature:changed"
+
+Backend source:
+"artifacts/api-server/src/lib/socket-events.ts"
+
+Backend emit:
+"artifacts/api-server/src/routes/paymentConfig.ts"
+
+Fix Passenger App listeners:
+
+- Replace any usage of:
+  "wallet:feature_changed"
+
+with:
+"wallet:feature:changed"
+
+Do not modify backend code.
+
+---
+
+3) Cairo default map center (L3)
+
+Problem:
+The map falls back to hardcoded Cairo coordinates before GPS resolves:
+
+"30.0444, 31.2357"
+
+Fix:
+
+- Remove the Cairo-specific fallback behavior.
+- Use a safer fallback strategy:
+  - last known location if available
+  - otherwise wait for GPS resolution
+  - avoid showing the user in Cairo temporarily
+
+Do not affect existing map initialization flow.
+
+---
+
+4) Wallet balance schema cleanup (L4)
+
+Backend verification confirmed:
+
+"GET /wallet" returns:
+
+{
+  "userId": "string",
+  "balance": 42.50
+}
+
+The valid field is only:
+
+"balance"
+
+Fix:
+
+- Remove unnecessary fallback fields:
+  - walletBalance
+  - amount
+  - walletAmount
+  - availableBalance
+  - wallet_balance
+
+Make the Passenger App schema match the real backend contract.
+
+---
+
+After finishing:
+
+1. Run relevant TypeScript checks/build if available.
+2. Provide only a concise summary:
+
+- Files changed
+- Fixes implemented
+- Any remaining issues
+
+Do not provide a plan before editing. Implement the fixes directly.
+فا انته بدات تشتغل و كنت عملت كده 
+ PaymentConfigContext.tsx و أبدأ التنفيذ:
+خلاصة التحليل السريع:
+L2: الكود فعلاً صح — SOCKET_EVENTS.WALLET_FEATURE_CHANGED = "wallet:feature:changed" وبيُستخدم في PaymentConfigContext.tsx، مفيش أي hardcoded wrong string
+L3, L4, M1: محتاجين fixes حقيقية
+أبدأ بالـ 3 edits المتوازية:
+عندي كل المعلومات المحتاجة. بنفذ كل الـ 4 fixes دلوقتي:
+بكمل بقية الـ fixes — M1 و L3 — في parallel:
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
+
+
+
+و زى ما انته شايف الليمت خلص و انته شغال فا شوف وصلت لفين و كمل من مكان ما وقفت 
