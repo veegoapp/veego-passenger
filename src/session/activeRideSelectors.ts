@@ -12,6 +12,7 @@
  */
 
 import type { NormalizedPassengerActiveSession } from './activeSessionTypes';
+import { normalizeRideStatus } from '../api/socket';
 import type { RideStatus, DriverLocation } from '../api/socket';
 
 export type ActiveRideType = 'car' | 'scooter' | 'delivery';
@@ -50,22 +51,6 @@ export interface ActiveRideSnapshot {
   paymentMethod: string;
 }
 
-/**
- * Maps the backend ActiveSession ride status (which follows the backend enum)
- * to the client RideStatus used by useRide and the UI. Matches the same
- * mapping in normalizeRideStatus() in src/api/socket.ts.
- */
-function mapActiveSessionStatus(
-  status: 'requested' | 'searching' | 'driver_assigned' | 'driver_arrived' | 'active',
-): RideStatus {
-  switch (status) {
-    case 'requested':      return 'searching';
-    case 'searching':      return 'searching';
-    case 'driver_assigned': return 'driver_assigned';
-    case 'driver_arrived': return 'arrived';
-    case 'active':         return 'started';
-  }
-}
 
 /**
  * Returns the active ride snapshot from the normalized session, or null when:
@@ -111,7 +96,9 @@ export function selectActiveRide(
   return {
     rideId: String(session.rideId),
     rideType: session.vehicleType,
-    status: mapActiveSessionStatus(session.status),
+    // normalizeRideStatus() is the single canonical status mapping for the app;
+    // the former local mapActiveSessionStatus() duplicated the same logic.
+    status: (normalizeRideStatus(session.status) ?? 'searching') as RideStatus,
     driver,
     driverLocation,
     fare: session.finalPrice,

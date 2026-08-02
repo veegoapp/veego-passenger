@@ -8,6 +8,9 @@ export const SOCKET_EVENTS = {
   RIDE_DRIVER_ASSIGNED:          "ride:driver_assigned",
   RIDE_DRIVER_ARRIVED:           "ride:driver_arrived",
   RIDE_ETA_UPDATE:               "ride:eta_update",
+  /** @deprecated Use RIDE_DRIVER_ARRIVED ("ride:driver_arrived") — the canonical
+   *  event name emitted by the backend. This alias is kept for reference only;
+   *  no client listener should bind to "ride:arrived". */
   RIDE_ARRIVED:                  "ride:arrived",
   RIDE_WAITING_CHARGE_STARTED:   "ride:waiting:charge:started",
   RIDE_WAITING_CHARGE_UPDATED:   "ride:waiting:charge:updated",

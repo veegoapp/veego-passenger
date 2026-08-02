@@ -325,7 +325,19 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         const parsed = RideDriverLocationSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_location payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
-        setRideState((prev) => ({ ...prev, driverLocation: parsed.data.location }));
+        // Guard: only allocate a new object when coordinates actually changed.
+        // Without this check every tick creates a new reference, defeating
+        // React.memo on PassengerTrackingMap and causing full re-renders at
+        // socket frequency.
+        setRideState((prev) => {
+          const newLoc = parsed.data.location;
+          if (
+            prev.driverLocation?.latitude === newLoc.latitude &&
+            prev.driverLocation?.longitude === newLoc.longitude &&
+            prev.driverLocation?.heading === newLoc.heading
+          ) return prev;
+          return { ...prev, driverLocation: newLoc };
+        });
       });
 
       socket.on(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, (raw: unknown) => {

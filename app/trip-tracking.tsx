@@ -21,6 +21,7 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { selectActiveRide } from '@/src/session/activeRideSelectors';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   searching: 'status_finding_driver',
@@ -99,6 +100,9 @@ export default function TripTrackingScreen() {
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
   const socketListening = useRef(false);
+  // Tracks the auto-navigate timer on ride completion/cancellation so it can
+  // be cancelled if the component unmounts before the 3-second window elapses.
+  const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Seed from ActiveSession ───────────────────────────────────────────────
   // When the centralized session has data for the ride this screen is tracking,
@@ -235,32 +239,13 @@ export default function TripTrackingScreen() {
       .finally(() => setDeepLinkLoading(false));
   }, [params.id]);
 
-  // Fetch ride/driver info from server on mount (never trust nav params for sensitive data)
-  useEffect(() => {
-    const rideId = params.rideId;
-    if (!rideId) return;
-    getRide(rideId).then((res) => {
-      const d = res?.data ?? res;
-      if (d?.driver) {
-        setDriverInfo({
-          name: d.driver.name,
-          vehicle: d.driver.vehicle,
-          rating: d.driver.rating != null ? String(d.driver.rating) : undefined,
-          phone: d.driver.phone,
-        });
-      }
-      if (d?.driverLocation) setDriverLocation(d.driverLocation);
-      if (d?.pickupLatitude != null && d?.pickupLongitude != null) {
-        setPickup({ latitude: d.pickupLatitude, longitude: d.pickupLongitude });
-      }
-      if (d?.dropoffLatitude != null && d?.dropoffLongitude != null) {
-        setDropoff({ latitude: d.dropoffLatitude, longitude: d.dropoffLongitude });
-      }
-      if (d?.vehicleType != null || d?.type != null || d?.serviceType != null) {
-        setVehicleType(normalizeVehicleType(d.vehicleType ?? d.type ?? d.serviceType));
-      }
-    }).catch(() => {});
-  }, [params.rideId]);
+  // NOTE: The standalone getRide(rideId) REST effect that previously lived here
+  // was removed. All fields it populated (driverInfo, driverLocation, pickup,
+  // dropoff, vehicleType) are already seeded by the activeRideSnapshot effect
+  // above, which runs from the ActiveSessionContext's authoritative REST snapshot
+  // and stays live via session:snapshot events. Keeping both writers caused a
+  // non-deterministic race where the REST response could overwrite fresher
+  // socket-derived data already applied by the snapshot effect (audit: H3).
 
   useEffect(() => {
     const rideId = params.rideId;
@@ -282,17 +267,23 @@ export default function TripTrackingScreen() {
     const onCompleted = (data: any) => {
       if (data.rideId !== rideId) return;
       setStatus('completed');
-      setTimeout(() => router.back(), 3000);
+      // Store the timer so it can be cancelled on unmount (audit: Section 7,
+      // "Trip Completed" — hard-coded setTimeout with no cleanup).
+      completionTimerRef.current = setTimeout(() => router.back(), 3000);
     };
     const onCancelled = (data: any) => {
       if (data.rideId !== rideId) return;
       setStatus('cancelled');
-      setTimeout(() => router.back(), 3000);
+      completionTimerRef.current = setTimeout(() => router.back(), 3000);
     };
 
     getSocket().then((socket) => {
       socket.on('ride:driver_location', onDriverLocation);
-      socket.on('ride:arrived', onArrived);
+      // Use the canonical RIDE_DRIVER_ARRIVED constant ("ride:driver_arrived").
+      // The previous hardcoded "ride:arrived" string was wrong — it missed the
+      // driver-arrived transition whenever the backend emitted the correct name
+      // (audit: C2 — critical event name mismatch).
+      socket.on(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onArrived);
       socket.on('ride:started', onStarted);
       socket.on('ride:completed', onCompleted);
       socket.on('ride:cancelled', onCancelled);
@@ -302,12 +293,18 @@ export default function TripTrackingScreen() {
       const s = getSocketSync();
       if (s) {
         s.off('ride:driver_location', onDriverLocation);
-        s.off('ride:arrived', onArrived);
+        s.off(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onArrived);
         s.off('ride:started', onStarted);
         s.off('ride:completed', onCompleted);
         s.off('ride:cancelled', onCancelled);
       }
       socketListening.current = false;
+      // Cancel any pending auto-navigation timer to avoid calling router.back()
+      // on an already-unmounted component.
+      if (completionTimerRef.current) {
+        clearTimeout(completionTimerRef.current);
+        completionTimerRef.current = null;
+      }
     };
   }, [params.rideId]);
 

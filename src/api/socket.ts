@@ -131,7 +131,8 @@ export interface DriverLocation {
 export interface RideSocketEvents {
   'ride:driver_assigned': (data: { rideId: string; driver: { name: string; phone: string; vehicle: string; rating: number }; eta: number }) => void;
   'ride:driver_location': (data: { rideId: string; location: DriverLocation }) => void;
-  'ride:arrived': (data: { rideId: string }) => void;
+  /** Canonical event name emitted by the backend when the driver arrives at pickup. */
+  'ride:driver_arrived': (data: { rideId: string }) => void;
   'ride:started': (data: { rideId: string }) => void;
   'ride:completed': (data: { rideId: string; fare: number }) => void;
   'ride:cancelled': (data: { rideId: string; reason: string }) => void;
