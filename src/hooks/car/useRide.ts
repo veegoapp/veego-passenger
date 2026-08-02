@@ -130,6 +130,8 @@ export interface ResumedRide {
   dropoffLatitude?: number;
   dropoffLongitude?: number;
   pickupAddress?: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
 }
 
 /**
@@ -662,6 +664,8 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       rideId,
       status,
       pickupAddress: activeRideSnapshot.pickup.address,
+      pickupLatitude: activeRideSnapshot.pickup.latitude,
+      pickupLongitude: activeRideSnapshot.pickup.longitude,
       dropoffAddress: activeRideSnapshot.dropoff.address,
       dropoffLatitude: activeRideSnapshot.dropoff.latitude,
       dropoffLongitude: activeRideSnapshot.dropoff.longitude,

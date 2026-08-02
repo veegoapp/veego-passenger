@@ -134,12 +134,14 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
     // Searching: tightly frame the passenger's own position; no destination needed.
     if (searching) {
       driverFittedRef.current = false;
-      runOrQueueCamera(() => {
-        mapRef.current?.animateToRegion(
-          { ...userLocation, latitudeDelta: 0.01, longitudeDelta: 0.01 },
-          600,
-        );
-      });
+      if (userLocation) {
+        runOrQueueCamera(() => {
+          mapRef.current?.animateToRegion(
+            { ...userLocation, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+            600,
+          );
+        });
+      }
       return;
     }
 
@@ -147,7 +149,10 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
       if (!driverFittedRef.current) {
         // First time the driver is visible — fit driver + user + destination.
         driverFittedRef.current = true;
-        const pts: Coords[] = [userLocation, driverLocation];
+        // userLocation may still be null if GPS hasn't resolved; include it
+        // only when available rather than letting a null slip into the array.
+        const pts: Coords[] = ([userLocation, driverLocation] as (Coords | null)[])
+          .filter((p): p is Coords => p !== null);
         if (destCoords) pts.push(destCoords);
         runOrQueueCamera(() => {
           mapRef.current?.fitToCoordinates(pts, {
@@ -170,6 +175,8 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
     // Driver not visible — reset so re-assignment triggers a fresh fit.
     driverFittedRef.current = false;
 
+    // Cannot fit without a known user position — wait for GPS to resolve.
+    if (!userLocation) return;
     const pts: Coords[] = [userLocation];
     if (destCoords) pts.push(destCoords);
     if (pts.length < 2) return;
@@ -200,6 +207,8 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
     // During an active ride, the driver's live position is the route origin.
     // Before a driver is assigned, preserve the existing passenger-origin route.
     const routeOrigin = showDriverMarker && driverLocation ? driverLocation : userLocation;
+    // Cannot draw a route without a known origin — wait for GPS or driver location.
+    if (!routeOrigin) return;
     const destinationKey = `${destCoords.latitude},${destCoords.longitude}`;
 
     if (showDriverMarker && driverLocation) {
@@ -219,7 +228,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
       lastActiveFetchAtRef.current = now;
     } else {
       // Fetch once per pickup/destination pair before a driver is assigned.
-      const key = `${userLocation.latitude},${userLocation.longitude}->${destinationKey}`;
+      // routeOrigin === userLocation here (driver not yet assigned); use it
+      // directly — it is already narrowed to non-null by the guard above.
+      const key = `${routeOrigin.latitude},${routeOrigin.longitude}->${destinationKey}`;
       if (routeFetchKeyRef.current === key) return;
       routeFetchKeyRef.current = key;
       activeDestinationKeyRef.current = null;
@@ -272,7 +283,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
           <Polyline coordinates={routeCoords} strokeColor={darkMode ? '#e5e7eb' : '#111827'} strokeWidth={4} />
         )}
 
-        {searching ? (
+        {userLocation && (searching ? (
           <Marker coordinate={userLocation} anchor={{ x: 0.5, y: SEARCHING_PULSE_ANCHOR_Y }} tracksViewChanges>
             <SearchingPulse />
           </Marker>
@@ -282,7 +293,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
               <View style={styles.userDotInner} />
             </View>
           </Marker>
-        )}
+        ))}
 
         {destCoords && (
           <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 1 }}>
@@ -320,7 +331,11 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
 
       <TouchableOpacity
         style={styles.locBtn}
-        onPress={() => mapRef.current?.animateToRegion({ ...userLocation, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 600)}
+        onPress={() => {
+          if (userLocation) {
+            mapRef.current?.animateToRegion({ ...userLocation, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 600);
+          }
+        }}
       >
         <Navigation size={18} color="#111827" fill="#111827" />
       </TouchableOpacity>

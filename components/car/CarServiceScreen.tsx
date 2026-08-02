@@ -459,6 +459,15 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
           longitude: resumed.dropoffLongitude,
         });
       }
+      // Restore pickup coords from the snapshot so the map draws
+      // driverLocation → pickup during driver_assigned/arrived phases,
+      // even after an app restart (snapshot always carries pickup lat/lng).
+      if (resumed?.pickupLatitude != null && resumed?.pickupLongitude != null) {
+        setPickupCoords({
+          latitude: resumed.pickupLatitude,
+          longitude: resumed.pickupLongitude,
+        });
+      }
     }).finally(() => {
       if (!cancelled) setResuming(false);
     });
