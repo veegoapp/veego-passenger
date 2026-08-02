@@ -76,19 +76,26 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
     }),
   ).current;
 
+  // Holds the currently-running marker animation so it can be stopped before
+  // the next one starts — prevents skipping caused by queued 800ms animations.
+  const driverMarkerAnimRef = useRef<{ stop: () => void } | null>(null);
+
   useEffect(() => {
     if (!driverLocation) return;
+    driverMarkerAnimRef.current?.stop();
     // Cast: AnimatedRegion.timing()'s type incorrectly requires Animated's
     // `toValue` field (from Animated.TimingAnimationConfig); the actual runtime
     // API takes the region-shaped config below. Preserves existing behavior.
-    animatedDriverCoord.timing({
+    const anim = animatedDriverCoord.timing({
       latitude: driverLocation.latitude,
       longitude: driverLocation.longitude,
       latitudeDelta: 0,
       longitudeDelta: 0,
       duration: 800,
       useNativeDriver: false,
-    } as any).start();
+    } as any);
+    driverMarkerAnimRef.current = anim;
+    anim.start(() => { driverMarkerAnimRef.current = null; });
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
   useEffect(() => {

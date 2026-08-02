@@ -21,7 +21,6 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { selectActiveRide } from '@/src/session/activeRideSelectors';
-import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   searching: 'status_finding_driver',
@@ -100,9 +99,6 @@ export default function TripTrackingScreen() {
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
   const socketListening = useRef(false);
-  // Tracks the auto-navigate timer on ride completion/cancellation so it can
-  // be cancelled if the component unmounts before the 3-second window elapses.
-  const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Seed from ActiveSession ───────────────────────────────────────────────
   // When the centralized session has data for the ride this screen is tracking,
@@ -252,61 +248,50 @@ export default function TripTrackingScreen() {
     if (!rideId || socketListening.current) return;
     socketListening.current = true;
 
+    // Track last-seen coordinates so we only call setDriverLocation (and
+    // re-render PassengerTrackingMap) when something actually changed.
+    // Status transitions (arrived, started, completed, cancelled) are NOT
+    // handled here — they are driven by the activeRideSnapshot effect above,
+    // which stays live via ActiveSessionContext's session:snapshot subscription.
+    // Keeping status listeners here would create a competing state machine that
+    // fights with activeRideSnapshot (audit: C1 — duplicate socket ownership).
+    let prevLat: number | undefined;
+    let prevLng: number | undefined;
+    let prevHeading: number | undefined;
+
     const onDriverLocation = (data: any) => {
-      if (data.rideId !== rideId) return;
-      setDriverLocation(data.location);
-    };
-    const onArrived = (data: any) => {
-      if (data.rideId !== rideId) return;
-      setStatus('arrived');
-    };
-    const onStarted = (data: any) => {
-      if (data.rideId !== rideId) return;
-      setStatus('started');
-    };
-    const onCompleted = (data: any) => {
-      if (data.rideId !== rideId) return;
-      setStatus('completed');
-      // Store the timer so it can be cancelled on unmount (audit: Section 7,
-      // "Trip Completed" — hard-coded setTimeout with no cleanup).
-      completionTimerRef.current = setTimeout(() => router.back(), 3000);
-    };
-    const onCancelled = (data: any) => {
-      if (data.rideId !== rideId) return;
-      setStatus('cancelled');
-      completionTimerRef.current = setTimeout(() => router.back(), 3000);
+      const loc = data?.location;
+      if (!loc) return;
+      if (String(data.rideId) !== String(rideId)) return;
+      // Identity guard: skip no-op updates to preserve React.memo on the map.
+      if (prevLat === loc.latitude && prevLng === loc.longitude && prevHeading === loc.heading) return;
+      prevLat = loc.latitude;
+      prevLng = loc.longitude;
+      prevHeading = loc.heading;
+      setDriverLocation(loc);
     };
 
     getSocket().then((socket) => {
       socket.on('ride:driver_location', onDriverLocation);
-      // Use the canonical RIDE_DRIVER_ARRIVED constant ("ride:driver_arrived").
-      // The previous hardcoded "ride:arrived" string was wrong — it missed the
-      // driver-arrived transition whenever the backend emitted the correct name
-      // (audit: C2 — critical event name mismatch).
-      socket.on(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onArrived);
-      socket.on('ride:started', onStarted);
-      socket.on('ride:completed', onCompleted);
-      socket.on('ride:cancelled', onCancelled);
     }).catch(() => {});
 
     return () => {
       const s = getSocketSync();
       if (s) {
         s.off('ride:driver_location', onDriverLocation);
-        s.off(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onArrived);
-        s.off('ride:started', onStarted);
-        s.off('ride:completed', onCompleted);
-        s.off('ride:cancelled', onCancelled);
       }
       socketListening.current = false;
-      // Cancel any pending auto-navigation timer to avoid calling router.back()
-      // on an already-unmounted component.
-      if (completionTimerRef.current) {
-        clearTimeout(completionTimerRef.current);
-        completionTimerRef.current = null;
-      }
     };
   }, [params.rideId]);
+
+  // Navigate away 3 seconds after the ride reaches a terminal state.
+  // Status is fed by the activeRideSnapshot effect (via ActiveSessionContext)
+  // so no separate socket listener is needed for terminal transitions.
+  useEffect(() => {
+    if (status !== 'completed' && status !== 'cancelled' && status !== 'timeout') return;
+    const timer = setTimeout(() => router.back(), 3000);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   const tripPhase = useMemo<'driver_arriving' | 'trip_started' | null>(() => {
     if (status === 'driver_assigned' || status === 'arrived') return 'driver_arriving';

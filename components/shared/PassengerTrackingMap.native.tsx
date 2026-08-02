@@ -107,19 +107,30 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     new AnimatedRegion({ latitude: initLat, longitude: initLng, latitudeDelta: 0, longitudeDelta: 0 }),
   ).current;
 
+  // Holds the currently-running marker animation so it can be stopped before
+  // the next one starts. Without this, rapid ride:driver_location events queue
+  // up animations (each 800ms) — the second interrupts the first mid-glide,
+  // causing the marker to "skip" to an intermediate position.
+  const markerAnimRef = useRef<{ stop: () => void } | null>(null);
+
   useEffect(() => {
     if (!driverLocation) return;
+    // Stop any in-flight animation before starting the next one — prevents
+    // the skipping/non-linear movement caused by queued 800ms animations.
+    markerAnimRef.current?.stop();
     // Cast: AnimatedRegion.timing()'s type incorrectly requires Animated's
     // `toValue` field (from Animated.TimingAnimationConfig); the actual runtime
     // API takes the region-shaped config below. Preserves existing behavior.
-    animatedCoord.timing({
+    const anim = animatedCoord.timing({
       latitude:        driverLocation.latitude,
       longitude:       driverLocation.longitude,
       latitudeDelta:   0,
       longitudeDelta:  0,
       duration:        800,
       useNativeDriver: false,
-    } as any).start();
+    } as any);
+    markerAnimRef.current = anim;
+    anim.start(() => { markerAnimRef.current = null; });
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
   // ── Camera follow ────────────────────────────────────────────────────────────

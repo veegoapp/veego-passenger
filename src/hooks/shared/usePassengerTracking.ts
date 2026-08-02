@@ -221,22 +221,26 @@ export function usePassengerTracking({
       }
     })();
 
-    // Fire immediately on activation, then every 5 minutes (foreground coverage)
+    // Fire immediately on activation, then every 15 seconds (foreground coverage)
     tick();
     intervalRef.current = setInterval(tick, TRACKING_INTERVAL_MS);
 
     return () => {
       stopTracking();
-      // Stop background location task
-      TaskManager.isAvailableAsync()
-        .then((available) => {
+      // Stop background location task. Uses an async IIFE because effect
+      // cleanups must return void, not Promise. Logs a warning on failure
+      // instead of silently swallowing the error — a missed stop means the
+      // background task continues running after the trip ends, draining battery.
+      (async () => {
+        try {
+          const available = await TaskManager.isAvailableAsync();
           if (!available) return;
-          return Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK)
-            .then((started) => {
-              if (started) Location.stopLocationUpdatesAsync(PASSENGER_LOCATION_TASK).catch(() => {});
-            });
-        })
-        .catch(() => {});
+          const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+          if (started) await Location.stopLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+        } catch (err) {
+          console.warn('[usePassengerTracking] Failed to stop background location task:', err);
+        }
+      })();
     };
   }, [isActive, tick, stopTracking]);
 }

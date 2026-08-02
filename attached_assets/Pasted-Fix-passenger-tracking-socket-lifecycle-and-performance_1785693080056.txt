@@ -1,0 +1,52 @@
+Fix passenger tracking, socket lifecycle, and performance reliability issues.
+
+Implement the following changes:
+
+1. Remove duplicate ride socket listeners (C1).
+- Currently useRide.ts and trip-tracking.tsx can both attach listeners for the same ride events:
+  - ride:driver_location
+  - ride:started
+  - ride:completed
+  - ride:cancelled
+  - driver arrived event
+- Remove the duplicated socket ownership.
+- Keep one source responsible for ride socket events.
+- trip-tracking.tsx should consume the existing ride state instead of maintaining an independent socket-driven state machine.
+- Do not create unnecessary duplicate listeners or duplicate state.
+- Preserve deep-link support and existing ride recovery behavior.
+
+2. Fix PassengerTrackingMap route fetch safety.
+- Add cancellation protection for async route requests.
+- Prevent stale route responses from overwriting newer routes after ride phase changes.
+- Keep current route architecture.
+
+3. Improve driverLocation stability and rendering performance.
+- Ensure driverLocation state only updates when latitude, longitude, or heading actually changes.
+- Preserve React.memo effectiveness.
+- Avoid unnecessary PassengerTrackingMap renders caused by identical location updates.
+
+4. Improve AnimatedRegion update behavior.
+- Prevent animation stacking when multiple driver location events arrive quickly.
+- Keep smooth driver marker movement.
+- Do not remove AnimatedRegion unless there is a clear issue.
+
+5. Fix foreground/background passenger tracking duplication.
+- Review usePassengerTracking behavior.
+- Avoid unnecessary duplicate location processing or sending when foreground tracking and background location task run together.
+- Keep background tracking functionality working.
+
+6. Improve background location cleanup reliability.
+- Make stopLocationUpdatesAsync handling safer.
+- Prevent background tracking from continuing silently after component cleanup failure.
+
+Rules:
+- Do not rewrite the tracking system.
+- Do not introduce new libraries.
+- Keep the existing architecture and make targeted reliability improvements only.
+
+After completing:
+- Run TypeScript checks/build if available.
+- Provide a concise summary of:
+  - files changed
+  - fixes implemented
+  - any remaining issues
