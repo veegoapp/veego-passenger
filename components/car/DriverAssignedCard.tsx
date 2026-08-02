@@ -251,8 +251,9 @@ function DriverAssignedCardBase({
               />
             </View>
 
-            {/* Need Help */}
+            {/* Need Help — routes to SafetySheet via onSOS */}
             <GhostButton
+              onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
               tone="neutral"
               icon={<LifeBuoy size={18} color={c.ink} strokeWidth={1.9} />}
               label={'Need Help'}
