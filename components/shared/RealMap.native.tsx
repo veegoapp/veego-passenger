@@ -90,8 +90,8 @@ export function RealMap({
         showsCompass={false}
         toolbarEnabled={false}
         rotateEnabled={false}
-        scrollEnabled={true}
-        zoomEnabled={true}
+        scrollEnabled={false}
+        zoomEnabled={false}
         pitchEnabled={false}
         customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
       >
