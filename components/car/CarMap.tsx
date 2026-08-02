@@ -42,10 +42,27 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
   const onUserLocationRef = useRef(onUserLocation);
   onUserLocationRef.current = onUserLocation;
 
-  // Track map readiness so animateToRegion is never called before the map
-  // has fully initialised (which silently discards the call).
+  // Track map readiness so camera calls are never issued before the native
+  // MapView has initialised (silent discards). pendingCameraRef holds the
+  // most-recent queued action; a new intent always overwrites the previous
+  // one so only the latest camera position fires on map-ready.
   const mapReadyRef = useRef(false);
-  const pendingLocationRef = useRef<Coords | null>(null);
+  const pendingCameraRef = useRef<(() => void) | null>(null);
+
+  // Tracks whether the initial fit-to-driver has been done for the current
+  // driver-visible session. Cleared when showDriverMarker becomes false so
+  // re-assignment after a cancel triggers a fresh fit.
+  const driverFittedRef = useRef(false);
+
+  // Run a camera action immediately if the map is ready; otherwise store it
+  // for onMapReady. Later calls overwrite earlier ones — no stale actions.
+  const runOrQueueCamera = (action: () => void) => {
+    if (mapReadyRef.current) {
+      action();
+    } else {
+      pendingCameraRef.current = action;
+    }
+  };
 
   // Animated driver marker — glides between GPS ticks instead of snapping,
   // and rotates to match heading. Mirrors the pattern already used for the

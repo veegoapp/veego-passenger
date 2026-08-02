@@ -125,6 +125,22 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   // ── Camera follow ────────────────────────────────────────────────────────────
   const mapRef = useRef<MapView>(null);
 
+  // Map readiness guard: fitToCoordinates / animateToRegion silently fail if
+  // called before the native MapView has finished initialising. pendingCameraRef
+  // holds the most-recent queued action and is drained by onMapReady.
+  const mapReadyRef = useRef(false);
+  const pendingCameraRef = useRef<(() => void) | null>(null);
+
+  // Run a camera action immediately if the map is ready; otherwise store it
+  // for onMapReady. Later calls overwrite earlier ones — no stale actions.
+  const runOrQueueCamera = (action: () => void) => {
+    if (mapReadyRef.current) {
+      action();
+    } else {
+      pendingCameraRef.current = action;
+    }
+  };
+
   // True while the passenger is manually panning — pauses auto-camera updates.
   // Cleared when the recenter button is pressed.
   const [isUserPanning, setIsUserPanning] = useState(false);
