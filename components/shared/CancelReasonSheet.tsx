@@ -6,12 +6,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
-import { X, CircleDot, Circle } from 'lucide-react-native';
-import { C, ThemeColors } from '@/constants/colors';
+import { Check } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { Typography } from '@/constants/typography';
-import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
 
 interface CancelReasonSheetProps {
   visible: boolean;
@@ -24,7 +20,6 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
   const { t, colors: c } = useTheme();
   const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
-  const styles = useMemo(() => makeSheetStyles(c), [c]);
 
   const rideReasons = [
     t('reason_driver_far'),
@@ -33,20 +28,24 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
     t('reason_changed_mind'),
     t('reason_other'),
   ];
-
   const shuttleReasons = [
     t('reason_change_plans'),
     t('reason_time_change'),
     t('reason_booked_vehicle'),
     t('reason_other'),
   ];
-
   const reasons = mode === 'shuttle' ? shuttleReasons : rideReasons;
   const isReasonRequired = mode === 'ride';
 
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const isDark = c.isDark;
+  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
+  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
+  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const primaryCol = c.primary;
 
   const handleClose = useCallback(() => {
     setSelected(null);
@@ -80,190 +79,157 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-          <View style={styles.handle} />
+        <View style={[styles.sheet, { backgroundColor: cardBg, paddingBottom: insets.bottom + 16 }]}>
+          {/* Drag handle */}
+          <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
-          <View style={[styles.header, isRTL && styles.rowRTL]}>
-            <Text style={styles.title}>{t('cancel_trip')}</Text>
-            <TouchableOpacity style={styles.closeBtn} onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <X size={18} color={C.inkSoft} />
-            </TouchableOpacity>
+          {/* Title */}
+          <View style={{ marginBottom: 4 }}>
+            <Text style={[styles.title, { color: c.ink }]}>{t('cancel_trip')}</Text>
+            <Text style={[styles.subtitle, { color: c.inkSoft }]}>
+              {mode === 'shuttle' ? t('cancel_trip_q') : (t('select_reason') ?? 'Your feedback helps us improve the service')}
+            </Text>
           </View>
 
-          <Text style={styles.prompt}>
-            {mode === 'shuttle' ? t('cancel_trip_q') : t('select_reason')}
-          </Text>
-
-          <View style={styles.reasons}>
+          {/* Reason list */}
+          <View style={{ gap: 8, marginTop: 16, marginBottom: 20 }}>
             {reasons.map((reason) => {
               const active = selected === reason;
               return (
                 <TouchableOpacity
                   key={reason}
-                  style={[styles.reasonRow, active && styles.reasonRowActive, isRTL && styles.rowRTL]}
                   onPress={() => {
                     Haptics.selectionAsync();
                     setSelected(active ? null : reason);
                     setError('');
                   }}
-                  activeOpacity={0.75}
+                  activeOpacity={0.78}
+                  style={[
+                    styles.reasonRow,
+                    {
+                      backgroundColor: active
+                        ? (isDark ? 'rgba(30,30,40,0.18)' : 'rgba(30,30,40,0.04)')
+                        : cardBg,
+                      borderColor: active ? primaryCol : borderCol,
+                      borderWidth: active ? 1.5 : 1,
+                    },
+                  ]}
                 >
-                  {active
-                    ? <CircleDot size={18} color={C.accentMint} />
-                    : <Circle size={18} color={C.border} />
-                  }
-                  <Text style={[styles.reasonText, active && styles.reasonTextActive]}>
-                    {reason}
-                  </Text>
+                  {/* Radio circle */}
+                  <View style={[
+                    styles.radio,
+                    { borderColor: active ? primaryCol : borderCol },
+                    active ? { backgroundColor: primaryCol } : {},
+                  ]}>
+                    {active ? <Check size={11} color="#ffffff" strokeWidth={3} /> : null}
+                  </View>
+                  <Text style={[styles.reasonText, { color: c.ink }]}>{reason}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
           {mode === 'shuttle' && (
-            <Text style={styles.optionalHint}>{t('selection_optional')}</Text>
+            <Text style={[styles.optionalHint, { color: c.inkSoft }]}>{t('selection_optional')}</Text>
           )}
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
 
-          <TouchableOpacity
-            style={[styles.confirmBtn, (!canConfirm || loading) && styles.confirmBtnDisabled]}
-            onPress={handleConfirm}
-            disabled={!canConfirm || loading}
-            activeOpacity={0.85}
-          >
-            {loading
-              ? <AppLoader size={24} />
-              : <Text style={styles.confirmBtnText}>{t('confirm_cancel')}</Text>
-            }
-          </TouchableOpacity>
+          {/* Buttons */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* Back ghost button */}
+            <TouchableOpacity
+              onPress={handleClose}
+              activeOpacity={0.78}
+              style={[styles.ghostBtn, { borderColor: borderCol, backgroundColor: surfaceBg, flex: 1 }]}
+            >
+              <Text style={[styles.ghostBtnText, { color: c.ink }]}>{t('no_back')}</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.backBtn} onPress={handleClose} activeOpacity={0.7}>
-            <Text style={styles.backBtnText}>{t('no_back')}</Text>
-          </TouchableOpacity>
+            {/* Confirm cancel (danger) */}
+            <TouchableOpacity
+              onPress={handleConfirm}
+              disabled={!canConfirm || loading}
+              activeOpacity={0.88}
+              style={[
+                styles.dangerBtn,
+                { flex: 1, opacity: !canConfirm || loading ? 0.35 : 1 },
+              ]}
+            >
+              {loading
+                ? <AppLoader size={22} />
+                : <Text style={styles.dangerBtnText}>{t('confirm_cancel')}</Text>
+              }
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
 
-function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
+const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    flex: 1, justifyContent: 'flex-end',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sheet: {
-    backgroundColor: c.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    paddingTop: Spacing.md,
+    paddingTop: 10,
   },
   handle: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : '#e0e0e0',
-    marginBottom: 18,
+    width: 40, height: 5, borderRadius: 3,
+    alignSelf: 'center', marginBottom: 20,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  rowRTL: {
-    flexDirection: 'row-reverse',
-  },
+
   title: {
-    fontSize: Typography.size.lg,
-    fontWeight: Typography.weight.bold,
-    color: c.ink,
-    letterSpacing: -0.4,
+    fontSize: 22, fontWeight: '700', letterSpacing: -0.44,
   },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.lg,
-    backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#f4f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
+  subtitle: {
+    fontSize: 14, marginTop: 4, lineHeight: 20,
   },
-  prompt: {
-    fontSize: 13,
-    color: c.inkSoft,
-    marginBottom: Spacing.lg,
-    lineHeight: 20,
-  },
-  reasons: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
+
   reasonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    borderRadius: 14,
-    padding: 14,
-    backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : '#f8f8fa',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14,
   },
-  reasonRowActive: {
-    borderColor: C.accentMint,
-    backgroundColor: 'rgba(85,196,154,0.07)',
+  radio: {
+    width: 20, height: 20, borderRadius: 10, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   reasonText: {
-    fontSize: Typography.size.sm,
-    color: c.ink,
-    flex: 1,
+    fontSize: 15, fontWeight: '500', flex: 1,
   },
-  reasonTextActive: {
-    color: c.ink,
-    fontWeight: Typography.weight.semibold,
-  },
+
   optionalHint: {
-    fontSize: 11.5,
-    color: c.silver,
-    textAlign: 'center',
-    marginBottom: 14,
+    fontSize: 12, textAlign: 'center', marginBottom: 14,
   },
   errorText: {
-    fontSize: 12.5,
-    color: '#dc2626',
-    marginBottom: Spacing.md,
-    textAlign: 'center',
+    fontSize: 13, color: '#E85454', textAlign: 'center', marginBottom: 12,
   },
-  confirmBtn: {
-    height: 52,
-    borderRadius: 18,
-    backgroundColor: c.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
+
+  ghostBtn: {
+    height: 56, borderRadius: 16, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
   },
-  confirmBtnDisabled: {
-    opacity: 0.4,
+  ghostBtnText: { fontSize: 15, fontWeight: '600' },
+
+  dangerBtn: {
+    height: 56, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#E85454',
+    shadowColor: '#E85454',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  confirmBtnText: {
-    fontSize: 15,
-    fontWeight: Typography.weight.bold,
-    color: c.isDark ? c.background : '#fff',
+  dangerBtnText: {
+    fontSize: 15, fontWeight: '600', color: '#ffffff',
   },
-  backBtn: {
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnText: {
-    fontSize: Typography.size.sm,
-    color: c.inkSoft,
-    fontWeight: Typography.weight.medium,
-  },
-}); }
+});

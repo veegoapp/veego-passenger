@@ -1,21 +1,21 @@
 import { memo, useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Linking, Easing } from 'react-native';
-import { MessageCircle, Phone, X, AlertTriangle, Star, Navigation } from 'lucide-react-native';
+import {
+  MessageCircle, Phone, X, AlertTriangle, Star,
+  Navigation, BadgeCheck, ChevronRight, ShieldAlert, LifeBuoy,
+} from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
-import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
+
+/* ─── Design tokens ──────────────────────────────────────────────────────── */
+const GOLD = '#C8A535';
 
 interface DriverAssignedCardProps {
   visible: boolean;
-  /** Selected car category's display name (e.g. "Economy Plus"), straight from
-   *  the estimate response — null/undefined for scooter/delivery or when no
-   *  category was resolved. Was previously a hardcoded 'economy' | 'premium'
-   *  id that couldn't represent a 3rd (or Nth) category. */
   carCategoryName?: string | null;
   serviceType?: 'car' | 'scooter' | 'delivery';
   destination: string | null;
@@ -29,15 +29,85 @@ interface DriverAssignedCardProps {
   onSOS?: () => void;
 }
 
+/* ─── Stars (static) ─────────────────────────────────────────────────────── */
+function Stars({ value }: { value: number }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={13}
+          color={i <= Math.round(value) ? GOLD : '#d1d1d8'}
+          fill={i <= Math.round(value) ? GOLD : 'transparent'}
+          strokeWidth={0}
+        />
+      ))}
+    </View>
+  );
+}
+
+/* ─── GhostButton ────────────────────────────────────────────────────────── */
+function GhostButton({
+  onPress, disabled, tone = 'neutral', icon, label, flex,
+}: {
+  onPress?: () => void;
+  disabled?: boolean;
+  tone?: 'neutral' | 'danger';
+  icon: React.ReactNode;
+  label: string;
+  flex?: number;
+}) {
+  const { colors: c } = useTheme();
+  const isDark = c.isDark;
+  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.78}
+      style={[
+        styles.ghostBtn,
+        flex ? { flex } : {},
+        tone === 'danger'
+          ? { borderColor: `${c.error}40`, backgroundColor: `${c.error}0F` }
+          : { borderColor: borderCol, backgroundColor: surfaceBg },
+      ]}
+    >
+      {icon}
+      <Text style={[styles.ghostBtnText, { color: tone === 'danger' ? c.error : c.ink }]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+/* ─── PrimaryButton ──────────────────────────────────────────────────────── */
+function PrimaryButton({ onPress, label }: { onPress?: () => void; label: string }) {
+  const { colors: c } = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.88}
+      style={[styles.primaryBtn, { backgroundColor: c.primary }]}
+    >
+      <Text style={styles.primaryBtnText}>{label}</Text>
+      <ChevronRight size={18} color="#ffffff" strokeWidth={2.2} />
+    </TouchableOpacity>
+  );
+}
+
+/* ─── Main component ─────────────────────────────────────────────────────── */
 function DriverAssignedCardBase({
   visible, carCategoryName, serviceType, destination, driver, rideId, rideStatus,
   waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
   const { tabBarHeight } = useTabBar();
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim   = useRef(new Animated.Value(0)).current;
   const arrivedPulse = useRef(new Animated.Value(1)).current;
-  const enRouteDot = useRef(new Animated.Value(1)).current;
+  const enRouteDot  = useRef(new Animated.Value(1)).current;
   const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
@@ -49,13 +119,12 @@ function DriverAssignedCardBase({
     }).start();
   }, [visible]);
 
-  // Pulse animation for "arrived" badge
   useEffect(() => {
     let pulse: Animated.CompositeAnimation | null = null;
     if (rideStatus === 'arrived') {
       pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(arrivedPulse, { toValue: 1.08, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(arrivedPulse, { toValue: 1.06, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
           Animated.timing(arrivedPulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       );
@@ -66,7 +135,6 @@ function DriverAssignedCardBase({
     return () => { pulse?.stop(); };
   }, [rideStatus]);
 
-  // Blink animation for en-route status dot
   useEffect(() => {
     let blink: Animated.CompositeAnimation | null = null;
     if (rideStatus === 'started') {
@@ -90,126 +158,118 @@ function DriverAssignedCardBase({
   };
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
-  const isDark = c.isDark;
-  const sheetBg = isDark ? '#16162a' : '#ffffff';
-  const borderColor = isDark ? '#2c2c46' : '#e5e5ea';
-  const mutedText = isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.4)';
-  const surfaceBg = isDark ? '#1e1e32' : '#f8f8fb';
 
-  const avatarColor = driver?.vehicleColor ?? c.primary;
+  const isDark = c.isDark;
+  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
+  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
+  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+
   const initials = driver?.name
     ? driver.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
     : '?';
 
+  const rating = driver?.rating ?? null;
+
   const isStarted = rideStatus === 'started';
   const isArrived = rideStatus === 'arrived';
 
-  const rating = driver?.rating ?? null;
-  const fullStars = rating != null ? Math.floor(rating) : 0;
-
   return (
     <Animated.View
-      style={[
-        styles.sheet,
-        { opacity: slideAnim, transform: [{ translateY }] },
-      ]}
+      style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: sheetBg, paddingBottom: tabBarHeight + 20 }]}>
-        <View style={[styles.handle, { backgroundColor: borderColor }]} />
+      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: tabBarHeight + 20 }]}>
+        <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
-        {/* ════════════════════════════════════════════
-            ACTIVE RIDE — cockpit layout (started)
-        ════════════════════════════════════════════ */}
+        {/* ══════════════════════════════════════════
+            ACTIVE RIDE (started) — In-progress cockpit
+        ══════════════════════════════════════════ */}
         {isStarted ? (
-          <View style={styles.cockpit}>
-
-            {/* Status strip */}
-            <View style={[styles.cockpitStatus, { backgroundColor: surfaceBg, borderColor }]}>
-              <View style={styles.cockpitStatusLeft}>
-                <Animated.View style={[styles.enRouteDot, { opacity: enRouteDot, backgroundColor: c.accent }]} />
-                <Text style={[styles.cockpitStatusLabel, { color: c.accent }]}>
-                  {t('driver_en_route')}
+          <View style={styles.body}>
+            {/* Status header */}
+            <View style={styles.inProgressHeader}>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Animated.View style={[styles.enRouteDotIndicator, { backgroundColor: c.success, opacity: enRouteDot }]} />
+                  <Text style={[styles.statusLabel, { color: c.inkSoft }]}>{t('driver_en_route') ?? 'On trip'}</Text>
+                </View>
+                <Text style={[styles.inProgressTitle, { color: c.ink }]} numberOfLines={1}>
+                  {'Heading to'} {destination ? destination : '—'}
                 </Text>
               </View>
-              <View style={styles.cockpitStatusRight}>
-                <Navigation size={12} color={mutedText} />
-                <Text style={[styles.cockpitDest, { color: mutedText }]} numberOfLines={1}>
-                  {destination ?? '—'}
-                </Text>
+              {/* ETA chip */}
+              <View style={[styles.etaChip, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
+                <Text style={[styles.etaChipValue, { color: c.ink }]}>{driver?.eta ?? '—'}</Text>
+                <Text style={[styles.etaChipUnit, { color: c.inkSoft }]}>{t('min')}</Text>
               </View>
             </View>
 
-            {/* Driver mini-strip */}
-            <View style={[styles.cockpitDriverRow, { backgroundColor: surfaceBg, borderColor }]}>
-              <View style={[styles.cockpitAvatar, { backgroundColor: avatarColor }]}>
-                <Text style={styles.cockpitAvatarText}>{initials}</Text>
+            {/* Progress bar placeholder */}
+            <View style={[styles.progressTrack, { backgroundColor: surfaceBg }]}>
+              <View style={[styles.progressFill, { backgroundColor: c.primary, width: '60%' }]} />
+            </View>
+
+            {/* Driver mini row */}
+            <View style={[styles.driverMiniRow, { backgroundColor: cardBg, borderColor: borderCol }]}>
+              <View style={[styles.driverMiniIcon, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
+                <Navigation size={18} color={c.ink} strokeWidth={1.7} />
               </View>
-              <View style={styles.cockpitDriverMeta}>
-                <Text style={[styles.cockpitDriverName, { color: c.ink }]}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[styles.driverMiniName, { color: c.ink }]} numberOfLines={1}>
                   {driver?.name ?? '—'}
                 </Text>
-                <Text style={[styles.cockpitVehicle, { color: mutedText }]} numberOfLines={1}>
+                <Text style={[styles.driverMiniSub, { color: c.inkSoft }]} numberOfLines={1}>
                   {[driver?.vehicle, driver?.plateNumber].filter(Boolean).join(' · ') || '—'}
                 </Text>
               </View>
-              {waitingChargeStatus === 'active' && waitingCharge != null && (
-                <View style={[styles.waitBadge, { backgroundColor: c.warning + '1F', borderColor: c.warning + '4D' }]}>
-                  <Text style={[styles.waitBadgeText, { color: c.warning }]}>
-                    +{waitingCharge.toFixed(2)}
-                  </Text>
-                </View>
-              )}
+              {rating != null ? <Stars value={rating} /> : null}
             </View>
 
-            {/* Cockpit actions */}
-            <View style={styles.cockpitActions}>
-              <TouchableOpacity
-                style={[styles.cockpitIconBtn, { backgroundColor: surfaceBg, borderColor }]}
+            {/* Action buttons row */}
+            <View style={styles.actionsRow}>
+              <GhostButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                activeOpacity={0.78}
-              >
-                <MessageCircle size={18} color={c.ink} strokeWidth={1.8} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.cockpitIconBtn,
-                  { backgroundColor: surfaceBg, borderColor, opacity: driver?.phone ? 1 : 0.38 },
-                ]}
+                tone="neutral"
+                icon={<MessageCircle size={18} color={c.ink} strokeWidth={1.8} />}
+                label={t('chat')}
+                flex={1}
+              />
+              <GhostButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                activeOpacity={0.78}
-              >
-                <Phone size={18} color={c.ink} strokeWidth={1.8} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.sosBtn]}
-                onPress={() => {
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                  onSOS?.();
-                }}
-                activeOpacity={0.82}
-                accessibilityLabel="Send SOS"
-              >
-                <AlertTriangle size={16} color="#ffffff" />
-                <Text style={styles.sosBtnText}>SOS</Text>
-              </TouchableOpacity>
+                tone="neutral"
+                icon={<Phone size={18} color={c.ink} strokeWidth={1.8} />}
+                label={t('call') ?? 'Call'}
+                flex={1}
+              />
+              <GhostButton
+                onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
+                tone="danger"
+                icon={<ShieldAlert size={18} color={c.error} strokeWidth={1.9} />}
+                label="SOS"
+                flex={1}
+              />
             </View>
-          </View>
-        ) : (
-          /* ════════════════════════════════════════════
-             DRIVER ASSIGNED / ARRIVED — identity card
-          ════════════════════════════════════════════ */
-          <View style={styles.assignedBody}>
 
-            {/* ── ETA / Arrived hero ── */}
+            {/* Need Help */}
+            <GhostButton
+              tone="neutral"
+              icon={<LifeBuoy size={18} color={c.ink} strokeWidth={1.9} />}
+              label={'Need Help'}
+            />
+          </View>
+
+        ) : (
+          /* ══════════════════════════════════════════
+             DRIVER ASSIGNED / ARRIVED — identity card
+          ══════════════════════════════════════════ */
+          <View style={styles.body}>
+            {/* ── ETA / Arrived header ── */}
             {isArrived ? (
               <Animated.View
                 style={[
                   styles.arrivedBadge,
-                  { backgroundColor: c.success + '18', borderColor: c.success + '50', transform: [{ scale: arrivedPulse }] },
+                  { backgroundColor: `${c.success}18`, borderColor: `${c.success}50`, transform: [{ scale: arrivedPulse }] },
                 ]}
               >
                 <View style={[styles.arrivedDot, { backgroundColor: c.success }]} />
@@ -218,140 +278,117 @@ function DriverAssignedCardBase({
                 </Text>
               </Animated.View>
             ) : (
-              <View style={styles.etaHero}>
-                <View style={styles.etaNumberRow}>
-                  <Text style={[styles.etaNumber, { color: c.ink }]}>
-                    {driver?.eta ?? '—'}
+              <View style={styles.etaHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.etaHeaderLabel, { color: c.inkSoft }]}>
+                    {'Driver on the way'}
                   </Text>
-                  <View style={styles.etaUnit}>
-                    <Text style={[styles.etaUnitTop, { color: mutedText }]}>{t('min')}</Text>
-                    <Text style={[styles.etaUnitBottom, { color: mutedText }]}>{t('driver_arriving')}</Text>
-                  </View>
+                  <Text style={[styles.etaHeaderValue, { color: c.ink }]}>
+                    {'Arrives in'} {driver?.eta ?? '—'} {t('min')}
+                  </Text>
                 </View>
-                {destination && (
-                  <Text style={[styles.etaDest, { color: mutedText }]} numberOfLines={1}>
-                    → {destination}
-                  </Text>
-                )}
+                <View style={[styles.confirmedBadge, { backgroundColor: `${c.success}15`, borderColor: `${c.success}30` }]}>
+                  <Text style={[styles.confirmedText, { color: c.success }]}>{'Confirmed'}</Text>
+                </View>
               </View>
             )}
 
-            {/* Divider */}
-            <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
             {/* ── Driver identity card ── */}
-            <View style={[styles.driverCard, { backgroundColor: surfaceBg, borderColor }]}>
+            <View style={[styles.driverCard, { backgroundColor: cardBg, borderColor: borderCol }]}>
               {/* Avatar */}
-              <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
-                <Text style={styles.avatarInitials}>{initials}</Text>
+              <View style={[styles.avatar, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
+                <Text style={[styles.avatarInitials, { color: c.ink }]}>{initials}</Text>
               </View>
 
               {/* Info */}
-              <View style={styles.driverInfo}>
-                <View style={styles.driverNameRow}>
-                  <Text style={[styles.driverName, { color: c.ink }]}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.driverName, { color: c.ink }]} numberOfLines={1}>
                     {driver?.name ?? '—'}
                   </Text>
-                  {serviceType === 'car' && !!carCategoryName && (
-                    <View style={[styles.categoryBadge, { backgroundColor: c.accent + '18', borderColor: c.accent + '50' }]}>
-                      <Text style={[styles.categoryBadgeText, { color: c.accent }]}>
-                        {carCategoryName}
-                      </Text>
-                    </View>
-                  )}
+                  <BadgeCheck size={16} color={c.primary} strokeWidth={2} />
                 </View>
-
-                {/* Stars */}
-                <View style={styles.starsRow}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      size={13}
-                      color={c.accent}
-                      fill={i < fullStars ? c.accent : 'transparent'}
-                    />
-                  ))}
-                  {rating != null && (
-                    <Text style={[styles.ratingText, { color: mutedText }]}>
-                      {rating.toFixed(1)}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  {rating != null ? <Stars value={rating} /> : null}
+                  {rating != null ? (
+                    <Text style={[styles.ratingText, { color: c.ink }]}>{rating.toFixed(1)}</Text>
+                  ) : null}
+                  {driver && (
+                    <Text style={[styles.tripsText, { color: c.inkSoft }]}>
+                      {carCategoryName ? `· ${carCategoryName}` : ''}
                     </Text>
                   )}
                 </View>
-
-                {/* Vehicle */}
-                {driver?.vehicle && (
-                  <Text style={[styles.vehicleText, { color: mutedText }]}>
-                    {driver.vehicle}
-                  </Text>
-                )}
               </View>
-
-              {/* Plate */}
-              {driver?.plateNumber && (
-                <View style={[styles.plateBadge, { backgroundColor: isDark ? '#2c2c46' : '#f2f2f5', borderColor }]}>
-                  <View style={[styles.plateStripe, { backgroundColor: avatarColor }]} />
-                  <Text style={[styles.plateText, { color: c.ink }]}>
-                    {driver.plateNumber}
-                  </Text>
-                </View>
-              )}
             </View>
 
-            {/* Waiting charge banner */}
+            {/* ── Vehicle row ── */}
+            <View style={[styles.vehicleRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
+              <View style={[styles.vehicleIconBox, { backgroundColor: cardBg, borderColor: borderCol }]}>
+                <Navigation size={18} color={c.ink} strokeWidth={1.7} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[styles.vehicleName, { color: c.ink }]} numberOfLines={1}>
+                  {driver?.vehicle ?? '—'}
+                </Text>
+                <Text style={[styles.vehicleSub, { color: c.inkSoft }]}>
+                  {serviceType === 'car' ? 'Car' : serviceType === 'scooter' ? 'Scooter' : 'Delivery'}
+                </Text>
+              </View>
+              {driver?.plateNumber ? (
+                <View style={[styles.plateBadge, { backgroundColor: cardBg, borderColor: borderCol }]}>
+                  <Text style={[styles.plateText, { color: c.ink }]}>{driver.plateNumber}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* ── Waiting charge banner ── */}
             {waitingChargeStatus === 'active' && waitingCharge != null && (
-              <View style={[styles.waitingBanner, { backgroundColor: c.warning + '12', borderColor: c.warning + '40' }]}>
-                <View style={[styles.waitingDot, { backgroundColor: c.warning }]} />
-                <Text style={[styles.waitingText, { color: c.warning }]}>
+              <View style={[styles.waitBanner, { backgroundColor: `${c.warning}12`, borderColor: `${c.warning}40` }]}>
+                <View style={[styles.waitDot, { backgroundColor: c.warning }]} />
+                <Text style={[styles.waitText, { color: c.warning }]}>
                   {t('waiting_charge')}: {waitingCharge.toFixed(2)} {t('egp')}
                 </Text>
               </View>
             )}
 
-            {/* ── Action buttons ── */}
-            <View style={[styles.actionRow, { borderTopColor: borderColor }]}>
-              {/* Chat */}
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: surfaceBg, borderColor }]}
-                onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                activeOpacity={0.78}
-              >
-                <MessageCircle size={20} color={c.ink} strokeWidth={1.8} />
-                <Text style={[styles.actionLabel, { color: c.inkSoft }]}>
-                  {t('chat')}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Call */}
-              <TouchableOpacity
-                style={[
-                  styles.actionBtn,
-                  { backgroundColor: surfaceBg, borderColor, opacity: driver?.phone ? 1 : 0.35 },
-                ]}
+            {/* ── Call / Message row ── */}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <GhostButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                activeOpacity={0.78}
-              >
-                <Phone size={20} color={c.ink} strokeWidth={1.8} />
-                <Text style={[styles.actionLabel, { color: c.inkSoft }]}>
-                  {t('call') ?? 'Call'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Cancel */}
-              <TouchableOpacity
-                style={[styles.actionBtn, { borderColor: c.error + '40', backgroundColor: c.error + '10' }]}
-                onPress={() => {
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                  onCancel();
-                }}
-                activeOpacity={0.78}
-              >
-                <X size={20} color={c.error} />
-                <Text style={[styles.actionLabel, { color: c.error }]}>
-                  {t('cancel')}
-                </Text>
-              </TouchableOpacity>
+                tone="neutral"
+                icon={<Phone size={18} color={c.ink} strokeWidth={1.9} />}
+                label={t('call') ?? 'Call'}
+                flex={1}
+              />
+              <GhostButton
+                onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
+                tone="neutral"
+                icon={<MessageCircle size={18} color={c.ink} strokeWidth={1.9} />}
+                label={t('chat')}
+                flex={1}
+              />
             </View>
+
+            {/* ── Primary action (Start trip / shown when arrived) ── */}
+            {(isArrived || rideStatus === 'driver_assigned') && onStart && (
+              <PrimaryButton onPress={onStart} label={'Start trip'} />
+            )}
+
+            {/* ── Cancel ── */}
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                onCancel();
+              }}
+              activeOpacity={0.78}
+              style={styles.cancelTextBtn}
+            >
+              <Text style={[styles.cancelTextBtnLabel, { color: c.error }]}>
+                {'Cancel Ride'}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -366,16 +403,14 @@ function DriverAssignedCardBase({
   );
 }
 
-// CarServiceScreen re-renders on every driver-location tick; memoize to avoid
-// re-rendering on every location update.
 export const DriverAssignedCard = memo(DriverAssignedCardBase);
 
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
     shadowRadius: 20,
     elevation: 26,
     zIndex: 999,
@@ -386,145 +421,137 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   handle: {
-    width: 40, height: 4, borderRadius: 2,
-    alignSelf: 'center', marginBottom: 16,
+    width: 40, height: 5, borderRadius: 3,
+    alignSelf: 'center', marginBottom: 20,
+  },
+  body: {
+    paddingHorizontal: 20, gap: 12, paddingBottom: 4,
   },
 
-  // ── Active ride cockpit ──────────────────────────────────────────
-  cockpit: {
-    paddingHorizontal: 16, gap: 10, paddingBottom: Spacing.xs,
+  /* ── In-progress ── */
+  inProgressHeader: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
   },
-  cockpitStatus: {
+  statusLabel: {
+    fontSize: 11, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase',
+  },
+  enRouteDotIndicator: {
+    width: 6, height: 6, borderRadius: 3,
+  },
+  inProgressTitle: {
+    fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginTop: 4,
+  },
+  etaChip: {
+    borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, alignItems: 'flex-end',
+  },
+  etaChipValue: { fontSize: 15, fontWeight: '700' },
+  etaChipUnit: { fontSize: 11 },
+  progressTrack: {
+    height: 6, borderRadius: 3, width: '100%', overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%', borderRadius: 3,
+  },
+  driverMiniRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderRadius: 16, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
+  },
+  driverMiniIcon: {
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
+  driverMiniName: { fontSize: 15, fontWeight: '600', letterSpacing: -0.15 },
+  driverMiniSub: { fontSize: 13, marginTop: 2 },
+  actionsRow: { flexDirection: 'row', gap: 8 },
+
+  /* ── Assigned/Arrived ── */
+  etaHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1,
   },
-  cockpitStatusLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  enRouteDot: { width: 8, height: 8, borderRadius: 4 },
-  cockpitStatusLabel: {
-    fontSize: 11, fontWeight: '700' as any, letterSpacing: 1.0, textTransform: 'uppercase' as any,
+  etaHeaderLabel: {
+    fontSize: 11, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase',
   },
-  cockpitStatusRight: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1,
-    justifyContent: 'flex-end',
+  etaHeaderValue: {
+    fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginTop: 4,
   },
-  cockpitDest: { fontSize: 12, fontWeight: '500' as any, flex: 1, textAlign: 'right' },
-  cockpitDriverRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1,
+  confirmedBadge: {
+    borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1,
   },
-  cockpitAvatar: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  cockpitAvatarText: { color: '#fff', fontSize: 14, fontWeight: '700' as any },
-  cockpitDriverMeta: { flex: 1 },
-  cockpitDriverName: { fontSize: 15, fontWeight: '700' as any, letterSpacing: -0.2 },
-  cockpitVehicle: { fontSize: 12, fontWeight: '500' as any, marginTop: 2 },
-  waitBadge: {
-    borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1,
-  },
-  waitBadgeText: { fontSize: 11, fontWeight: '700' as any },
-  cockpitActions: {
-    flexDirection: 'row', gap: 10, alignItems: 'center',
-  },
-  cockpitIconBtn: {
-    width: 50, height: 50, borderRadius: 14, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-    elevation: 0,
-  },
-  sosBtn: {
-    flex: 1, height: 50, borderRadius: 14,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#E85454',
-    shadowColor: '#E85454',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  sosBtnText: { color: '#ffffff', fontSize: 14, fontWeight: '800' as any, letterSpacing: 0.5 },
+  confirmedText: { fontSize: 12, fontWeight: '600' },
 
-  // ── Driver assigned / arrived ───────────────────────────────────
-  assignedBody: {
-    paddingHorizontal: 16, gap: 14, paddingBottom: Spacing.xs,
-  },
-
-  // ETA hero
-  etaHero: { gap: 4 },
-  etaNumberRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  etaNumber: {
-    fontSize: 52, fontWeight: '800' as any, letterSpacing: -2, lineHeight: 56,
-  },
-  etaUnit: { paddingBottom: 8, gap: 2 },
-  etaUnitTop: { fontSize: 15, fontWeight: '600' as any },
-  etaUnitBottom: { fontSize: 11, fontWeight: '500' as any },
-  etaDest: { fontSize: 12.5, fontWeight: '500' as any },
-
-  // Arrived badge
   arrivedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
-    borderWidth: 1, alignSelf: 'stretch',
+    borderWidth: 1,
   },
   arrivedDot: { width: 10, height: 10, borderRadius: 5 },
-  arrivedText: { fontSize: 15, fontWeight: '700' as any },
+  arrivedText: { fontSize: 15, fontWeight: '700' },
 
-  // Divider
-  divider: { height: 1 },
-
-  // Driver identity card
   driverCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14,
-    borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderRadius: 16, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
   },
-  avatarCircle: {
-    width: 52, height: 52, borderRadius: 16,
+  avatar: {
+    width: 52, height: 52, borderRadius: 26, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  avatarInitials: { color: '#ffffff', fontSize: 18, fontWeight: '800' as any },
-  driverInfo: { flex: 1, gap: 4 },
-  driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  driverName: { fontSize: 17, fontWeight: '700' as any, letterSpacing: -0.3 },
-  categoryBadge: {
-    borderRadius: 6, borderWidth: 1,
-    paddingHorizontal: 7, paddingVertical: 2,
+  avatarInitials: { fontSize: 16, fontWeight: '700' },
+  driverName: { fontSize: 16, fontWeight: '600', letterSpacing: -0.15 },
+  ratingText: { fontSize: 13, fontWeight: '500' },
+  tripsText: { fontSize: 12 },
+
+  vehicleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderRadius: 16, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 14,
   },
-  categoryBadgeText: { fontSize: 10, fontWeight: '700' as any, letterSpacing: 0.5, textTransform: 'uppercase' as any },
-  starsRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { fontSize: 12, fontWeight: '600' as any, marginLeft: 4 },
-  vehicleText: { fontSize: 12.5, fontWeight: '500' as any },
+  vehicleIconBox: {
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
+  vehicleName: { fontSize: 15, fontWeight: '600' },
+  vehicleSub: { fontSize: 13, marginTop: 2 },
   plateBadge: {
     borderRadius: 10, borderWidth: 1,
-    overflow: 'hidden', alignItems: 'center',
-    flexShrink: 0, minWidth: 62,
+    paddingHorizontal: 10, paddingVertical: 6,
   },
-  plateStripe: { height: 4, width: '100%' },
-  plateText: { fontSize: 12, fontWeight: '800' as any, letterSpacing: 1.2, paddingHorizontal: 8, paddingVertical: 5 },
+  plateText: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2 },
 
-  // Waiting charge
-  waitingBanner: {
+  waitBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1,
   },
-  waitingDot: { width: 8, height: 8, borderRadius: 4 },
-  waitingText: { fontSize: 12.5, fontWeight: '600' as any },
+  waitDot: { width: 8, height: 8, borderRadius: 4 },
+  waitText: { fontSize: 13, fontWeight: '600' },
 
-  // Action row
-  actionRow: {
-    flexDirection: 'row', gap: 10,
-    borderTopWidth: 1, paddingTop: 14,
+  ghostBtn: {
+    height: 56, borderRadius: 16, borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  actionBtn: {
-    flex: 1, height: 54, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-    gap: 5, borderWidth: 1,
-    elevation: 0,
+  ghostBtnText: { fontSize: 14, fontWeight: '600' },
+
+  primaryBtn: {
+    height: 56, borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18, shadowRadius: 20, elevation: 6,
   },
-  actionLabel: {
-    fontSize: 11, fontWeight: '600' as any, letterSpacing: 0.2,
+  primaryBtnText: {
+    fontSize: 15.5, fontWeight: '600', color: '#ffffff', letterSpacing: -0.15,
+  },
+
+  cancelTextBtn: {
+    height: 44, alignItems: 'center', justifyContent: 'center',
+  },
+  cancelTextBtnLabel: {
+    fontSize: 14, fontWeight: '600',
   },
 });

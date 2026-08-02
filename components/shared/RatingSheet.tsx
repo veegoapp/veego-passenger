@@ -1,17 +1,16 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Animated, Platform, Keyboard,
+  StyleSheet, Animated, Keyboard,
 } from 'react-native';
-import { Check, Star } from 'lucide-react-native';
+import { Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
-import { GlassView } from '@/components/ui/GlassView';
 import { Animation } from '@/constants/animations';
-import { Typography } from '@/constants/typography';
-import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
+
+/* ─── Design tokens ──────────────────────────────────────────────────────── */
+const GOLD = '#C8A535';
 
 interface RatingSheetProps {
   visible: boolean;
@@ -25,14 +24,12 @@ interface RatingSheetProps {
 export function RatingSheet({ visible, driverName, driverInitials, driverColor, onSubmit, onSkip }: RatingSheetProps) {
   const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const starScale = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
-  const [stars, setStars] = useState(0);
-  const [comment, setComment] = useState('');
+  const slideAnim   = useRef(new Animated.Value(0)).current;
+  const starScales  = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
+  const checkScale  = useRef(new Animated.Value(0)).current;
+  const [stars, setStars]       = useState(0);
+  const [comment, setComment]   = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const checkScale = useRef(new Animated.Value(0)).current;
-  // Guards against a rapid double-tap firing handleSubmit twice before the
-  // `submitted` state re-render hides the submit button.
   const submittingRef = useRef(false);
 
   useEffect(() => {
@@ -55,8 +52,8 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
     Haptics.selectionAsync();
     setStars(n);
     Animated.sequence([
-      Animated.timing(starScale[n - 1], { toValue: 1.4, duration: 120, useNativeDriver: true }),
-      Animated.spring(starScale[n - 1], { toValue: 1, useNativeDriver: true, damping: 10 }),
+      Animated.timing(starScales[n - 1], { toValue: 1.5, duration: 120, useNativeDriver: true }),
+      Animated.spring(starScales[n - 1], { toValue: 1, useNativeDriver: true, damping: 10 }),
     ]).start();
   };
 
@@ -77,115 +74,174 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] });
 
+  const isDark = c.isDark;
+  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
+  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
+  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const primaryCol = c.primary;
+
   return (
     <Animated.View
-      style={[
-        styles.sheet,
-        {
-          opacity: slideAnim,
-          transform: [{ translateY }],
-        },
-      ]}
+      style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <GlassView strong borderRadius={28} style={[styles.sheetGlass, { paddingBottom: insets.bottom + 32 }]}>
-      <View style={[styles.handle, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)' }]} />
+      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 32 }]}>
+        <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
-      {submitted ? (
-        <View style={styles.successWrap}>
-          <Animated.View style={[styles.successCircle, { backgroundColor: c.accent, transform: [{ scale: checkScale }] }]}>
-            <Check size={38} color="#ffffff" />
-          </Animated.View>
-          <Text style={[styles.successTitle, { color: c.ink }]}>{t('thanks_rating')}</Text>
-          <Text style={[styles.successSub, { color: c.inkSoft }]}>{t('ride_confirmed')}</Text>
-        </View>
-      ) : (
-        <View style={styles.inner}>
-          <View style={[styles.avatar, { backgroundColor: driverColor }]}>
-            <Text style={styles.avatarText}>{driverInitials}</Text>
+        {submitted ? (
+          /* ── Success state ── */
+          <View style={styles.successWrap}>
+            <Animated.View style={[
+              styles.successCircle,
+              { backgroundColor: c.success, transform: [{ scale: checkScale }] },
+            ]}>
+              <Check size={38} color="#ffffff" strokeWidth={2.5} />
+            </Animated.View>
+            <Text style={[styles.successTitle, { color: c.ink }]}>{t('thanks_rating')}</Text>
+            <Text style={[styles.successSub, { color: c.inkSoft }]}>{t('ride_confirmed')}</Text>
           </View>
-          <Text style={[styles.title, { color: c.ink }]}>{t('rate_your_ride')}</Text>
-          <Text style={[styles.sub, { color: c.inkSoft }]}>{driverName}</Text>
+        ) : (
+          /* ── Rating form ── */
+          <View style={styles.inner}>
+            {/* "Trip completed" label */}
+            <Text style={[styles.completedLabel, { color: c.inkSoft }]}>
+              {t('trip_complete') ?? 'Trip completed'}
+            </Text>
 
-          <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map(n => (
-              <TouchableOpacity key={n} onPress={() => handleStarPress(n)} activeOpacity={0.7}>
-                <Animated.View style={{ transform: [{ scale: starScale[n - 1] }] }}>
-                  <Star
-                    size={40}
-                    color={n <= stars ? c.accent : c.silver}
-                    fill={n <= stars ? c.accent : 'none'}
-                  />
-                </Animated.View>
-              </TouchableOpacity>
-            ))}
-          </View>
+            {/* Driver avatar */}
+            <View style={[styles.avatar, { backgroundColor: driverColor }]}>
+              <Text style={styles.avatarText}>{driverInitials}</Text>
+            </View>
 
-          <View style={[styles.commentBox, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.white, borderColor: c.border }]}>
-            <TextInput
-              style={[styles.commentInput, { color: c.ink }]}
-              placeholder={t('leave_comment')}
-              placeholderTextColor={c.inkSoft}
-              multiline
-              maxLength={200}
-              value={comment}
-              onChangeText={setComment}
-            />
-          </View>
+            <Text style={[styles.title, { color: c.ink }]}>{t('rate_your_ride')}</Text>
+            <Text style={[styles.driverName, { color: c.inkSoft }]}>{driverName}</Text>
 
-          <View style={styles.btnRow}>
+            {/* Star rating section */}
+            <View style={[styles.ratingSection, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
+              <Text style={[styles.ratingPrompt, { color: c.ink }]}>
+                {`How was your ride with ${driverName}?`}
+              </Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <TouchableOpacity key={n} onPress={() => handleStarPress(n)} activeOpacity={0.7}>
+                    <Animated.View style={{ transform: [{ scale: starScales[n - 1] }] }}>
+                      <Text style={[styles.star, { color: n <= stars ? GOLD : borderCol }]}>★</Text>
+                    </Animated.View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Comment input */}
+              <TextInput
+                style={[
+                  styles.commentInput,
+                  { borderColor: borderCol, backgroundColor: cardBg, color: c.ink },
+                ]}
+                placeholder={t('leave_comment')}
+                placeholderTextColor={c.inkSoft}
+                multiline
+                maxLength={200}
+                value={comment}
+                onChangeText={setComment}
+                numberOfLines={2}
+              />
+            </View>
+
+            {/* Submit button */}
             <TouchableOpacity
-              style={[styles.submitBtn, { backgroundColor: stars > 0 ? c.accent : c.mist, opacity: stars > 0 ? 1 : 0.5 }]}
               onPress={handleSubmit}
-              activeOpacity={0.85}
+              disabled={stars === 0}
+              activeOpacity={0.88}
+              style={[
+                styles.submitBtn,
+                { backgroundColor: stars > 0 ? primaryCol : (isDark ? '#2a2a40' : '#d1d1d8'), opacity: stars > 0 ? 1 : 0.5 },
+              ]}
             >
-              <Text style={[styles.submitText, { color: stars > 0 ? '#ffffff' : c.inkSoft }]}>{t('submit_rating')}</Text>
+              <Text style={styles.submitBtnText}>{t('submit_rating')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.7}>
+
+            {/* Skip */}
+            <TouchableOpacity onPress={handleSkip} activeOpacity={0.7} style={styles.skipBtn}>
               <Text style={[styles.skipText, { color: c.inkSoft }]}>{t('skip')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      )}
-      </GlassView>
+        )}
+      </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -16 },
-    shadowOpacity: 0.35,
-    shadowRadius: 32,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
     elevation: 28,
     zIndex: 1000,
   },
-  sheetGlass: {
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
-    paddingTop: 6,
+  sheetSurface: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 10,
   },
-  handle: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: Spacing.lg },
-  inner: { paddingHorizontal: Spacing.xl, alignItems: 'center', gap: 14 },
-  avatar: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#ffffff', fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
-  title: { fontSize: 20, fontWeight: Typography.weight.bold, letterSpacing: -0.4, marginTop: 2 },
-  sub: { fontSize: 13.5, marginTop: -8 },
-  starsRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.xs },
-  commentBox: { width: '100%', borderRadius: Radius.lg, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, minHeight: 72 },
-  commentInput: { fontSize: 13.5, lineHeight: 20 },
-  btnRow: { width: '100%', gap: 10, marginTop: Spacing.xs },
-  submitBtn: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  submitText: { fontSize: 15, fontWeight: Typography.weight.bold },
-  skipBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
-  skipText: { fontSize: 13.5 },
-  successWrap: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.sm, alignItems: 'center', gap: 14 },
-  successCircle: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
-  successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, letterSpacing: -0.4 },
-  successSub: { fontSize: 13.5, marginTop: -8 },
+  handle: {
+    width: 40, height: 5, borderRadius: 3,
+    alignSelf: 'center', marginBottom: 24,
+  },
+
+  /* ── Success ── */
+  successWrap: {
+    paddingHorizontal: 24, paddingBottom: 8,
+    alignItems: 'center', gap: 14,
+  },
+  successCircle: {
+    width: 80, height: 80, borderRadius: 40,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  successTitle: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
+  successSub: { fontSize: 14, marginTop: -6 },
+
+  /* ── Rating form ── */
+  inner: {
+    paddingHorizontal: 20, alignItems: 'center', gap: 14,
+  },
+  completedLabel: {
+    fontSize: 11, fontWeight: '600', letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  avatar: {
+    width: 64, height: 64, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarText: { color: '#ffffff', fontSize: 22, fontWeight: '700' },
+  title: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginTop: 2 },
+  driverName: { fontSize: 14, marginTop: -8 },
+
+  ratingSection: {
+    width: '100%', borderRadius: 16, borderWidth: 1,
+    padding: 16, alignItems: 'center', gap: 12,
+  },
+  ratingPrompt: { fontSize: 15, fontWeight: '600' },
+  starsRow: { flexDirection: 'row', gap: 10 },
+  star: { fontSize: 36 },
+
+  commentInput: {
+    width: '100%', borderRadius: 12, borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 10,
+    fontSize: 14, lineHeight: 20, minHeight: 68,
+    textAlignVertical: 'top',
+  },
+
+  submitBtn: {
+    width: '100%', height: 56, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18, shadowRadius: 20, elevation: 6,
+  },
+  submitBtnText: { fontSize: 15.5, fontWeight: '600', color: '#ffffff', letterSpacing: -0.15 },
+
+  skipBtn: { paddingVertical: 8, alignItems: 'center' },
+  skipText: { fontSize: 14 },
 });

@@ -10,7 +10,6 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Check, X, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -20,7 +19,6 @@ import { useRide } from '@/src/hooks/car/useRide';
 import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
-import { GlassView } from '@/components/ui/GlassView';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { CarMap } from './CarMap';
@@ -34,7 +32,6 @@ import { useSocketConnectionState } from '@/src/hooks/shared/useSocketConnection
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
-import { VeeGoButton } from '@/components/ui/VeeGoButton';
 
 interface Coords { latitude: number; longitude: number }
 interface CarCategoryOption {
@@ -281,6 +278,51 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       alignItems: 'center', justifyContent: 'center', gap: 14,
     },
     resumeText: { color: 'rgba(255,255,255,0.75)', fontSize: Typography.size.sm, fontWeight: Typography.weight.medium },
+
+    // ── Lovable CompletedSheet / CancelConfirmSheet cards ────────────────
+    lvDragHandle: {
+      width: 40, height: 5, borderRadius: 3,
+      alignSelf: 'center', marginBottom: 20,
+    },
+    completedLabel: {
+      fontSize: 11, fontWeight: Typography.weight.bold as any,
+      letterSpacing: 0.8, textTransform: 'uppercase' as any,
+    },
+    fareAmount: {
+      fontSize: 36, fontWeight: '800' as any, letterSpacing: -1.2, marginTop: 4,
+    },
+    fareCurrency: {
+      fontSize: 16, fontWeight: '600' as any,
+    },
+    paymentChip: {
+      flexDirection: 'row' as any, alignItems: 'center' as any, gap: 8,
+      borderRadius: 99, borderWidth: 1,
+      paddingHorizontal: 14, paddingVertical: 8,
+      marginTop: 4,
+    },
+    paymentChipText: { fontSize: 13, fontWeight: '500' as any },
+    primaryActionBtn: {
+      width: '100%' as any, height: 56, borderRadius: 16,
+      alignItems: 'center' as any, justifyContent: 'center' as any,
+      marginTop: 8,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.18, shadowRadius: 20, elevation: 6,
+    },
+    primaryActionBtnText: {
+      fontSize: 15.5, fontWeight: '600' as any,
+      color: '#ffffff', letterSpacing: -0.15,
+    },
+    cancelIconCircle: {
+      width: 56, height: 56, borderRadius: 28, borderWidth: 1,
+      alignItems: 'center' as any, justifyContent: 'center' as any,
+      marginBottom: 4,
+    },
+    ghostActionBtn: {
+      width: '100%' as any, height: 56, borderRadius: 16, borderWidth: 1,
+      alignItems: 'center' as any, justifyContent: 'center' as any,
+      marginTop: 4,
+    },
+    ghostActionBtnText: { fontSize: 15, fontWeight: '600' as any },
   });
 }
 
@@ -1222,54 +1264,78 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         fallbackCoords={userCoordsRef.current}
       />
 
-      {/* Completed */}
+      {/* Completed — Lovable CompletedSheet design */}
       {phase === 'completed' && (
         <View style={styles.card}>
-          <View style={[styles.cardSurface, { backgroundColor: c.isDark ? '#16162a' : '#ffffff', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+          <View style={[styles.cardSurface, { backgroundColor: c.isDark ? '#1a1a2e' : '#ffffff', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+            {/* Drag handle */}
+            <View style={[styles.lvDragHandle, { backgroundColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]} />
+
             <View style={styles.cardInner}>
-              {/* Check badge */}
-              <LinearGradient colors={c.gradientPrimary} style={[styles.statusBadge, { shadowColor: c.gradientPrimary[1] }]}>
-                <Check size={32} color="#ffffff" strokeWidth={3} />
-              </LinearGradient>
-              <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{t('trip_complete')}</Text>
-              <Text style={[styles.cardSub, { color: c.inkSoft }]}>{t('payment_paid')}</Text>
+              {/* "Trip completed" label */}
+              <Text style={[styles.completedLabel, { color: c.inkSoft }]}>{t('trip_complete')}</Text>
+
+              {/* Fare amount */}
               {rideState.fare != null && (
-                <View style={[styles.invoice, { backgroundColor: c.isDark ? '#1e1e32' : '#f8f8fb', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
-                  <Text style={[styles.invoiceLabel, { color: c.inkSoft }]}>{t('total_fare')}</Text>
-                  <Text style={styles.invoiceAmount}>{rideState.fare.toFixed(2)} {t('egp')}</Text>
-                </View>
+                <Text style={[styles.fareAmount, { color: c.ink }]}>
+                  {rideState.fare.toFixed(2)}{' '}
+                  <Text style={[styles.fareCurrency, { color: c.inkSoft }]}>{t('egp')}</Text>
+                </Text>
               )}
-              <VeeGoButton
-                title={t('done')}
+
+              {/* Payment method chip */}
+              <View style={[styles.paymentChip, { backgroundColor: c.isDark ? '#16162a' : '#f7f8fc', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+                <Text style={[styles.paymentChipText, { color: c.ink }]}>
+                  {paymentMethod === 'wallet' ? t('payment_methods_wallet') : t('payment_methods_cash')}
+                </Text>
+              </View>
+
+              {/* Done button */}
+              <TouchableOpacity
                 onPress={handleFinishRide}
-                variant="primary"
-                size="large"
-                style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.xs, elevation: 0 }}
-              />
+                activeOpacity={0.88}
+                style={[styles.primaryActionBtn, { backgroundColor: c.primary }]}
+              >
+                <Text style={styles.primaryActionBtnText}>{t('done')}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       )}
 
-      {/* Cancelled / Timeout */}
+      {/* Cancelled / Timeout — Lovable CancelConfirmSheet design */}
       {phase === 'cancelled' && (
         <View style={styles.card}>
-          <View style={[styles.cardSurface, { backgroundColor: c.isDark ? '#16162a' : '#ffffff', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+          <View style={[styles.cardSurface, { backgroundColor: c.isDark ? '#1a1a2e' : '#ffffff', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
+            {/* Drag handle */}
+            <View style={[styles.lvDragHandle, { backgroundColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]} />
+
             <View style={styles.cardInner}>
-              <View style={[styles.statusBadge, { backgroundColor: c.error, shadowColor: c.error }]}>
-                <X size={32} color="#ffffff" strokeWidth={3} />
+              {/* X icon */}
+              <View style={[styles.cancelIconCircle, { backgroundColor: `${c.error}14`, borderColor: `${c.error}25` }]}>
+                <X size={28} color={c.error} strokeWidth={2.2} />
               </View>
-              <Text style={[styles.cardTitle, { color: c.ink, marginTop: Spacing.sm }]}>{cancelTitle}</Text>
+
+              <Text style={[styles.cardTitle, { color: c.ink }]}>{cancelTitle}</Text>
               {cancelSubtitle ? (
                 <Text style={[styles.cardSub, { color: c.inkSoft }]}>{cancelSubtitle}</Text>
               ) : null}
-              <VeeGoButton
-                title={t('try_again')}
+
+              <TouchableOpacity
                 onPress={handleReset}
-                variant="primary"
-                size="large"
-                style={{ width: '100%', height: 52, borderRadius: 18, marginTop: Spacing.sm, elevation: 0 }}
-              />
+                activeOpacity={0.88}
+                style={[styles.primaryActionBtn, { backgroundColor: c.primary }]}
+              >
+                <Text style={styles.primaryActionBtnText}>{t('try_again')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleReset}
+                activeOpacity={0.75}
+                style={[styles.ghostActionBtn, { borderColor: c.isDark ? '#2c2c46' : '#e5e5ea', backgroundColor: c.isDark ? '#16162a' : '#f7f8fc' }]}
+              >
+                <Text style={[styles.ghostActionBtnText, { color: c.ink }]}>{t('cancel')}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

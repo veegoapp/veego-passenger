@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
+import { Car } from 'lucide-react-native';
 import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
@@ -10,19 +11,21 @@ interface DriverSearchingProps {
 }
 
 /**
- * Shown while actively searching for a driver. The searching visual itself
- * (ripple rings + blinking arrow + "searching" label) lives on the map via
- * SearchingPulse.tsx. This sheet shows the status text and Cancel action.
+ * Shown while actively searching for a driver.
+ * Lovable design: centered radar animation with pulsing rings + sweep,
+ * car icon in the middle, shimmer dots below, cancel ghost button.
  */
 export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   const { colors: c, t } = useTheme();
   const { tabBarHeight } = useTabBar();
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  // Animated dots for "Searching..." label
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
+  const slideAnim  = useRef(new Animated.Value(0)).current;
+  const sweepAnim  = useRef(new Animated.Value(0)).current;
+  const ring1Anim  = useRef(new Animated.Value(0)).current;
+  const ring2Anim  = useRef(new Animated.Value(0)).current;
+  const ring3Anim  = useRef(new Animated.Value(0)).current;
+  const dot1Anim   = useRef(new Animated.Value(0.35)).current;
+  const dot2Anim   = useRef(new Animated.Value(0.35)).current;
+  const dot3Anim   = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -34,81 +37,135 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 
   useEffect(() => {
     if (!visible) return;
-    const pulse = (dot: Animated.Value, delay: number) =>
+
+    /* Radar rings — scale from 0.35→1.6 then fade out */
+    const makeRing = (anim: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(dot, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+          Animated.parallel([
+            Animated.timing(anim, { toValue: 1, duration: 2400, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          ]),
+          Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
         ])
       );
-    const a1 = pulse(dot1, 0);
-    const a2 = pulse(dot2, 180);
-    const a3 = pulse(dot3, 360);
-    a1.start(); a2.start(); a3.start();
-    return () => { a1.stop(); a2.stop(); a3.stop(); dot1.setValue(0); dot2.setValue(0); dot3.setValue(0); };
+    const r1 = makeRing(ring1Anim, 0);
+    const r2 = makeRing(ring2Anim, 800);
+    const r3 = makeRing(ring3Anim, 1600);
+    r1.start(); r2.start(); r3.start();
+
+    /* Sweep rotation */
+    const sweep = Animated.loop(
+      Animated.timing(sweepAnim, { toValue: 1, duration: 2200, easing: Easing.linear, useNativeDriver: true })
+    );
+    sweep.start();
+
+    /* Shimmer dots */
+    const makeDot = (anim: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(anim, { toValue: 1, duration: 450, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0.35, duration: 450, useNativeDriver: true }),
+        ])
+      );
+    const d1 = makeDot(dot1Anim, 0);
+    const d2 = makeDot(dot2Anim, 250);
+    const d3 = makeDot(dot3Anim, 500);
+    d1.start(); d2.start(); d3.start();
+
+    return () => {
+      r1.stop(); r2.stop(); r3.stop(); sweep.stop();
+      d1.stop(); d2.stop(); d3.stop();
+      ring1Anim.setValue(0); ring2Anim.setValue(0); ring3Anim.setValue(0);
+      sweepAnim.setValue(0);
+      dot1Anim.setValue(0.35); dot2Anim.setValue(0.35); dot3Anim.setValue(0.35);
+    };
   }, [visible]);
 
-  const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [200, 0] });
+  const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] });
+
   const isDark = c.isDark;
-  const sheetBg = isDark ? '#16162a' : '#ffffff';
-  const borderColor = isDark ? '#2c2c46' : '#e5e5ea';
-  const mutedText = isDark ? 'rgba(255,255,255,0.42)' : 'rgba(0,0,0,0.4)';
+  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
+  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
+  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const primaryCol = c.primary;
+
+  const makeRingStyle = (anim: Animated.Value) => ({
+    position: 'absolute' as const,
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(30,30,40,0.07)',
+    transform: [
+      {
+        scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1.6] }),
+      },
+    ],
+    opacity: anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.55, 0.4, 0] }),
+  });
+
+  const sweepRotate = sweepAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
     <Animated.View
-      style={[
-        styles.sheet,
-        { opacity: slideAnim, transform: [{ translateY }] },
-      ]}
+      style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: sheetBg, paddingBottom: tabBarHeight + 20 }]}>
-        <View style={[styles.handle, { backgroundColor: borderColor }]} />
+      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: tabBarHeight + 20 }]}>
+        <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
-        {/* Status row */}
-        <View style={styles.statusRow}>
-          {/* Pulsing indicator dot */}
-          <View style={[styles.pulsingDotWrap, { backgroundColor: c.accent + '1F' }]}>
-            <View style={[styles.pulsingDot, { backgroundColor: c.accent }]} />
-          </View>
+        {/* ── Radar animation ── */}
+        <View style={styles.radarWrap}>
+          {/* Pulse rings */}
+          <Animated.View style={makeRingStyle(ring1Anim)} />
+          <Animated.View style={makeRingStyle(ring2Anim)} />
+          <Animated.View style={makeRingStyle(ring3Anim)} />
 
-          <View style={styles.statusTextWrap}>
-            <Text style={[styles.statusTitle, { color: c.ink }]}>
-              {t('searching_driver')}
-            </Text>
-            <Text style={[styles.statusSub, { color: mutedText }]}>
-              Finding the nearest driver for you
-            </Text>
-          </View>
+          {/* Static border ring */}
+          <View style={[styles.staticRing, { borderColor: borderCol }]} />
 
-          {/* Animated dots */}
-          <View style={styles.dotsWrap}>
-            {[dot1, dot2, dot3].map((dot, i) => (
-              <Animated.View
-                key={i}
-                style={[styles.dot, { backgroundColor: c.accent, opacity: dot }]}
-              />
-            ))}
+          {/* Sweep arc */}
+          <Animated.View style={[styles.sweepWrap, { transform: [{ rotate: sweepRotate }] }]}>
+            <View style={[styles.sweepArc, { borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(30,30,40,0.22)' }]} />
+          </Animated.View>
+
+          {/* Center car icon */}
+          <View style={[styles.centerIcon, { backgroundColor: primaryCol }]}>
+            <Car size={22} color="#ffffff" strokeWidth={1.8} />
           </View>
         </View>
 
-        {/* Divider */}
-        <View style={[styles.divider, { backgroundColor: borderColor }]} />
+        {/* ── Status text ── */}
+        <Text style={[styles.headline, { color: c.ink }]}>
+          {t('searching_driver')}
+        </Text>
+        <Text style={[styles.subtext, { color: c.inkSoft }]}>
+          {'Matching you with the closest driver'}
+        </Text>
 
-        {/* Cancel button */}
+        {/* ── Shimmer dots ── */}
+        <View style={styles.dotsRow}>
+          {[dot1Anim, dot2Anim, dot3Anim].map((dot, i) => (
+            <Animated.View
+              key={i}
+              style={[styles.dot, { backgroundColor: primaryCol, opacity: dot }]}
+            />
+          ))}
+        </View>
+
+        {/* ── Wait time info row ── */}
+        <View style={[styles.waitRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
+          <Text style={[styles.waitLabel, { color: c.inkSoft }]}>{'Average wait time'}</Text>
+          <Text style={[styles.waitValue, { color: c.ink }]}>~ 2 {t('min')}</Text>
+        </View>
+
+        {/* ── Cancel button ── */}
         {onCancel && (
           <TouchableOpacity
             onPress={onCancel}
-            activeOpacity={0.75}
-            style={[styles.cancelBtn, {
-              borderColor,
-              backgroundColor: isDark ? '#1e1e32' : '#f8f8fb',
-            }]}
+            activeOpacity={0.78}
+            style={[styles.cancelBtn, { borderColor: borderCol, backgroundColor: surfaceBg }]}
           >
-            <Text style={[styles.cancelText, { color: mutedText }]}>
-              {t('cancel')}
-            </Text>
+            <Text style={[styles.cancelText, { color: c.ink }]}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -120,8 +177,8 @@ const styles = StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
     shadowRadius: 20,
     elevation: 26,
     zIndex: 999,
@@ -131,42 +188,72 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingTop: 10,
     paddingHorizontal: 20,
+    alignItems: 'center',
   },
   handle: {
-    width: 40, height: 4, borderRadius: 2,
-    alignSelf: 'center', marginBottom: 20,
+    width: 40, height: 5, borderRadius: 3,
+    alignSelf: 'center', marginBottom: 24,
   },
-  statusRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20,
+
+  radarWrap: {
+    width: 112, height: 112,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 20,
   },
-  pulsingDotWrap: {
-    width: 44, height: 44, borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  staticRing: {
+    position: 'absolute',
+    width: 96, height: 96, borderRadius: 48,
+    borderWidth: 1,
   },
-  pulsingDot: {
-    width: 14, height: 14, borderRadius: 7,
+  sweepWrap: {
+    position: 'absolute',
+    width: 96, height: 96,
   },
-  statusTextWrap: { flex: 1 },
-  statusTitle: {
-    fontSize: 16, fontWeight: '700' as any, letterSpacing: -0.3,
+  sweepArc: {
+    position: 'absolute',
+    width: 96, height: 96, borderRadius: 48,
+    borderWidth: 2,
+    borderLeftColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderRightColor: 'transparent',
   },
-  statusSub: {
-    fontSize: 12.5, fontWeight: '500' as any, marginTop: 3,
+  centerIcon: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  dotsWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, paddingRight: 4,
+
+  headline: {
+    fontSize: 20, fontWeight: '700', letterSpacing: -0.4,
+    textAlign: 'center',
+  },
+  subtext: {
+    fontSize: 14, textAlign: 'center', marginTop: 4, lineHeight: 20,
+  },
+  dotsRow: {
+    flexDirection: 'row', gap: 6, marginTop: 16, marginBottom: 20,
   },
   dot: {
-    width: 7, height: 7, borderRadius: 3.5,
+    width: 6, height: 6, borderRadius: 3,
   },
-  divider: {
-    height: 1, marginBottom: 16,
+
+  waitRow: {
+    width: '100%', flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 16, borderWidth: 1,
+    paddingHorizontal: 16, paddingVertical: 12,
+    marginBottom: 12,
   },
+  waitLabel: { fontSize: 13, fontWeight: '500' },
+  waitValue: { fontSize: 13, fontWeight: '600' },
+
   cancelBtn: {
-    height: 52, borderRadius: 16, borderWidth: 1,
+    width: '100%', height: 56, borderRadius: 16, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  cancelText: {
-    fontSize: 15, fontWeight: '600' as any,
-  },
+  cancelText: { fontSize: 15, fontWeight: '600' },
 });
