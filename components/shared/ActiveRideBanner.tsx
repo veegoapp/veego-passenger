@@ -42,7 +42,6 @@ export function ActiveRideBanner() {
   const pulse    = useRef(new Animated.Value(1)).current;
 
   const isDragging    = useRef(false);
-  const lastTap       = useRef(0);
   // Keep latest rideId accessible inside the panResponder closure without
   // recreating the responder on every render.
   const activeRideIdRef = useRef<string | null>(null);

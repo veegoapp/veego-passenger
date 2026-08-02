@@ -362,6 +362,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'completed', fare: parsed.data.fare ?? null }));
         cleanup();
+        refreshActiveSession().catch(() => {});
       });
 
       socket.on('ride:cancelled', (raw: unknown) => {
@@ -370,6 +371,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'cancelled', cancelReason: parsed.data.reason ?? null }));
         cleanup();
+        refreshActiveSession().catch(() => {});
       });
 
       socket.on('ride:driver_cancelled', (raw: unknown) => {
@@ -387,6 +389,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           terminationReason: 'driver',
         }));
         cleanup();
+        refreshActiveSession().catch(() => {});
       });
 
       socket.on('ride:no_show_cancelled', (raw: unknown) => {
@@ -404,6 +407,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           refundAmount: parsed.data.refundAmount ?? null,
         }));
         cleanup();
+        refreshActiveSession().catch(() => {});
       });
 
       socket.on('ride:timeout', (raw: unknown) => {
@@ -412,6 +416,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'timeout', terminationReason: 'timeout' }));
         cleanup();
+        refreshActiveSession().catch(() => {});
       });
 
       socket.on('ride:status_update', (raw: unknown) => {
@@ -525,7 +530,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     } catch (err) {
       console.warn('[useRide] Socket setup failed:', err);
     }
-  }, [stopPolling]);
+  }, [stopPolling, refreshActiveSession]);
 
   const requestRide = useCallback(async (payload: {
     type: 'car' | 'scooter' | 'delivery';
@@ -618,8 +623,11 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       cancelReason: null,
       terminationReason: 'passenger',
     }));
+    // Clear ActiveSessionContext immediately so the banner disappears without
+    // waiting for the next foreground refresh or session:snapshot event.
+    refreshActiveSession().catch(() => {});
     return { success: true, refundAmount: cancelResult.refundAmount, cancellationFee: cancelResult.cancellationFee };
-  }, [rideState]);
+  }, [rideState, refreshActiveSession]);
 
   const clearDeviationWarning = useCallback(() => {
     setRideState((prev) => ({ ...prev, deviationWarning: false }));

@@ -255,7 +255,8 @@ function AppShell() {
         <Stack.Screen name="stations"      options={{ animation: slideAnim }} />
         <Stack.Screen name="notifications" options={{ animation: slideAnim }} />
         <Stack.Screen name="ticket"        options={{ animation: 'fade_from_bottom' }} />
-        <Stack.Screen name="trip-detail"   options={{ animation: slideAnim }} />
+        <Stack.Screen name="trip-detail"    options={{ animation: slideAnim }} />
+        <Stack.Screen name="trip-tracking"  options={{ animation: slideAnim }} />
         <Stack.Screen name="promo"         options={{ animation: slideAnim }} />
         <Stack.Screen name="support"       options={{ animation: slideAnim }} />
         <Stack.Screen name="suspended"     options={{ animation: 'fade', gestureEnabled: false }} />
