@@ -38,7 +38,9 @@ const SIGNIFICANT_MOVE_METERS = 300;
 export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, searching }: CarMapProps) {
   const { darkMode } = useTheme();
   const mapRef = useRef<MapView>(null);
-  const [userLocation, setUserLocation] = useState<Coords>(CAIRO_DEFAULT);
+  // null until the first GPS fix arrives — prevents the map from briefly
+  // centering on Cairo before the real position is known (audit: L3).
+  const [userLocation, setUserLocation] = useState<Coords | null>(null);
   const onUserLocationRef = useRef(onUserLocation);
   onUserLocationRef.current = onUserLocation;
 

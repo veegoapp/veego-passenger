@@ -36,11 +36,11 @@ export const NotificationItemSchema = z.object({
   isRead: z.boolean().optional(),
 }).passthrough();
 
-/** GET /wallet. */
+/** GET /wallet. Backend contract: { userId, balance }. Only `balance` is the
+ *  authoritative field — fallback aliases (walletBalance, amount, etc.) have
+ *  been removed now that the backend shape is confirmed. */
 export const WalletBalanceSchema = z.object({
   balance: z.union([z.number(), z.string()]).optional(),
-  walletBalance: z.union([z.number(), z.string()]).optional(),
-  amount: z.union([z.number(), z.string()]).optional(),
   spent: z.union([z.number(), z.string()]).optional(),
   monthlySpent: z.union([z.number(), z.string()]).optional(),
   spentThisMonth: z.union([z.number(), z.string()]).optional(),

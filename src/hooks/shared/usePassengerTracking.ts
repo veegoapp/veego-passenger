@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { AppState } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -56,6 +57,55 @@ async function savePendingSnapshots(snapshots: LocationSnapshot[]): Promise<void
 function isNetworkError(err: any): boolean {
   return !err?.response;
 }
+
+// ── Background task helpers ───────────────────────────────────────────────────
+// Extracted as module-level functions so both the activation effect and the
+// AppState change handler can start/stop the task without code duplication.
+
+async function startBackgroundTask(): Promise<void> {
+  try {
+    const available = await TaskManager.isAvailableAsync();
+    if (!available) return;
+    // Check before requesting — never re-prompt if already decided.
+    let fg = (await Location.getForegroundPermissionsAsync()).status;
+    if (fg !== 'granted') fg = (await Location.requestForegroundPermissionsAsync()).status;
+    if (fg !== 'granted') return;
+    let bg = (await Location.getBackgroundPermissionsAsync()).status;
+    if (bg === 'undetermined') bg = (await Location.requestBackgroundPermissionsAsync()).status;
+    if (bg !== 'granted') return;
+    const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+    if (!started) {
+      await Location.startLocationUpdatesAsync(PASSENGER_LOCATION_TASK, {
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: TRACKING_INTERVAL_MS,
+        distanceInterval: 200,
+        foregroundService: {
+          notificationTitle: 'VeeGo',
+          notificationBody: 'Tracking your trip location.',
+          notificationColor: '#2d2d42',
+        },
+        activityType: Location.ActivityType.Other,
+        showsBackgroundLocationIndicator: true,
+        pausesUpdatesAutomatically: false,
+      });
+    }
+  } catch {
+    // Best-effort; foreground setInterval covers the gap
+  }
+}
+
+async function stopBackgroundTask(): Promise<void> {
+  try {
+    const available = await TaskManager.isAvailableAsync();
+    if (!available) return;
+    const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+    if (started) await Location.stopLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+  } catch (err) {
+    console.warn('[usePassengerTracking] Failed to stop background location task:', err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function flushOfflineSnapshots(): Promise<void> {
   const pending = await loadPendingSnapshots();

@@ -132,7 +132,8 @@ export function useWallet(): UseWalletResult {
       if (walletRes.status === 'fulfilled') {
         const d = walletRes.value.data;
         checkContract('Wallet balance', d, WalletBalanceSchema);
-        const bal = d.balance ?? d.walletBalance ?? d.amount ?? 0;
+        // Backend confirmed: only `balance` field is returned by GET /wallet.
+        const bal = d.balance ?? 0;
         setBalance(typeof bal === 'number' ? bal : parseFloat(bal) || 0);
         const spentVal = d.spent ?? d.monthlySpent ?? d.spentThisMonth ?? 0;
         setSpent(typeof spentVal === 'number' ? spentVal : parseFloat(spentVal) || 0);
