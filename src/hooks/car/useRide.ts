@@ -222,7 +222,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   // ── ActiveSession integration ─────────────────────────────────────────────
   // Consume the centralized session state. This is the source of truth for
   // recovery and for ongoing state syncs triggered by session:snapshot events.
-  const { session } = useActiveSession();
+  const { session, refreshActiveSession } = useActiveSession();
   const activeRideSnapshot = useMemo(() => selectActiveRide(session), [session]);
 
   const stopPolling = useCallback(() => {
@@ -549,6 +549,10 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       setRideState((prev) => ({ ...prev, rideId, status: 'searching' }));
       await setupSocketListeners(rideId);
       startPolling(rideId);
+      // Sync ActiveSessionContext so ActiveRideBanner (and any other global
+      // consumer) immediately sees the new ride without waiting for the next
+      // session:snapshot socket event (which is only emitted on socket connect).
+      refreshActiveSession().catch(() => {});
       return { success: true, rideId };
     } catch (e: any) {
       const status = e?.response?.status;
@@ -563,7 +567,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     } finally {
       setRequesting(false);
     }
-  }, [setupSocketListeners, startPolling, stopPolling]);
+  }, [setupSocketListeners, startPolling, stopPolling, refreshActiveSession]);
 
   const cancelRide = useCallback(async (reason?: string): Promise<{
     success: boolean;

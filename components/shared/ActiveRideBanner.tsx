@@ -41,8 +41,16 @@ export function ActiveRideBanner() {
   const scale    = useRef(new Animated.Value(0)).current;
   const pulse    = useRef(new Animated.Value(1)).current;
 
-  const isDragging = useRef(false);
-  const lastTap    = useRef(0);
+  const isDragging    = useRef(false);
+  const lastTap       = useRef(0);
+  // Keep latest rideId accessible inside the panResponder closure without
+  // recreating the responder on every render.
+  const activeRideIdRef = useRef<string | null>(null);
+
+  // Keep the ref current so the panResponder closure always reads the latest rideId.
+  useEffect(() => {
+    activeRideIdRef.current = activeRide?.rideId ?? null;
+  }, [activeRide]);
 
   // Pulsing ring animation
   useEffect(() => {
@@ -60,7 +68,8 @@ export function ActiveRideBanner() {
     pathname === '/' ||
     pathname === '/index' ||
     pathname === '/(tabs)' ||
-    pathname === '/(tabs)/index';
+    pathname === '/(tabs)/index' ||
+    pathname === '/trip-tracking';
 
   const visible = !!activeRide && !onHomeTab;
 
@@ -117,8 +126,9 @@ export function ActiveRideBanner() {
         Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start();
 
         if (!isDragging.current) {
-          // It was a tap — navigate home
-          router.push('/(tabs)' as any);
+          // Navigate to the active trip tracking screen.
+          const rideId = activeRideIdRef.current;
+          if (rideId) router.push(`/trip-tracking?rideId=${rideId}` as any);
           return;
         }
 
@@ -142,7 +152,7 @@ export function ActiveRideBanner() {
         { left: pan.x, top: pan.y },
       ]}
       {...panResponder.panHandlers}
-      pointerEvents={visible ? 'box-none' : 'none'}
+      pointerEvents={visible ? 'auto' : 'none'}
     >
       {/* Pulsing ring */}
       <Animated.View style={[styles.pulseRing, pulseRing]} />
