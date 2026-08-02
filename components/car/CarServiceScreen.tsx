@@ -304,6 +304,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [destination, setDestination]   = useState<string | null>(null);
   const [destCoords, setDestCoords]     = useState<Coords | null>(null);
   const [userCoords, setUserCoords]     = useState<Coords | null>(null);
+  // Captured at ride-request time so the map can draw driverLocation → pickup
+  // during the driver_assigned/arrived phase, then switch to driverLocation →
+  // destCoords once the trip starts. Cleared on reset.
+  const [pickupCoords, setPickupCoords] = useState<Coords | null>(null);
   // pickupQuery / destQuery / activeField replace the old single searchQuery — see expandSheet block below
   const [selectedRide, setSelectedRide] = useState<string | null>(null);
   const [safetyOpen, setSafetyOpen]     = useState(false);
@@ -624,6 +628,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       return;
     }
 
+    // Store pickup coords so the map can draw driverLocation → pickup while
+    // the driver is en route (driver_assigned / arrived phases).
+    setPickupCoords({ latitude: pickup.latitude, longitude: pickup.longitude });
+
     // Backend requires a non-empty pickupAddress — reverse-geocode the pickup
     // coordinates, falling back to a coordinate string if that fails.
     let pickupAddress = '';
@@ -671,6 +679,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setPhase('idle');
     setDestination(null);
     setDestCoords(null);
+    setPickupCoords(null);
     setSelectedRide(null);
     setEstimate(null);
     setSingleEstimate(null);
@@ -744,6 +753,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   const showDriverMarker = ['driver_assigned', 'arrived', 'started'].includes(rideState.status);
 
+  // Phase-aware map destination:
+  //   driver_assigned / arrived → driverLocation → pickup point
+  //   started (and all other states) → driverLocation → final dropoff
+  // pickupCoords is set at ride-request time. For resumed rides it may be null
+  // (snapshot doesn't carry pickup lat/lng), in which case userCoords is used
+  // as the best available approximation of the pickup location.
+  const mapDestCoords = ['driver_assigned', 'arrived'].includes(rideState.status)
+    ? (pickupCoords ?? userCoords)
+    : destCoords;
+
   // F6: differentiate the terminal-cancelled card's title/message by cause
   // (driver cancelled / no-show / request timeout / passenger cancelled)
   // instead of always showing the same generic "Cancel Trip" text.
@@ -771,7 +790,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
       <CarMap
         driverLocation={rideState.driverLocation}
-        destCoords={destCoords}
+        destCoords={mapDestCoords}
         showDriverMarker={showDriverMarker}
         onUserLocation={handleUserLocation}
         nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
