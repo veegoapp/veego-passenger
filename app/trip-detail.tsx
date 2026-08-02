@@ -349,6 +349,14 @@ export default function TripDetailScreen() {
   // an immediate refetch without needing to be in the [id]-only effect's deps.
   const tripStationsMetaRef = useRef<{ routeId: string | number; direction?: ShuttleDirection } | null>(null);
 
+  // ── ActiveSession cold-start seed ────────────────────────────────────────
+  // Populate initial trip state from ActiveSession so the screen renders
+  // immediately on cold start / force-close recovery, with no loading flash.
+  // The REST fetch that follows will overwrite this with full data (seat number
+  // etc.) once it completes. Guard: only runs while trip is still null so the
+  // REST result is never overwritten by a stale snapshot.
+  const { session } = useActiveSession();
+
   // ── Driver location seed from ActiveSession ───────────────────────────────
   // Seed driverLocation from the session's last-known driver position so the
   // map shows the driver marker immediately on open, before the first socket
@@ -362,14 +370,6 @@ export default function TripDetailScreen() {
       setDriverLocation({ lat: Number(lat), lng: Number(lng) });
     }
   }, [session, driverLocation]);
-
-  // ── ActiveSession cold-start seed ────────────────────────────────────────
-  // Populate initial trip state from ActiveSession so the screen renders
-  // immediately on cold start / force-close recovery, with no loading flash.
-  // The REST fetch that follows will overwrite this with full data (seat number
-  // etc.) once it completes. Guard: only runs while trip is still null so the
-  // REST result is never overwritten by a stale snapshot.
-  const { session } = useActiveSession();
   useEffect(() => {
     if (session?.kind !== 'shuttle') return;
     if (trip !== null) return;

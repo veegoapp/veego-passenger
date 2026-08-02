@@ -145,7 +145,7 @@ export default function FavoritesScreen() {
         <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('fav_shuttle_section')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/index')} activeOpacity={0.75}>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/index' as any)} activeOpacity={0.75}>
               <Text style={styles.sectionAction}>{t('go_to_routes')}</Text>
             </TouchableOpacity>
           </View>
@@ -161,7 +161,7 @@ export default function FavoritesScreen() {
               </View>
               <Text style={styles.emptyTitle}>{t('fav_empty_shuttle')}</Text>
               <Text style={styles.emptySub}>{t('fav_empty_shuttle_sub')}</Text>
-              <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/(tabs)/index')} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/(tabs)/index' as any)} activeOpacity={0.85}>
                 <Text style={styles.emptyBtnText}>{t('browse_routes')}</Text>
               </TouchableOpacity>
             </View>
