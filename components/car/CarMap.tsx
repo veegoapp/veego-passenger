@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import MapView, { Marker, MarkerAnimated, AnimatedRegion, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Car, Bike, Package, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -309,18 +309,27 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
             anchor={{ x: 0.5, y: 0.5 }}
             rotation={driverLocation.heading ?? 0}
           >
-            <View style={styles.driverMarker}>
-              <View style={styles.driverArrowHead} />
-              <View style={styles.driverDot}>
-                {serviceType === 'scooter' ? (
-                  <Bike size={14} color="#ffffff" />
-                ) : serviceType === 'delivery' ? (
-                  <Package size={14} color="#ffffff" />
-                ) : (
-                  <Car size={14} color="#ffffff" />
-                )}
+            {serviceType === 'scooter' || serviceType === 'delivery' ? (
+              <View style={styles.driverMarker}>
+                <View style={styles.driverArrowHead} />
+                <View style={styles.driverDot}>
+                  {serviceType === 'scooter' ? (
+                    <Bike size={14} color="#ffffff" />
+                  ) : (
+                    <Package size={14} color="#ffffff" />
+                  )}
+                </View>
               </View>
-            </View>
+            ) : (
+              /* Car service: use the dedicated car-marker image so it matches
+                 PassengerTrackingMap. Rotation is handled by MarkerAnimated's
+                 rotation prop — the image itself stays upright. */
+              <Image
+                source={require('@/assets/images/car-marker.png')}
+                style={styles.carMarkerImage}
+                resizeMode="contain"
+              />
+            )}
           </MarkerAnimated>
         )}
 
@@ -347,6 +356,7 @@ const styles = StyleSheet.create({
   userDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(17,24,39,0.15)', alignItems: 'center', justifyContent: 'center' },
   userDotInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#111827' },
   destPin: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
+  carMarkerImage: { width: 48, height: 48 },
   driverMarker: { alignItems: 'center' },
   driverArrowHead: {
     width: 0, height: 0,
