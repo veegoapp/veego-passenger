@@ -8,6 +8,7 @@ import { estimateEtaMinutes } from '@/src/utils/geoHelpers';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
 import { useMapCamera } from '@/hooks/map/useMapCamera';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
+import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
 
 interface LatLng {
@@ -35,7 +36,16 @@ export interface Station {
 export interface TrackingMapProps {
   pickup?: LatLng | null;
   dropoff?: LatLng | null;
+  /** Shuttle path: the live driver position, owned by the caller's own hook.
+   *  Standard-ride path: only used as the initial/recovered seed — once
+   *  `rideId` is provided, live ticks are read from a socket subscription
+   *  owned internally by this component (see useDriverLocationSocket). */
   driverLocation?: DriverLatLng | null;
+  /** Standard ride (car/scooter/delivery) id. When set, this component
+   *  subscribes to `ride:driver_location` itself so live location ticks
+   *  never bubble a state update up to the caller's screen — only this
+   *  map/marker subtree re-renders on each tick. Omitted for shuttle. */
+  rideId?: string | number | null;
   stations?: Station[];
   passengerStationId?: number | null;
   style?: object;
@@ -73,7 +83,7 @@ function stationFill(status: Station['status']): string {
 // in lockstep even for state changes elsewhere on the screen (top bar,
 // status pill, bottom card) that have nothing to do with the map itself.
 export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
-  pickup, dropoff, driverLocation,
+  pickup, dropoff, driverLocation: driverLocationSeed, rideId,
   stations = [], passengerStationId, style,
   vehicleType = 'shuttle', onEtaChange,
   tripPhase = null,
@@ -81,6 +91,12 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   onTargetStationChange,
 }: TrackingMapProps) {
   const { t, darkMode } = useTheme();
+
+  // Standard ride: live-subscribes to the socket itself, seeded from
+  // `driverLocationSeed` (session recovery / deep-link). Shuttle (no rideId)
+  // just mirrors whatever the caller passes in `driverLocation` — unchanged
+  // behavior for that path.
+  const driverLocation = useDriverLocationSocket({ rideId, seed: driverLocationSeed });
 
   const sorted = useMemo(() => [...stations].sort((a, b) => a.order - b.order), [stations]);
 
@@ -276,9 +292,26 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     enabled: sorted.length === 0 && !!tripPhase && !!carRouteTarget,
   });
 
+  // ── Stale-route guard (car/scooter/delivery only) ────────────────────────────
+  // useGoogleRoute clears its routeCoords for a new target inside a useEffect,
+  // which commits one tick after this render. Without this guard, the render
+  // that immediately follows a tripPhase flip (e.g. driver_arriving -> trip_started)
+  // would still draw the OLD leg's road-snapped polyline (driver->pickup) for one
+  // frame before falling back to the phase-correct fallbackCoords. Tracked via a
+  // ref updated synchronously during render so the mask applies immediately.
+  const carRouteKeyRef = useRef<string | null>(null);
+  const carRouteKey = carRouteTarget
+    ? `${tripPhase}:${carRouteTarget.latitude},${carRouteTarget.longitude}`
+    : `${tripPhase}:none`;
+  const carRouteIsStale =
+    sorted.length === 0 &&
+    carRouteKeyRef.current !== null &&
+    carRouteKeyRef.current !== carRouteKey;
+  carRouteKeyRef.current = carRouteKey;
+
   // Unified view — only one path is active at a time (guarded by sorted.length).
-  const routeCoords       = sorted.length > 0 ? shuttleRouteCoords : carRouteCoords;
-  const routeDurationSeconds = sorted.length > 0 ? shuttleDuration   : carDuration;
+  const routeCoords          = sorted.length > 0 ? shuttleRouteCoords : (carRouteIsStale ? [] : carRouteCoords);
+  const routeDurationSeconds = sorted.length > 0 ? shuttleDuration    : carDuration;
 
   // Reset the camera phase-fit guard when the trip ends so a subsequent ride
   // triggers a fresh camera fit. The old car-route useEffect did this as a
