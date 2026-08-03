@@ -91,6 +91,13 @@ export function useAnimatedDriverMarker({
     anim.start(() => {
       markerAnimRef.current = null;
     });
+
+    // Stop the in-flight glide on unmount (or before the next tick's effect
+    // run) instead of letting it keep animating against a detached region.
+    return () => {
+      markerAnimRef.current?.stop();
+      markerAnimRef.current = null;
+    };
   }, [driverLocation?.latitude, driverLocation?.longitude]);
 
   return { animatedCoord };

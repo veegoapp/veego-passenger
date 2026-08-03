@@ -841,6 +841,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
       <CarMap
         driverLocation={rideState.driverLocation}
+        rideId={rideState.rideId}
         destCoords={mapDestCoords}
         showDriverMarker={showDriverMarker}
         onUserLocation={handleUserLocation}

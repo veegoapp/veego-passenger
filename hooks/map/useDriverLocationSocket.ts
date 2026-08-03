@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getSocket, getSocketSync, type DriverLocation } from '@/src/api/socket';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
@@ -24,8 +24,24 @@ interface Options {
 export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocation | null {
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(seed ?? null);
 
+  // Wall-clock time of the most recently applied *live* socket tick. Used to
+  // reject a late-arriving seed (e.g. a slow REST fallback that started
+  // before the live tick but resolves after it) so reconnect/recovery data
+  // can never snap the marker backward over a position we've already shown.
+  const lastLiveAtMsRef = useRef<number>(0);
+
   useEffect(() => {
-    if (seed) setDriverLocation(seed);
+    if (!seed) return;
+    // A seed with no timestamp can't prove its recency. Trust it only before
+    // any live tick has arrived (initial hydration / cold start); once live
+    // data is flowing, an untimestamped seed is discarded rather than risking
+    // a backward snap.
+    if (seed.updatedAtMs == null) {
+      if (lastLiveAtMsRef.current === 0) setDriverLocation(seed);
+      return;
+    }
+    if (seed.updatedAtMs < lastLiveAtMsRef.current) return; // older than what we already have — discard
+    setDriverLocation(seed);
   }, [seed]);
 
   useEffect(() => {
@@ -45,6 +61,7 @@ export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocati
       prevLat = loc.latitude;
       prevLng = loc.longitude;
       prevHeading = loc.heading;
+      lastLiveAtMsRef.current = Date.now();
       setDriverLocation(loc);
     };
 

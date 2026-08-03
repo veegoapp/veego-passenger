@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, MarkerAnimated, PROVIDER_GOOGLE } from 'reac
 import { Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
-import { estimateEtaMinutes } from '@/src/utils/geoHelpers';
+import { estimateEtaMinutes, haversineMeters } from '@/src/utils/geoHelpers';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
 import { useMapCamera } from '@/hooks/map/useMapCamera';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
@@ -71,6 +71,10 @@ export interface TrackingMapProps {
 const FOLLOW_DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
 // ROUTE_REFRESH_INTERVAL_MS and SIGNIFICANT_MOVE_METERS were inlined here
 // previously; they are now owned and exported by useGoogleRoute.
+// Throttle for the Haversine ETA fallback — bounds recomputation while the
+// Google route hasn't loaded (or failed), independent of GPS tick rate.
+const ETA_FALLBACK_THROTTLE_MS = 3000;
+const ETA_FALLBACK_MOVE_METERS = 50;
 
 function stationFill(status: Station['status']): string {
   if (status === 'completed') return '#22c55e';
@@ -327,22 +331,42 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   // Shuttle path: falls back to next-station distance (targetStation — unchanged).
   // Car/scooter/delivery path: falls back to a phase-aware pickup or dropoff target.
   // The two paths are fully isolated — shuttle logic is not touched.
+  //
+  // The Haversine fallback itself is throttled (separately from the useMemo
+  // below, which only dedupes *identical* renders): driverLocation changes on
+  // every GPS tick, so without this cache the fallback would recompute on
+  // every single tick for as long as the Google route hasn't loaded yet.
+  const etaFallbackCacheRef = useRef<{ value: number | null; atMs: number; lat: number; lng: number } | null>(null);
+
   const etaMinutes = useMemo(() => {
     if (routeDurationSeconds !== null) {
+      etaFallbackCacheRef.current = null; // invalidate — a real route duration is now available
       return Math.max(1, Math.ceil(routeDurationSeconds / 60));
     }
-    if (sorted.length > 0) {
-      // Shuttle fallback — distance to next station (original logic, untouched)
-      if (!driverLocation || !targetStation) return null;
-      return estimateEtaMinutes(driverLocation, targetStation);
+
+    // Shuttle fallback target: next station. Car/scooter/delivery fallback
+    // target: phase-aware pickup or dropoff. (original logic, untouched)
+    const fallbackTarget = sorted.length > 0
+      ? targetStation
+      : (tripPhase === 'driver_arriving' ? (pickup ?? null) :
+         tripPhase === 'trip_started'    ? (dropoff ?? null) :
+         null);
+
+    if (!driverLocation || !fallbackTarget) return null;
+
+    const cache = etaFallbackCacheRef.current;
+    const now = Date.now();
+    if (
+      cache &&
+      now - cache.atMs < ETA_FALLBACK_THROTTLE_MS &&
+      haversineMeters({ latitude: cache.lat, longitude: cache.lng }, driverLocation) < ETA_FALLBACK_MOVE_METERS
+    ) {
+      return cache.value;
     }
-    // Car/scooter/delivery fallback — phase-aware distance target
-    const nonShuttleTarget =
-      tripPhase === 'driver_arriving' ? (pickup ?? null) :
-      tripPhase === 'trip_started'    ? (dropoff ?? null) :
-      null;
-    if (!driverLocation || !nonShuttleTarget) return null;
-    return estimateEtaMinutes(driverLocation, nonShuttleTarget);
+
+    const value = estimateEtaMinutes(driverLocation, fallbackTarget);
+    etaFallbackCacheRef.current = { value, atMs: now, lat: driverLocation.latitude, lng: driverLocation.longitude };
+    return value;
   }, [routeDurationSeconds, driverLocation?.latitude, driverLocation?.longitude,
       targetStation, sorted.length, tripPhase, pickup, dropoff]);
 
@@ -366,13 +390,16 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   }, [visibleStations]);
 
   const upcomingCoords = useMemo((): LatLng[] => {
+    // Shuttle-only computation — bail before touching driverLocation so this
+    // doesn't re-run on every GPS tick for the car/scooter/delivery path.
+    if (sorted.length === 0) return [];
     const ahead = visibleStations.filter((s) => s.status !== 'completed');
     if (ahead.length === 0) return [];
     const pts: LatLng[] = [];
-    if (driverLocation) pts.push(driverLocation);
+    if (driverLocation) pts.push({ latitude: driverLocation.latitude, longitude: driverLocation.longitude });
     ahead.forEach((s) => pts.push({ latitude: s.latitude, longitude: s.longitude }));
     return pts;
-  }, [visibleStations, driverLocation]);
+  }, [visibleStations, sorted.length, driverLocation?.latitude, driverLocation?.longitude]);
 
   // Fallback straight-line while Google route is loading.
   // Phase-aware: driver_arriving → driver→pickup, trip_started → driver→dropoff.

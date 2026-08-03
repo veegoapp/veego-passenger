@@ -122,6 +122,10 @@ export interface DriverLocation {
   latitude: number;
   longitude: number;
   heading?: number;
+  /** Epoch ms the server recorded this position at, when known (e.g. from an
+   *  ActiveSession snapshot's driver.location.updatedAt). Absent for raw live
+   *  socket ticks, which are inherently "now" by virtue of just arriving. */
+  updatedAtMs?: number;
 }
 
 // Note: this interface documents known socket event payload shapes for

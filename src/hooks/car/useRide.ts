@@ -61,15 +61,6 @@ const RideCancelledOptionalIdSchema = z.object({
   refundAmount: z.number().optional(),
 });
 
-const RideDriverLocationSchema = z.object({
-  rideId: z.string().or(z.number()),
-  location: z.object({
-    latitude: z.number(),
-    longitude: z.number(),
-    heading: z.number().optional(),
-  }),
-});
-
 const RideStatusUpdateSchema = z.object({
   rideId: z.string().or(z.number()),
   status: z.string(),
@@ -273,37 +264,16 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     if (socketListening.current) return;
     socketListening.current = true;
 
-    const cleanup = () => {
-      const s = socketRef.current;
-      if (s) {
-        s.off('ride:driver_assigned');
-        s.off('ride:driver_location');
-        s.off(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED);
-        s.off('ride:started');
-        s.off('ride:completed');
-        s.off('ride:cancelled');
-        s.off('ride:driver_cancelled');
-        s.off('ride:no_show_cancelled');
-        s.off('ride:timeout');
-        s.off('ride:status_update');
-        s.off('ride:status:changed');
-        s.off('ride:waiting:charge:started');
-        s.off('ride:waiting:charge:updated');
-        s.off('ride:waiting:charge:capped');
-        s.off('surge:updated');
-        s.off('ride:deviation:warning');
-        s.off('ride:eta_update');
-      }
-      socketListening.current = false;
-      stopPolling();
-    };
-    socketCleanupRef.current = cleanup;
-
     try {
       const socket = await getSocket();
       socketRef.current = socket;
 
-      socket.on('ride:driver_assigned', (raw: unknown) => {
+      // Driver location is intentionally NOT handled here — useDriverLocationSocket
+      // (used internally by CarMap / PassengerTrackingMap) is the single source
+      // of truth for live driver:ride:location ticks. A second listener here
+      // duplicated GPS processing and kept its own divergent copy of the position.
+
+      const onDriverAssigned = (raw: unknown) => {
         const parsed = DriverAssignedSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_assigned payload'); return; }
         const data = parsed.data;
@@ -321,60 +291,41 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
             eta: data.eta ?? 5,
           },
         }));
-      });
+      };
 
-      socket.on('ride:driver_location', (raw: unknown) => {
-        const parsed = RideDriverLocationSchema.safeParse(raw);
-        if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_location payload'); return; }
-        if (String(parsed.data.rideId) !== String(rideId)) return;
-        // Guard: only allocate a new object when coordinates actually changed.
-        // Without this check every tick creates a new reference, defeating
-        // React.memo on PassengerTrackingMap and causing full re-renders at
-        // socket frequency.
-        setRideState((prev) => {
-          const newLoc = parsed.data.location;
-          if (
-            prev.driverLocation?.latitude === newLoc.latitude &&
-            prev.driverLocation?.longitude === newLoc.longitude &&
-            prev.driverLocation?.heading === newLoc.heading
-          ) return prev;
-          return { ...prev, driverLocation: newLoc };
-        });
-      });
-
-      socket.on(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, (raw: unknown) => {
+      const onDriverArrived = (raw: unknown) => {
         const parsed = RideIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_arrived payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'arrived' }));
-      });
+      };
 
-      socket.on('ride:started', (raw: unknown) => {
+      const onStarted = (raw: unknown) => {
         const parsed = RideIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:started payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'started' }));
-      });
+      };
 
-      socket.on('ride:completed', (raw: unknown) => {
+      const onCompleted = (raw: unknown) => {
         const parsed = RideCompletedSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:completed payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'completed', fare: parsed.data.fare ?? null }));
         cleanup();
         refreshActiveSession().catch(() => {});
-      });
+      };
 
-      socket.on('ride:cancelled', (raw: unknown) => {
+      const onCancelled = (raw: unknown) => {
         const parsed = RideCancelledSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:cancelled payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'cancelled', cancelReason: parsed.data.reason ?? null }));
         cleanup();
         refreshActiveSession().catch(() => {});
-      });
+      };
 
-      socket.on('ride:driver_cancelled', (raw: unknown) => {
+      const onDriverCancelled = (raw: unknown) => {
         const parsed = RideCancelledOptionalIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:driver_cancelled payload'); return; }
         // rideId is optional on this event: this listener only exists while
@@ -390,9 +341,9 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         }));
         cleanup();
         refreshActiveSession().catch(() => {});
-      });
+      };
 
-      socket.on('ride:no_show_cancelled', (raw: unknown) => {
+      const onNoShowCancelled = (raw: unknown) => {
         const parsed = RideCancelledOptionalIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:no_show_cancelled payload'); return; }
         // Same reasoning as ride:driver_cancelled above: an omitted rideId is
@@ -408,18 +359,18 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         }));
         cleanup();
         refreshActiveSession().catch(() => {});
-      });
+      };
 
-      socket.on('ride:timeout', (raw: unknown) => {
+      const onTimeout = (raw: unknown) => {
         const parsed = RideIdSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:timeout payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, status: 'timeout', terminationReason: 'timeout' }));
         cleanup();
         refreshActiveSession().catch(() => {});
-      });
+      };
 
-      socket.on('ride:status_update', (raw: unknown) => {
+      const onStatusUpdate = (raw: unknown) => {
         const parsed = RideStatusUpdateSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:status_update payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
@@ -427,9 +378,9 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         if (!status) return;
         setRideState((prev) => ({ ...prev, status }));
         if (TERMINAL_STATUSES.includes(status)) cleanup();
-      });
+      };
 
-      socket.on('ride:status:changed', (raw: unknown) => {
+      const onStatusChanged = (raw: unknown) => {
         const parsed = RideStatusChangedSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:status:changed payload'); return; }
         const data = parsed.data;
@@ -466,9 +417,9 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           return { ...prev, ...updates };
         });
         if (TERMINAL_STATUSES.includes(status)) cleanup();
-      });
+      };
 
-      socket.on('ride:waiting:charge:started', (raw: unknown) => {
+      const onWaitingChargeStarted = (raw: unknown) => {
         const parsed = WaitingChargeStartedSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:waiting:charge:started payload'); return; }
         if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
@@ -478,9 +429,9 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           waitingCharge: 0,
           waitingRatePerMinute: parsed.data.ratePerMinute ?? prev.waitingRatePerMinute,
         }));
-      });
+      };
 
-      socket.on('ride:waiting:charge:updated', (raw: unknown) => {
+      const onWaitingChargeUpdated = (raw: unknown) => {
         const parsed = WaitingChargeUpdatedSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:waiting:charge:updated payload'); return; }
         if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
@@ -488,9 +439,9 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           ...prev,
           waitingCharge: parsed.data.currentCharge ?? parsed.data.charge ?? prev.waitingCharge,
         }));
-      });
+      };
 
-      socket.on('ride:waiting:charge:capped', (raw: unknown) => {
+      const onWaitingChargeCapped = (raw: unknown) => {
         const parsed = WaitingChargeCappedSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:waiting:charge:capped payload'); return; }
         if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
@@ -499,22 +450,22 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           waitingChargeStatus: 'capped',
           waitingCharge: parsed.data.finalCharge ?? parsed.data.charge ?? prev.waitingCharge,
         }));
-      });
+      };
 
-      socket.on('surge:updated', (raw: unknown) => {
+      const onSurgeUpdated = (raw: unknown) => {
         const parsed = SurgeUpdatedSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid surge:updated payload'); return; }
         setRideState((prev) => ({ ...prev, surgeMultiplier: parsed.data.multiplier ?? prev.surgeMultiplier }));
-      });
+      };
 
-      socket.on('ride:deviation:warning', (raw: unknown) => {
+      const onDeviationWarning = (raw: unknown) => {
         const parsed = DeviationWarningSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:deviation:warning payload'); return; }
         if (!parsed.data.rideId || String(parsed.data.rideId) !== String(rideId)) return;
         setRideState((prev) => ({ ...prev, deviationWarning: true }));
-      });
+      };
 
-      socket.on('ride:eta_update', (raw: unknown) => {
+      const onEtaUpdate = (raw: unknown) => {
         const parsed = RideEtaUpdateSchema.safeParse(raw);
         if (!parsed.success) { console.warn('[Socket] Invalid ride:eta_update payload'); return; }
         if (String(parsed.data.rideId) !== String(rideId)) return;
@@ -522,13 +473,62 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         setRideState((prev) => (
           prev.driver ? { ...prev, driver: { ...prev.driver, eta: parsed.data.etaMinutes! } } : prev
         ));
-      });
+      };
+
+      // Every off() below names the exact handler it registered — a bare
+      // `.off(eventName)` removes ALL listeners for that event on the shared
+      // socket singleton, which would silently kill unrelated subscribers
+      // (e.g. useDriverLocationSocket, or another tab's useRide instance)
+      // bound to an event with the same name.
+      const cleanup = () => {
+        const s = socketRef.current;
+        if (s) {
+          s.off('ride:driver_assigned', onDriverAssigned);
+          s.off(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onDriverArrived);
+          s.off('ride:started', onStarted);
+          s.off('ride:completed', onCompleted);
+          s.off('ride:cancelled', onCancelled);
+          s.off('ride:driver_cancelled', onDriverCancelled);
+          s.off('ride:no_show_cancelled', onNoShowCancelled);
+          s.off('ride:timeout', onTimeout);
+          s.off('ride:status_update', onStatusUpdate);
+          s.off('ride:status:changed', onStatusChanged);
+          s.off('ride:waiting:charge:started', onWaitingChargeStarted);
+          s.off('ride:waiting:charge:updated', onWaitingChargeUpdated);
+          s.off('ride:waiting:charge:capped', onWaitingChargeCapped);
+          s.off('surge:updated', onSurgeUpdated);
+          s.off('ride:deviation:warning', onDeviationWarning);
+          s.off('ride:eta_update', onEtaUpdate);
+        }
+        socketListening.current = false;
+        stopPolling();
+      };
+      socketCleanupRef.current = cleanup;
+
+      socket.on('ride:driver_assigned', onDriverAssigned);
+      socket.on(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onDriverArrived);
+      socket.on('ride:started', onStarted);
+      socket.on('ride:completed', onCompleted);
+      socket.on('ride:cancelled', onCancelled);
+      socket.on('ride:driver_cancelled', onDriverCancelled);
+      socket.on('ride:no_show_cancelled', onNoShowCancelled);
+      socket.on('ride:timeout', onTimeout);
+      socket.on('ride:status_update', onStatusUpdate);
+      socket.on('ride:status:changed', onStatusChanged);
+      socket.on('ride:waiting:charge:started', onWaitingChargeStarted);
+      socket.on('ride:waiting:charge:updated', onWaitingChargeUpdated);
+      socket.on('ride:waiting:charge:capped', onWaitingChargeCapped);
+      socket.on('surge:updated', onSurgeUpdated);
+      socket.on('ride:deviation:warning', onDeviationWarning);
+      socket.on('ride:eta_update', onEtaUpdate);
 
       // Socket reconnect recovery is now owned by ActiveSessionContext via
       // session:snapshot. The activeRideSnapshot sync effect below applies any
       // state updates that arrive after a reconnect without an extra REST call.
     } catch (err) {
       console.warn('[useRide] Socket setup failed:', err);
+      socketListening.current = false;
+      socketCleanupRef.current = null;
     }
   }, [stopPolling, refreshActiveSession]);
 
