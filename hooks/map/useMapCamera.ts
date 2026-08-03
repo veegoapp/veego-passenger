@@ -30,7 +30,7 @@ import MapView from 'react-native-maps';
 
 interface UseMapCameraResult {
   /** Ref to attach to the <MapView> element. */
-  mapRef: React.RefObject<MapView>;
+  mapRef: React.RefObject<MapView | null>;
   /**
    * Executes `action` immediately if the map is ready, otherwise stores it
    * for execution once onMapReady fires.  Subsequent calls before the map is

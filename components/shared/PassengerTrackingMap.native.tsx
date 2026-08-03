@@ -1,11 +1,14 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
-import MapView, { Marker, Polyline, AnimatedRegion, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
-import { Car, Bike as ScooterIcon, Navigation } from 'lucide-react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import MapView, { Marker, Polyline, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
-import { fetchGoogleRoute } from '@/src/utils/googleDirections';
-import { estimateEtaMinutes, haversineMeters } from '@/src/utils/geoHelpers';
+import { estimateEtaMinutes } from '@/src/utils/geoHelpers';
+import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
+import { useMapCamera } from '@/hooks/map/useMapCamera';
+import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
+import { DriverMarker } from '@/components/shared/DriverMarker';
 
 interface LatLng {
   latitude: number;
@@ -56,10 +59,8 @@ export interface TrackingMapProps {
 // DEFAULT_CENTER (Cairo) removed (audit L3) — AnimatedRegion init uses 0/0,
 // which is never displayed since the marker requires a real driverLocation.
 const FOLLOW_DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
-// Directions route/ETA refresh cadence — refetch at most this often, or
-// sooner if the driver has moved a meaningful distance since the last fetch.
-const ROUTE_REFRESH_INTERVAL_MS = 75_000;
-const SIGNIFICANT_MOVE_METERS = 300;
+// ROUTE_REFRESH_INTERVAL_MS and SIGNIFICANT_MOVE_METERS were inlined here
+// previously; they are now owned and exported by useGoogleRoute.
 
 function stationFill(status: Station['status']): string {
   if (status === 'completed') return '#22c55e';
@@ -101,60 +102,16 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   }, [sorted, passengerStationId, boarded]);
 
   // ── Driver marker animation ──────────────────────────────────────────────────
-  // Use 0/0 as the AnimatedRegion seed when no real coords are available yet —
-  // the marker is never rendered without a driverLocation, so 0/0 is never
-  // visible. Cairo is no longer used as a fallback (audit L3).
-  const initLat = driverLocation?.latitude ?? pickup?.latitude ?? 0;
-  const initLng = driverLocation?.longitude ?? pickup?.longitude ?? 0;
-
-  const animatedCoord = useRef(
-    new AnimatedRegion({ latitude: initLat, longitude: initLng, latitudeDelta: 0, longitudeDelta: 0 }),
-  ).current;
-
-  // Holds the currently-running marker animation so it can be stopped before
-  // the next one starts. Without this, rapid ride:driver_location events queue
-  // up animations (each 800ms) — the second interrupts the first mid-glide,
-  // causing the marker to "skip" to an intermediate position.
-  const markerAnimRef = useRef<{ stop: () => void } | null>(null);
-
-  useEffect(() => {
-    if (!driverLocation) return;
-    // Stop any in-flight animation before starting the next one — prevents
-    // the skipping/non-linear movement caused by queued 800ms animations.
-    markerAnimRef.current?.stop();
-    // Cast: AnimatedRegion.timing()'s type incorrectly requires Animated's
-    // `toValue` field (from Animated.TimingAnimationConfig); the actual runtime
-    // API takes the region-shaped config below. Preserves existing behavior.
-    const anim = animatedCoord.timing({
-      latitude:        driverLocation.latitude,
-      longitude:       driverLocation.longitude,
-      latitudeDelta:   0,
-      longitudeDelta:  0,
-      duration:        800,
-      useNativeDriver: false,
-    } as any);
-    markerAnimRef.current = anim;
-    anim.start(() => { markerAnimRef.current = null; });
-  }, [driverLocation?.latitude, driverLocation?.longitude]);
+  // AnimatedRegion creation, stop-before-start guard, and 800 ms timing are
+  // all handled by useAnimatedDriverMarker. pickup is passed as initialCoords
+  // so the region seeds at the pickup point when driverLocation is not yet
+  // available — matching the previous initLat/initLng fallback logic.
+  const { animatedCoord } = useAnimatedDriverMarker({ driverLocation, initialCoords: pickup });
 
   // ── Camera follow ────────────────────────────────────────────────────────────
-  const mapRef = useRef<MapView>(null);
-
-  // Map readiness guard: fitToCoordinates / animateToRegion silently fail if
-  // called before the native MapView has finished initialising. pendingCameraRef
-  // holds the most-recent queued action and is drained by onMapReady.
-  const mapReadyRef = useRef(false);
-  const pendingCameraRef = useRef<(() => void) | null>(null);
-
-  // Run a camera action immediately if the map is ready; otherwise store it
-  // for onMapReady. Later calls overwrite earlier ones — no stale actions.
-  const runOrQueueCamera = (action: () => void) => {
-    if (mapReadyRef.current) {
-      action();
-    } else {
-      pendingCameraRef.current = action;
-    }
-  };
+  // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are all
+  // provided by useMapCamera. onMapReady is passed directly to <MapView>.
+  const { mapRef, runOrQueueCamera, onMapReady } = useMapCamera();
 
   // True while the passenger is manually panning — pauses auto-camera updates.
   // Cleared when the recenter button is pressed.
@@ -289,104 +246,48 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     );
   }, [driverLocation, tripPhase, pickup, dropoff]);
 
-  // ── Google Directions route — refreshed periodically while the trip is live ──
-  const [routeCoords, setRouteCoords] = useState<LatLng[]>([]);
-  const [routeDurationSeconds, setRouteDurationSeconds] = useState<number | null>(null);
-  const lastFetchOriginRef = useRef<LatLng | null>(null);
-  const lastFetchAtRef = useRef(0);
-  // Tracks the previous tripPhase so the car-route effect can detect a phase
-  // change and force an immediate refetch for the new target.
-  const prevTripPhaseRef = useRef<typeof tripPhase>(tripPhase);
+  // ── Google Directions — shuttle path (stations present) ─────────────────────
+  // Fetches the road-snapped route from the driver through the ordered station
+  // waypoints up to and including the target stop. Disabled when no stations
+  // are present (car/scooter/delivery path below handles that case).
+  const { routeCoords: shuttleRouteCoords, durationSeconds: shuttleDuration } = useGoogleRoute({
+    origin:  driverLocation,
+    targets: waypointsToTarget,
+    enabled: sorted.length > 0 && waypointsToTarget.length > 0,
+  });
 
-  useEffect(() => {
-    if (!driverLocation || waypointsToTarget.length === 0) return;
-
-    const now = Date.now();
-    const elapsed = now - lastFetchAtRef.current;
-    const movedSignificantly = lastFetchOriginRef.current
-      ? haversineMeters(lastFetchOriginRef.current, driverLocation) >= SIGNIFICANT_MOVE_METERS
-      : true; // always fetch the first time
-
-    if (elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
-
-    lastFetchOriginRef.current = { latitude: driverLocation.latitude, longitude: driverLocation.longitude };
-    lastFetchAtRef.current = now;
-
-    fetchGoogleRoute(driverLocation, waypointsToTarget).then((result) => {
-      if (result) {
-        setRouteCoords(result.coords);
-        // Only overwrite the duration when a real one comes back — preserves
-        // the previous valid ETA rather than dropping to the haversine
-        // fallback if a refresh returns coords but no duration.
-        if (result.durationSeconds !== null) {
-          setRouteDurationSeconds(result.durationSeconds);
-        }
-      }
-      // On failure, keep whatever route/duration is already in state — the
-      // existing straight-line fallback below still renders regardless.
-    });
-  }, [driverLocation?.latitude, driverLocation?.longitude, waypointsToTarget]);
-
-  // ── Car-ride Google Directions route (no stations — car/scooter/delivery) ──
-  // Fires only when no stations are present (shuttle path above handles the
-  // stations case). Reuses the same refs so throttling is shared.
-  //
+  // ── Google Directions — car/scooter/delivery path (no stations) ──────────────
   // Route target is phase-aware:
   //   driver_arriving → driverLocation → pickup
   //   trip_started    → driverLocation → dropoff
-  //   null            → clear route (completed / cancelled)
+  //   null / no phase → disabled (hook clears routeCoords immediately)
+  //
+  // Phase changes automatically change carRouteTarget, which changes the
+  // hook's targetsKey, forcing an immediate refetch — equivalent to the
+  // prevTripPhaseRef force-refetch that lived in the old car-route effect.
+  const carRouteTarget: LatLng | null =
+    tripPhase === 'driver_arriving' ? (pickup  ?? null) :
+    tripPhase === 'trip_started'    ? (dropoff ?? null) :
+    null;
+
+  const { routeCoords: carRouteCoords, durationSeconds: carDuration } = useGoogleRoute({
+    origin:  driverLocation,
+    targets: carRouteTarget ? [carRouteTarget] : [],
+    enabled: sorted.length === 0 && !!tripPhase && !!carRouteTarget,
+  });
+
+  // Unified view — only one path is active at a time (guarded by sorted.length).
+  const routeCoords       = sorted.length > 0 ? shuttleRouteCoords : carRouteCoords;
+  const routeDurationSeconds = sorted.length > 0 ? shuttleDuration   : carDuration;
+
+  // Reset the camera phase-fit guard when the trip ends so a subsequent ride
+  // triggers a fresh camera fit. The old car-route useEffect did this as a
+  // side effect inside its !tripPhase branch; now it lives in its own effect.
   useEffect(() => {
-    if (sorted.length > 0) return;  // shuttle path handles non-empty stations
-
-    // Completed / cancelled: clear the active route immediately.
-    if (!tripPhase) {
-      setRouteCoords([]);
-      setRouteDurationSeconds(null);
-      lastFetchOriginRef.current = null;
-      lastFetchAtRef.current = 0;
-      prevTripPhaseRef.current = null;
-      // Clear the phase-fit guard so a new ride triggers a fresh camera fit.
+    if (!tripPhase && sorted.length === 0) {
       fittedPhaseRef.current = null;
-      return;
     }
-
-    // Pick route destination based on current phase.
-    const routeTarget =
-      tripPhase === 'driver_arriving' ? (pickup ?? null) :
-      tripPhase === 'trip_started'    ? (dropoff ?? null) :
-      null;
-
-    if (!driverLocation || !routeTarget) return;
-
-    const now = Date.now();
-    const elapsed = now - lastFetchAtRef.current;
-    const phaseChanged = prevTripPhaseRef.current !== tripPhase;
-    const movedSignificantly = lastFetchOriginRef.current
-      ? haversineMeters(lastFetchOriginRef.current, driverLocation) >= SIGNIFICANT_MOVE_METERS
-      : true; // always fetch the first time
-
-    // Force an immediate refetch when the phase changes (new target); otherwise
-    // apply the normal distance + time throttle.
-    if (!phaseChanged && elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
-
-    prevTripPhaseRef.current = tripPhase;
-    lastFetchOriginRef.current = { latitude: driverLocation.latitude, longitude: driverLocation.longitude };
-    lastFetchAtRef.current = now;
-
-    let cancelled = false;
-    fetchGoogleRoute(driverLocation, [routeTarget]).then((result) => {
-      if (cancelled) return;
-      if (result?.coords?.length) {
-        setRouteCoords(result.coords);
-        if (result.durationSeconds !== null) {
-          setRouteDurationSeconds(result.durationSeconds);
-        }
-      }
-      // On failure keep existing routeCoords; straight-line fallback renders
-      // below until a successful response arrives.
-    });
-    return () => { cancelled = true; };
-  }, [driverLocation?.latitude, driverLocation?.longitude, pickup, dropoff, sorted.length, tripPhase]);
+  }, [tripPhase, sorted.length]);
 
   // ── ETA ─────────────────────────────────────────────────────────────────────
   // Prefer Google Directions duration (more accurate); fall back to distance-based.
@@ -455,7 +356,12 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     return [driverLocation, target];
   }, [sorted, driverLocation, pickup, dropoff, tripPhase]);
 
-  const initCenter = { latitude: initLat, longitude: initLng };
+  // initLat/initLng were removed with the AnimatedRegion block; derive the
+  // initialRegion seed inline from the same fallback priority.
+  const initCenter = {
+    latitude:  driverLocation?.latitude  ?? pickup?.latitude  ?? 0,
+    longitude: driverLocation?.longitude ?? pickup?.longitude ?? 0,
+  };
 
   // Heading from socket payload (degrees clockwise from north)
   const heading = driverLocation?.heading ?? 0;
@@ -477,14 +383,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
         zoomEnabled
         pitchEnabled={false}
         customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
-        onMapReady={() => {
-          mapReadyRef.current = true;
-          // Drain any camera action that queued before the map was ready.
-          if (pendingCameraRef.current) {
-            pendingCameraRef.current();
-            pendingCameraRef.current = null;
-          }
-        }}
+        onMapReady={onMapReady}
         onPanDrag={() => setIsUserPanning(true)}
       >
         {/* Completed leg — straight line between visited stops (green) */}
@@ -550,26 +449,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
             rotation={heading}
             title={t('driver_label')}
           >
-            {vehicleType === 'car' ? (
-              /* Custom car image — rotates with heading via MarkerAnimated's rotation prop */
-              <Image
-                source={require('@/assets/images/car-marker.png')}
-                style={styles.carMarkerImage}
-                resizeMode="contain"
-              />
-            ) : (
-              /* Arrow + body for scooter / shuttle */
-              <View style={styles.busWrapper}>
-                <View style={styles.busArrowHead} />
-                <View style={styles.busBody}>
-                  {vehicleType === 'scooter' ? (
-                    <ScooterIcon size={18} color="#fff" />
-                  ) : (
-                    <Text style={styles.busTxt}>🚌</Text>
-                  )}
-                </View>
-              </View>
-            )}
+            <DriverMarker vehicleType={vehicleType} />
           </MarkerAnimated>
         )}
       </MapView>
@@ -620,24 +500,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   markerDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
-
-  // Bus marker: arrow tip (top) + body (bottom), entire marker rotates with heading
-  carMarkerImage: { width: 48, height: 48 },
-  busWrapper: { alignItems: 'center' },
-  busArrowHead: {
-    width: 0, height: 0,
-    borderLeftWidth: 7, borderRightWidth: 7, borderBottomWidth: 10,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent',
-    borderBottomColor: '#1e293b',
-  },
-  busBody: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: '#1e293b', borderWidth: 2, borderColor: '#fff',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 8, elevation: 8,
-  },
-  busTxt: { fontSize: 18, lineHeight: 22 },
 
   // ETA badge — floats above the map
   etaBadge: {
