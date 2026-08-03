@@ -1,15 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import MapView, { Marker, MarkerAnimated, AnimatedRegion, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { MapPin, Car, Bike, Package, Navigation } from 'lucide-react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import MapView, { Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { MapPin, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import { fetchGoogleRoute } from '@/src/utils/googleDirections';
-import { haversineMeters } from '@/src/utils/geoHelpers';
 import { NearbyDriversLayer } from './NearbyDriversLayer';
 import { SearchingPulse, SEARCHING_PULSE_ANCHOR_Y } from './SearchingPulse';
 import type { NearbyDriver } from '@/src/hooks/car/useNearbyDrivers';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
+import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
+import { useMapCamera } from '@/hooks/map/useMapCamera';
+import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
+import { DriverMarker } from '@/components/shared/DriverMarker';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -40,68 +42,28 @@ const SIGNIFICANT_MOVE_METERS = 300;
 // sheets, etc.) since it wasn't memoized at all.
 export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, searching }: CarMapProps) {
   const { darkMode } = useTheme();
-  const mapRef = useRef<MapView>(null);
+
+  // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are provided
+  // by useMapCamera. onMapReady is passed directly to <MapView>.
+  const { mapRef, runOrQueueCamera, onMapReady } = useMapCamera();
+
   // null until the first GPS fix arrives — prevents the map from briefly
   // centering on Cairo before the real position is known (audit: L3).
   const [userLocation, setUserLocation] = useState<Coords | null>(null);
   const onUserLocationRef = useRef(onUserLocation);
   onUserLocationRef.current = onUserLocation;
 
-  // Track map readiness so camera calls are never issued before the native
-  // MapView has initialised (silent discards). pendingCameraRef holds the
-  // most-recent queued action; a new intent always overwrites the previous
-  // one so only the latest camera position fires on map-ready.
-  const mapReadyRef = useRef(false);
-  const pendingCameraRef = useRef<(() => void) | null>(null);
-
   // Tracks whether the initial fit-to-driver has been done for the current
   // driver-visible session. Cleared when showDriverMarker becomes false so
   // re-assignment after a cancel triggers a fresh fit.
   const driverFittedRef = useRef(false);
 
-  // Run a camera action immediately if the map is ready; otherwise store it
-  // for onMapReady. Later calls overwrite earlier ones — no stale actions.
-  const runOrQueueCamera = (action: () => void) => {
-    if (mapReadyRef.current) {
-      action();
-    } else {
-      pendingCameraRef.current = action;
-    }
-  };
-
   // Animated driver marker — glides between GPS ticks instead of snapping,
-  // and rotates to match heading. Mirrors the pattern already used for the
-  // shuttle driver marker in PassengerTrackingMap.native.tsx.
-  const animatedDriverCoord = useRef(
-    new AnimatedRegion({
-      latitude: driverLocation?.latitude ?? ANIMATED_INIT.latitude,
-      longitude: driverLocation?.longitude ?? ANIMATED_INIT.longitude,
-      latitudeDelta: 0,
-      longitudeDelta: 0,
-    }),
-  ).current;
-
-  // Holds the currently-running marker animation so it can be stopped before
-  // the next one starts — prevents skipping caused by queued 800ms animations.
-  const driverMarkerAnimRef = useRef<{ stop: () => void } | null>(null);
-
-  useEffect(() => {
-    if (!driverLocation) return;
-    driverMarkerAnimRef.current?.stop();
-    // Cast: AnimatedRegion.timing()'s type incorrectly requires Animated's
-    // `toValue` field (from Animated.TimingAnimationConfig); the actual runtime
-    // API takes the region-shaped config below. Preserves existing behavior.
-    const anim = animatedDriverCoord.timing({
-      latitude: driverLocation.latitude,
-      longitude: driverLocation.longitude,
-      latitudeDelta: 0,
-      longitudeDelta: 0,
-      duration: 800,
-      useNativeDriver: false,
-    } as any);
-    driverMarkerAnimRef.current = anim;
-    anim.start(() => { driverMarkerAnimRef.current = null; });
-  }, [driverLocation?.latitude, driverLocation?.longitude]);
+  // and rotates to match heading. AnimatedRegion creation, stop-before-start
+  // guard, and 800 ms timing are handled by useAnimatedDriverMarker.
+  // No initialCoords needed — the marker only renders when driverLocation is
+  // non-null (guarded by showDriverMarker && driverLocation in JSX).
+  const { animatedCoord: animatedDriverCoord } = useAnimatedDriverMarker({ driverLocation });
 
   useEffect(() => {
     (async () => {
@@ -188,74 +150,45 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
     });
   }, [destCoords, showDriverMarker, driverLocation?.latitude, driverLocation?.longitude, userLocation, searching]);
 
-  const [routeCoords, setRouteCoords] = useState<Coords[]>([]);
-  const routeFetchKeyRef = useRef<string | null>(null);
-  const lastActiveFetchOriginRef = useRef<Coords | null>(null);
-  const lastActiveFetchAtRef = useRef(0);
-  const activeDestinationKeyRef = useRef<string | null>(null);
+  // ── Route fetching ───────────────────────────────────────────────────────────
+  //
+  // A) Pre-booking: userLocation → destCoords.
+  //    Fetches once per origin/destination pair. userLocation is set once by
+  //    the GPS effect below and doesn't continuously drift like driverLocation,
+  //    so the hook's 300 m movement threshold and targetsKey destination-change
+  //    detection are functionally equivalent to the original routeFetchKeyRef
+  //    one-time-per-pair guard.
+  const { routeCoords: preBookingRouteCoords } = useGoogleRoute({
+    origin:  userLocation,
+    targets: destCoords ? [destCoords] : [],
+    enabled: !showDriverMarker && !!userLocation && !!destCoords,
+  });
 
-  useEffect(() => {
-    if (!destCoords) {
-      setRouteCoords([]);
-      routeFetchKeyRef.current = null;
-      lastActiveFetchOriginRef.current = null;
-      lastActiveFetchAtRef.current = 0;
-      activeDestinationKeyRef.current = null;
-      return;
-    }
+  // B) Active ride: driverLocation → destCoords.
+  //    The hook applies the 75 s / 300 m throttle and detects destination
+  //    changes via targetsKey — equivalent to the original
+  //    activeDestinationKeyRef + elapsed + movedSignificantly guards.
+  const { routeCoords: activeRideRouteCoords } = useGoogleRoute({
+    origin:  driverLocation,
+    targets: destCoords ? [destCoords] : [],
+    enabled: !!showDriverMarker && !!driverLocation && !!destCoords,
+  });
 
-    // During an active ride, the driver's live position is the route origin.
-    // Before a driver is assigned, preserve the existing passenger-origin route.
-    const routeOrigin = showDriverMarker && driverLocation ? driverLocation : userLocation;
-    // Cannot draw a route without a known origin — wait for GPS or driver location.
-    if (!routeOrigin) return;
-    const destinationKey = `${destCoords.latitude},${destCoords.longitude}`;
+  // Unified route — only one path is enabled at a time.
+  const hookRouteCoords: Coords[] = showDriverMarker && driverLocation
+    ? activeRideRouteCoords
+    : preBookingRouteCoords;
 
-    if (showDriverMarker && driverLocation) {
-      const now = Date.now();
-      const elapsed = now - lastActiveFetchAtRef.current;
-      const movedSignificantly = lastActiveFetchOriginRef.current
-        ? haversineMeters(lastActiveFetchOriginRef.current, driverLocation) >= SIGNIFICANT_MOVE_METERS
-        : true;
-      const destinationChanged = activeDestinationKeyRef.current !== destinationKey;
-
-      // Keep active-ride refreshes bounded while still following meaningful
-      // driver movement or a changed destination.
-      if (!destinationChanged && elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) return;
-
-      activeDestinationKeyRef.current = destinationKey;
-      lastActiveFetchOriginRef.current = { ...driverLocation };
-      lastActiveFetchAtRef.current = now;
-    } else {
-      // Fetch once per pickup/destination pair before a driver is assigned.
-      // routeOrigin === userLocation here (driver not yet assigned); use it
-      // directly — it is already narrowed to non-null by the guard above.
-      const key = `${routeOrigin.latitude},${routeOrigin.longitude}->${destinationKey}`;
-      if (routeFetchKeyRef.current === key) return;
-      routeFetchKeyRef.current = key;
-      activeDestinationKeyRef.current = null;
-      lastActiveFetchOriginRef.current = null;
-      lastActiveFetchAtRef.current = 0;
-    }
-
-    let cancelled = false;
-    fetchGoogleRoute(routeOrigin, [destCoords]).then((result) => {
-      if (cancelled) return;
-      if (result?.coords?.length) {
-        setRouteCoords(result.coords);
-      } else {
-        // Directions fetch failed or returned no coords — fall back to a
-        // straight line so the polyline still renders. Log in dev so failures
-        // are visible instead of silently drawing a wrong route.
-        if (__DEV__) {
-          console.warn('[CarMap] fetchGoogleRoute returned no coords — falling back to straight line');
-        }
-        setRouteCoords([routeOrigin, destCoords]);
-      }
-    });
-
-    return () => { cancelled = true; };
-  }, [destCoords, userLocation, showDriverMarker, driverLocation?.latitude, driverLocation?.longitude]);
+  // CarMap-specific straight-line fallback: when Directions returns no coords
+  // (fetch in-flight or API failure), always render origin → destination so
+  // the passenger never sees a bare map without any route indicator.
+  // This preserves the original setRouteCoords([routeOrigin, destCoords]) fallback.
+  const routeOrigin: Coords | null = showDriverMarker && driverLocation
+    ? driverLocation
+    : (userLocation ?? null);
+  const routeCoords: Coords[] = hookRouteCoords.length > 0
+    ? hookRouteCoords
+    : (routeOrigin && destCoords ? [routeOrigin, destCoords] : []);
 
   return (
     <View style={StyleSheet.absoluteFillObject}>
@@ -270,14 +203,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
         // @ts-expect-error react-native-maps@1.20.1 types no longer declare
         // compassEnabled, but the native view still supports and uses it.
         compassEnabled={false}
-        onMapReady={() => {
-          mapReadyRef.current = true;
-          // Drain any camera action that queued before the map was ready.
-          if (pendingCameraRef.current) {
-            pendingCameraRef.current();
-            pendingCameraRef.current = null;
-          }
-        }}
+        onMapReady={onMapReady}
       >
         {routeCoords.length > 0 && (
           <Polyline coordinates={routeCoords} strokeColor={darkMode ? '#e5e7eb' : '#111827'} strokeWidth={4} />
@@ -309,27 +235,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, s
             anchor={{ x: 0.5, y: 0.5 }}
             rotation={driverLocation.heading ?? 0}
           >
-            {serviceType === 'scooter' || serviceType === 'delivery' ? (
-              <View style={styles.driverMarker}>
-                <View style={styles.driverArrowHead} />
-                <View style={styles.driverDot}>
-                  {serviceType === 'scooter' ? (
-                    <Bike size={14} color="#ffffff" />
-                  ) : (
-                    <Package size={14} color="#ffffff" />
-                  )}
-                </View>
-              </View>
-            ) : (
-              /* Car service: use the dedicated car-marker image so it matches
-                 PassengerTrackingMap. Rotation is handled by MarkerAnimated's
-                 rotation prop — the image itself stays upright. */
-              <Image
-                source={require('@/assets/images/car-marker.png')}
-                style={styles.carMarkerImage}
-                resizeMode="contain"
-              />
-            )}
+            <DriverMarker vehicleType={serviceType ?? 'car'} />
           </MarkerAnimated>
         )}
 
