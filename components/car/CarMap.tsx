@@ -28,12 +28,6 @@ interface CarMapProps {
   searching?: boolean;
 }
 
-// CAIRO_DEFAULT removed (audit L3) — AnimatedRegion still needs finite init
-// numbers, so 0/0 is used below; the marker is never visible without a real
-// driverLocation, so these coordinates are never shown to the user.
-const ANIMATED_INIT: Coords = { latitude: 0, longitude: 0 };
-const ROUTE_REFRESH_INTERVAL_MS = 75_000;
-const SIGNIFICANT_MOVE_METERS = 300;
 
 // Wrapped in React.memo: CarServiceScreen re-renders on every driver-location
 // tick (from both a 5s REST poll and a live socket writing into one shared
@@ -262,15 +256,6 @@ const styles = StyleSheet.create({
   userDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(17,24,39,0.15)', alignItems: 'center', justifyContent: 'center' },
   userDotInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#111827' },
   destPin: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-  carMarkerImage: { width: 48, height: 48 },
-  driverMarker: { alignItems: 'center' },
-  driverArrowHead: {
-    width: 0, height: 0,
-    borderLeftWidth: 5, borderRightWidth: 5, borderBottomWidth: 7,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent',
-    borderBottomColor: '#2d2d42',
-  },
-  driverDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#2d2d42', alignItems: 'center', justifyContent: 'center', elevation: 3 },
   locBtn: {
     position: 'absolute', bottom: 240, right: 16,
     width: 44, height: 44, borderRadius: 22,
