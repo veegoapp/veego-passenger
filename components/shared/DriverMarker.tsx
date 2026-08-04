@@ -73,8 +73,8 @@ export function DriverMarker({ vehicleType }: DriverMarkerProps): React.JSX.Elem
 
 const styles = StyleSheet.create({
   carMarkerImage: {
-    width: 48,
-    height: 48,
+    width: 60,
+    height: 60,
   },
 
   wrapper: {
