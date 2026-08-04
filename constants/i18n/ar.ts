@@ -453,6 +453,7 @@ export const ar: typeof en = {
   service_unavailable: 'غير متاح',
   payment_methods_cash: 'نقداً',
   payment_methods_wallet: 'المحفظة',
+  payment_methods_card: 'بطاقة',
   payment_method_label: 'طريقة الدفع',
   insufficient_balance_title: 'الرصيد غير كافٍ',
   insufficient_balance_msg: 'تحتاج إلى {required} ج.م ولكن رصيد محفظتك هو {balance} ج.م. يرجى شحن محفظتك أو الدفع نقداً.',

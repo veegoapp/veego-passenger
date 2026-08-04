@@ -1,7 +1,7 @@
 import { memo, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Animated,
-  ActivityIndicator, TextInput, ScrollView,
+  ActivityIndicator, TextInput, ScrollView, Switch,
 } from 'react-native';
 import {
   Car, Bike as ScooterIcon, Package,
@@ -293,36 +293,74 @@ function RideOptionsSheetBase({
           {onPaymentMethodChange && (
             <View style={{ marginBottom: 16 }}>
               <Text style={[styles.sectionLabel, { color: mutedCol }]}>{t('payment_method_label')}</Text>
+
+              {/* Cash / Card — primary method, side-by-side. Card has no
+                  payment gateway wired into ride requests yet, so it's
+                  shown disabled with a "coming soon" badge rather than
+                  implying it's payable today. */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {([
-                  { id: 'cash' as const, label: t('payment_methods_cash'), sub: 'Pay driver', Icon: Banknote },
-                  ...(walletAvailable ? [{ id: 'wallet' as const, label: t('payment_methods_wallet'), sub: 'Wallet balance', Icon: Wallet }] : []),
-                ]).map(({ id, label, sub, Icon }) => {
-                  const active = paymentMethod === id;
-                  return (
-                    <TouchableOpacity
-                      key={id}
-                      onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange(id); }}
-                      activeOpacity={0.82}
-                      style={[
-                        styles.payCard,
-                        {
-                          flex: 1,
-                          backgroundColor: active ? (isDark ? 'rgba(30,30,40,0.18)' : 'rgba(30,30,40,0.04)') : cardBg,
-                          borderColor: active ? primaryCol : borderCol,
-                        },
-                      ]}
-                    >
-                      <Icon size={18} color={active ? primaryCol : mutedCol} strokeWidth={1.8} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.payLabel, { color: c.ink }]}>{label}</Text>
-                        <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>{sub}</Text>
-                      </View>
-                      {active ? <Check size={16} color={primaryCol} strokeWidth={2.4} /> : null}
-                    </TouchableOpacity>
-                  );
-                })}
+                <TouchableOpacity
+                  onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
+                  activeOpacity={0.82}
+                  style={[
+                    styles.payCard,
+                    {
+                      flex: 1,
+                      backgroundColor: paymentMethod === 'cash'
+                        ? (isDark ? 'rgba(30,30,40,0.18)' : 'rgba(30,30,40,0.04)')
+                        : cardBg,
+                      borderColor: paymentMethod === 'cash' ? primaryCol : borderCol,
+                    },
+                  ]}
+                >
+                  <Banknote size={18} color={paymentMethod === 'cash' ? primaryCol : mutedCol} strokeWidth={1.8} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.payLabel, { color: c.ink }]}>{t('payment_methods_cash')}</Text>
+                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>Pay driver</Text>
+                  </View>
+                  {paymentMethod === 'cash' ? <Check size={16} color={primaryCol} strokeWidth={2.4} /> : null}
+                </TouchableOpacity>
+
+                <View
+                  style={[
+                    styles.payCard,
+                    { flex: 1, opacity: 0.55, backgroundColor: surfaceBg, borderColor: borderCol },
+                  ]}
+                >
+                  <CreditCard size={18} color={mutedCol} strokeWidth={1.8} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.payLabel, { color: mutedCol }]}>{t('payment_methods_card')}</Text>
+                    <View style={[styles.soonBadge, { backgroundColor: borderCol }]}>
+                      <Text style={[styles.soonBadgeText, { color: mutedCol }]}>{t('soon')}</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
+
+              {/* Wallet balance toggle — applies wallet funds alongside the
+                  primary method above instead of competing with it as a
+                  third selectable chip. Maps onto the same 'cash' | 'wallet'
+                  paymentMethod state/callback the backend already expects. */}
+              {walletAvailable && (
+                <View style={[styles.walletRow, { backgroundColor: surfaceBg, borderColor: borderCol, marginTop: 8 }]}>
+                  <View style={[styles.walletIcon, { backgroundColor: cardBg, borderColor: borderCol }]}>
+                    <Wallet size={16} color={primaryCol} strokeWidth={1.8} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.payLabel, { color: c.ink }]}>{t('payment_methods_wallet')}</Text>
+                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>{'Apply wallet balance'}</Text>
+                  </View>
+                  <Switch
+                    value={paymentMethod === 'wallet'}
+                    onValueChange={(val) => {
+                      Haptics.selectionAsync();
+                      onPaymentMethodChange(val ? 'wallet' : 'cash');
+                    }}
+                    trackColor={{ false: borderCol, true: primaryCol }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+              )}
             </View>
           )}
 
@@ -466,6 +504,21 @@ const styles = StyleSheet.create({
   },
   payLabel: { fontSize: 14, fontWeight: '600' },
   paySub: { fontSize: 12, marginTop: 1 },
+  soonBadge: {
+    alignSelf: 'flex-start', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2, marginTop: 3,
+  },
+  soonBadgeText: { fontSize: 10, fontWeight: '600' },
+
+  walletRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 16, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 12,
+  },
+  walletIcon: {
+    width: 32, height: 32, borderRadius: 10, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   primaryBtn: {
     height: 56, borderRadius: 16,

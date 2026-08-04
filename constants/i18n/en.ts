@@ -452,6 +452,7 @@ export const en = {
   service_unavailable: 'Unavailable',
   payment_methods_cash: 'Cash',
   payment_methods_wallet: 'Wallet',
+  payment_methods_card: 'Card',
   payment_method_label: 'Payment method',
   insufficient_balance_title: 'Insufficient Balance',
   insufficient_balance_msg: 'You need {required} EGP but your wallet balance is {balance} EGP. Please top up your wallet or pay with cash.',
