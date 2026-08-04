@@ -103,6 +103,14 @@ export function selectActiveRide(
     status: (normalizeRideStatus(session.status) ?? 'searching') as RideStatus,
     driver,
     driverLocation,
+    // NOTE: session.finalPrice is the locked/estimated price of an in-progress
+    // ride, not the completion-time netCashPayable amount — PassengerRideSession
+    // (activeSessionTypes.ts) has no 'completed' status because the backend
+    // clears the session snapshot the moment a ride completes (rideCompletionService
+    // GAP-3), so this value is superseded by the ride:completed / ride:status:changed
+    // socket payloads (which do carry netCashPayable) before it could ever be
+    // read as a final amount. useRide's terminal-state guards prevent this
+    // pre-completion value from overwriting the completion fare afterwards.
     fare: session.finalPrice,
     waitingCharge: session.waitingCharge,
     pickup: session.pickup,

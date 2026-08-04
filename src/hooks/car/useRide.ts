@@ -47,7 +47,8 @@ const WaitingChargeCappedSchema = z.object({
 
 const RideCompletedSchema = z.object({
   rideId: z.string().or(z.number()),
-  fare: z.number().optional(),
+  /** Cash the passenger still owes the driver in person — 0 for wallet-paid rides. */
+  netCashPayable: z.number().optional(),
 });
 
 const RideCancelledSchema = z.object({
@@ -316,7 +317,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       const parsed = RideCompletedSchema.safeParse(raw);
       if (!parsed.success) { console.warn('[Socket] Invalid ride:completed payload'); return; }
       if (String(parsed.data.rideId) !== String(rideId)) return;
-      setRideState((prev) => ({ ...prev, status: 'completed', fare: parsed.data.fare ?? null }));
+      setRideState((prev) => ({ ...prev, status: 'completed', fare: parsed.data.netCashPayable ?? null }));
       cleanup();
       refreshActiveSession().catch(() => {});
     };
@@ -407,7 +408,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           };
         }
         if (status === 'completed') {
-          updates.fare = (data.meta as any)?.finalPrice ?? prev.fare;
+          updates.fare = (data.meta as any)?.netCashPayable ?? prev.fare;
         }
         if (status === 'cancelled') {
           const m = data.meta as any;

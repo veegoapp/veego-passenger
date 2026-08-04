@@ -10,6 +10,10 @@ import { Stars } from '@/components/ui/Stars';
 
 interface TripCompletedSheetProps {
   visible: boolean;
+  /** netCashPayable from the ride:completed payload — cash still owed to the
+   *  driver (0 for wallet-paid rides). Left `null` (never coerced to 0) until
+   *  the backend value actually arrives, so the amount line stays hidden
+   *  below rather than misreporting "0.00 EGP". */
   fare: number | null;
   paymentMethodLabel: string;
   driverName?: string | null;

@@ -417,6 +417,8 @@ export const ar: typeof en = {
   surge_fee: 'رسوم الذروة',
   promo_discount_line: 'خصم ترويجي',
   total_fare: 'الإجمالي',
+  cash_due: 'المبلغ النقدي المستحق',
+  fare_unavailable: 'التعرفة غير متاحة بعد',
   payment_method: 'طريقة الدفع',
   rate_driver: 'قيّم سائقك',
   cash_payment: 'نقداً',

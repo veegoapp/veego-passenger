@@ -103,7 +103,14 @@ export default function ReceiptScreen() {
     checkAlreadyRated();
   }, [checkAlreadyRated]);
 
-  const parsedFare = parseFloat(params.fare ?? '0') || 0;
+  // params.fare carries netCashPayable (cash still owed to the driver — 0 for
+  // wallet-paid rides), set by CarServiceScreen from rideState.fare. Missing/
+  // invalid data stays `null` instead of silently rendering as "0.00 EGP" —
+  // callers must show an explicit "unavailable" state so a real backend gap
+  // is visible during testing rather than masked as a legitimate zero fare.
+  const parsedFare = params.fare != null && params.fare !== '' && Number.isFinite(parseFloat(params.fare))
+    ? parseFloat(params.fare)
+    : null;
   const parsedRating = parseFloat(params.driverRating ?? '0') || 0;
   const driverInitials = (params.driverName ?? '')
     .split(' ')
@@ -201,16 +208,14 @@ export default function ReceiptScreen() {
           </View>
         )}
 
-        {/* Fare breakdown */}
+        {/* Cash due */}
         <View style={[styles.card, { borderColor: c.border }]}>
           <Text style={[styles.sectionLabel, { color: c.inkSoft }]}>{t('receipt_title')}</Text>
-          <View style={styles.fareRow}>
-            <Text style={[styles.fareLabel, { color: c.inkSoft }]}>{t('base_fare')}</Text>
-            <Text style={[styles.fareValue, { color: c.ink }]}>{parsedFare.toFixed(2)} {t('egp')}</Text>
-          </View>
           <View style={styles.fareTotal}>
-            <Text style={[styles.fareTotalLabel, { color: c.ink }]}>{t('total_fare')}</Text>
-            <Text style={[styles.fareTotalValue, { color: c.ink }]}>{parsedFare.toFixed(2)} {t('egp')}</Text>
+            <Text style={[styles.fareTotalLabel, { color: c.ink }]}>{t('cash_due')}</Text>
+            <Text style={[styles.fareTotalValue, { color: parsedFare == null ? c.inkSoft : c.ink }]}>
+              {parsedFare != null ? `${parsedFare.toFixed(2)} ${t('egp')}` : t('fare_unavailable')}
+            </Text>
           </View>
         </View>
 
@@ -223,8 +228,10 @@ export default function ReceiptScreen() {
           </View>
         </View>
 
-        {/* Cash payment instruction */}
-        {parsedFare > 0 && (
+        {/* Cash payment instruction — parsedFare is netCashPayable, so this only
+            shows when there is genuinely cash left to hand over (0 for
+            wallet-paid rides, hidden entirely while the amount is unknown). */}
+        {parsedFare != null && parsedFare > 0 && (
           <View style={[styles.cashBanner, { backgroundColor: 'rgba(85,196,154,0.12)', borderColor: '#55c49a' }]}>
             <Banknote size={18} color="#55c49a" />
             <Text style={[styles.cashBannerText, { color: c.ink }]}>

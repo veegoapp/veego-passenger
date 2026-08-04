@@ -416,6 +416,8 @@ export const en = {
   surge_fee: 'Surge Fee',
   promo_discount_line: 'Promo Discount',
   total_fare: 'Total',
+  cash_due: 'Cash Due',
+  fare_unavailable: 'Fare not available yet',
   payment_method: 'Payment Method',
   rate_driver: 'Rate Your Driver',
   cash_payment: 'Cash',
