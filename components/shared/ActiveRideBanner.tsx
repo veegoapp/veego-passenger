@@ -20,8 +20,9 @@ const EDGE_PADDING = 14;
 
 /**
  * Messenger-style floating bubble shown whenever the passenger has an active
- * ride but is NOT on the home tab (CarServiceScreen already lives there).
- * The bubble is draggable and snaps to the nearest screen edge on release.
+ * ride but is not on a screen that already shows it (the home tab's
+ * CarServiceScreen, or trip-tracking itself). The bubble is draggable and
+ * snaps to the nearest screen edge on release.
  */
 export function ActiveRideBanner() {
   const { session } = useActiveSession();
@@ -42,17 +43,35 @@ export function ActiveRideBanner() {
   const pulse    = useRef(new Animated.Value(1)).current;
 
   const isDragging    = useRef(false);
-  // Keep latest rideId accessible inside the panResponder closure without
-  // recreating the responder on every render.
+  // Keep latest rideId/pathname accessible inside the panResponder closure
+  // (created once via useRef below) without recreating the responder on
+  // every render.
   const activeRideIdRef = useRef<string | null>(null);
+  const pathnameRef = useRef(pathname);
 
-  // Keep the ref current so the panResponder closure always reads the latest rideId.
+  // Keep the refs current so the panResponder closure always reads the latest values.
   useEffect(() => {
     activeRideIdRef.current = activeRide?.rideId ?? null;
   }, [activeRide]);
 
-  // Pulsing ring animation
   useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  // (tabs) is a route group — expo-router strips it from the resolved
+  // pathname, so the home tab (app/(tabs)/index.tsx, which renders
+  // CarServiceScreen) only ever resolves to '/'. trip-tracking is the other
+  // screen that already shows this ride's live state. These are the only two
+  // pathnames the bubble needs to hide on; no other tab renders ride UI.
+  const onRideScreen = pathname === '/' || pathname === '/trip-tracking';
+
+  const visible = !!activeRide && !onRideScreen;
+
+  // Pulsing ring animation — only runs while the bubble is actually visible,
+  // so it doesn't keep animating in the background (CPU/GPU drain) while
+  // hidden on the home tab or the trip-tracking screen.
+  useEffect(() => {
+    if (!visible) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.22, duration: 900, useNativeDriver: true }),
@@ -61,16 +80,7 @@ export function ActiveRideBanner() {
     );
     loop.start();
     return () => loop.stop();
-  }, []);
-
-  const onHomeTab =
-    pathname === '/' ||
-    pathname === '/index' ||
-    pathname === '/(tabs)' ||
-    pathname === '/(tabs)/index' ||
-    pathname === '/trip-tracking';
-
-  const visible = !!activeRide && !onHomeTab;
+  }, [visible]);
 
   // Pop-in / pop-out
   useEffect(() => {
@@ -125,9 +135,19 @@ export function ActiveRideBanner() {
         Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start();
 
         if (!isDragging.current) {
-          // Navigate to the active trip tracking screen.
           const rideId = activeRideIdRef.current;
-          if (rideId) router.push(`/trip-tracking?rideId=${rideId}` as any);
+          // Already on trip-tracking (bubble is normally hidden/non-interactive
+          // there via pointerEvents, but this guards belt-and-suspenders against
+          // any timing gap between a pathname change and `visible` catching up).
+          if (rideId && pathnameRef.current !== '/trip-tracking') {
+            // router.navigate reuses a matching screen already in the stack
+            // instead of always pushing a new one — router.push here would let
+            // repeated bubble taps (after switching tabs instead of pressing
+            // back) pile up duplicate /trip-tracking instances, each mounting
+            // its own live PassengerTrackingMap + driver-location socket
+            // subscription for the same ride.
+            router.navigate(`/trip-tracking?rideId=${rideId}` as any);
+          }
           return;
         }
 
@@ -172,7 +192,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width:  BUBBLE_SIZE,
     height: BUBBLE_SIZE,
-    zIndex: 999,
+    // Higher than any sibling overlay in app/_layout.tsx — TripSheet (9999)
+    // and ConfirmSheet (9998) are plain absolutely-positioned views, so
+    // among siblings the highest zIndex wins regardless of JSX declaration
+    // order. (AppAlertHost uses a native Modal, which always renders above
+    // the entire JS tree regardless of zIndex — this bubble is expected to
+    // sit below an actual alert dialog.)
+    zIndex: 99999,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppLoader } from '@/components/ui/AppLoader';
@@ -11,7 +11,6 @@ import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useTheme } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/colors';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
-import { getSocket, getSocketSync } from '@/src/api/socket';
 import type { DriverLocation } from '@/src/api/socket';
 import { tokenStore } from '@/src/api/client';
 import { getRide } from '@/src/api/rideService';
@@ -89,7 +88,10 @@ export default function TripTrackingScreen() {
     name?: string; vehicle?: string; rating?: string; phone?: string;
   }>({});
 
-  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
+  // Seed only — session recovery / deep-link value. Live per-tick updates are
+  // owned by PassengerTrackingMap itself (useDriverLocationSocket) so a socket
+  // tick never re-renders this screen's top bar/status pill/bottom card.
+  const [driverLocationSeed, setDriverLocationSeed] = useState<DriverLocation | null>(null);
   // This screen only ever tracks car/scooter/delivery rides (shuttle uses
   // trip-detail.tsx instead) — default to 'car', refine to 'scooter' below
   // once the ride's vehicleType is known.
@@ -98,7 +100,6 @@ export default function TripTrackingScreen() {
   const [deepLinkLoading, setDeepLinkLoading] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
-  const socketListening = useRef(false);
 
   // ── Seed from ActiveSession ───────────────────────────────────────────────
   // When the centralized session has data for the ride this screen is tracking,
@@ -130,7 +131,7 @@ export default function TripTrackingScreen() {
 
     // Driver location
     if (activeRideSnapshot.driverLocation) {
-      setDriverLocation(activeRideSnapshot.driverLocation);
+      setDriverLocationSeed(activeRideSnapshot.driverLocation);
     }
 
     // Vehicle type for the map marker
@@ -216,7 +217,7 @@ export default function TripTrackingScreen() {
           });
         }
         if (d?.driverLocation) {
-          setDriverLocation(d.driverLocation);
+          setDriverLocationSeed(d.driverLocation);
         }
         if (d?.vehicleType != null || d?.type != null || d?.serviceType != null) {
           setVehicleType(normalizeVehicleType(d.vehicleType ?? d.type ?? d.serviceType));
@@ -243,46 +244,14 @@ export default function TripTrackingScreen() {
   // non-deterministic race where the REST response could overwrite fresher
   // socket-derived data already applied by the snapshot effect (audit: H3).
 
-  useEffect(() => {
-    const rideId = params.rideId;
-    if (!rideId || socketListening.current) return;
-    socketListening.current = true;
-
-    // Track last-seen coordinates so we only call setDriverLocation (and
-    // re-render PassengerTrackingMap) when something actually changed.
-    // Status transitions (arrived, started, completed, cancelled) are NOT
-    // handled here — they are driven by the activeRideSnapshot effect above,
-    // which stays live via ActiveSessionContext's session:snapshot subscription.
-    // Keeping status listeners here would create a competing state machine that
-    // fights with activeRideSnapshot (audit: C1 — duplicate socket ownership).
-    let prevLat: number | undefined;
-    let prevLng: number | undefined;
-    let prevHeading: number | undefined;
-
-    const onDriverLocation = (data: any) => {
-      const loc = data?.location;
-      if (!loc) return;
-      if (String(data.rideId) !== String(rideId)) return;
-      // Identity guard: skip no-op updates to preserve React.memo on the map.
-      if (prevLat === loc.latitude && prevLng === loc.longitude && prevHeading === loc.heading) return;
-      prevLat = loc.latitude;
-      prevLng = loc.longitude;
-      prevHeading = loc.heading;
-      setDriverLocation(loc);
-    };
-
-    getSocket().then((socket) => {
-      socket.on('ride:driver_location', onDriverLocation);
-    }).catch(() => {});
-
-    return () => {
-      const s = getSocketSync();
-      if (s) {
-        s.off('ride:driver_location', onDriverLocation);
-      }
-      socketListening.current = false;
-    };
-  }, [params.rideId]);
+  // NOTE: The live `ride:driver_location` subscription that previously lived
+  // here was moved into PassengerTrackingMap (via useDriverLocationSocket).
+  // Status transitions (arrived, started, completed, cancelled) continue to
+  // be driven by the activeRideSnapshot effect above, which stays live via
+  // ActiveSessionContext's session:snapshot subscription (audit: C1 —
+  // duplicate socket ownership). Keeping a second `driverLocation` setState
+  // here re-rendered this entire screen (top bar/status pill/bottom card) on
+  // every location tick — the map now owns that state locally instead.
 
   // Navigate away 3 seconds after the ride reaches a terminal state.
   // Status is fed by the activeRideSnapshot effect (via ActiveSessionContext)
@@ -335,7 +304,8 @@ export default function TripTrackingScreen() {
       <PassengerTrackingMap
         pickup={pickup}
         dropoff={dropoff}
-        driverLocation={driverLocation}
+        driverLocation={driverLocationSeed}
+        rideId={params.rideId ?? null}
         vehicleType={vehicleType}
         tripPhase={tripPhase}
       />

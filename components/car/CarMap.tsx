@@ -11,12 +11,19 @@ import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
 import { useMapCamera } from '@/hooks/map/useMapCamera';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
+import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
 
 interface Coords { latitude: number; longitude: number }
 
 interface CarMapProps {
+  /** Initial/recovered seed only (e.g. rideState.driverLocation from a REST
+   *  poll or ActiveSession snapshot). Once `rideId` is set, live ticks are
+   *  read from an internal socket subscription (see useDriverLocationSocket)
+   *  — useRide no longer forwards live driver:ride:location ticks itself. */
   driverLocation?: (Coords & { heading?: number }) | null;
+  /** Standard ride id — enables the internal live-location subscription. */
+  rideId?: string | number | null;
   destCoords?: Coords | null;
   showDriverMarker?: boolean;
   onUserLocation?: (loc: Coords) => void;
@@ -29,13 +36,19 @@ interface CarMapProps {
 }
 
 
-// Wrapped in React.memo: CarServiceScreen re-renders on every driver-location
-// tick (from both a 5s REST poll and a live socket writing into one shared
-// rideState object), and without this CarMap fully re-rendered in lockstep
-// even for state changes that have nothing to do with the map (fare, forms,
-// sheets, etc.) since it wasn't memoized at all.
-export const CarMap = React.memo(function CarMap({ driverLocation, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, searching }: CarMapProps) {
+// Wrapped in React.memo: CarServiceScreen still re-renders on its own state
+// changes (fare, forms, sheets, the 5s REST poll, etc.) that have nothing to
+// do with the map. Live driver:ride:location ticks no longer flow through
+// rideState at all — they're read directly by useDriverLocationSocket below,
+// scoped to this component — but the memo still matters for everything else
+// CarServiceScreen re-renders on.
+export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, searching }: CarMapProps) {
   const { darkMode } = useTheme();
+
+  // Live-subscribes to the socket itself (seeded from driverLocationSeed) so
+  // GPS ticks never bubble a state update up through CarServiceScreen's
+  // rideState — only this map/marker subtree re-renders per tick.
+  const driverLocation = useDriverLocationSocket({ rideId, seed: driverLocationSeed });
 
   // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are provided
   // by useMapCamera. onMapReady is passed directly to <MapView>.

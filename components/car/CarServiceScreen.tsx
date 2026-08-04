@@ -529,10 +529,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     }
   }, [rideState.status, rideState.rideId]);
 
+  // Rapidly re-selecting a destination can fire multiple fetchEstimate calls
+  // whose responses can resolve out of order — this sequence guard ensures
+  // only the response for the *latest* call is ever applied.
+  const estimateRequestSeqRef = useRef(0);
+
   const fetchEstimate = useCallback(async (pickup: Coords, dropoff: Coords) => {
+    const seq = ++estimateRequestSeqRef.current;
     setEstLoading(true);
     try {
       const data = await getRideEstimate(pickup, dropoff, serviceType);
+      if (seq !== estimateRequestSeqRef.current) return; // superseded — discard
       if (serviceType === 'car') {
         const categories: Array<{ slug: string; name: string; estimatedPrice: number }> = data.categories ?? [];
         setEstimate({
@@ -545,10 +552,11 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         setSingleEstimate({ price: data.estimatedPrice ?? 0, eta: data.durationMinutes ?? 5 });
       }
     } catch {
+      if (seq !== estimateRequestSeqRef.current) return; // superseded — discard
       setEstimate(null);
       setSingleEstimate(null);
     } finally {
-      setEstLoading(false);
+      if (seq === estimateRequestSeqRef.current) setEstLoading(false);
     }
   }, [serviceType]);
 
@@ -841,6 +849,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
       <CarMap
         driverLocation={rideState.driverLocation}
+        rideId={rideState.rideId}
         destCoords={mapDestCoords}
         showDriverMarker={showDriverMarker}
         onUserLocation={handleUserLocation}

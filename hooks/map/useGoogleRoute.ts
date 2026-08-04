@@ -6,9 +6,13 @@
  *
  *   - calls fetchGoogleRoute(origin, targets) when enabled
  *   - throttles refetches: skips if elapsed < 75 s AND driver has not moved
- *     >= 300 m since the last fetch
+ *     >= 300 m since the last fetch — UNLESS the target changed (see below)
  *   - forces an immediate refetch when the targets change (new destination or
- *     phase change — detected by comparing a stable string key of the coords)
+ *     phase change — detected by comparing a stable string key of the coords),
+ *     bypassing the throttle above, and proactively clears routeCoords back to
+ *     [] the moment the change is detected so callers never render the old
+ *     leg's stale polyline (e.g. driver->pickup) against the new target
+ *     (e.g. driver->dropoff) while the new route is in flight
  *   - cancels any in-flight fetch when the component unmounts or when a new
  *     fetch supersedes it
  *   - exposes a `loading` flag so callers can show a fallback polyline while
@@ -94,6 +98,9 @@ export function useGoogleRoute({
   // Throttle refs — track where and when the last fetch originated.
   const lastFetchOriginRef = useRef<LatLng | null>(null);
   const lastFetchAtRef     = useRef(0);
+  // Tracks the targetsKey the throttle refs above were computed for, so a
+  // destination change can be detected and bypass the throttle immediately.
+  const lastTargetsKeyRef  = useRef<string | null>(null);
 
   // Stable string key derived from the current targets list.  Recomputed on
   // every render but cheap (small arrays); used both in the effect body and as
@@ -111,13 +118,26 @@ export function useGoogleRoute({
       setLoading(false);
       lastFetchOriginRef.current = null;
       lastFetchAtRef.current     = 0;
+      lastTargetsKeyRef.current  = null;
       return;
     }
 
+    // ── Destination-change detection ─────────────────────────────────────────
+    // targetsKey being in the deps array only guarantees this effect re-runs
+    // when the destination changes — it does NOT by itself bypass the throttle
+    // check below. Compare explicitly against the key our last fetch was for.
+    const targetChanged = lastTargetsKeyRef.current !== targetsKey;
+
+    // A new destination (e.g. pickup -> dropoff on trip start) must never keep
+    // rendering the previous leg's stale polyline while the new route loads.
+    if (targetChanged) {
+      setRouteCoords([]);
+      setDurationSecs(null);
+    }
+
     // ── Throttle check ────────────────────────────────────────────────────────
-    // The effect re-runs when targetsKey changes (new destination) — that alone
-    // is enough to force an immediate fetch.  For the same destination, we also
-    // refetch when the driver has moved >= 300 m or 75 s have elapsed.
+    // For the same destination, only refetch when the driver has moved >= 300 m
+    // or 75 s have elapsed. A destination change always bypasses this.
     const now     = Date.now();
     const elapsed = now - lastFetchAtRef.current;
 
@@ -125,15 +145,14 @@ export function useGoogleRoute({
       ? haversineMeters(lastFetchOriginRef.current, origin) >= SIGNIFICANT_MOVE_METERS
       : true; // always fetch the first time
 
-    if (elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) {
-      // targetsKey is already in deps, so a destination change always bypasses
-      // this guard — no explicit destinationChanged check is needed here.
+    if (!targetChanged && elapsed < ROUTE_REFRESH_INTERVAL_MS && !movedSignificantly) {
       return;
     }
 
     // ── Issue the fetch ───────────────────────────────────────────────────────
     lastFetchOriginRef.current = { latitude: origin.latitude, longitude: origin.longitude };
     lastFetchAtRef.current     = now;
+    lastTargetsKeyRef.current  = targetsKey;
 
     let cancelled = false;
     setLoading(true);

@@ -60,11 +60,18 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
   // Mirrors the `initialized` state so AppState / socket callbacks can read it
   // without capturing a stale closure value.
   const initializedRef = useRef(false);
+  // Bumped every time a snapshot is actually applied (REST or socket).
+  // refreshActiveSession() captures this before its awaited fetch and checks
+  // it again after — if a newer snapshot (e.g. a faster session:snapshot
+  // socket event) landed in the meantime, the slower REST response is
+  // discarded instead of regressing state that's already more current.
+  const snapshotGenerationRef = useRef(0);
 
   const applySnapshot = useCallback((value: unknown, source: 'REST' | 'socket') => {
     try {
       const nextSession = adaptPassengerActiveSession(value);
       if (!mountedRef.current) return;
+      snapshotGenerationRef.current += 1;
       setSession(nextSession);
       if (source === 'REST') setError(null);
       if (__DEV__) {
@@ -116,9 +123,17 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
     if (!mountedRef.current) return;
     setLoading(true);
     if (__DEV__) console.log('[ActiveSession] session fetch started');
+    const generationAtStart = snapshotGenerationRef.current;
 
     try {
       const rawSession = await fetchPassengerActiveSession();
+      if (snapshotGenerationRef.current !== generationAtStart) {
+        // Something newer (a socket session:snapshot, or another overlapping
+        // refresh) already landed while this request was in flight — applying
+        // this response now would regress state backward.
+        if (__DEV__) console.log('[ActiveSession] discarding stale REST response — superseded by a newer snapshot');
+        return;
+      }
       applySnapshot(rawSession, 'REST');
     } catch (fetchError) {
       // A transient failure must not erase an existing session.

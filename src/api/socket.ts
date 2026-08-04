@@ -13,6 +13,13 @@ const _apiBase: string = normalizeApiUrl(_rawApiUrl);
 const SOCKET_URL = _apiBase.replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;
+// In-flight connection attempt, shared by concurrent getSocket() callers.
+// Without this, two callers seeing `socket === null` at the same time (e.g.
+// ActiveSessionContext's init and useRide's setupSocketListeners) would each
+// create their own io() instance — the second one's `if (socket) socket.
+// disconnect()` would tear down the first caller's still-being-set-up
+// socket, orphaning its listeners on a dead instance.
+let connectPromise: Promise<Socket> | null = null;
 
 export type SocketConnectionState = 'connected' | 'connecting' | 'disconnected';
 let connectionState: SocketConnectionState = 'disconnected';
@@ -38,33 +45,49 @@ export function onSocketConnectionChange(listener: (state: SocketConnectionState
 export async function getSocket(): Promise<Socket> {
   if (socket && socket.connected) return socket;
 
-  const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
+  // Coalesce concurrent callers onto the same in-flight connection attempt
+  // instead of each racing to create/replace the socket.
+  if (connectPromise) return connectPromise;
 
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
+  connectPromise = (async () => {
+    try {
+      const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
 
-  socket = io(SOCKET_URL, {
-    path: '/api/socket.io',
-    transports: ['websocket'],
-    auth: token ? { token } : {},
-    reconnection: true,
-    reconnectionAttempts: 10,
-    reconnectionDelay: 1500,
-    timeout: 10000,
-  });
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
 
-  setConnectionState('connecting');
-  socket.on('connect', () => setConnectionState('connected'));
-  socket.on('disconnect', () => setConnectionState('disconnected'));
-  socket.on('reconnect_attempt', () => setConnectionState('connecting'));
-  socket.on('connect_error', (err) => {
-    setConnectionState('disconnected');
-    if (__DEV__) console.warn('[Socket] connection error:', err.message);
-  });
+      const s = io(SOCKET_URL, {
+        path: '/api/socket.io',
+        transports: ['websocket'],
+        auth: token ? { token } : {},
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1500,
+        timeout: 10000,
+      });
 
-  return socket;
+      setConnectionState('connecting');
+      s.on('connect', () => setConnectionState('connected'));
+      s.on('disconnect', () => setConnectionState('disconnected'));
+      s.on('reconnect_attempt', () => setConnectionState('connecting'));
+      s.on('connect_error', (err) => {
+        setConnectionState('disconnected');
+        if (__DEV__) console.warn('[Socket] connection error:', err.message);
+      });
+
+      socket = s;
+      return s;
+    } finally {
+      // Cleared regardless of success/failure so a later (non-concurrent)
+      // call — e.g. after this socket disconnects again — starts a fresh
+      // attempt rather than reusing a resolved/rejected promise forever.
+      connectPromise = null;
+    }
+  })();
+
+  return connectPromise;
 }
 
 export function getSocketSync(): Socket | null {
@@ -122,6 +145,10 @@ export interface DriverLocation {
   latitude: number;
   longitude: number;
   heading?: number;
+  /** Epoch ms the server recorded this position at, when known (e.g. from an
+   *  ActiveSession snapshot's driver.location.updatedAt). Absent for raw live
+   *  socket ticks, which are inherently "now" by virtue of just arriving. */
+  updatedAtMs?: number;
 }
 
 // Note: this interface documents known socket event payload shapes for

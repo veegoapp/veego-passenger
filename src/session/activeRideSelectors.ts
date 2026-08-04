@@ -86,10 +86,12 @@ export function selectActiveRide(
   let driverLocation: DriverLocation | null = null;
   if (session.driver?.location) {
     const loc = session.driver.location;
+    const updatedAtMs = loc.updatedAt ? new Date(loc.updatedAt).getTime() : NaN;
     driverLocation = {
       latitude: loc.lat,
       longitude: loc.lng,
       ...(loc.heading !== null ? { heading: loc.heading } : {}),
+      ...(Number.isFinite(updatedAtMs) ? { updatedAtMs } : {}),
     };
   }
 
