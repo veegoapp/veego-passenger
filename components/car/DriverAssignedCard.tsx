@@ -5,7 +5,7 @@ import {
   Navigation, BadgeCheck, ChevronRight, ShieldAlert, LifeBuoy,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useTabBar } from '@/context/TabBarContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
@@ -84,7 +84,7 @@ function DriverAssignedCardBase({
   waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
   const { colors: c, t, isRTL } = useTheme();
-  const { tabBarHeight } = useTabBar();
+  const insets = useSafeAreaInsets();
   const slideAnim   = useRef(new Animated.Value(0)).current;
   const arrivedPulse = useRef(new Animated.Value(1)).current;
   const enRouteDot  = useRef(new Animated.Value(1)).current;
@@ -157,7 +157,7 @@ function DriverAssignedCardBase({
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: tabBarHeight + 20 }]}>
+      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 20 }]}>
         <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
         {/* ══════════════════════════════════════════

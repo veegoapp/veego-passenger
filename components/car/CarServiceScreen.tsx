@@ -72,7 +72,7 @@ export interface CarServiceScreenHandle {
   selectDestination: (address: string, coordinates?: { latitude: number; longitude: number }) => void;
 }
 
-function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, sheetHeaderOffset: number) {
+function makeStyles(c: ThemeColors, insetTop: number, insetBottom: number, tabBarHeight: number, sheetHeaderOffset: number) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
 
@@ -245,14 +245,14 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
       borderTopLeftRadius: 28, borderTopRightRadius: 28,
       borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
       padding: Spacing.xl,
-      paddingBottom: tabBarHeight + Spacing.xl,
+      paddingBottom: insetBottom + Spacing.xl,
     },
     cardSurface: {
       borderTopLeftRadius: 28, borderTopRightRadius: 28,
       borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
       borderWidth: 1, borderBottomWidth: 0,
       padding: Spacing.xl,
-      paddingBottom: tabBarHeight + Spacing.xl,
+      paddingBottom: insetBottom + Spacing.xl,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: -6 },
       shadowOpacity: 0.08,
@@ -322,7 +322,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const insets      = useSafeAreaInsets();
   const insetTop    = insets.top;
   const { tabBarHeight } = useTabBar();
-  const styles    = useMemo(() => makeStyles(c, insetTop, tabBarHeight, sheetHeaderOffset), [c, insetTop, tabBarHeight, sheetHeaderOffset]);
+  const styles    = useMemo(() => makeStyles(c, insetTop, insets.bottom, tabBarHeight, sheetHeaderOffset), [c, insetTop, insets.bottom, tabBarHeight, sheetHeaderOffset]);
 
   // Phase 1: screen height used for expanded-sheet animation
   const SCREEN_H = Dimensions.get('window').height;
