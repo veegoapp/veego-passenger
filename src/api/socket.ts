@@ -51,8 +51,6 @@ export async function getSocket(): Promise<Socket> {
 
   connectPromise = (async () => {
     try {
-      const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
-
       if (socket) {
         socket.disconnect();
         socket = null;
@@ -61,10 +59,32 @@ export async function getSocket(): Promise<Socket> {
       const s = io(SOCKET_URL, {
         path: '/api/socket.io',
         transports: ['websocket'],
-        auth: token ? { token } : {},
+        // Fetch the freshest token on EVERY (re)connection attempt instead of
+        // capturing a single token at creation time. socket.io reuses the
+        // initial `auth` object for all of its own built-in reconnections, so a
+        // static token that expired mid-ride made every reconnect attempt fail
+        // auth on the server — exhausting reconnectionAttempts and leaving the
+        // socket permanently dead ("Reconnecting…" that never clears, no
+        // ride:started/completed/cancelled events, a frozen trip screen). As a
+        // function it is re-invoked before each attempt and picks up the token
+        // the REST layer's 401→refresh flow rotated into secure storage.
+        auth: async (cb: (data: Record<string, unknown>) => void) => {
+          try {
+            const token = await tokenStore.getToken(tokenStore.TOKEN_KEY);
+            cb(token ? { token } : {});
+          } catch {
+            cb({});
+          }
+        },
         reconnection: true,
-        reconnectionAttempts: 10,
+        // Never permanently give up. Combined with the fresh-token `auth` above,
+        // the socket keeps retrying with exponential backoff and self-heals as
+        // soon as a valid token / working network is available, instead of
+        // freezing on a stuck "Reconnecting…" banner after 10 stale-token
+        // failures (reconnect_failed, which nothing was recovering from).
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 1500,
+        reconnectionDelayMax: 8000,
         timeout: 10000,
       });
 
