@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { RatingSheet } from '@/components/shared/RatingSheet';
+import { FareBreakdownModal } from '@/components/shared/FareBreakdownModal';
 import api from '@/src/api/client';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -44,6 +45,8 @@ function makeStyles(c: ThemeColors) {
     },
     fareTotalLabel: { fontSize: 15, fontWeight: Typography.weight.bold },
     fareTotalValue: { fontSize: 17, fontWeight: Typography.weight.bold },
+    viewDetailsBtn: { alignSelf: 'flex-start', paddingVertical: 4 },
+    viewDetailsBtnText: { fontSize: 13, fontWeight: Typography.weight.semibold, textDecorationLine: 'underline' },
     payRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     payLabel: { fontSize: 13, flex: 1 },
     payValue: { fontSize: 13, fontWeight: Typography.weight.semibold },
@@ -70,6 +73,9 @@ export default function ReceiptScreen() {
     pickup?: string;
     dropoff?: string;
     fare?: string;
+    grossFare?: string;
+    promoDiscount?: string;
+    walletDeduction?: string;
     driverName?: string;
     driverRating?: string;
   }>();
@@ -81,6 +87,7 @@ export default function ReceiptScreen() {
   const [ratingVisible, setRatingVisible] = useState(false);
   const [alreadyRated, setAlreadyRated] = useState(false);
   const [rateCheckError, setRateCheckError] = useState(false);
+  const [detailsVisible, setDetailsVisible] = useState(false);
 
   // Check passengerRating from the ride to know if rating was already submitted
   const checkAlreadyRated = useCallback(() => {
@@ -103,7 +110,18 @@ export default function ReceiptScreen() {
     checkAlreadyRated();
   }, [checkAlreadyRated]);
 
-  const parsedFare = parseFloat(params.fare ?? '0') || 0;
+  // params.fare carries netCashPayable (cash still owed to the driver — 0 for
+  // wallet-paid rides), set by CarServiceScreen from rideState.fare. Missing/
+  // invalid data stays `null` instead of silently rendering as "0.00 EGP" —
+  // callers must show an explicit "unavailable" state so a real backend gap
+  // is visible during testing rather than masked as a legitimate zero fare.
+  const parseNullableNumber = (raw: string | undefined): number | null => (
+    raw != null && raw !== '' && Number.isFinite(parseFloat(raw)) ? parseFloat(raw) : null
+  );
+  const parsedFare = parseNullableNumber(params.fare);
+  const parsedGrossFare = parseNullableNumber(params.grossFare);
+  const parsedPromoDiscount = parseNullableNumber(params.promoDiscount);
+  const parsedWalletDeduction = parseNullableNumber(params.walletDeduction);
   const parsedRating = parseFloat(params.driverRating ?? '0') || 0;
   const driverInitials = (params.driverName ?? '')
     .split(' ')
@@ -201,17 +219,20 @@ export default function ReceiptScreen() {
           </View>
         )}
 
-        {/* Fare breakdown */}
+        {/* Cash due */}
         <View style={[styles.card, { borderColor: c.border }]}>
           <Text style={[styles.sectionLabel, { color: c.inkSoft }]}>{t('receipt_title')}</Text>
-          <View style={styles.fareRow}>
-            <Text style={[styles.fareLabel, { color: c.inkSoft }]}>{t('base_fare')}</Text>
-            <Text style={[styles.fareValue, { color: c.ink }]}>{parsedFare.toFixed(2)} {t('egp')}</Text>
-          </View>
           <View style={styles.fareTotal}>
-            <Text style={[styles.fareTotalLabel, { color: c.ink }]}>{t('total_fare')}</Text>
-            <Text style={[styles.fareTotalValue, { color: c.ink }]}>{parsedFare.toFixed(2)} {t('egp')}</Text>
+            <Text style={[styles.fareTotalLabel, { color: c.ink }]}>{t('cash_due')}</Text>
+            <Text style={[styles.fareTotalValue, { color: parsedFare == null ? c.inkSoft : c.ink }]}>
+              {parsedFare != null ? `${parsedFare.toFixed(2)} ${t('egp')}` : t('fare_unavailable')}
+            </Text>
           </View>
+          {parsedFare != null && (
+            <TouchableOpacity onPress={() => setDetailsVisible(true)} activeOpacity={0.7} style={styles.viewDetailsBtn}>
+              <Text style={[styles.viewDetailsBtnText, { color: c.primary }]}>{t('view_details')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Payment method */}
@@ -223,8 +244,10 @@ export default function ReceiptScreen() {
           </View>
         </View>
 
-        {/* Cash payment instruction */}
-        {parsedFare > 0 && (
+        {/* Cash payment instruction — parsedFare is netCashPayable, so this only
+            shows when there is genuinely cash left to hand over (0 for
+            wallet-paid rides, hidden entirely while the amount is unknown). */}
+        {parsedFare != null && parsedFare > 0 && (
           <View style={[styles.cashBanner, { backgroundColor: 'rgba(85,196,154,0.12)', borderColor: '#55c49a' }]}>
             <Banknote size={18} color="#55c49a" />
             <Text style={[styles.cashBannerText, { color: c.ink }]}>
@@ -265,6 +288,15 @@ export default function ReceiptScreen() {
         driverColor="#3A7BD5"
         onSubmit={handleRatingSubmit}
         onSkip={handleRatingSkip}
+      />
+
+      <FareBreakdownModal
+        visible={detailsVisible}
+        onClose={() => setDetailsVisible(false)}
+        grossFare={parsedGrossFare}
+        promoDiscount={parsedPromoDiscount}
+        walletDeduction={parsedWalletDeduction}
+        netCashPayable={parsedFare}
       />
     </View>
   );

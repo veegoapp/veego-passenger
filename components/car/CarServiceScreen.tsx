@@ -750,6 +750,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         params: {
           rideId: finishedRideId,
           ...(rideState.fare != null ? { fare: String(rideState.fare) } : {}),
+          ...(rideState.grossFare != null ? { grossFare: String(rideState.grossFare) } : {}),
+          ...(rideState.promoDiscount != null ? { promoDiscount: String(rideState.promoDiscount) } : {}),
+          ...(rideState.walletDeduction != null ? { walletDeduction: String(rideState.walletDeduction) } : {}),
           ...(destination ? { dropoff: destination } : {}),
           ...(rideState.driver?.name ? { driverName: rideState.driver.name } : {}),
           ...(rideState.driver?.rating != null ? { driverRating: String(rideState.driver.rating) } : {}),
@@ -757,7 +760,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       } as any);
     }
     handleReset();
-  }, [rideState.rideId, rideState.fare, rideState.driver, destination, handleReset]);
+  }, [rideState.rideId, rideState.fare, rideState.grossFare, rideState.promoDiscount, rideState.walletDeduction, rideState.driver, destination, handleReset]);
 
   // Combined fare + inline-rating sheet (Lovable's CompletedSheet behavior).
   // A skipped rating (stars === 0) still proceeds to the receipt — rating
@@ -1279,6 +1282,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       <TripCompletedSheet
         visible={phase === 'completed'}
         fare={rideState.fare ?? null}
+        grossFare={rideState.grossFare ?? null}
+        promoDiscount={rideState.promoDiscount ?? null}
+        walletDeduction={rideState.walletDeduction ?? null}
         paymentMethodLabel={paymentMethod === 'wallet' ? t('payment_methods_wallet') : t('payment_methods_cash')}
         driverName={rideState.driver?.name ?? null}
         onDone={handleCompletedDone}

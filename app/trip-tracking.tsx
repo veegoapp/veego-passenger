@@ -185,7 +185,11 @@ export default function TripTrackingScreen() {
           // whether this ride was already rated and to submit the rating —
           // passing the wrong key silently broke that lookup and the
           // eventual POST /rides/:id/rate-driver call.
-          const fare = d?.fare ?? d?.finalPrice;
+          // receipt.tsx's `fare` param is netCashPayable (cash still owed to
+          // the driver, 0 for wallet-paid rides) — GET /rides/:id returns it
+          // directly now; `finalPrice` is kept only as a fallback for a ride
+          // fetched before that field existed on this response.
+          const fare = d?.netCashPayable ?? d?.finalPrice;
           const pickupAddress = d?.pickupAddress ?? d?.pickup_address;
           const dropoffAddress = d?.dropoffAddress ?? d?.dropoff_address;
           router.replace({
@@ -193,6 +197,9 @@ export default function TripTrackingScreen() {
             params: {
               rideId: deepId,
               ...(fare != null ? { fare: String(fare) } : {}),
+              ...(d?.grossFare != null ? { grossFare: String(d.grossFare) } : {}),
+              ...(d?.promoDiscount != null ? { promoDiscount: String(d.promoDiscount) } : {}),
+              ...(d?.walletDeduction != null ? { walletDeduction: String(d.walletDeduction) } : {}),
               ...(pickupAddress ? { pickup: pickupAddress } : {}),
               ...(dropoffAddress ? { dropoff: dropoffAddress } : {}),
               ...(d?.driver?.name ? { driverName: d.driver.name } : {}),

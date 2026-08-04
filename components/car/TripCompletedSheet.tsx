@@ -7,10 +7,21 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { Stars } from '@/components/ui/Stars';
+import { FareBreakdownModal } from '@/components/shared/FareBreakdownModal';
 
 interface TripCompletedSheetProps {
   visible: boolean;
+  /** netCashPayable from the ride:completed payload — cash still owed to the
+   *  driver (0 for wallet-paid rides). Left `null` (never coerced to 0) until
+   *  the backend value actually arrives, so the amount line stays hidden
+   *  below rather than misreporting "0.00 EGP". */
   fare: number | null;
+  /** Original trip price before any promo discount — feeds the "View Details" breakdown. */
+  grossFare?: number | null;
+  /** EGP amount knocked off by a promo code — feeds the "View Details" breakdown. */
+  promoDiscount?: number | null;
+  /** Portion of the fare paid from the passenger's wallet — feeds the "View Details" breakdown. */
+  walletDeduction?: number | null;
   paymentMethodLabel: string;
   driverName?: string | null;
   /** Called once, with stars === 0 if the passenger tapped Done without rating. */
@@ -21,12 +32,15 @@ interface TripCompletedSheetProps {
  * Lovable's `CompletedSheet` behavior: fare + payment method and the inline
  * 5-star rating live in a single sheet instead of a separate post-trip screen.
  */
-export function TripCompletedSheet({ visible, fare, paymentMethodLabel, driverName, onDone }: TripCompletedSheetProps) {
+export function TripCompletedSheet({
+  visible, fare, grossFare, promoDiscount, walletDeduction, paymentMethodLabel, driverName, onDone,
+}: TripCompletedSheetProps) {
   const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState('');
+  const [detailsVisible, setDetailsVisible] = useState(false);
   const submittingRef = useRef(false);
 
   useEffect(() => {
@@ -70,6 +84,12 @@ export function TripCompletedSheet({ visible, fare, paymentMethodLabel, driverNa
             </Text>
           )}
 
+          {fare != null && (
+            <TouchableOpacity onPress={() => setDetailsVisible(true)} activeOpacity={0.7} style={styles.viewDetailsBtn}>
+              <Text style={[styles.viewDetailsBtnText, { color: c.primary }]}>{t('view_details')}</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={[styles.paymentChip, { backgroundColor: c.surfaceMuted, borderColor: c.border }]}>
             <Text style={[styles.paymentChipText, { color: c.ink }]}>{paymentMethodLabel}</Text>
           </View>
@@ -100,6 +120,15 @@ export function TripCompletedSheet({ visible, fare, paymentMethodLabel, driverNa
           </TouchableOpacity>
         </View>
       </View>
+
+      <FareBreakdownModal
+        visible={detailsVisible}
+        onClose={() => setDetailsVisible(false)}
+        grossFare={grossFare ?? null}
+        promoDiscount={promoDiscount ?? null}
+        walletDeduction={walletDeduction ?? null}
+        netCashPayable={fare}
+      />
     </Animated.View>
   );
 }
@@ -135,6 +164,9 @@ const styles = StyleSheet.create({
     fontSize: 32, fontWeight: '800', letterSpacing: -1, marginTop: 2,
   },
   fareCurrency: { fontSize: 15, fontWeight: '600' },
+
+  viewDetailsBtn: { paddingVertical: 4, paddingHorizontal: 8, marginTop: -4 },
+  viewDetailsBtnText: { fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
 
   paymentChip: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
