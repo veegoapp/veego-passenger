@@ -49,6 +49,12 @@ const RideCompletedSchema = z.object({
   rideId: z.string().or(z.number()),
   /** Cash the passenger still owes the driver in person — 0 for wallet-paid rides. */
   netCashPayable: z.number().optional(),
+  /** Original trip price before any promo discount. */
+  grossFare: z.number().optional(),
+  /** EGP amount knocked off by a promo code, 0 when none was used. */
+  promoDiscount: z.number().optional(),
+  /** Portion of the fare paid from the passenger's wallet, 0 for cash rides. */
+  walletDeduction: z.number().optional(),
 });
 
 const RideCancelledSchema = z.object({
@@ -101,7 +107,14 @@ export interface RideState {
   status: RideStatus;
   driver: DriverInfo | null;
   driverLocation: DriverLocation | null;
+  /** netCashPayable — cash still owed to the driver in person, 0 for wallet-paid rides. */
   fare: number | null;
+  /** Original trip price before any promo discount — only set once the ride completes. */
+  grossFare: number | null;
+  /** EGP amount knocked off by a promo code — only set once the ride completes. */
+  promoDiscount: number | null;
+  /** Portion of the fare paid from the passenger's wallet — only set once the ride completes. */
+  walletDeduction: number | null;
   cancelReason: string | null;
   /** F6: who/what ended the ride, so the UI can show a distinct message per cause. */
   terminationReason: 'passenger' | 'driver' | 'no_show' | 'timeout' | null;
@@ -187,6 +200,9 @@ const DEFAULT_STATE: RideState = {
   driver: null,
   driverLocation: null,
   fare: null,
+  grossFare: null,
+  promoDiscount: null,
+  walletDeduction: null,
   cancelReason: null,
   terminationReason: null,
   refundAmount: null,
@@ -317,7 +333,14 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       const parsed = RideCompletedSchema.safeParse(raw);
       if (!parsed.success) { console.warn('[Socket] Invalid ride:completed payload'); return; }
       if (String(parsed.data.rideId) !== String(rideId)) return;
-      setRideState((prev) => ({ ...prev, status: 'completed', fare: parsed.data.netCashPayable ?? null }));
+      setRideState((prev) => ({
+        ...prev,
+        status: 'completed',
+        fare: parsed.data.netCashPayable ?? null,
+        grossFare: parsed.data.grossFare ?? null,
+        promoDiscount: parsed.data.promoDiscount ?? null,
+        walletDeduction: parsed.data.walletDeduction ?? null,
+      }));
       cleanup();
       refreshActiveSession().catch(() => {});
     };
@@ -408,7 +431,11 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           };
         }
         if (status === 'completed') {
-          updates.fare = (data.meta as any)?.netCashPayable ?? prev.fare;
+          const meta = data.meta as any;
+          updates.fare = meta?.netCashPayable ?? prev.fare;
+          updates.grossFare = meta?.grossFare ?? prev.grossFare;
+          updates.promoDiscount = meta?.promoDiscount ?? prev.promoDiscount;
+          updates.walletDeduction = meta?.walletDeduction ?? prev.walletDeduction;
         }
         if (status === 'cancelled') {
           const m = data.meta as any;

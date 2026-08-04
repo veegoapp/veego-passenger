@@ -197,6 +197,9 @@ export default function TripTrackingScreen() {
             params: {
               rideId: deepId,
               ...(fare != null ? { fare: String(fare) } : {}),
+              ...(d?.grossFare != null ? { grossFare: String(d.grossFare) } : {}),
+              ...(d?.promoDiscount != null ? { promoDiscount: String(d.promoDiscount) } : {}),
+              ...(d?.walletDeduction != null ? { walletDeduction: String(d.walletDeduction) } : {}),
               ...(pickupAddress ? { pickup: pickupAddress } : {}),
               ...(dropoffAddress ? { dropoff: dropoffAddress } : {}),
               ...(d?.driver?.name ? { driverName: d.driver.name } : {}),
