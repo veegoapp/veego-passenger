@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getSocket, getSocketSync, type DriverLocation } from '@/src/api/socket';
+import { getSocket, onSocketConnectionChange, type DriverLocation } from '@/src/api/socket';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
 interface Options {
@@ -48,6 +48,13 @@ export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocati
     if (rideId == null) return;
 
     let active = true;
+    // Tracks whichever socket instance onDriverLocation is currently bound
+    // to, so a reconnect that replaces the socket instance (reconnectSocket()
+    // in src/api/socket.ts — e.g. after a token refresh mid-ride) can be
+    // detected and re-bound. Without this the listener stays attached to the
+    // dead old instance and the driver marker silently freezes for the rest
+    // of the ride.
+    let boundSocket: Awaited<ReturnType<typeof getSocket>> | null = null;
     let prevLat: number | undefined;
     let prevLng: number | undefined;
     let prevHeading: number | undefined;
@@ -65,15 +72,28 @@ export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocati
       setDriverLocation(loc);
     };
 
-    getSocket().then((socket) => {
-      if (!active) return;
+    const bindTo = async () => {
+      const socket = await getSocket();
+      if (!active || boundSocket === socket) return;
+      boundSocket?.off(SOCKET_EVENTS.RIDE_DRIVER_LOCATION, onDriverLocation);
+      boundSocket = socket;
       socket.on(SOCKET_EVENTS.RIDE_DRIVER_LOCATION, onDriverLocation);
-    }).catch(() => {});
+    };
+
+    bindTo().catch(() => {});
+
+    // Re-bind on every reconnect. Same-instance reconnects (socket.io's own
+    // built-in reconnection) keep their listeners automatically — bindTo's
+    // own `boundSocket === socket` check skips those as a no-op — so this
+    // only does real work when reconnectSocket() swapped in a new instance.
+    const unsubscribe = onSocketConnectionChange((state) => {
+      if (state === 'connected') bindTo().catch(() => {});
+    });
 
     return () => {
       active = false;
-      const s = getSocketSync();
-      if (s) s.off(SOCKET_EVENTS.RIDE_DRIVER_LOCATION, onDriverLocation);
+      unsubscribe();
+      boundSocket?.off(SOCKET_EVENTS.RIDE_DRIVER_LOCATION, onDriverLocation);
     };
   }, [rideId]);
 
