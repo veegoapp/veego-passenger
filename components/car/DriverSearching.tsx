@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
 import { Car } from 'lucide-react-native';
-import { useTabBar } from '@/context/TabBarContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 
@@ -17,7 +17,7 @@ interface DriverSearchingProps {
  */
 export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   const { colors: c, t } = useTheme();
-  const { tabBarHeight } = useTabBar();
+  const insets = useSafeAreaInsets();
   const slideAnim  = useRef(new Animated.Value(0)).current;
   const sweepAnim  = useRef(new Animated.Value(0)).current;
   const ring1Anim  = useRef(new Animated.Value(0)).current;
@@ -110,7 +110,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: tabBarHeight + 20 }]}>
+      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 20 }]}>
         <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
         {/* ── Radar animation ── */}
