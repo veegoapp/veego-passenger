@@ -149,15 +149,21 @@ export default function SplashPage() {
       ]),
     ]).start();
 
-    const t = setTimeout(() => {
-      if (startupAuthStarted.current) return;
-      startupAuthStarted.current = true;
-      checkAuthAndNavigate(async () => {
-        setAuthenticationReady(true);
-        await initializeActiveSession();
-      }).catch(() => {});
-    }, 2200);
-    return () => clearTimeout(t);
+    // No artificial delay before starting auth/session hydration — the splash
+    // animations above run concurrently while this resolves. The screen still
+    // won't navigate away until startupNavigationCompleted's effect below
+    // sees both authenticationReady and activeSessionInitialized, so the
+    // splash stays up for as long as this genuinely takes, not a fixed 2.2s.
+    // Previously the 2.2s delay also gated initializeActiveSession(), meaning
+    // ActiveSessionContext.session — and therefore the active-ride floating
+    // bubble — stayed unresolved (and hidden) for that entire window on
+    // every cold start, even when the network round-trip itself was fast.
+    if (startupAuthStarted.current) return;
+    startupAuthStarted.current = true;
+    checkAuthAndNavigate(async () => {
+      setAuthenticationReady(true);
+      await initializeActiveSession();
+    }).catch(() => {});
   }, [initializeActiveSession]);
 
   useEffect(() => {
