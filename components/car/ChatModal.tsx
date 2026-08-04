@@ -38,11 +38,10 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const isDark = c.isDark;
-  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
-  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
-  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
-  const screenBg  = isDark ? '#0f0f1e' : '#f7f8fc';
+  const cardBg    = c.white;
+  const surfaceBg = c.surfaceMuted;
+  const borderCol = c.border;
+  const screenBg  = c.isDark ? c.background : c.surfaceMuted;
 
   const initials = driverName
     ? driverName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -171,7 +170,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             <TouchableOpacity
               style={[
                 styles.sendBtn,
-                { backgroundColor: text.trim() && !sending ? c.primary : (isDark ? '#2c2c46' : '#e5e5ea') },
+                { backgroundColor: text.trim() && !sending ? c.primary : c.border },
               ]}
               onPress={handleSend}
               disabled={sending || !text.trim()}

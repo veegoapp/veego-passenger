@@ -21,10 +21,12 @@ import { getRideEstimate } from '@/src/api/rideService';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
+import api from '@/src/api/client';
 import { CarMap } from './CarMap';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
+import { TripCompletedSheet } from './TripCompletedSheet';
 import { SafetySheet } from '@/components/shared/SafetySheet';
 import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useRecentSearches } from '@/src/hooks/shared/useRecentSearches';
@@ -279,28 +281,11 @@ function makeStyles(c: ThemeColors, insetTop: number, tabBarHeight: number, shee
     },
     resumeText: { color: 'rgba(255,255,255,0.75)', fontSize: Typography.size.sm, fontWeight: Typography.weight.medium },
 
-    // ── Lovable CompletedSheet / CancelConfirmSheet cards ────────────────
+    // ── Lovable CancelConfirmSheet card ──────────────────────────────────
     lvDragHandle: {
       width: 40, height: 5, borderRadius: 3,
       alignSelf: 'center', marginBottom: 20,
     },
-    completedLabel: {
-      fontSize: 11, fontWeight: Typography.weight.bold as any,
-      letterSpacing: 0.8, textTransform: 'uppercase' as any,
-    },
-    fareAmount: {
-      fontSize: 36, fontWeight: '800' as any, letterSpacing: -1.2, marginTop: 4,
-    },
-    fareCurrency: {
-      fontSize: 16, fontWeight: '600' as any,
-    },
-    paymentChip: {
-      flexDirection: 'row' as any, alignItems: 'center' as any, gap: 8,
-      borderRadius: 99, borderWidth: 1,
-      paddingHorizontal: 14, paddingVertical: 8,
-      marginTop: 4,
-    },
-    paymentChipText: { fontSize: 13, fontWeight: '500' as any },
     primaryActionBtn: {
       width: '100%' as any, height: 56, borderRadius: 16,
       alignItems: 'center' as any, justifyContent: 'center' as any,
@@ -753,9 +738,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     destSheetTop.setValue(SCREEN_H);
   }, [resetRide, destSheetTop, SCREEN_H]);
 
-  // Reuses the existing receipt.tsx + RatingSheet flow (already wired to
-  // POST /rides/:id/rate-driver) so a normal in-app ride completion, not just
-  // the deep-link path, gives the passenger a chance to rate the driver.
+  // Navigates to the full receipt breakdown once the completed-trip sheet is
+  // dismissed. Rating now happens inline in TripCompletedSheet (see
+  // handleCompletedDone below), so receipt.tsx's own Rate button only
+  // resurfaces if that inline submission failed or was skipped.
   const handleFinishRide = useCallback(() => {
     const finishedRideId = rideState.rideId;
     if (finishedRideId) {
@@ -772,6 +758,22 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     }
     handleReset();
   }, [rideState.rideId, rideState.fare, rideState.driver, destination, handleReset]);
+
+  // Combined fare + inline-rating sheet (Lovable's CompletedSheet behavior).
+  // A skipped rating (stars === 0) still proceeds to the receipt — rating
+  // stays optional, matching Lovable's unconditional "OK" button.
+  const handleCompletedDone = useCallback(async (stars: number, comment: string) => {
+    const finishedRideId = rideState.rideId;
+    if (stars > 0 && finishedRideId) {
+      try {
+        await api.post(`/rides/${finishedRideId}/rate-driver`, { rating: stars, comment });
+      } catch {
+        // Non-fatal — receipt.tsx checks passengerRating and still offers a
+        // Rate button if this submission didn't actually go through.
+      }
+    }
+    handleFinishRide();
+  }, [rideState.rideId, handleFinishRide]);
 
   const handleCancel = useCallback(async (reason?: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -1273,44 +1275,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         fallbackCoords={userCoordsRef.current}
       />
 
-      {/* Completed — Lovable CompletedSheet design */}
-      {phase === 'completed' && (
-        <View style={styles.card}>
-          <View style={[styles.cardSurface, { backgroundColor: c.isDark ? '#1a1a2e' : '#ffffff', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
-            {/* Drag handle */}
-            <View style={[styles.lvDragHandle, { backgroundColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]} />
-
-            <View style={styles.cardInner}>
-              {/* "Trip completed" label */}
-              <Text style={[styles.completedLabel, { color: c.inkSoft }]}>{t('trip_complete')}</Text>
-
-              {/* Fare amount */}
-              {rideState.fare != null && (
-                <Text style={[styles.fareAmount, { color: c.ink }]}>
-                  {rideState.fare.toFixed(2)}{' '}
-                  <Text style={[styles.fareCurrency, { color: c.inkSoft }]}>{t('egp')}</Text>
-                </Text>
-              )}
-
-              {/* Payment method chip */}
-              <View style={[styles.paymentChip, { backgroundColor: c.isDark ? '#16162a' : '#f7f8fc', borderColor: c.isDark ? '#2c2c46' : '#e5e5ea' }]}>
-                <Text style={[styles.paymentChipText, { color: c.ink }]}>
-                  {paymentMethod === 'wallet' ? t('payment_methods_wallet') : t('payment_methods_cash')}
-                </Text>
-              </View>
-
-              {/* Done button */}
-              <TouchableOpacity
-                onPress={handleFinishRide}
-                activeOpacity={0.88}
-                style={[styles.primaryActionBtn, { backgroundColor: c.primary }]}
-              >
-                <Text style={styles.primaryActionBtnText}>{t('done')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+      {/* Completed — fare summary + inline rating in one sheet (Lovable CompletedSheet) */}
+      <TripCompletedSheet
+        visible={phase === 'completed'}
+        fare={rideState.fare ?? null}
+        paymentMethodLabel={paymentMethod === 'wallet' ? t('payment_methods_wallet') : t('payment_methods_cash')}
+        driverName={rideState.driver?.name ?? null}
+        onDone={handleCompletedDone}
+      />
 
       {/* Cancelled / Timeout — Lovable CancelConfirmSheet design */}
       {phase === 'cancelled' && (

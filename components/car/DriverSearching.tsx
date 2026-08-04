@@ -86,9 +86,9 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] });
 
   const isDark = c.isDark;
-  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
-  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
-  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const cardBg    = c.white;
+  const surfaceBg = c.surfaceMuted;
+  const borderCol = c.border;
   const primaryCol = c.primary;
 
   const makeRingStyle = (anim: Animated.Value) => ({

@@ -13,9 +13,6 @@ import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 
-/* ─── Design tokens (Lovable) ────────────────────────────────────────────── */
-const GOLD = '#C8A535';
-
 /* ─── Types (unchanged) ──────────────────────────────────────────────────── */
 interface RideCategoryOption { slug: string; name: string; price: number }
 interface RideEstimate { categories: RideCategoryOption[]; eta: number }
@@ -64,17 +61,6 @@ function PrimaryButton({
   );
 }
 
-/* ─── Stars (static display) ─────────────────────────────────────────────── */
-function Stars({ value }: { value: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Text key={i} style={{ color: i <= Math.round(value) ? GOLD : '#d1d1d8', fontSize: 12 }}>★</Text>
-      ))}
-    </View>
-  );
-}
-
 /* ─── Main component ─────────────────────────────────────────────────────── */
 function RideOptionsSheetBase({
   visible, destination, selected, onSelect, onConfirm, onDismiss,
@@ -90,9 +76,9 @@ function RideOptionsSheetBase({
   const isDelivery = serviceType === 'delivery';
 
   const isDark = c.isDark;
-  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
-  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
-  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const cardBg    = c.white;
+  const surfaceBg = c.surfaceMuted;
+  const borderCol = c.border;
   const mutedCol  = c.inkSoft;
   const primaryCol = c.primary;
 
@@ -170,9 +156,17 @@ function RideOptionsSheetBase({
           ) : null}
 
           {/* ── Ride option cards ── */}
-          <View style={{ gap: 8, marginBottom: 16 }}>
-            {serviceType === 'car' ? (
-              carCategories.map((cat) => {
+          {serviceType === 'car' ? (
+            // Horizontal selector strip — compact cards side-by-side instead
+            // of a tall vertical stack, so the sheet stays short even with
+            // several categories.
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.optionScrollContent}
+              style={{ marginBottom: 16 }}
+            >
+              {carCategories.map((cat) => {
                 const active = selected === cat.slug;
                 return (
                   <TouchableOpacity
@@ -180,7 +174,7 @@ function RideOptionsSheetBase({
                     onPress={() => { Haptics.selectionAsync(); onSelect(cat.slug); }}
                     activeOpacity={0.82}
                     style={[
-                      styles.optionCard,
+                      styles.optionCardH,
                       {
                         backgroundColor: active
                           ? (isDark ? 'rgba(30,30,40,0.18)' : 'rgba(30,30,40,0.04)')
@@ -190,47 +184,43 @@ function RideOptionsSheetBase({
                       },
                     ]}
                   >
+                    {active && (
+                      <View style={[styles.checkBadge, { backgroundColor: primaryCol }]}>
+                        <Check size={10} color="#ffffff" strokeWidth={3} />
+                      </View>
+                    )}
                     <View style={[
-                      styles.optionIcon,
+                      styles.optionIconH,
                       { backgroundColor: active ? (isDark ? 'rgba(30,30,40,0.25)' : 'rgba(30,30,40,0.08)') : surfaceBg },
                     ]}>
                       <Car size={20} color={active ? primaryCol : mutedCol} strokeWidth={1.8} />
                     </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={[styles.optionName, { color: c.ink }]}>{cat.name}</Text>
-                        <View style={[styles.seatBadge, { backgroundColor: surfaceBg }]}>
-                          <Text style={[styles.seatText, { color: mutedCol }]}>4 seats</Text>
-                        </View>
+                    <Text style={[styles.optionNameH, { color: c.ink }]} numberOfLines={1}>{cat.name}</Text>
+                    {estimate?.eta != null && !estimateLoading ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                        <Clock size={10} color={mutedCol} strokeWidth={2} />
+                        <Text style={[styles.etaTextH, { color: mutedCol }]}>{estimate.eta} {t('min')}</Text>
                       </View>
-                      {estimate?.eta != null && !estimateLoading ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Clock size={11} color={mutedCol} strokeWidth={2} />
-                          <Text style={[styles.etaText, { color: mutedCol }]}>{estimate.eta} {t('min')}</Text>
-                        </View>
-                      ) : estimateLoading ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Clock size={11} color={mutedCol} strokeWidth={2} />
-                          <Text style={[styles.etaText, { color: mutedCol }]}>–</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      {estimateLoading ? (
-                        <ActivityIndicator size="small" color={primaryCol} />
-                      ) : (
-                        <>
-                          <Text style={[styles.priceValue, { color: c.ink }]}>
-                            {cat.price != null ? cat.price.toFixed(2) : '—'}
-                          </Text>
-                          <Text style={[styles.priceCurrency, { color: mutedCol }]}>{t('egp')}</Text>
-                        </>
-                      )}
-                    </View>
+                    ) : estimateLoading ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                        <Clock size={10} color={mutedCol} strokeWidth={2} />
+                        <Text style={[styles.etaTextH, { color: mutedCol }]}>–</Text>
+                      </View>
+                    ) : null}
+                    {estimateLoading ? (
+                      <ActivityIndicator size="small" color={primaryCol} />
+                    ) : (
+                      <Text style={[styles.priceValueH, { color: c.ink }]} numberOfLines={1}>
+                        {cat.price != null ? cat.price.toFixed(2) : '—'}
+                        <Text style={[styles.priceCurrencyH, { color: mutedCol }]}> {t('egp')}</Text>
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 );
-              })
-            ) : (
+              })}
+            </ScrollView>
+          ) : (
+            <View style={{ gap: 8, marginBottom: 16 }}>
               <TouchableOpacity
                 onPress={() => { Haptics.selectionAsync(); onSelect('standard'); }}
                 activeOpacity={0.82}
@@ -275,8 +265,8 @@ function RideOptionsSheetBase({
                   )}
                 </View>
               </TouchableOpacity>
-            )}
-          </View>
+            </View>
+          )}
 
           {/* ── Delivery recipient fields ── */}
           {isDelivery && (
@@ -429,6 +419,36 @@ const styles = StyleSheet.create({
     fontSize: 15, fontWeight: '700', letterSpacing: -0.2,
   },
   priceCurrency: { fontSize: 11, fontWeight: '600', marginTop: 1 },
+
+  /* ── Horizontal category selector cards (Task 1) ── */
+  optionScrollContent: {
+    gap: 10, paddingRight: 4,
+  },
+  optionCardH: {
+    width: 128, borderRadius: 16,
+    paddingHorizontal: 12, paddingVertical: 14,
+    alignItems: 'center', gap: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
+  },
+  optionIconH: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  optionNameH: {
+    fontSize: 13, fontWeight: '600', letterSpacing: -0.1,
+    textAlign: 'center',
+  },
+  etaTextH: { fontSize: 11, fontWeight: '500' },
+  priceValueH: {
+    fontSize: 14, fontWeight: '700', letterSpacing: -0.1, marginTop: 2,
+  },
+  priceCurrencyH: { fontSize: 10, fontWeight: '600' },
+  checkBadge: {
+    position: 'absolute', top: 8, right: 8,
+    width: 16, height: 16, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   recipientInput: {
     height: 48, borderRadius: 12, borderWidth: 1,

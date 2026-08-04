@@ -24,6 +24,14 @@ export type ThemeColors = {
   warning: string;
   error: string;
   info: string;
+  // Ride-cycle sheet tokens (Lovable) — single source for the card/surface/
+  // gold values that used to be re-declared as local hex literals in every
+  // ride-cycle sheet (RideOptionsSheet, DriverSearching, DriverAssignedCard,
+  // RatingSheet, ChatModal, CancelReasonSheet). `white` and `border` already
+  // matched those literals exactly, so only the muted-surface and gold tones
+  // needed a new home.
+  surfaceMuted: string;
+  gold: string;
 };
 
 export const LIGHT: ThemeColors = {
@@ -50,8 +58,10 @@ export const LIGHT: ThemeColors = {
   mutedText: '#5e5e72',
   success: '#3CC97A',
   warning: '#D5A623',
-  error: '#E85454',
+  error: '#D6432D',
   info: '#3D52D5',
+  surfaceMuted: '#f7f8fc',
+  gold: '#C8A535',
 };
 
 export const DARK: ThemeColors = {
@@ -76,8 +86,10 @@ export const DARK: ThemeColors = {
   mutedText: '#7878a0',
   success: '#3CC97A',
   warning: '#D5A623',
-  error: '#E85454',
+  error: '#D6432D',
   info: '#3D52D5',
+  surfaceMuted: '#16162a',
+  gold: '#C8A535',
 };
 
 export function makeGlassStyle(c: ThemeColors) {

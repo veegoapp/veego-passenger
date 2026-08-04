@@ -42,9 +42,9 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
   const [error, setError] = useState('');
 
   const isDark = c.isDark;
-  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
-  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
-  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const cardBg    = c.white;
+  const surfaceBg = c.surfaceMuted;
+  const borderCol = c.border;
   const primaryCol = c.primary;
 
   const handleClose = useCallback(() => {
@@ -133,7 +133,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
             <Text style={[styles.optionalHint, { color: c.inkSoft }]}>{t('selection_optional')}</Text>
           )}
 
-          {!!error && <Text style={styles.errorText}>{error}</Text>}
+          {!!error && <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>}
 
           {/* Buttons */}
           <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -153,7 +153,7 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
               activeOpacity={0.88}
               style={[
                 styles.dangerBtn,
-                { flex: 1, opacity: !canConfirm || loading ? 0.35 : 1 },
+                { flex: 1, backgroundColor: c.error, shadowColor: c.error, opacity: !canConfirm || loading ? 0.35 : 1 },
               ]}
             >
               {loading
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 12, textAlign: 'center', marginBottom: 14,
   },
   errorText: {
-    fontSize: 13, color: '#E85454', textAlign: 'center', marginBottom: 12,
+    fontSize: 13, textAlign: 'center', marginBottom: 12,
   },
 
   ghostBtn: {
@@ -222,8 +222,6 @@ const styles = StyleSheet.create({
   dangerBtn: {
     height: 56, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#E85454',
-    shadowColor: '#E85454',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,

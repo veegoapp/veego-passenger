@@ -8,9 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
-
-/* ─── Design tokens ──────────────────────────────────────────────────────── */
-const GOLD = '#C8A535';
+import { Stars } from '@/components/ui/Stars';
 
 interface RatingSheetProps {
   visible: boolean;
@@ -25,7 +23,6 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
   const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim   = useRef(new Animated.Value(0)).current;
-  const starScales  = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
   const checkScale  = useRef(new Animated.Value(0)).current;
   const [stars, setStars]       = useState(0);
   const [comment, setComment]   = useState('');
@@ -48,15 +45,6 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
     }
   }, [visible]);
 
-  const handleStarPress = (n: number) => {
-    Haptics.selectionAsync();
-    setStars(n);
-    Animated.sequence([
-      Animated.timing(starScales[n - 1], { toValue: 1.5, duration: 120, useNativeDriver: true }),
-      Animated.spring(starScales[n - 1], { toValue: 1, useNativeDriver: true, damping: 10 }),
-    ]).start();
-  };
-
   const handleSubmit = useCallback(() => {
     if (stars === 0 || submittingRef.current) return;
     submittingRef.current = true;
@@ -74,10 +62,9 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] });
 
-  const isDark = c.isDark;
-  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
-  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
-  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const cardBg    = c.white;
+  const surfaceBg = c.surfaceMuted;
+  const borderCol = c.border;
   const primaryCol = c.primary;
 
   return (
@@ -121,15 +108,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
               <Text style={[styles.ratingPrompt, { color: c.ink }]}>
                 {`How was your ride with ${driverName}?`}
               </Text>
-              <View style={styles.starsRow}>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <TouchableOpacity key={n} onPress={() => handleStarPress(n)} activeOpacity={0.7}>
-                    <Animated.View style={{ transform: [{ scale: starScales[n - 1] }] }}>
-                      <Text style={[styles.star, { color: n <= stars ? GOLD : borderCol }]}>★</Text>
-                    </Animated.View>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <Stars value={stars} size={34} gap={10} onRate={setStars} />
 
               {/* Comment input */}
               <TextInput
@@ -154,7 +133,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
               activeOpacity={0.88}
               style={[
                 styles.submitBtn,
-                { backgroundColor: stars > 0 ? primaryCol : (isDark ? '#2a2a40' : '#d1d1d8'), opacity: stars > 0 ? 1 : 0.5 },
+                { backgroundColor: stars > 0 ? primaryCol : c.silver, opacity: stars > 0 ? 1 : 0.5 },
               ]}
             >
               <Text style={styles.submitBtnText}>{t('submit_rating')}</Text>
@@ -224,8 +203,6 @@ const styles = StyleSheet.create({
     padding: 16, alignItems: 'center', gap: 12,
   },
   ratingPrompt: { fontSize: 15, fontWeight: '600' },
-  starsRow: { flexDirection: 'row', gap: 10 },
-  star: { fontSize: 36 },
 
   commentInput: {
     width: '100%', borderRadius: 12, borderWidth: 1,

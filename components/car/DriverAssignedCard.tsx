@@ -1,7 +1,7 @@
 import { memo, useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Linking, Easing } from 'react-native';
 import {
-  MessageCircle, Phone, X, AlertTriangle, Star,
+  MessageCircle, Phone, X, AlertTriangle,
   Navigation, BadgeCheck, ChevronRight, ShieldAlert, LifeBuoy,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -9,10 +9,8 @@ import { useTabBar } from '@/context/TabBarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
+import { Stars } from '@/components/ui/Stars';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
-
-/* ─── Design tokens ──────────────────────────────────────────────────────── */
-const GOLD = '#C8A535';
 
 interface DriverAssignedCardProps {
   visible: boolean;
@@ -29,23 +27,6 @@ interface DriverAssignedCardProps {
   onSOS?: () => void;
 }
 
-/* ─── Stars (static) ─────────────────────────────────────────────────────── */
-function Stars({ value }: { value: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          size={13}
-          color={i <= Math.round(value) ? GOLD : '#d1d1d8'}
-          fill={i <= Math.round(value) ? GOLD : 'transparent'}
-          strokeWidth={0}
-        />
-      ))}
-    </View>
-  );
-}
-
 /* ─── GhostButton ────────────────────────────────────────────────────────── */
 function GhostButton({
   onPress, disabled, tone = 'neutral', icon, label, flex,
@@ -58,9 +39,8 @@ function GhostButton({
   flex?: number;
 }) {
   const { colors: c } = useTheme();
-  const isDark = c.isDark;
-  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
-  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
+  const borderCol = c.border;
+  const surfaceBg = c.surfaceMuted;
 
   return (
     <TouchableOpacity
@@ -159,10 +139,9 @@ function DriverAssignedCardBase({
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [500, 0] });
 
-  const isDark = c.isDark;
-  const cardBg    = isDark ? '#1a1a2e' : '#ffffff';
-  const surfaceBg = isDark ? '#16162a' : '#f7f8fc';
-  const borderCol = isDark ? '#2c2c46' : '#e5e5ea';
+  const cardBg    = c.white;
+  const surfaceBg = c.surfaceMuted;
+  const borderCol = c.border;
 
   const initials = driver?.name
     ? driver.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
