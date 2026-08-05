@@ -70,7 +70,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   // guard, and 800 ms timing are handled by useAnimatedDriverMarker.
   // No initialCoords needed — the marker only renders when driverLocation is
   // non-null (guarded by showDriverMarker && driverLocation in JSX).
-  const { animatedCoord: animatedDriverCoord } = useAnimatedDriverMarker({ driverLocation });
+  const { animatedCoord: animatedDriverCoord, rotation: driverRotation } = useAnimatedDriverMarker({ driverLocation });
 
   useEffect(() => {
     (async () => {
@@ -240,7 +240,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
           <MarkerAnimated
             coordinate={animatedDriverCoord}
             anchor={{ x: 0.5, y: 0.5 }}
-            rotation={driverLocation.heading ?? 0}
+            rotation={driverRotation}
           >
             <DriverMarker vehicleType={serviceType ?? 'car'} />
           </MarkerAnimated>

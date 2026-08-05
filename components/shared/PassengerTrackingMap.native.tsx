@@ -126,7 +126,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   // all handled by useAnimatedDriverMarker. pickup is passed as initialCoords
   // so the region seeds at the pickup point when driverLocation is not yet
   // available — matching the previous initLat/initLng fallback logic.
-  const { animatedCoord } = useAnimatedDriverMarker({ driverLocation, initialCoords: pickup });
+  const { animatedCoord, rotation: driverRotation } = useAnimatedDriverMarker({ driverLocation, initialCoords: pickup });
 
   // ── Camera follow ────────────────────────────────────────────────────────────
   // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are all
@@ -423,9 +423,6 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     longitude: driverLocation?.longitude ?? pickup?.longitude ?? 0,
   };
 
-  // Heading from socket payload (degrees clockwise from north)
-  const heading = driverLocation?.heading ?? 0;
-
   return (
     <View style={[StyleSheet.absoluteFill, style]}>
       <MapView
@@ -501,12 +498,12 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
           </Marker>
         )}
 
-        {/* Animated driver marker — rotates according to socket heading */}
+        {/* Animated driver marker — rotates according to smoothed heading */}
         {(driverLocation ?? pickup) && (
           <MarkerAnimated
             coordinate={animatedCoord}
             anchor={{ x: 0.5, y: 0.5 }}
-            rotation={heading}
+            rotation={driverRotation}
             title={t('driver_label')}
           >
             <DriverMarker vehicleType={vehicleType} />
