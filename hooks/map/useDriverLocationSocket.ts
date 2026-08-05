@@ -60,16 +60,47 @@ export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocati
     let prevHeading: number | undefined;
 
     const onDriverLocation = (data: any) => {
+      if (!active) return;
       const loc = data?.location;
-      if (!loc || !active) return;
+      if (!loc) return;
+
+      // ── Validate incoming payload ──────────────────────────────────────────
+      // A malformed or out-of-range coordinate must never reach the tracking
+      // buffer — it would corrupt the interpolation segment. Reject the tick.
+      const latitude = loc.latitude;
+      const longitude = loc.longitude;
+      if (typeof latitude !== 'number' || !Number.isFinite(latitude) || latitude < -90 || latitude > 90) return;
+      if (typeof longitude !== 'number' || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) return;
       if (String(data.rideId) !== String(rideId)) return;
+
+      // Normalise optional fields: keep only finite, in-domain values; anything
+      // else becomes undefined (omitted) rather than flowing through as junk.
+      const heading =
+        typeof loc.heading === 'number' && Number.isFinite(loc.heading) ? loc.heading : undefined;
+      const speed =
+        typeof loc.speed === 'number' && Number.isFinite(loc.speed) && loc.speed >= 0 ? loc.speed : undefined;
+      const accuracy =
+        typeof loc.accuracy === 'number' && Number.isFinite(loc.accuracy) && loc.accuracy >= 0 ? loc.accuracy : undefined;
+      const timestamp =
+        typeof loc.timestamp === 'number' && Number.isFinite(loc.timestamp) && loc.timestamp > 0 ? loc.timestamp : undefined;
+
       // Identity guard: skip no-op updates so we don't re-render on duplicates.
-      if (prevLat === loc.latitude && prevLng === loc.longitude && prevHeading === loc.heading) return;
-      prevLat = loc.latitude;
-      prevLng = loc.longitude;
-      prevHeading = loc.heading;
+      if (prevLat === latitude && prevLng === longitude && prevHeading === heading) return;
+      prevLat = latitude;
+      prevLng = longitude;
+      prevHeading = heading;
       lastLiveAtMsRef.current = Date.now();
-      setDriverLocation(loc);
+
+      // Emit only validated fields. speed/accuracy/timestamp are carried for
+      // later phases; nothing consumes them yet.
+      setDriverLocation({
+        latitude,
+        longitude,
+        ...(heading !== undefined && { heading }),
+        ...(speed !== undefined && { speed }),
+        ...(accuracy !== undefined && { accuracy }),
+        ...(timestamp !== undefined && { timestamp }),
+      });
     };
 
     const bindTo = async () => {

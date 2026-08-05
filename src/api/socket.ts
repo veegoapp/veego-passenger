@@ -165,6 +165,17 @@ export interface DriverLocation {
   latitude: number;
   longitude: number;
   heading?: number;
+  /** Raw ground speed in metres/second, forwarded by the backend from the
+   *  driver's enriched ride payload. Optional/inert today — reserved for the
+   *  later heading-smoothing / dead-reckoning phases. */
+  speed?: number;
+  /** Horizontal accuracy in metres. Optional/inert today — reserved for
+   *  accuracy-gating in a later phase. */
+  accuracy?: number;
+  /** Driver DEVICE GPS fix time, epoch ms. Optional/inert today — the tracking
+   *  buffer paces on local arrival time in Phase 3A; this is reserved for
+   *  timestamp-based interpolation in a later phase. */
+  timestamp?: number;
   /** Epoch ms the server recorded this position at, when known (e.g. from an
    *  ActiveSession snapshot's driver.location.updatedAt). Absent for raw live
    *  socket ticks, which are inherently "now" by virtue of just arriving. */
