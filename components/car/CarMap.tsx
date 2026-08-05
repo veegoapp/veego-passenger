@@ -275,7 +275,12 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         {showDriverMarker && driverLocation && (
           <MarkerAnimated
             coordinate={animatedDriverCoord}
-            anchor={{ x: 0.5, y: 0.5 }}
+            // Car: anchor slightly toward the rear so the GPS point sits at the
+            // rear/middle and the car pivots realistically; flat so it rotates
+            // in the map plane (course-up). Arrow markers keep their upright,
+            // centered behavior.
+            anchor={(serviceType ?? 'car') === 'car' ? { x: 0.5, y: 0.6 } : { x: 0.5, y: 0.5 }}
+            flat={(serviceType ?? 'car') === 'car'}
             rotation={driverRotation}
           >
             <DriverMarker vehicleType={serviceType ?? 'car'} />

@@ -45,12 +45,20 @@ interface DriverMarkerProps {
 
 export function DriverMarker({ vehicleType }: DriverMarkerProps): React.JSX.Element {
   if (vehicleType === 'car') {
+    // Square container so the marker's layout box (used for the anchor) matches
+    // the vehicle's visual footprint after the base-orientation correction.
+    // The source art is a top-down car pointing LEFT; the static 90° image
+    // rotation re-orients it "nose-up" so MarkerAnimated.rotation={heading}
+    // (course-up) then points the front in the direction of travel. The image
+    // file itself is never rotated — only this view transform.
     return (
-      <Image
-        source={require('@/assets/images/car-marker.png')}
-        style={styles.carMarkerImage}
-        resizeMode="contain"
-      />
+      <View style={styles.carMarkerBox}>
+        <Image
+          source={require('@/assets/images/car-marker.png')}
+          style={styles.carMarkerImage}
+          resizeMode="contain"
+        />
+      </View>
     );
   }
 
@@ -72,9 +80,18 @@ export function DriverMarker({ vehicleType }: DriverMarkerProps): React.JSX.Elem
 }
 
 const styles = StyleSheet.create({
+  // Realistic on-road vehicle size (~54 dp long); tune within 42–64 dp.
+  carMarkerBox: {
+    width: 54,
+    height: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   carMarkerImage: {
-    width: 60,
-    height: 60,
+    width: 54,
+    height: 54,
+    // Base-orientation correction: source art points LEFT → rotate nose-up.
+    transform: [{ rotate: '90deg' }],
   },
 
   wrapper: {

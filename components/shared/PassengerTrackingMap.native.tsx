@@ -494,7 +494,10 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
         {(driverLocation ?? pickup) && (
           <MarkerAnimated
             coordinate={animatedCoord}
-            anchor={{ x: 0.5, y: 0.5 }}
+            // Car: rear/middle anchor + flat (course-up map plane). Arrow
+            // markers keep their upright, centered behavior.
+            anchor={vehicleType === 'car' ? { x: 0.5, y: 0.6 } : { x: 0.5, y: 0.5 }}
+            flat={vehicleType === 'car'}
             rotation={driverRotation}
             title={t('driver_label')}
           >
