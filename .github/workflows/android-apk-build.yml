@@ -61,15 +61,20 @@ jobs:
       # If skipped, `assembleRelease` still runs using whatever default signing
       # the generated android/app/build.gradle falls back to.
       - name: Configure release signing (optional)
-        if: ${{ github.event.inputs.build_variant == 'release' && secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ github.event.inputs.build_variant == 'release' && env.ANDROID_KEYSTORE_BASE64 != '' }}
         working-directory: android/app
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
           {
             echo "MYAPP_UPLOAD_STORE_FILE=release.keystore"
-            echo "MYAPP_UPLOAD_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
-            echo "MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
-            echo "MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
+            echo "MYAPP_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "MYAPP_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "MYAPP_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
           } >> ../gradle.properties
 
       - name: Build APK with Gradle
