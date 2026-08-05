@@ -100,6 +100,12 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
     followActive,
   });
 
+  // Once the car image has painted, stop tracking view changes so Android
+  // isn't re-rasterising a static-content marker (position/rotation are native
+  // Animated props, unaffected by this flag).
+  const [carMarkerReady, setCarMarkerReady] = useState(false);
+  const onCarMarkerLoad = useCallback(() => setCarMarkerReady(true), []);
+
   // Holds the timer that resumes follow after a one-time overview fit.
   const overviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runOverviewFit = useCallback((fit: () => void) => {
@@ -282,8 +288,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
             anchor={(serviceType ?? 'car') === 'car' ? { x: 0.5, y: 0.6 } : { x: 0.5, y: 0.5 }}
             flat={(serviceType ?? 'car') === 'car'}
             rotation={driverRotation}
+            tracksViewChanges={(serviceType ?? 'car') === 'car' ? !carMarkerReady : undefined}
           >
-            <DriverMarker vehicleType={serviceType ?? 'car'} />
+            <DriverMarker vehicleType={serviceType ?? 'car'} onImageLoad={onCarMarkerLoad} />
           </MarkerAnimated>
         )}
 

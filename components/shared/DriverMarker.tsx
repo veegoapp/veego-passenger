@@ -41,9 +41,20 @@ export type DriverVehicleType = 'car' | 'scooter' | 'delivery' | 'shuttle';
 
 interface DriverMarkerProps {
   vehicleType: DriverVehicleType;
+  /** Fired once the car image has painted, so the parent can flip the marker's
+   *  tracksViewChanges to false (static content — no need to keep re-rasterising
+   *  the bitmap on Android). Only meaningful for the 'car' image marker. */
+  onImageLoad?: () => void;
 }
 
-export function DriverMarker({ vehicleType }: DriverMarkerProps): React.JSX.Element {
+// Memoized (parity with the driver app's AnimatedDriverMarker): position and
+// rotation are driven by native Animated props on the parent MarkerAnimated, so
+// this view only needs to re-render when vehicleType actually changes — not on
+// every parent re-render.
+export const DriverMarker = React.memo(function DriverMarker({
+  vehicleType,
+  onImageLoad,
+}: DriverMarkerProps): React.JSX.Element {
   if (vehicleType === 'car') {
     // Square container so the marker's layout box (used for the anchor) matches
     // the vehicle's visual footprint after the base-orientation correction.
@@ -57,6 +68,7 @@ export function DriverMarker({ vehicleType }: DriverMarkerProps): React.JSX.Elem
           source={require('@/assets/images/car-marker.png')}
           style={styles.carMarkerImage}
           resizeMode="contain"
+          onLoad={onImageLoad}
         />
       </View>
     );
@@ -77,7 +89,7 @@ export function DriverMarker({ vehicleType }: DriverMarkerProps): React.JSX.Elem
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   // Realistic on-road vehicle size (~54 dp long); tune within 42–64 dp.

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Polyline, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Navigation } from 'lucide-react-native';
@@ -163,6 +163,12 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
 
   // Edge-padding for fitToCoordinates (used only on initial load / phase change).
   const FIT_PADDING = { top: 120, right: 60, bottom: 280, left: 60 } as const;
+
+  // Once the car image has painted, stop tracking view changes so Android
+  // isn't re-rasterising a static-content marker (position/rotation are native
+  // Animated props, unaffected by this flag).
+  const [carMarkerReady, setCarMarkerReady] = useState(false);
+  const onCarMarkerLoad = useCallback(() => setCarMarkerReady(true), []);
 
   // One-time overview fit → hold → hand back to the follow camera.
   const overviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -499,9 +505,10 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
             anchor={vehicleType === 'car' ? { x: 0.5, y: 0.6 } : { x: 0.5, y: 0.5 }}
             flat={vehicleType === 'car'}
             rotation={driverRotation}
+            tracksViewChanges={vehicleType === 'car' ? !carMarkerReady : undefined}
             title={t('driver_label')}
           >
-            <DriverMarker vehicleType={vehicleType} />
+            <DriverMarker vehicleType={vehicleType} onImageLoad={onCarMarkerLoad} />
           </MarkerAnimated>
         )}
       </MapView>
