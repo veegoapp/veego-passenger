@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import MapView, { Marker, Polyline, MarkerAnimated, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Navigation } from 'lucide-react-native';
@@ -7,6 +7,7 @@ import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
 import { estimateEtaMinutes, haversineMeters } from '@/src/utils/geoHelpers';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
 import { useMapCamera } from '@/hooks/map/useMapCamera';
+import { useCameraController } from '@/hooks/map/useCameraController';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
 import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
@@ -69,6 +70,9 @@ export interface TrackingMapProps {
 // DEFAULT_CENTER (Cairo) removed (audit L3) — AnimatedRegion init uses 0/0,
 // which is never displayed since the marker requires a real driverLocation.
 const FOLLOW_DELTA = { latitudeDelta: 0.015, longitudeDelta: 0.015 };
+// How long a one-time overview fit (driver + target) is held before the follow
+// camera glides back in.
+const OVERVIEW_HOLD_MS = 1500;
 // ROUTE_REFRESH_INTERVAL_MS and SIGNIFICANT_MOVE_METERS were inlined here
 // previously; they are now owned and exported by useGoogleRoute.
 // Throttle for the Haversine ETA fallback — bounds recomputation while the
@@ -126,19 +130,49 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   // all handled by useAnimatedDriverMarker. pickup is passed as initialCoords
   // so the region seeds at the pickup point when driverLocation is not yet
   // available — matching the previous initLat/initLng fallback logic.
-  const { animatedCoord, rotation: driverRotation } = useAnimatedDriverMarker({ driverLocation, initialCoords: pickup });
+  const {
+    animatedCoord,
+    rotation: driverRotation,
+    headingRef: driverHeadingRef,
+    positionRef: driverPositionRef,
+  } = useAnimatedDriverMarker({ driverLocation, initialCoords: pickup });
 
   // ── Camera follow ────────────────────────────────────────────────────────────
   // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are all
   // provided by useMapCamera. onMapReady is passed directly to <MapView>.
-  const { mapRef, runOrQueueCamera, onMapReady } = useMapCamera();
+  const { mapRef, mapReadyRef, runOrQueueCamera, onMapReady } = useMapCamera();
 
-  // True while the passenger is manually panning — pauses auto-camera updates.
-  // Cleared when the recenter button is pressed.
-  const [isUserPanning, setIsUserPanning] = useState(false);
+  // Phase 3C follow camera — follows the interpolated position + smoothed
+  // heading via setCamera (course-up, tilted, fixed zoom). Follow is active
+  // while a driver position is known and there's an active phase or shuttle.
+  const followActive = !!driverLocation && (!!tripPhase || sorted.length > 0);
+  const {
+    isSuspended: cameraSuspended,
+    onPanDrag: onCameraPan,
+    onRegionChangeComplete: onCameraRegionChange,
+    recenter: cameraRecenter,
+    suspendForOverview,
+    resumeFollow,
+  } = useCameraController({
+    mapRef,
+    mapReadyRef,
+    positionRef: driverPositionRef,
+    headingRef: driverHeadingRef,
+    followActive,
+  });
 
   // Edge-padding for fitToCoordinates (used only on initial load / phase change).
   const FIT_PADDING = { top: 120, right: 60, bottom: 280, left: 60 } as const;
+
+  // One-time overview fit → hold → hand back to the follow camera.
+  const overviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runOverviewFit = useCallback((fit: () => void) => {
+    suspendForOverview();
+    runOrQueueCamera(fit);
+    if (overviewTimerRef.current) clearTimeout(overviewTimerRef.current);
+    overviewTimerRef.current = setTimeout(() => resumeFollow(), OVERVIEW_HOLD_MS);
+  }, [suspendForOverview, runOrQueueCamera, resumeFollow]);
+  useEffect(() => () => { if (overviewTimerRef.current) clearTimeout(overviewTimerRef.current); }, []);
 
   // Track whether we've done the initial fit for the current phase so we don't
   // re-fit on every GPS tick (that causes constant re-zooming, unlike Uber).
@@ -169,7 +203,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
 
   useEffect(() => {
     if (!driverLocation) return;
-    if (isUserPanning) return;
+    if (cameraSuspended) return;
 
     // ── Shuttle path ──────────────────────────────────────────────────────────
     if (sorted.length > 0) {
@@ -177,33 +211,19 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
         ? { latitude: targetStation.latitude, longitude: targetStation.longitude }
         : null;
       const targetId = targetStation?.id ?? null;
-      // Only re-fit when the target station changes, not on every GPS tick.
-      if (fittedShuttleTargetRef.current === targetId) {
-        // Just follow driver smoothly between fits.
-        runOrQueueCamera(() => {
-          mapRef.current?.animateToRegion(
-            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-            600,
-          );
-        });
-        return;
-      }
+      // Only re-fit when the target station changes. Between fits the follow
+      // camera keeps the driver framed — no per-tick animateToRegion.
+      if (fittedShuttleTargetRef.current === targetId) return;
       fittedShuttleTargetRef.current = targetId;
       if (shuttleTarget) {
-        runOrQueueCamera(() => {
+        runOverviewFit(() => {
           mapRef.current?.fitToCoordinates(
             [driverLocation, shuttleTarget],
             { edgePadding: FIT_PADDING, animated: true },
           );
         });
-      } else {
-        runOrQueueCamera(() => {
-          mapRef.current?.animateToRegion(
-            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-            600,
-          );
-        });
       }
+      // No shuttleTarget → nothing to frame; the follow camera handles it.
       return;
     }
 
@@ -215,56 +235,27 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
       tripPhase === 'trip_started'    ? (dropoff ?? null) :
       null;
 
-    // Re-fit only when the phase changes (new destination target); on every
-    // subsequent GPS tick just animate the camera to follow the driver.
-    if (fittedPhaseRef.current === tripPhase) {
-      if (secondPoint) {
-        // Smooth follow — keep driver in frame without re-zooming.
-        runOrQueueCamera(() => {
-          mapRef.current?.animateToRegion(
-            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-            600,
-          );
-        });
-      }
-      return;
-    }
-
-    // Phase changed (or first load) — do the full fit.
+    // Re-fit only when the phase changes (new destination target). The follow
+    // camera handles every subsequent GPS tick.
+    if (fittedPhaseRef.current === tripPhase) return;
     fittedPhaseRef.current = tripPhase;
 
-    if (!secondPoint) {
-      runOrQueueCamera(() => {
-        mapRef.current?.animateToRegion(
-          { latitude: driverLocation.latitude, longitude: driverLocation.longitude, ...FOLLOW_DELTA },
-          600,
-        );
-      });
-      return;
-    }
+    // No destination point to frame → the follow camera handles it.
+    if (!secondPoint) return;
 
-    runOrQueueCamera(() => {
+    runOverviewFit(() => {
       mapRef.current?.fitToCoordinates(
         [driverLocation, secondPoint],
         { edgePadding: FIT_PADDING, animated: true },
       );
     });
-  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length, tripPhase, isUserPanning, pickup, dropoff, targetStation]);
+  }, [driverLocation?.latitude, driverLocation?.longitude, sorted.length, tripPhase, cameraSuspended, pickup, dropoff, targetStation]);
 
-  // Recenter: fit the same phase-appropriate pair and clear the pan flag.
+  // Recenter: resume the follow camera and glide back to the driver
+  // (course-up, tilted, fixed zoom) rather than re-fitting to a static pair.
   const handleRecenter = useCallback(() => {
-    if (!driverLocation || !tripPhase) return;
-    const secondPoint =
-      tripPhase === 'driver_arriving' ? (pickup ?? null) :
-      tripPhase === 'trip_started'    ? (dropoff ?? null) :
-      null;
-    if (!secondPoint) return;
-    setIsUserPanning(false);
-    mapRef.current?.fitToCoordinates(
-      [driverLocation, secondPoint],
-      { edgePadding: FIT_PADDING, animated: true },
-    );
-  }, [driverLocation, tripPhase, pickup, dropoff]);
+    cameraRecenter();
+  }, [cameraRecenter]);
 
   // ── Google Directions — shuttle path (stations present) ─────────────────────
   // Fetches the road-snapped route from the driver through the ordered station
@@ -441,7 +432,8 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
         pitchEnabled={false}
         customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
         onMapReady={onMapReady}
-        onPanDrag={() => setIsUserPanning(true)}
+        onPanDrag={onCameraPan}
+        onRegionChangeComplete={onCameraRegionChange}
       >
         {/* Completed leg — straight line between visited stops (green) */}
         {completedCoords.length >= 2 && (
@@ -520,7 +512,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
       )}
 
       {/* Recenter button — car/scooter/delivery only, shown after manual pan */}
-      {sorted.length === 0 && tripPhase !== null && isUserPanning && (
+      {sorted.length === 0 && tripPhase !== null && cameraSuspended && (
         <TouchableOpacity
           style={styles.recenterBtn}
           onPress={handleRecenter}

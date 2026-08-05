@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import MapView, { Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Navigation } from 'lucide-react-native';
@@ -10,11 +10,17 @@ import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
 import { useMapCamera } from '@/hooks/map/useMapCamera';
+import { useCameraController } from '@/hooks/map/useCameraController';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
 import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
 
 interface Coords { latitude: number; longitude: number }
+
+// How long a one-time overview fit (driver + destination) is held before the
+// follow camera glides back in. Long enough to read the context, short enough
+// to feel responsive.
+const OVERVIEW_HOLD_MS = 1500;
 
 interface CarMapProps {
   /** Initial/recovered seed only (e.g. rideState.driverLocation from a REST
@@ -52,7 +58,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
 
   // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are provided
   // by useMapCamera. onMapReady is passed directly to <MapView>.
-  const { mapRef, runOrQueueCamera, onMapReady } = useMapCamera();
+  const { mapRef, mapReadyRef, runOrQueueCamera, onMapReady } = useMapCamera();
 
   // null until the first GPS fix arrives — prevents the map from briefly
   // centering on Cairo before the real position is known (audit: L3).
@@ -70,7 +76,39 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   // guard, and 800 ms timing are handled by useAnimatedDriverMarker.
   // No initialCoords needed — the marker only renders when driverLocation is
   // non-null (guarded by showDriverMarker && driverLocation in JSX).
-  const { animatedCoord: animatedDriverCoord, rotation: driverRotation } = useAnimatedDriverMarker({ driverLocation });
+  const {
+    animatedCoord: animatedDriverCoord,
+    rotation: driverRotation,
+    headingRef: driverHeadingRef,
+    positionRef: driverPositionRef,
+  } = useAnimatedDriverMarker({ driverLocation });
+
+  // Phase 3C camera controller — follows the interpolated position + smoothed
+  // heading via setCamera (course-up, tilted, fixed zoom). Follow is active
+  // only while a driver is visible and we're not in the searching state.
+  const followActive = !!showDriverMarker && !!driverLocation && !searching;
+  const {
+    onPanDrag: onCameraPan,
+    onRegionChangeComplete: onCameraRegionChange,
+    suspendForOverview,
+    resumeFollow,
+  } = useCameraController({
+    mapRef,
+    mapReadyRef,
+    positionRef: driverPositionRef,
+    headingRef: driverHeadingRef,
+    followActive,
+  });
+
+  // Holds the timer that resumes follow after a one-time overview fit.
+  const overviewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runOverviewFit = useCallback((fit: () => void) => {
+    suspendForOverview();
+    runOrQueueCamera(fit);
+    if (overviewTimerRef.current) clearTimeout(overviewTimerRef.current);
+    overviewTimerRef.current = setTimeout(() => resumeFollow(), OVERVIEW_HOLD_MS);
+  }, [suspendForOverview, runOrQueueCamera, resumeFollow]);
+  useEffect(() => () => { if (overviewTimerRef.current) clearTimeout(overviewTimerRef.current); }, []);
 
   useEffect(() => {
     (async () => {
@@ -116,28 +154,23 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
 
     if (showDriverMarker && driverLocation) {
       if (!driverFittedRef.current) {
-        // First time the driver is visible — fit driver + user + destination.
+        // First time the driver is visible — one-time overview fit of
+        // driver + user + destination, then hand off to the follow camera.
         driverFittedRef.current = true;
         // userLocation may still be null if GPS hasn't resolved; include it
         // only when available rather than letting a null slip into the array.
         const pts: Coords[] = ([userLocation, driverLocation] as (Coords | null)[])
           .filter((p): p is Coords => p !== null);
         if (destCoords) pts.push(destCoords);
-        runOrQueueCamera(() => {
+        runOverviewFit(() => {
           mapRef.current?.fitToCoordinates(pts, {
             edgePadding: { top: 80, right: 60, bottom: 340, left: 60 },
             animated: true,
           });
         });
-      } else {
-        // Already fitted — smoothly follow the driver on subsequent ticks.
-        runOrQueueCamera(() => {
-          mapRef.current?.animateToRegion(
-            { latitude: driverLocation.latitude, longitude: driverLocation.longitude, latitudeDelta: 0.012, longitudeDelta: 0.012 },
-            600,
-          );
-        });
       }
+      // Subsequent ticks: the camera controller follows the interpolated
+      // position + smoothed heading (no per-tick animateToRegion here).
       return;
     }
 
@@ -211,6 +244,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         // compassEnabled, but the native view still supports and uses it.
         compassEnabled={false}
         onMapReady={onMapReady}
+        // Follow-camera suspension on user interaction (pan / pinch / rotate).
+        onPanDrag={onCameraPan}
+        onRegionChangeComplete={onCameraRegionChange}
       >
         {routeCoords.length > 0 && (
           <Polyline coordinates={routeCoords} strokeColor={darkMode ? '#e5e7eb' : '#111827'} strokeWidth={4} />
@@ -255,6 +291,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         style={styles.locBtn}
         onPress={() => {
           if (userLocation) {
+            // Manual recenter-on-self: treat as user control so the follow
+            // camera yields (it auto-resumes after the idle window).
+            if (followActive) onCameraPan();
             mapRef.current?.animateToRegion({ ...userLocation, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 600);
           }
         }}

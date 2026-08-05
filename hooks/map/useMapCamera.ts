@@ -25,12 +25,16 @@
  *   });
  */
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, type MutableRefObject } from 'react';
 import MapView from 'react-native-maps';
 
 interface UseMapCameraResult {
   /** Ref to attach to the <MapView> element. */
   mapRef: React.RefObject<MapView | null>;
+  /** Whether the native MapView has finished initialising. The camera
+   *  controller's frame loop reads this to avoid issuing setCamera before the
+   *  map is ready (such calls are silently dropped by react-native-maps). */
+  mapReadyRef: MutableRefObject<boolean>;
   /**
    * Executes `action` immediately if the map is ready, otherwise stores it
    * for execution once onMapReady fires.  Subsequent calls before the map is
@@ -70,5 +74,5 @@ export function useMapCamera(): UseMapCameraResult {
     }
   }, []);
 
-  return { mapRef, runOrQueueCamera, onMapReady };
+  return { mapRef, mapReadyRef, runOrQueueCamera, onMapReady };
 }

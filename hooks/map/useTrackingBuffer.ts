@@ -27,7 +27,7 @@
  *   // Pass animatedCoord to <MarkerAnimated coordinate={animatedCoord} …/>
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
 import { AnimatedRegion } from 'react-native-maps';
 
 interface LatLng {
@@ -47,6 +47,11 @@ interface UseTrackingBufferOptions {
 interface UseTrackingBufferResult {
   /** AnimatedRegion to pass directly to <MarkerAnimated coordinate={…} />. */
   animatedCoord: AnimatedRegion;
+  /** The SAME interpolated position that drives animatedCoord each frame, as a
+   *  plain ref for the camera controller to read. Null until the first real
+   *  driver point seeds the buffer. Marker and camera therefore share one
+   *  computed frame state — there is no second position calculation. */
+  positionRef: MutableRefObject<LatLng | null>;
 }
 
 // Segment duration is the real inter-arrival gap, clamped so a very short
@@ -87,6 +92,19 @@ export function useTrackingBuffer({
   const seededRef = useRef<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // The latest interpolated frame, written in the same place animatedCoord is
+  // updated. Null until the first real driver point (the camera must not follow
+  // a seed/fallback coordinate). This is the ONE movement source both the
+  // marker (via animatedCoord) and the camera (via this ref) read.
+  const positionRef = useRef<LatLng | null>(null);
+
+  // Single place that commits a computed frame to BOTH outputs, guaranteeing
+  // the marker's animatedCoord and the camera's positionRef never diverge.
+  const commitFrame = (latitude: number, longitude: number) => {
+    animatedCoord.setValue({ latitude, longitude, latitudeDelta: 0, longitudeDelta: 0 });
+    positionRef.current = { latitude, longitude };
+  };
+
   // ── Frame clock ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!point) return;
@@ -101,12 +119,7 @@ export function useTrackingBuffer({
       segDurRef.current = 0;
       lastArrivalRef.current = now;
       seededRef.current = true;
-      animatedCoord.setValue({
-        latitude: point.latitude,
-        longitude: point.longitude,
-        latitudeDelta: 0,
-        longitudeDelta: 0,
-      });
+      commitFrame(point.latitude, point.longitude);
       return;
     }
 
@@ -135,15 +148,11 @@ export function useTrackingBuffer({
         const t = Date.now();
         const d = segDurRef.current;
         const frac = d <= 0 ? 1 : Math.min(1, Math.max(0, (t - segStartRef.current) / d));
-        animatedCoord.setValue({
-          latitude:
-            fromRef.current.latitude + (toRef.current.latitude - fromRef.current.latitude) * frac,
-          longitude:
-            fromRef.current.longitude +
-            (toRef.current.longitude - fromRef.current.longitude) * frac,
-          latitudeDelta: 0,
-          longitudeDelta: 0,
-        });
+        const lat =
+          fromRef.current.latitude + (toRef.current.latitude - fromRef.current.latitude) * frac;
+        const lng =
+          fromRef.current.longitude + (toRef.current.longitude - fromRef.current.longitude) * frac;
+        commitFrame(lat, lng);
         if (frac >= 1 && timerRef.current != null) {
           clearInterval(timerRef.current);
           timerRef.current = null;
@@ -163,5 +172,5 @@ export function useTrackingBuffer({
     };
   }, []);
 
-  return { animatedCoord };
+  return { animatedCoord, positionRef };
 }

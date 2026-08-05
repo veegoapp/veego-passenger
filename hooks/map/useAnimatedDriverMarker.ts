@@ -55,15 +55,20 @@ interface UseAnimatedDriverMarkerResult {
   /** Latest smoothed heading in [0, 360) — reused by the Phase 3C camera
    *  controller so map and camera share one heading source. */
   headingRef: MutableRefObject<number>;
+  /** The same interpolated position that drives animatedCoord — for the camera
+   *  controller, so marker and camera follow one movement source. Null until a
+   *  real driver point arrives. */
+  positionRef: MutableRefObject<{ latitude: number; longitude: number } | null>;
 }
 
 export function useAnimatedDriverMarker({
   driverLocation,
   initialCoords,
 }: UseAnimatedDriverMarkerOptions): UseAnimatedDriverMarkerResult {
-  // Position interpolation — Phase 3A, unchanged.
-  const { animatedCoord } = useTrackingBuffer({ point: driverLocation, initialCoords });
+  // Position interpolation — Phase 3A, unchanged. positionRef and animatedCoord
+  // are the same computed frame.
+  const { animatedCoord, positionRef } = useTrackingBuffer({ point: driverLocation, initialCoords });
   // Heading smoothing — Phase 3B. Fed the same point; independent of position.
   const { rotation, headingRef } = useSmoothedHeading({ point: driverLocation });
-  return { animatedCoord, rotation, headingRef };
+  return { animatedCoord, rotation, headingRef, positionRef };
 }
