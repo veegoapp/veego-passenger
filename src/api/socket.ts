@@ -58,7 +58,18 @@ export async function getSocket(): Promise<Socket> {
 
       const s = io(SOCKET_URL, {
         path: '/api/socket.io',
-        transports: ['websocket'],
+        // Start on HTTP long-polling, then transparently upgrade to WebSocket.
+        // A previous websocket-ONLY config was the root cause of the permanent
+        // "Reconnecting…" / frozen-trip screen: whenever the hosting layer in
+        // front of the backend (reverse proxy / load balancer / CDN) does not
+        // cleanly pass the WebSocket Upgrade for the /api/socket.io path, a
+        // websocket-only client can NEVER complete a handshake — so it retries
+        // forever, the banner never clears, and no ride:* events arrive even
+        // though the driver (whose app already uses ['polling','websocket'])
+        // connects fine against the exact same backend. Polling first
+        // guarantees a working connection through any HTTP-capable proxy, and
+        // socket.io still upgrades to WebSocket automatically when it can.
+        transports: ['polling', 'websocket'],
         // Fetch the freshest token on EVERY (re)connection attempt instead of
         // capturing a single token at creation time. socket.io reuses the
         // initial `auth` object for all of its own built-in reconnections, so a
