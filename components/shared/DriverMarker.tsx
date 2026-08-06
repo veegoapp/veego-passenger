@@ -6,7 +6,8 @@
  * PassengerTrackingMap.native.tsx into one place.
  *
  * Supported vehicle types:
- *   'car'      — car-marker.png image (rotated by MarkerAnimated's rotation prop)
+ *   'car'      — VeeGo brand arrow (navy-filled lucide Navigation icon), rotated
+ *                by MarkerAnimated's rotation prop to point in the travel direction
  *   'scooter'  — arrow tip + filled circle with Bike icon
  *   'delivery' — arrow tip + filled circle with Package icon
  *   'shuttle'  — arrow tip + rounded square with bus emoji
@@ -34,10 +35,15 @@
  */
 
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { Bike, Package } from 'lucide-react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Bike, Package, Navigation } from 'lucide-react-native';
 
 export type DriverVehicleType = 'car' | 'scooter' | 'delivery' | 'shuttle';
+
+// Brand navy — the same ink used for the VeeGo logo lockup / "Go" tab icon
+// (c.ink in light mode). Kept fixed here so the on-map arrow reads as the
+// brand mark regardless of the app's light/dark theme.
+const BRAND_NAVY = '#1e1e28';
 
 interface DriverMarkerProps {
   vehicleType: DriverVehicleType;
@@ -55,21 +61,27 @@ export const DriverMarker = React.memo(function DriverMarker({
   vehicleType,
   onImageLoad,
 }: DriverMarkerProps): React.JSX.Element {
+  // The 'car' marker is now a vector (lucide) arrow, which — unlike the old
+  // <Image> — has no onLoad event. Signal readiness shortly after mount so the
+  // parent can flip tracksViewChanges off (stops the marker re-rasterising
+  // every frame). The small delay lets the SVG paint first; freezing the
+  // bitmap too early renders a blank marker on Android.
+  React.useEffect(() => {
+    if (vehicleType !== 'car' || !onImageLoad) return;
+    const id = setTimeout(onImageLoad, 300);
+    return () => clearTimeout(id);
+  }, [vehicleType, onImageLoad]);
+
   if (vehicleType === 'car') {
-    // Square container so the marker's layout box (used for the anchor) matches
-    // the vehicle's visual footprint after the base-orientation correction.
-    // The source art is a top-down car pointing LEFT; the static 90° image
-    // rotation re-orients it "nose-up" so MarkerAnimated.rotation={heading}
-    // (course-up) then points the front in the direction of travel. The image
-    // file itself is never rotated — only this view transform.
+    // The VeeGo brand arrow (same lucide Navigation icon as the "Go" tab / logo),
+    // filled with brand navy — replaces the old top-down car image. The icon's
+    // tip already points "up" (north), so MarkerAnimated.rotation={heading}
+    // (course-up, flat on the map plane) points it in the direction of travel
+    // with no base-orientation correction. `fill` makes it solid (not hollow);
+    // the white stroke is a thin keyline so it stays visible on the dark map.
     return (
       <View style={styles.carMarkerBox}>
-        <Image
-          source={require('@/assets/images/car-marker.png')}
-          style={styles.carMarkerImage}
-          resizeMode="contain"
-          onLoad={onImageLoad}
-        />
+        <Navigation size={30} color="#ffffff" fill={BRAND_NAVY} strokeWidth={1.5} />
       </View>
     );
   }
@@ -92,18 +104,13 @@ export const DriverMarker = React.memo(function DriverMarker({
 });
 
 const styles = StyleSheet.create({
-  // Realistic on-road vehicle size (~54 dp long); tune within 42–64 dp.
+  // Square container sized to the brand arrow; centered so the anchor sits at
+  // the arrow's middle and it pivots cleanly as heading changes.
   carMarkerBox: {
-    width: 54,
-    height: 54,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  carMarkerImage: {
-    width: 54,
-    height: 54,
-    // Base-orientation correction: source art points LEFT → rotate nose-up.
-    transform: [{ rotate: '90deg' }],
   },
 
   wrapper: {
