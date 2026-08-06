@@ -62,9 +62,11 @@
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "fbd0f90a-4458-4bd7-9015-b0b94e2c758c"
+        "projectId": "676b34e5-0da7-4206-b76e-769cb668c14e"
       }
-    }
+    },
+    "owner": "mohamedfarghaly91"
   }
 }
