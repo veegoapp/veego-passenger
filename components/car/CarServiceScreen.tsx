@@ -347,6 +347,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [recipientPhone, setRecipientPhone] = useState('');
   const [paymentMethod, setPaymentMethod]   = useState<'cash' | 'wallet'>('cash');
   const userCoordsRef = useRef<Coords | null>(null);
+  // The device's actual GPS location, kept separate from the *pickup point*.
+  // `userCoords`/`userCoordsRef` hold the pickup that gets booked; this ref
+  // only ever tracks the live GPS fix so "Use current location" can return to
+  // it and so a late GPS fix never overwrites a manually-chosen pickup.
+  const deviceLocationRef = useRef<Coords | null>(null);
+  // True once the passenger has explicitly chosen a pickup different from their
+  // GPS location. While true, live GPS updates must NOT overwrite the pickup.
+  const pickupIsCustomRef = useRef(false);
 
   // ── Unified inline location sheet ────────────────────────────────────────
   // Single sheet handles both pickup and destination editing.
@@ -415,6 +423,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setPickupQuery('');
 
     const applyCoords = (coords: Coords) => {
+      // Mark the pickup as manually chosen so subsequent live GPS fixes don't
+      // clobber it back to the device location.
+      pickupIsCustomRef.current = true;
       setUserCoords(coords);
       userCoordsRef.current = coords;
     };
@@ -546,6 +557,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   }, [serviceType]);
 
   const handleUserLocation = useCallback((loc: Coords) => {
+    // Always remember the real device position.
+    deviceLocationRef.current = loc;
+    // Only let the live GPS fix drive the pickup while the passenger hasn't
+    // explicitly picked a different pickup point. Without this guard, a
+    // late-arriving High-accuracy GPS fix (it can take several seconds) — or a
+    // map remount re-fetch — overwrites a manually-chosen pickup right before
+    // the ride is booked, so the trip is created from the wrong spot and the
+    // driver hits "must be within 150m of pickup" at the location the
+    // passenger actually chose.
+    if (pickupIsCustomRef.current) return;
     setUserCoords(loc);
     userCoordsRef.current = loc;
   }, []);
@@ -724,6 +745,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setDestination(null);
     setDestCoords(null);
     setPickupCoords(null);
+    // New booking starts fresh: pickup follows GPS again until the passenger
+    // explicitly picks a custom one.
+    pickupIsCustomRef.current = false;
+    setPickupAddress('');
+    if (deviceLocationRef.current) {
+      userCoordsRef.current = deviceLocationRef.current;
+      setUserCoords({ ...deviceLocationRef.current });
+    }
     setSelectedRide(null);
     setEstimate(null);
     setSingleEstimate(null);
@@ -1059,12 +1088,18 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                         <TouchableOpacity
                           style={styles.locItem}
                           onPress={() => {
-                            // Reset to GPS: clear custom pickup address so reverse-geocode label shows again
-                            if (userCoordsRef.current) {
+                            // Reset the pickup back to the REAL device GPS
+                            // location (not userCoordsRef, which may now hold a
+                            // custom pickup), and clear the custom flag so live
+                            // GPS resumes driving the pickup.
+                            const gps = deviceLocationRef.current ?? userCoordsRef.current;
+                            if (gps) {
+                              pickupIsCustomRef.current = false;
                               setPickupAddress('');
                               setPickupQuery('');
+                              userCoordsRef.current = gps;
                               // Re-trigger reverse-geocode by nudging userCoords
-                              setUserCoords({ ...userCoordsRef.current });
+                              setUserCoords({ ...gps });
                               setActiveField('destination');
                               destInputRef.current?.focus();
                             }
@@ -1097,9 +1132,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                         <TouchableOpacity
                           style={styles.locItem}
                           onPress={() => {
+                            // Reset the pickup back to the REAL device GPS
+                            // location and clear the custom flag.
+                            const gps = deviceLocationRef.current ?? userCoordsRef.current;
                             setPickupAddress('');
                             setPickupQuery('');
-                            if (userCoordsRef.current) setUserCoords({ ...userCoordsRef.current });
+                            if (gps) {
+                              pickupIsCustomRef.current = false;
+                              userCoordsRef.current = gps;
+                              setUserCoords({ ...gps });
+                            }
                             setActiveField('destination');
                             destInputRef.current?.focus();
                           }}
