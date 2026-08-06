@@ -684,6 +684,11 @@ export const en = {
 
   your_location: 'Your Location',
   current_location: 'Current Location',
+  set_location_on_map: 'Set location on map',
+  set_pickup_on_map: 'Set pickup on map',
+  move_map_to_set_pickup: 'Move the map to set your pickup',
+  confirm_pickup: 'Confirm pickup',
+  locating: 'Locating…',
   most_booked: 'Most Booked',
   request_ride_failed: 'Failed to request ride. Please try again.',
 

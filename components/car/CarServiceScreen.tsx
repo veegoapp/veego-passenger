@@ -10,7 +10,7 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { Check, X, XCircle, ArrowLeft, ArrowRight, Search, MapPin, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Check, X, XCircle, ArrowLeft, ArrowRight, Search, MapPin, Map, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
@@ -23,6 +23,7 @@ import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import api from '@/src/api/client';
 import { CarMap } from './CarMap';
+import { PickupMapPicker } from './PickupMapPicker';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
@@ -446,6 +447,20 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setActiveField('destination');
     destInputRef.current?.focus();
   }, []);
+
+  // ── "Set pickup on map" (Uber/Careem-style drag-a-pin picker) ─────────────
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
+  const openMapPicker = useCallback(() => {
+    Keyboard.dismiss();
+    setMapPickerVisible(true);
+  }, []);
+  const handleMapPickerConfirm = useCallback((coords: Coords, address: string) => {
+    setMapPickerVisible(false);
+    // Reuse the custom-pickup path: sets pickupIsCustomRef so the live GPS fix
+    // won't overwrite this choice, updates the pickup coords/label, and
+    // auto-advances focus to the destination field.
+    handleSelectPickup(address, coords);
+  }, [handleSelectPickup]);
 
   // Reverse-geocode the user's position for the "Your Location" label.
   // Best-effort: never blocks the UI. Shows t('current_location') until resolved.
@@ -1112,6 +1127,18 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                           <Text style={[styles.locText, { color: c.primary }]}>{t('current_location')}</Text>
                           {isRTL ? <ChevronLeft size={14} color={c.primary} /> : <ChevronRight size={14} color={c.primary} />}
                         </TouchableOpacity>
+                        {/* Set pickup by dragging a pin on the map (Uber/Careem-style) */}
+                        <TouchableOpacity
+                          style={styles.locItem}
+                          onPress={openMapPicker}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.locIcon, { backgroundColor: c.primary + '1F' }]}>
+                            <Map size={16} color={c.primary} />
+                          </View>
+                          <Text style={[styles.locText, { color: c.primary }]}>{t('set_location_on_map')}</Text>
+                          {isRTL ? <ChevronLeft size={14} color={c.primary} /> : <ChevronRight size={14} color={c.primary} />}
+                        </TouchableOpacity>
                         {placeResults.length > 0 ? (
                           placeResults.map(renderPlaceRow)
                         ) : (
@@ -1151,6 +1178,18 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                             <MapPin size={16} color={c.primary} />
                           </View>
                           <Text style={[styles.locText, { color: c.primary }]}>{t('current_location')}</Text>
+                          {isRTL ? <ChevronLeft size={14} color={c.primary} /> : <ChevronRight size={14} color={c.primary} />}
+                        </TouchableOpacity>
+                        {/* Set pickup by dragging a pin on the map (Uber/Careem-style) */}
+                        <TouchableOpacity
+                          style={styles.locItem}
+                          onPress={openMapPicker}
+                          activeOpacity={0.8}
+                        >
+                          <View style={[styles.locIcon, { backgroundColor: c.primary + '1F' }]}>
+                            <Map size={16} color={c.primary} />
+                          </View>
+                          <Text style={[styles.locText, { color: c.primary }]}>{t('set_location_on_map')}</Text>
                           {isRTL ? <ChevronLeft size={14} color={c.primary} /> : <ChevronRight size={14} color={c.primary} />}
                         </TouchableOpacity>
                         {recents.length > 0 && (
@@ -1318,6 +1357,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         vehicle={rideState.driver?.vehicle}
         plate={rideState.driver?.plateNumber}
         fallbackCoords={userCoordsRef.current}
+      />
+
+      {/* Uber/Careem-style "drag a pin on the map" pickup picker */}
+      <PickupMapPicker
+        visible={mapPickerVisible}
+        initialCoords={userCoords ?? deviceLocationRef.current}
+        onCancel={() => setMapPickerVisible(false)}
+        onConfirm={handleMapPickerConfirm}
       />
 
       {/* Completed — fare summary + inline rating in one sheet (Lovable CompletedSheet) */}

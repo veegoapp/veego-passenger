@@ -686,6 +686,11 @@ export const ar: typeof en = {
 
   your_location: 'موقعك',
   current_location: 'موقعك الحالي',
+  set_location_on_map: 'تحديد الموقع على الخريطة',
+  set_pickup_on_map: 'حدد نقطة الالتقاء على الخريطة',
+  move_map_to_set_pickup: 'حرّك الخريطة لتحديد نقطة الالتقاء',
+  confirm_pickup: 'تأكيد نقطة الالتقاء',
+  locating: 'جارٍ تحديد الموقع…',
   most_booked: 'الأكثر حجزًا',
   request_ride_failed: 'فشل طلب الرحلة. حاول مجدداً.',
 
