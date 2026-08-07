@@ -182,10 +182,14 @@ export default function HomeScreen() {
   // mode before hooks initialise, avoiding a shuttle-UI flash on ride recovery.
   // CarServiceScreen's resumeActiveRide() then takes over once mounted.
   const { resumeService } = useLocalSearchParams<{ resumeService?: string }>();
+  // Cold-start recovery: ActiveSession navigation passes resumeService when the
+  // rider reopens the app with an active ride. Open that service screen straight
+  // away (below) instead of landing on Home and forcing them to tap the service
+  // again to get back into the trip.
+  const isRideResume =
+    resumeService === 'car' || resumeService === 'scooter' || resumeService === 'delivery';
   const [mode, setMode] = useState<ServiceMode>(() => (
-    resumeService === 'car' || resumeService === 'scooter' || resumeService === 'delivery'
-      ? resumeService
-      : 'shuttle'
+    isRideResume ? (resumeService as ServiceMode) : 'shuttle'
   ));
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openRoute } = useBooking();
@@ -221,9 +225,11 @@ export default function HomeScreen() {
   const [searchScreenOpen, setSearchScreenOpen] = useState(false);
   const carServiceRef = useRef<CarServiceScreenHandle>(null);
   const { height: screenHeight } = useWindowDimensions();
-  const [serviceOpen, setServiceOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
-  const cardsOpacity = useRef(new Animated.Value(1)).current;
+  // On a ride resume the service screen starts already open and on-screen (no
+  // slide-in), so reopening the app drops the rider straight back into the trip.
+  const [serviceOpen, setServiceOpen] = useState(isRideResume);
+  const slideAnim = useRef(new Animated.Value(isRideResume ? 0 : Dimensions.get('window').height)).current;
+  const cardsOpacity = useRef(new Animated.Value(isRideResume ? 0 : 1)).current;
 
   const fetchSavedLocations = useCallback(() => {
     return api.get('/user/locations')
