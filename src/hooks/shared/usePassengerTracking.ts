@@ -72,12 +72,18 @@ async function startBackgroundTask(taskName: string): Promise<void> {
   try {
     const available = await TaskManager.isAvailableAsync();
     if (!available) return;
-    // Check before requesting — never re-prompt if already decided.
-    let fg = (await Location.getForegroundPermissionsAsync()).status;
-    if (fg !== 'granted') fg = (await Location.requestForegroundPermissionsAsync()).status;
+    // Foreground permission is granted at first app open; don't re-prompt.
+    const fg = (await Location.getForegroundPermissionsAsync()).status;
     if (fg !== 'granted') return;
-    let bg = (await Location.getBackgroundPermissionsAsync()).status;
-    if (bg === 'undetermined') bg = (await Location.requestBackgroundPermissionsAsync()).status;
+    // Do NOT request the "Allow all the time" (background) permission. On
+    // Android 11+ that request can't show a normal dialog — it dumps the rider
+    // into the App-Info settings page mid-ride, which is jarring and confusing
+    // (they think the app is re-asking for location). Passenger tracking is
+    // best-effort, so if background access was already granted we use the
+    // background task as a bonus; if not, we simply skip it and rely on the
+    // foreground watch (which runs whenever the app is open). No prompt, no
+    // settings redirect.
+    const bg = (await Location.getBackgroundPermissionsAsync()).status;
     if (bg !== 'granted') return;
     const started = await Location.hasStartedLocationUpdatesAsync(taskName);
     if (!started) {
