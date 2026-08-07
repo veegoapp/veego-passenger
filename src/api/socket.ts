@@ -45,17 +45,28 @@ export function onSocketConnectionChange(listener: (state: SocketConnectionState
 export async function getSocket(): Promise<Socket> {
   if (socket && socket.connected) return socket;
 
+  // A socket instance already exists but is between connections — socket.io's
+  // own auto-reconnect after a transient network drop, or a brief blip. Do NOT
+  // tear it down and build a fresh io(): that aborts the in-flight reconnect,
+  // discards the fresh-token `auth` retry, drops every already-bound listener,
+  // and — because many call sites (contexts, screens, ride/notification hooks)
+  // all call getSocket() — turns one 1-second self-healing blip into a
+  // thundering herd of teardown/rebuild cycles that surface as a stuck
+  // "Reconnecting…" banner. Return the existing instance (listeners intact) and
+  // nudge socket.io to attempt a reconnect now instead of waiting out its
+  // backoff. A fresh io() is only ever created when `socket` is null (first
+  // connect, or after an explicit disconnectSocket()).
+  if (socket) {
+    if (!socket.connected) socket.connect();
+    return socket;
+  }
+
   // Coalesce concurrent callers onto the same in-flight connection attempt
   // instead of each racing to create/replace the socket.
   if (connectPromise) return connectPromise;
 
   connectPromise = (async () => {
     try {
-      if (socket) {
-        socket.disconnect();
-        socket = null;
-      }
-
       const s = io(SOCKET_URL, {
         path: '/api/socket.io',
         // Start on HTTP long-polling, then transparently upgrade to WebSocket.
@@ -133,14 +144,34 @@ export function disconnectSocket() {
   setConnectionState('disconnected');
 }
 
-// ✅ Call this after token refresh to reconnect with new token
+// Hard reconnect: fully tears down the current socket and builds a new io().
+// Kept for callers that genuinely need a clean slate (e.g. switching accounts).
+// NOT wired to token refresh — see softReconnectSocket below for why.
 export async function reconnectSocket(): Promise<void> {
   disconnectSocket();
   await getSocket();
 }
 
-// Register reconnect hook with client.ts so it fires on every token refresh
-registerSocketReconnect(reconnectSocket);
+// Soft reconnect: called after the REST layer refreshes the access token.
+//
+// A live, connected socket needs NOTHING here — it was already authenticated at
+// its handshake, and the token only matters for the NEXT (re)connect, which the
+// `auth` callback above already covers by fetching the freshest token on every
+// attempt. The previous behavior (hard reconnectSocket() on every refresh) tore
+// down the live socket and rebuilt it from scratch on each 401→refresh; during
+// an active ride those refreshes are frequent (location every 15s, notifications,
+// ETA, polling), so the socket was being killed and rebuilt over and over —
+// exactly the repeating "Reconnecting…" banner + re-emitted-event notification
+// churn. So: if connected, do nothing. Only if the socket is currently between
+// connections do we nudge it to retry now (with the fresh token), without
+// destroying the instance or its listeners.
+export async function softReconnectSocket(): Promise<void> {
+  if (socket && !socket.connected) socket.connect();
+}
+
+// Register the SOFT reconnect with client.ts so token refresh no longer
+// hard-cycles the socket.
+registerSocketReconnect(softReconnectSocket);
 
 export type RideStatus =
   | 'searching'

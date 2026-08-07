@@ -31,7 +31,6 @@ import { TripCompletedSheet } from './TripCompletedSheet';
 import { SafetySheet } from '@/components/shared/SafetySheet';
 import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useRecentSearches } from '@/src/hooks/shared/useRecentSearches';
-import { useSocketConnectionState } from '@/src/hooks/shared/useSocketConnectionState';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -484,9 +483,8 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   // Phase 2: pass serviceType so resumeActiveRide only picks up rides that
   // belong to this tab — prevents state leakage across car/scooter/delivery.
-  const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide, pollingStale } = useRide(serviceType);
+  const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide } = useRide(serviceType);
   const [resuming, setResuming] = useState(false);
-  const socketConnectionState = useSocketConnectionState();
 
   // Nearby-driver markers — pre-booking only. Stops the moment a ride is
   // requested or the phase moves past ride_options; CarServiceScreen itself
@@ -1267,32 +1265,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         </Animated.View>
       )}
 
-      {/* Realtime connection indicator — live phases only.
+      {/* Realtime connection indicator — live phases only. Single source of the
+          "reconnecting" strip (driven purely by the socket connection state).
           Suppressed during 'searching' because the socket is still initialising
-          after ride creation; this is expected and not a real outage. */}
+          after ride creation; this is expected and not a real outage.
+          NOTE: a second, separate reconnecting pill driven by `pollingStale`
+          used to live here. It showed the SAME word while the socket was
+          actually connected (REST status-poll lagging), producing a false
+          "Reconnecting…" and a duplicate source. Removed so the socket banner
+          below is the only thing that can surface that word. */}
       {phase === 'in_ride' && rideState.status !== 'searching' && (
         <ConnectionBanner style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50 }} />
-      )}
-
-      {/* Phase 3: the status-polling fallback (useRide's `pollingStale`) already
-          tracked whether it's failing to reach the server, but nothing showed
-          it. Only surfaced when the socket itself is connected — otherwise
-          ConnectionBanner above already covers it — so this never stacks.
-          Also suppressed during 'searching' (same reason as ConnectionBanner
-          above): a single slow/failed status poll right after ride creation
-          isn't a real outage, so it shouldn't flash "reconnecting" over the
-          searching map. */}
-      {phase === 'in_ride' && rideState.status !== 'searching' && pollingStale && socketConnectionState === 'connected' && (
-        <View
-          style={{
-            position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50,
-            flexDirection: 'row', alignItems: 'center', gap: 6,
-            backgroundColor: '#d97706', paddingVertical: 6, paddingHorizontal: Spacing.md,
-            borderRadius: 99,
-          }}
-        >
-          <Text style={{ color: '#fff', fontSize: 11, fontWeight: Typography.weight.bold }}>{t('reconnecting')}</Text>
-        </View>
       )}
 
 
