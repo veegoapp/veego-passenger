@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Linking, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, StyleSheet, Animated, Linking, Easing } from 'react-native';
 import {
   MessageCircle, Phone, X, AlertTriangle,
   Navigation, BadgeCheck, ChevronRight, ShieldAlert, LifeBuoy,
@@ -27,13 +27,19 @@ interface DriverAssignedCardProps {
   onSOS?: () => void;
 }
 
+// Navy (كحلي) fill for the ride action buttons.
+const NAVY = '#1e3a8a';
+// How much of the card stays visible when it's lowered to a peek (handle +
+// status header + trip title). The rest slides below the screen edge.
+const PEEK_HEIGHT = 132;
+
 /* ─── GhostButton ────────────────────────────────────────────────────────── */
 function GhostButton({
   onPress, disabled, tone = 'neutral', icon, label, flex,
 }: {
   onPress?: () => void;
   disabled?: boolean;
-  tone?: 'neutral' | 'danger';
+  tone?: 'neutral' | 'danger' | 'navy';
   icon: React.ReactNode;
   label: string;
   flex?: number;
@@ -42,21 +48,24 @@ function GhostButton({
   const borderCol = c.border;
   const surfaceBg = c.surfaceMuted;
 
+  const toneStyle =
+    tone === 'danger'
+      ? { borderColor: `${c.error}40`, backgroundColor: `${c.error}0F` }
+      : tone === 'navy'
+      ? { borderColor: NAVY, backgroundColor: NAVY }
+      : { borderColor: borderCol, backgroundColor: surfaceBg };
+
+  const textColor = tone === 'danger' ? c.error : tone === 'navy' ? '#ffffff' : c.ink;
+
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.78}
-      style={[
-        styles.ghostBtn,
-        flex ? { flex } : {},
-        tone === 'danger'
-          ? { borderColor: `${c.error}40`, backgroundColor: `${c.error}0F` }
-          : { borderColor: borderCol, backgroundColor: surfaceBg },
-      ]}
+      style={[styles.ghostBtn, flex ? { flex } : {}, toneStyle]}
     >
       {icon}
-      <Text style={[styles.ghostBtnText, { color: tone === 'danger' ? c.error : c.ink }]}>
+      <Text style={[styles.ghostBtnText, { color: textColor }]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -70,7 +79,7 @@ function PrimaryButton({ onPress, label }: { onPress?: () => void; label: string
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.88}
-      style={[styles.primaryBtn, { backgroundColor: c.primary }]}
+      style={[styles.primaryBtn, { backgroundColor: NAVY }]}
     >
       <Text style={styles.primaryBtnText}>{label}</Text>
       <ChevronRight size={18} color="#ffffff" strokeWidth={2.2} />
@@ -89,6 +98,10 @@ function DriverAssignedCardBase({
   const arrivedPulse = useRef(new Animated.Value(1)).current;
   const enRouteDot  = useRef(new Animated.Value(1)).current;
   const [chatOpen, setChatOpen] = useState(false);
+  // Peek/expand state for the active-ride card (mirrors the driver app).
+  const [collapsed, setCollapsed] = useState(false);
+  const [sheetHeight, setSheetHeight] = useState(0);
+  const collapseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -152,13 +165,40 @@ function DriverAssignedCardBase({
   const isStarted = rideStatus === 'started';
   const isArrived = rideStatus === 'arrived';
 
+  // Active-ride card lowers to a peek so the map is unobstructed; auto-lower
+  // when the trip goes active, and let the rider tap the handle to raise it
+  // back up for the full controls. Only the 'started' phase is collapsible.
+  useEffect(() => { setCollapsed(isStarted); }, [isStarted]);
+  useEffect(() => {
+    Animated.spring(collapseAnim, {
+      toValue: collapsed ? 1 : 0,
+      useNativeDriver: true,
+      ...Animation.spring.sheet,
+    }).start();
+  }, [collapsed]);
+
+  const collapseTranslate = collapseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, Math.max(0, sheetHeight - PEEK_HEIGHT)],
+  });
+
   return (
     <Animated.View
-      style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
+      style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }, { translateY: collapseTranslate }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 20 }]}>
-        <View style={[styles.handle, { backgroundColor: borderCol }]} />
+      <View
+        onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
+        style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 20 }]}
+      >
+        <Pressable
+          onPress={() => { if (isStarted) setCollapsed((v) => !v); }}
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel={collapsed ? 'Raise trip card' : 'Lower trip card'}
+        >
+          <View style={[styles.handle, { backgroundColor: borderCol }]} />
+        </Pressable>
 
         {/* ══════════════════════════════════════════
             ACTIVE RIDE (started) — In-progress cockpit
@@ -208,16 +248,16 @@ function DriverAssignedCardBase({
             <View style={styles.actionsRow}>
               <GhostButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                tone="neutral"
-                icon={<MessageCircle size={18} color={c.ink} strokeWidth={1.8} />}
+                tone="navy"
+                icon={<MessageCircle size={18} color="#ffffff" strokeWidth={1.8} />}
                 label={t('chat')}
                 flex={1}
               />
               <GhostButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                tone="neutral"
-                icon={<Phone size={18} color={c.ink} strokeWidth={1.8} />}
+                tone="navy"
+                icon={<Phone size={18} color="#ffffff" strokeWidth={1.8} />}
                 label={t('call') ?? 'Call'}
                 flex={1}
               />
@@ -233,8 +273,8 @@ function DriverAssignedCardBase({
             {/* Need Help — routes to SafetySheet via onSOS */}
             <GhostButton
               onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
-              tone="neutral"
-              icon={<LifeBuoy size={18} color={c.ink} strokeWidth={1.9} />}
+              tone="navy"
+              icon={<LifeBuoy size={18} color="#ffffff" strokeWidth={1.9} />}
               label={'Need Help'}
             />
           </View>
@@ -337,15 +377,15 @@ function DriverAssignedCardBase({
               <GhostButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                tone="neutral"
-                icon={<Phone size={18} color={c.ink} strokeWidth={1.9} />}
+                tone="navy"
+                icon={<Phone size={18} color="#ffffff" strokeWidth={1.9} />}
                 label={t('call') ?? 'Call'}
                 flex={1}
               />
               <GhostButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                tone="neutral"
-                icon={<MessageCircle size={18} color={c.ink} strokeWidth={1.9} />}
+                tone="navy"
+                icon={<MessageCircle size={18} color="#ffffff" strokeWidth={1.9} />}
                 label={t('chat')}
                 flex={1}
               />
