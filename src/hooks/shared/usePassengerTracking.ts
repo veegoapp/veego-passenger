@@ -129,53 +129,29 @@ async function sendSnapshot(snapshot: LocationSnapshot): Promise<void> {
   await api.post('/tracking/location', snapshot);
 }
 
-async function getCurrentLocation(): Promise<{
-  latitude: number;
-  longitude: number;
-  speed: number | null;
-  heading: number | null;
-  accuracy: number | null;
-} | null> {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return null;
-
-    const loc = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-
-    return {
-      latitude: loc.coords.latitude,
-      longitude: loc.coords.longitude,
-      speed: loc.coords.speed ?? null,
-      heading: loc.coords.heading ?? null,
-      accuracy: loc.coords.accuracy ?? null,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function usePassengerTracking({
   isActive,
   tripId = null,
   rideId = null,
 }: UsePassengerTrackingOptions): void {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const watchSubRef = useRef<Location.LocationSubscription | null>(null);
   const tripIdRef = useRef(tripId);
   const rideIdRef = useRef(rideId);
 
-  // Keep refs current so the interval closure always has the latest IDs
+  // Keep refs current so the watch callback always sends the latest IDs
   useEffect(() => { tripIdRef.current = tripId; }, [tripId]);
   useEffect(() => { rideIdRef.current = rideId; }, [rideId]);
 
-  const tick = useCallback(async () => {
-    // First: try to flush any offline-stored snapshots (including those from background task)
+  // Build + send one snapshot from a single location fix. Runs on each fix the
+  // continuous foreground watch below delivers.
+  const sendFix = useCallback(async (coords: {
+    latitude: number;
+    longitude: number;
+    speed?: number | null;
+    heading?: number | null;
+    accuracy?: number | null;
+  }) => {
     await flushOfflineSnapshots();
-
-    // Then: capture and send the current snapshot
-    const coords = await getCurrentLocation();
-    if (!coords) return;
 
     const snapshot: LocationSnapshot = {
       entityType: 'passenger',
@@ -214,73 +190,82 @@ export function usePassengerTracking({
     }
   }, []);
 
-  const stopTracking = useCallback(async () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  // Foreground tracking via ONE continuous location subscription, replacing the
+  // old 15s setInterval that called getCurrentPositionAsync (a one-shot) every
+  // tick. Repeated one-shots made Android's location-use indicator (the dot in
+  // the status bar) blink on/off every 15s — the "status bar flickering". A
+  // single kept-open subscription holds the indicator steady; timeInterval /
+  // distanceInterval pace it to the same ~15s backend cadence.
+  const startForegroundWatch = useCallback(async () => {
+    if (watchSubRef.current) return; // already watching
+    try {
+      let fg = (await Location.getForegroundPermissionsAsync()).status;
+      if (fg !== 'granted') fg = (await Location.requestForegroundPermissionsAsync()).status;
+      if (fg !== 'granted') return;
+      // Flush anything buffered offline as soon as foreground tracking resumes.
+      await flushOfflineSnapshots();
+      watchSubRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: TRACKING_INTERVAL_MS,
+          distanceInterval: 25,
+        },
+        (loc) => { sendFix(loc.coords); },
+      );
+    } catch {
+      // Best-effort; the background task covers the gap when applicable.
     }
-    // Flush any remaining offline snapshots now that the trip is ending
+  }, [sendFix]);
+
+  const stopForegroundWatch = useCallback(async () => {
+    if (watchSubRef.current) {
+      watchSubRef.current.remove();
+      watchSubRef.current = null;
+    }
+    // Flush any remaining offline snapshots now that foreground tracking stops.
     await flushOfflineSnapshots();
   }, []);
 
   useEffect(() => {
     if (!isActive) {
-      if (intervalRef.current) {
-        stopTracking();
-      }
+      stopForegroundWatch();
       // Ensure background task is also stopped when tracking is deactivated.
       (async () => { await stopBackgroundTask(); })();
       return;
     }
 
     // ── Mode selection: foreground XOR background — never both simultaneously ──
-    // Running setInterval while the background task is also active causes
-    // duplicate location snapshots, wastes battery, and doubles network traffic.
-    // AppState determines which mode is appropriate at activation time; the
-    // change listener below switches modes whenever the app transitions.
-
+    // The continuous foreground watch and the background task both feed the same
+    // /tracking endpoint; running both would double snapshots and waste battery.
+    // AppState decides which is appropriate; the change listener swaps them.
     const currentState = AppState.currentState;
 
     if (currentState === 'active') {
-      // Foreground: stop any lingering background task, then use setInterval.
       (async () => { await stopBackgroundTask(); })();
-      tick();
-      intervalRef.current = setInterval(tick, TRACKING_INTERVAL_MS);
+      startForegroundWatch();
     } else {
-      // Background / inactive: stop any lingering interval, then use background task.
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      stopForegroundWatch();
       (async () => { await startBackgroundTask(); })();
     }
 
-    // Switch modes whenever the app transitions between foreground and background.
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
-        // App came to foreground — stop background task, start interval.
+        // Foreground — stop the background task, start the continuous watch.
         (async () => { await stopBackgroundTask(); })();
-        if (!intervalRef.current) {
-          tick();
-          intervalRef.current = setInterval(tick, TRACKING_INTERVAL_MS);
-        }
+        startForegroundWatch();
       } else if (nextState === 'background' || nextState === 'inactive') {
-        // App went to background — stop interval, start background task.
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
+        // Background — stop the watch, hand off to the background task.
+        stopForegroundWatch();
         (async () => { await startBackgroundTask(); })();
       }
     });
 
     return () => {
       sub.remove();
-      stopTracking();
-      // Stop background location task on cleanup. Uses an async IIFE because
-      // effect cleanups must return void. Logs a warning on failure — a missed
-      // stop means the background task continues after the trip ends, draining battery.
+      stopForegroundWatch();
+      // Stop background location task on cleanup too. Async IIFE because effect
+      // cleanups must return void; a missed stop leaves the task draining battery.
       (async () => { await stopBackgroundTask(); })();
     };
-  }, [isActive, tick, stopTracking]);
+  }, [isActive, startForegroundWatch, stopForegroundWatch]);
 }
