@@ -16,6 +16,14 @@ on:
           - debug
           - release
 
+# EXPO_PUBLIC_* variables are inlined into the JS bundle at build time, so the
+# backend URL must be present during the Gradle bundling step below. Without it
+# the app falls back to http://localhost:3000 (see src/api/normalizeApiUrl.ts)
+# and can never reach the backend — every API call, including /auth/login,
+# fails, which surfaces as "sign in failed". Mirrors the driver app's workflow.
+env:
+  EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+
 jobs:
   build-apk:
     name: Build Android APK
