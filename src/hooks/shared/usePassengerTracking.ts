@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { AppState } from 'react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -237,26 +237,38 @@ export function usePassengerTracking({
     // ── Mode selection: foreground XOR background — never both simultaneously ──
     // The continuous foreground watch and the background task both feed the same
     // /tracking endpoint; running both would double snapshots and waste battery.
-    // AppState decides which is appropriate; the change listener swaps them.
+    //
+    // CRITICAL: only a REAL 'background' state starts the foreground-service
+    // task. 'inactive' is treated as foreground. On Android, AppState rapidly
+    // flaps 'active' ↔ 'inactive' during transient moments (screen recording,
+    // the notification shade, a permission/overlay) — and the FG-service
+    // notification appearing can itself trigger another blip. Treating
+    // 'inactive' as background made that flap start/stop the FG service in a
+    // tight loop, which is exactly the status-bar + app-icon flicker (the icon
+    // appears/disappears as the notification is posted/cancelled). Only real
+    // backgrounding ('background') hands off to the service now.
+    const isBackground = (s: AppStateStatus) => s === 'background';
     const currentState = AppState.currentState;
 
-    if (currentState === 'active') {
-      (async () => { await stopBackgroundTask(); })();
-      startForegroundWatch();
-    } else {
+    if (isBackground(currentState)) {
       stopForegroundWatch();
       (async () => { await startBackgroundTask(); })();
+    } else {
+      (async () => { await stopBackgroundTask(); })();
+      startForegroundWatch();
     }
 
     const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        // Foreground — stop the background task, start the continuous watch.
-        (async () => { await stopBackgroundTask(); })();
-        startForegroundWatch();
-      } else if (nextState === 'background' || nextState === 'inactive') {
-        // Background — stop the watch, hand off to the background task.
+      if (isBackground(nextState)) {
+        // Real background — stop the watch, hand off to the background task.
         stopForegroundWatch();
         (async () => { await startBackgroundTask(); })();
+      } else {
+        // Foreground (including the transient 'inactive') — keep the continuous
+        // watch, ensure no FG service is running. Both calls are no-ops when
+        // already in this mode, so an active↔inactive flap causes no churn.
+        (async () => { await stopBackgroundTask(); })();
+        startForegroundWatch();
       }
     });
 
