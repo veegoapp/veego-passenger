@@ -7,6 +7,7 @@ import {
 } from '../../api/rideService';
 import { getSocket, getSocketSync, onSocketConnectionChange, type RideStatus, type DriverLocation, normalizeRideStatus } from '../../api/socket';
 import { usePassengerTracking } from '../shared/usePassengerTracking';
+import { PASSENGER_RIDE_LOCATION_TASK } from '../shared/backgroundLocationTask';
 import { SOCKET_EVENTS } from '../../../constants/socketEvents';
 import { useActiveSession } from '../../../context/ActiveSessionContext';
 import { selectActiveRide } from '../../session/activeRideSelectors';
@@ -812,6 +813,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   usePassengerTracking({
     isActive: rideState.status === 'started',
     rideId: rideState.rideId,
+    taskName: PASSENGER_RIDE_LOCATION_TASK,
   });
 
   return { rideState, requesting, requestRide, cancelRide, clearDeviationWarning, resetRide, resumeActiveRide, pollingStale };

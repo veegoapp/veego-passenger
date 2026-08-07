@@ -6,6 +6,7 @@ import api from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { usePassengerTracking } from '@/src/hooks/shared/usePassengerTracking';
+import { PASSENGER_SHUTTLE_LOCATION_TASK } from '@/src/hooks/shared/backgroundLocationTask';
 import { useTheme } from '@/context/ThemeContext';
 
 
@@ -351,6 +352,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   usePassengerTracking({
     isActive: confirmedTripId !== null,
     tripId: confirmedTripId,
+    taskName: PASSENGER_SHUTTLE_LOCATION_TASK,
   });
 
   // Memoized: an inline object literal here would re-render every

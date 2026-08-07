@@ -4,7 +4,10 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../api/client';
-import { PASSENGER_LOCATION_TASK } from './backgroundLocationTask';
+// Task registration (TaskManager.defineTask) lives in backgroundLocationTask;
+// the specific ride/shuttle task name is passed in per caller so the two flows
+// never share a foreground service. Importing the constants there also loads
+// that module (registering both tasks) even though callers pass the name in.
 
 const TRACKING_INTERVAL_MS = 15 * 1000;
 const OFFLINE_STORE_KEY = 'veego_offline_location_snapshots';
@@ -31,6 +34,9 @@ interface UsePassengerTrackingOptions {
   isActive: boolean;
   tripId?: number | null;
   rideId?: string | null;
+  /** The background-location task this flow owns. Ride and shuttle pass
+   *  different tasks so neither can start/stop the other's foreground service. */
+  taskName: string;
 }
 
 async function loadPendingSnapshots(): Promise<LocationSnapshot[]> {
@@ -62,7 +68,7 @@ function isNetworkError(err: any): boolean {
 // Extracted as module-level functions so both the activation effect and the
 // AppState change handler can start/stop the task without code duplication.
 
-async function startBackgroundTask(): Promise<void> {
+async function startBackgroundTask(taskName: string): Promise<void> {
   try {
     const available = await TaskManager.isAvailableAsync();
     if (!available) return;
@@ -73,9 +79,9 @@ async function startBackgroundTask(): Promise<void> {
     let bg = (await Location.getBackgroundPermissionsAsync()).status;
     if (bg === 'undetermined') bg = (await Location.requestBackgroundPermissionsAsync()).status;
     if (bg !== 'granted') return;
-    const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+    const started = await Location.hasStartedLocationUpdatesAsync(taskName);
     if (!started) {
-      await Location.startLocationUpdatesAsync(PASSENGER_LOCATION_TASK, {
+      await Location.startLocationUpdatesAsync(taskName, {
         accuracy: Location.Accuracy.Balanced,
         timeInterval: TRACKING_INTERVAL_MS,
         distanceInterval: 200,
@@ -94,12 +100,12 @@ async function startBackgroundTask(): Promise<void> {
   }
 }
 
-async function stopBackgroundTask(): Promise<void> {
+async function stopBackgroundTask(taskName: string): Promise<void> {
   try {
     const available = await TaskManager.isAvailableAsync();
     if (!available) return;
-    const started = await Location.hasStartedLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
-    if (started) await Location.stopLocationUpdatesAsync(PASSENGER_LOCATION_TASK);
+    const started = await Location.hasStartedLocationUpdatesAsync(taskName);
+    if (started) await Location.stopLocationUpdatesAsync(taskName);
   } catch (err) {
     console.warn('[usePassengerTracking] Failed to stop background location task:', err);
   }
@@ -133,6 +139,7 @@ export function usePassengerTracking({
   isActive,
   tripId = null,
   rideId = null,
+  taskName,
 }: UsePassengerTrackingOptions): void {
   const watchSubRef = useRef<Location.LocationSubscription | null>(null);
   const tripIdRef = useRef(tripId);
@@ -230,7 +237,7 @@ export function usePassengerTracking({
     if (!isActive) {
       stopForegroundWatch();
       // Ensure background task is also stopped when tracking is deactivated.
-      (async () => { await stopBackgroundTask(); })();
+      (async () => { await stopBackgroundTask(taskName); })();
       return;
     }
 
@@ -252,9 +259,9 @@ export function usePassengerTracking({
 
     if (isBackground(currentState)) {
       stopForegroundWatch();
-      (async () => { await startBackgroundTask(); })();
+      (async () => { await startBackgroundTask(taskName); })();
     } else {
-      (async () => { await stopBackgroundTask(); })();
+      (async () => { await stopBackgroundTask(taskName); })();
       startForegroundWatch();
     }
 
@@ -262,12 +269,12 @@ export function usePassengerTracking({
       if (isBackground(nextState)) {
         // Real background — stop the watch, hand off to the background task.
         stopForegroundWatch();
-        (async () => { await startBackgroundTask(); })();
+        (async () => { await startBackgroundTask(taskName); })();
       } else {
         // Foreground (including the transient 'inactive') — keep the continuous
         // watch, ensure no FG service is running. Both calls are no-ops when
         // already in this mode, so an active↔inactive flap causes no churn.
-        (async () => { await stopBackgroundTask(); })();
+        (async () => { await stopBackgroundTask(taskName); })();
         startForegroundWatch();
       }
     });
@@ -277,7 +284,7 @@ export function usePassengerTracking({
       stopForegroundWatch();
       // Stop background location task on cleanup too. Async IIFE because effect
       // cleanups must return void; a missed stop leaves the task draining battery.
-      (async () => { await stopBackgroundTask(); })();
+      (async () => { await stopBackgroundTask(taskName); })();
     };
-  }, [isActive, startForegroundWatch, stopForegroundWatch]);
+  }, [isActive, taskName, startForegroundWatch, stopForegroundWatch]);
 }
