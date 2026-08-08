@@ -1278,16 +1278,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         <ConnectionBanner style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50 }} />
       )}
 
-      {/* Live nav card — mirrors the driver app's top card. Real ETA + road
-          distance to the current target (pickup while the driver is on the way,
-          dropoff during the trip) from the same backend ride:eta_update feed,
-          shrinking as the driver moves. */}
+      {/* Nav card — destination only (no live time/distance, kept off to avoid
+          spending Google Directions). Target is the pickup while the driver is
+          on the way, the dropoff during the trip. */}
       {phase === 'in_ride' && rideState.status !== 'searching' && (() => {
         const navTarget = rideState.status === 'started' ? destination : pickupAddress;
-        const parts: string[] = [];
-        if (rideState.driver?.eta != null && rideState.driver.eta > 0) parts.push(`${rideState.driver.eta} min`);
-        if (rideState.liveDistanceM != null && rideState.liveDistanceM > 0) parts.push(`${(rideState.liveDistanceM / 1000).toFixed(1)} km`);
-        if (parts.length === 0 && !navTarget) return null;
+        if (!navTarget) return null;
         return (
           <View style={{ position: 'absolute', top: insets.top + 8, left: 16, right: 16, zIndex: 55 }}>
             <View style={{
@@ -1299,16 +1295,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
               <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' }}>
                 <Navigation size={20} color="#ffffff" strokeWidth={2} />
               </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                {parts.length > 0 && (
-                  <Text style={{ fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: c.inkSoft, fontWeight: '700' }}>
-                    {parts.join(' · ')}
-                  </Text>
-                )}
-                <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '700', color: c.ink, marginTop: 2 }}>
-                  {navTarget || '—'}
-                </Text>
-              </View>
+              <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: '700', color: c.ink }}>
+                {navTarget}
+              </Text>
             </View>
           </View>
         );
