@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getRideMessages, sendRideMessage } from '../../api/rideService';
 import { getSocket } from '../../api/socket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
 export interface ChatMessage {
   id: string;
@@ -62,12 +63,12 @@ export function useRideChat(tripId: string | null) {
     };
 
     getSocket().then((socket) => {
-      socket.on('ride:message:new', handler);
+      socket.on(SOCKET_EVENTS.RIDE_MESSAGE_NEW, handler);
     }).catch(() => {});
 
     return () => {
       getSocket().then((socket) => {
-        socket.off('ride:message:new', handler);
+        socket.off(SOCKET_EVENTS.RIDE_MESSAGE_NEW, handler);
       }).catch(() => {});
       listenerRef.current = false;
     };

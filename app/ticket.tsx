@@ -367,7 +367,7 @@ export default function TicketScreen() {
         socket.on(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler);
         socket.on(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, driverLocationHandler);
         socket.on(SOCKET_EVENTS.TRIP_ACTIVATED, tripActivatedHandler);
-        socket.on('shuttle:trip:status', tripStatusHandler);
+        socket.on(SOCKET_EVENTS.SHUTTLE_TRIP_STATUS, tripStatusHandler);
         socket.on('connect', reconnectHandler);
       } catch {
         // socket unavailable — graceful degradation
@@ -380,7 +380,7 @@ export default function TicketScreen() {
         resolvedSocket.off(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler);
         resolvedSocket.off(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, driverLocationHandler);
         resolvedSocket.off(SOCKET_EVENTS.TRIP_ACTIVATED, tripActivatedHandler);
-        resolvedSocket.off('shuttle:trip:status', tripStatusHandler);
+        resolvedSocket.off(SOCKET_EVENTS.SHUTTLE_TRIP_STATUS, tripStatusHandler);
         resolvedSocket.off('connect', reconnectHandler);
       }
     };

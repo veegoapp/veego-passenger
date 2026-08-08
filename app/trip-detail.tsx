@@ -620,7 +620,7 @@ export default function TripDetailScreen() {
       };
 
       socket.on(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, locationHandler);
-      socket.on('shuttle:trip:status', statusHandler);
+      socket.on(SOCKET_EVENTS.SHUTTLE_TRIP_STATUS, statusHandler);
       socket.on(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler);
       socket.on('connect', reconnectHandler);
       socket.on(SOCKET_EVENTS.SHUTTLE_STATION_ARRIVED, stationArrivedHandler);
@@ -628,7 +628,7 @@ export default function TripDetailScreen() {
 
       handlers.push(
         () => socket.off(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, locationHandler),
-        () => socket.off('shuttle:trip:status', statusHandler),
+        () => socket.off(SOCKET_EVENTS.SHUTTLE_TRIP_STATUS, statusHandler),
         () => socket.off(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler),
         () => socket.off('connect', reconnectHandler),
         () => socket.off(SOCKET_EVENTS.SHUTTLE_STATION_ARRIVED, stationArrivedHandler),

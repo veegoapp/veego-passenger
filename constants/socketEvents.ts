@@ -29,6 +29,7 @@ export const SOCKET_EVENTS = {
   PAYMENT_METHODS_CHANGED:       "payment:methods:changed",
   SOS_TRIGGERED:                 "sos:triggered",
   SHUTTLE_DRIVER_LOCATION:       "shuttle:driver:location",
+  SHUTTLE_TRIP_STATUS:           "shuttle:trip:status",
   SHUTTLE_STATION_ARRIVED:       "shuttle:station:arrived",
   SHUTTLE_STATION_COMPLETED:     "shuttle:station:completed",
   TRIP_CHAT_MESSAGE:             "trip:chat:message",

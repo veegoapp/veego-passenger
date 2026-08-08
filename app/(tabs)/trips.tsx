@@ -146,12 +146,12 @@ export default function TripsScreen() {
         tripIds.forEach((tid) => socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(tid) }));
       };
 
-      socket.on('shuttle:trip:status', statusHandler);
+      socket.on(SOCKET_EVENTS.SHUTTLE_TRIP_STATUS, statusHandler);
       socket.on('shuttle:driver:location', locationHandler);
       socket.on('connect', reconnectHandler);
 
       cleanupFns = [
-        () => socket.off('shuttle:trip:status', statusHandler),
+        () => socket.off(SOCKET_EVENTS.SHUTTLE_TRIP_STATUS, statusHandler),
         () => socket.off('shuttle:driver:location', locationHandler),
         () => socket.off('connect', reconnectHandler),
         () => tripIds.forEach((tid) => socket.emit('leave:trip', { tripId: tid })),
