@@ -91,6 +91,7 @@ const DeviationWarningSchema = z.object({
 const RideEtaUpdateSchema = z.object({
   rideId: z.string().or(z.number()),
   etaMinutes: z.number().optional(),
+  distanceM: z.number().optional(),
 });
 
 export interface DriverInfo {
@@ -127,6 +128,11 @@ export interface RideState {
   surgeMultiplier: number | null;
   deviationWarning: boolean;
   passengerRating: { id: number; score: number } | null;
+  /** Live road distance (metres) to the current target — pickup while the
+   *  driver is approaching, dropoff during the trip — from the backend's
+   *  ride:eta_update (real Google distance). Pairs with driver.eta (minutes)
+   *  for the nav card. Null until the first update. */
+  liveDistanceM?: number | null;
 }
 
 export interface ResumedRide {
@@ -503,10 +509,18 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       const parsed = RideEtaUpdateSchema.safeParse(raw);
       if (!parsed.success) { console.warn('[Socket] Invalid ride:eta_update payload'); return; }
       if (String(parsed.data.rideId) !== String(rideId)) return;
-      if (parsed.data.etaMinutes === undefined) return;
-      setRideState((prev) => (
-        prev.driver ? { ...prev, driver: { ...prev.driver, eta: parsed.data.etaMinutes! } } : prev
-      ));
+      const { etaMinutes, distanceM } = parsed.data;
+      if (etaMinutes === undefined && distanceM === undefined) return;
+      setRideState((prev) => {
+        const next = { ...prev };
+        if (etaMinutes !== undefined && prev.driver) {
+          next.driver = { ...prev.driver, eta: etaMinutes };
+        }
+        if (distanceM !== undefined) {
+          next.liveDistanceM = distanceM;
+        }
+        return next;
+      });
     };
 
     // Every on()/off() below names the exact handler — a bare `.off(eventName)`

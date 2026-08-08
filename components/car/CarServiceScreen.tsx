@@ -10,7 +10,7 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { Check, X, XCircle, ArrowLeft, ArrowRight, Search, MapPin, Map, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Check, X, XCircle, ArrowLeft, ArrowRight, Search, MapPin, Map, ChevronLeft, ChevronRight, Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
@@ -1277,6 +1277,42 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       {phase === 'in_ride' && rideState.status !== 'searching' && (
         <ConnectionBanner style={{ position: 'absolute', top: insets.top + 60, alignSelf: 'center', zIndex: 50 }} />
       )}
+
+      {/* Live nav card — mirrors the driver app's top card. Real ETA + road
+          distance to the current target (pickup while the driver is on the way,
+          dropoff during the trip) from the same backend ride:eta_update feed,
+          shrinking as the driver moves. */}
+      {phase === 'in_ride' && rideState.status !== 'searching' && (() => {
+        const navTarget = rideState.status === 'started' ? destination : pickupAddress;
+        const parts: string[] = [];
+        if (rideState.driver?.eta != null && rideState.driver.eta > 0) parts.push(`${rideState.driver.eta} min`);
+        if (rideState.liveDistanceM != null && rideState.liveDistanceM > 0) parts.push(`${(rideState.liveDistanceM / 1000).toFixed(1)} km`);
+        if (parts.length === 0 && !navTarget) return null;
+        return (
+          <View style={{ position: 'absolute', top: insets.top + 8, left: 16, right: 16, zIndex: 55 }}>
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 12,
+              backgroundColor: c.white, borderRadius: 18, padding: 12,
+              borderWidth: 1, borderColor: c.border,
+              shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 6,
+            }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' }}>
+                <Navigation size={20} color="#ffffff" strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                {parts.length > 0 && (
+                  <Text style={{ fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: c.inkSoft, fontWeight: '700' }}>
+                    {parts.join(' · ')}
+                  </Text>
+                )}
+                <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '700', color: c.ink, marginTop: 2 }}>
+                  {navTarget || '—'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      })()}
 
 
       {/* Ride options */}
