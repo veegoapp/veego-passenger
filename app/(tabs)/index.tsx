@@ -68,8 +68,13 @@ function makeStyles(c: ThemeColors) {
     greeting: { fontSize: 11, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium },
     greetingName: { fontSize: 20, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.5 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: c.badge, borderWidth: 1.5, borderColor: c.white },
+    iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    notifDot: {
+      position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8,
+      paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: c.white,
+    },
+    notifDotText: { color: '#ffffff', fontSize: 9, fontWeight: Typography.weight.bold },
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
     avatarText: { color: c.isDark ? c.background : c.white, fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
 

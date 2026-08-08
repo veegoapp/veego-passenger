@@ -16,6 +16,7 @@ import type { ServiceType } from '@/context/ServiceControlContext';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { GlassView } from '@/components/ui/GlassView';
 
 type T = (key: string) => string;
 
@@ -61,11 +62,17 @@ export function HomeHeader({ styles, gs, c, t, greetingKey, firstName, avatarIni
         </View>
       </View>
       <View style={styles.headerRight}>
-        <TouchableOpacity style={[gs, styles.iconBtn]} onPress={onNotifications}>
-          <Bell size={18} color={c.ink} />
-          {unreadCount > 0 && <View style={styles.notifDot} />}
+        <TouchableOpacity onPress={onNotifications} accessibilityLabel="Notifications">
+          <GlassView style={styles.iconBtn} borderRadius={20}>
+            <Bell size={18} color={c.ink} strokeWidth={2} />
+            {unreadCount > 0 && (
+              <View style={[styles.notifDot, { backgroundColor: c.error }]}>
+                <Text style={styles.notifDotText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+              </View>
+            )}
+          </GlassView>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.avatar} onPress={onProfile}>
+        <TouchableOpacity style={styles.avatar} onPress={onProfile} accessibilityLabel="Profile">
           <Text style={styles.avatarText}>{avatarInitials}</Text>
         </TouchableOpacity>
       </View>
