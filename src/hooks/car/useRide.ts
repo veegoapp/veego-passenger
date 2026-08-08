@@ -69,11 +69,6 @@ const RideCancelledOptionalIdSchema = z.object({
   refundAmount: z.number().optional(),
 });
 
-const RideStatusUpdateSchema = z.object({
-  rideId: z.string().or(z.number()),
-  status: z.string(),
-});
-
 const RideStatusChangedSchema = z.object({
   rideId: z.string().or(z.number()),
   status: z.string(),
@@ -406,16 +401,11 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       refreshActiveSession().catch(() => {});
     };
 
-    const onStatusUpdate = (raw: unknown) => {
-      const parsed = RideStatusUpdateSchema.safeParse(raw);
-      if (!parsed.success) { console.warn('[Socket] Invalid ride:status_update payload'); return; }
-      if (String(parsed.data.rideId) !== String(rideId)) return;
-      const status = normalizeRideStatus(parsed.data.status);
-      if (!status) return;
-      setRideState((prev) => ({ ...prev, status }));
-      if (TERMINAL_STATUSES.includes(status)) cleanup();
-    };
-
+    // ride:status_update and ride:status:changed carry the same logical
+    // event (a ride status transition); ride:status_update is the older,
+    // bare-status-only shape and is routed through the same rich handler
+    // below so a status transition never silently drops driver/fare/cancel
+    // data depending on which event name the backend happens to emit.
     const onStatusChanged = (raw: unknown) => {
       const parsed = RideStatusChangedSchema.safeParse(raw);
       if (!parsed.success) { console.warn('[Socket] Invalid ride:status:changed payload'); return; }
@@ -536,7 +526,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       s.on('ride:driver_cancelled', onDriverCancelled);
       s.on('ride:no_show_cancelled', onNoShowCancelled);
       s.on('ride:timeout', onTimeout);
-      s.on('ride:status_update', onStatusUpdate);
+      s.on('ride:status_update', onStatusChanged);
       s.on('ride:status:changed', onStatusChanged);
       s.on('ride:waiting:charge:started', onWaitingChargeStarted);
       s.on('ride:waiting:charge:updated', onWaitingChargeUpdated);
@@ -555,7 +545,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       s.off('ride:driver_cancelled', onDriverCancelled);
       s.off('ride:no_show_cancelled', onNoShowCancelled);
       s.off('ride:timeout', onTimeout);
-      s.off('ride:status_update', onStatusUpdate);
+      s.off('ride:status_update', onStatusChanged);
       s.off('ride:status:changed', onStatusChanged);
       s.off('ride:waiting:charge:started', onWaitingChargeStarted);
       s.off('ride:waiting:charge:updated', onWaitingChargeUpdated);

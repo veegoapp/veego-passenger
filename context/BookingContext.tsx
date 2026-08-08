@@ -22,7 +22,6 @@ type BookingContextType = {
   scheduledTrips: ShuttleTripSlot[];
   tripsTotal: number;
   tripsPage: number;
-  walletBalance: number | null;
   bookingError: string | null;
   seatCount: number;
   setSeatCount: (n: number) => void;
@@ -50,7 +49,6 @@ const BookingContext = createContext<BookingContextType>({
   scheduledTrips: [],
   tripsTotal: 0,
   tripsPage: 1,
-  walletBalance: null,
   bookingError: null,
   seatCount: 1,
   setSeatCount: () => {},
@@ -85,15 +83,6 @@ function mapStations(rawStations: any[]): Route['path'] {
     }));
 }
 
-async function fetchWalletBalance(): Promise<number | null> {
-  try {
-    const { data } = await api.get('/wallet');
-    return typeof data?.balance === 'number' ? data.balance : null;
-  } catch {
-    return null;
-  }
-}
-
 async function fetchLineTrips(routeId: string): Promise<ShuttleTripSlot[]> {
   try {
     const { data } = await api.get(`/shuttle/lines/${routeId}`);
@@ -123,7 +112,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [tripsLoading, setTripsLoading] = useState(false);
   const [scheduledTrips, setScheduledTrips] = useState<ShuttleTripSlot[]>([]);
   const [tripsTotal, setTripsTotal] = useState(0);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [seatCount, setSeatCount] = useState<number>(1);
 
@@ -154,11 +142,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     setTripSheetOpen(true);
     setScheduledTrips([]);
     setTripsTotal(0);
-
-    // Refresh the wallet balance whenever the trip sheet opens — this is the
-    // point where it's actually displayed (price summary / insufficient-balance
-    // gate in TripSheet). Fire-and-forget so it doesn't affect route loading.
-    fetchWalletBalance().then(setWalletBalance);
 
     try {
       const { data } = await api.get(`/shuttle/lines/${route.id}`);
@@ -373,7 +356,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       scheduledTrips,
       tripsTotal,
       tripsPage: 1,
-      walletBalance,
       bookingError,
       seatCount,
       setSeatCount,
@@ -391,7 +373,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     [
       selectedRoute, tripSheetOpen, confirmSheetOpen, pendingBooking,
       confirmedBookingId, confirmedTripId, routeLoading, tripsLoading,
-      scheduledTrips, tripsTotal, walletBalance, bookingError, seatCount,
+      scheduledTrips, tripsTotal, bookingError, seatCount,
       setSeatCount, openRoute, closeTripSheet, handleBook, handleConfirm,
       closeConfirmSheet, fetchTripsForDate, loadMoreTrips, clearBookingError,
       refreshLineTrips, prepareBooking,

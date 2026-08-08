@@ -34,13 +34,6 @@ export interface PaymentMethod {
   accountFields?: any | null;
 }
 
-/** @deprecated Use PaymentMethod[] from paymentMethods instead */
-export interface PaymentMethods {
-  cash: boolean;
-  wallet: boolean;
-  card: boolean;
-}
-
 const DEFAULT_WALLET_FEATURE: WalletFeature = {
   isEnabled: false,
   displayMode: 'coming_soon',

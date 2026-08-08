@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, MapPin, RefreshCw, WifiOff, Search, X } from 'lu
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
-import { MapMockView } from '@/components/shared/Shared';
+import { RealMap } from '@/components/shared/Shared';
 import api from '@/src/api/client';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -154,7 +154,7 @@ export default function StationsScreen() {
       </View>
 
       <View style={styles.mapWrap}>
-        <MapMockView
+        <RealMap
           stationMarkers={stations
             .filter((s) => s.latitude != null && s.longitude != null)
             .map((s) => ({

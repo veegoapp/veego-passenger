@@ -29,7 +29,7 @@ export function SectionLabel({ children, icon }: { children: React.ReactNode; ic
   );
 }
 
-export { RealMap as MapMockView } from './RealMap';
+export { RealMap } from './RealMap';
 
 const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 28 },

@@ -9,6 +9,7 @@ import api from '@/src/api/client';
 import { tokenStore } from '@/src/api/client';
 import { getSocket, disconnectSocket } from '@/src/api/socket';
 import { onAuthEvent } from '@/src/api/authEvents';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 
 export type ServiceType = 'car' | 'shuttle' | 'scooter' | 'delivery';
 export type DisplayMode = 'live' | 'coming_soon' | 'unavailable' | 'maintenance';
@@ -101,7 +102,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     socketListenerAttached.current = true;
 
     getSocket().then((sock) => {
-      sock.on('service:control:changed', applyUpdate);
+      sock.on(SOCKET_EVENTS.SERVICE_CONTROL_CHANGED, applyUpdate);
       if (__DEV__) console.log('[ServiceControl] socket authenticated successfully');
     }).catch((e) => {
       if (__DEV__) console.warn('[ServiceControl] socket listener setup failed:', e?.message ?? e);
@@ -113,7 +114,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     socketListenerAttached.current = false;
 
     getSocket().then((sock) => {
-      sock.off('service:control:changed', applyUpdate);
+      sock.off(SOCKET_EVENTS.SERVICE_CONTROL_CHANGED, applyUpdate);
     }).catch(() => {});
     disconnectSocket();
     if (__DEV__) console.log('[ServiceControl] socket disconnected');

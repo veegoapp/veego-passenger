@@ -29,7 +29,6 @@ export const SOCKET_EVENTS = {
   PASSENGER_TRIP_TRACKING:       "passenger:trip:tracking",
   SURGE_UPDATED:                 "surge:updated",
   SERVICE_CONTROL_CHANGED:       "service:control:changed",
-  SERVICE_SETTINGS_CHANGED:      "service:settings:changed",
   WALLET_FEATURE_CHANGED:        "wallet:feature:changed",
   PAYMENT_METHODS_CHANGED:       "payment:methods:changed",
   SOS_TRIGGERED:                 "sos:triggered",
