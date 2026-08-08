@@ -8,10 +8,6 @@ export const SOCKET_EVENTS = {
   RIDE_DRIVER_ASSIGNED:          "ride:driver_assigned",
   RIDE_DRIVER_ARRIVED:           "ride:driver_arrived",
   RIDE_ETA_UPDATE:               "ride:eta_update",
-  /** @deprecated Use RIDE_DRIVER_ARRIVED ("ride:driver_arrived") — the canonical
-   *  event name emitted by the backend. This alias is kept for reference only;
-   *  no client listener should bind to "ride:arrived". */
-  RIDE_ARRIVED:                  "ride:arrived",
   RIDE_WAITING_CHARGE_STARTED:   "ride:waiting:charge:started",
   RIDE_WAITING_CHARGE_UPDATED:   "ride:waiting:charge:updated",
   RIDE_WAITING_CHARGE_CAPPED:    "ride:waiting:charge:capped",
@@ -33,12 +29,20 @@ export const SOCKET_EVENTS = {
   PAYMENT_METHODS_CHANGED:       "payment:methods:changed",
   SOS_TRIGGERED:                 "sos:triggered",
   SHUTTLE_DRIVER_LOCATION:       "shuttle:driver:location",
+  SHUTTLE_STATION_ARRIVED:       "shuttle:station:arrived",
+  SHUTTLE_STATION_COMPLETED:     "shuttle:station:completed",
   TRIP_CHAT_MESSAGE:             "trip:chat:message",
   TRIP_ACTIVATED:                "trip:activated",
   SESSION_SNAPSHOT:              "session:snapshot",
 
   // Passenger → Server
   JOIN:                          "join",
+  /** Used by app/trip-detail.tsx and app/(tabs)/trips.tsx to join a shuttle
+   *  trip room with an object payload ({ tripId }). Backend-confirmed to be
+   *  a separate, currently-valid event from PASSENGER_JOIN_TRIP (bare-value
+   *  payload, used by BookingContext/ticket.tsx) — kept distinct rather than
+   *  merged since the two payload shapes are not interchangeable. */
+  JOIN_TRIP:                     "join:trip",
   PASSENGER_JOIN_TRIP:           "passenger:join:trip",
   LEAVE_TRIP:                    "leave:trip",
   PASSENGER_SOS:                 "passenger:sos",

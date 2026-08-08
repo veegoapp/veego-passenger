@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import api from '../../api/client';
 import { getSocket } from '../../api/socket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { NotificationItemSchema, checkContract } from '../../api/schemas';
 import type { Notification } from '@/constants/data';
 
@@ -137,9 +138,9 @@ export function useNotifications(): UseNotificationsResult {
         if (!isMounted) return;
         resolvedSocket = socket as any;
 
-        socket.on('notification:new', onNotificationNew);
-        socket.on('booking:boarded', onBoarded);
-        socket.on('trip:activated', onTripActivated);
+        socket.on(SOCKET_EVENTS.NOTIFICATION_NEW, onNotificationNew);
+        socket.on(SOCKET_EVENTS.BOOKING_BOARDED, onBoarded);
+        socket.on(SOCKET_EVENTS.TRIP_ACTIVATED, onTripActivated);
 
         // No-op: the backend already auto-joins the passenger's personal room on
         // every connect/reconnect from the auth handshake, so no join emit is needed here.
@@ -154,9 +155,9 @@ export function useNotifications(): UseNotificationsResult {
       isMounted = false;
       socketSetup.current = false; // allow re-registration on next mount
       if (resolvedSocket) {
-        (resolvedSocket as any).off('notification:new', onNotificationNew);
-        (resolvedSocket as any).off('booking:boarded', onBoarded);
-        (resolvedSocket as any).off('trip:activated', onTripActivated);
+        (resolvedSocket as any).off(SOCKET_EVENTS.NOTIFICATION_NEW, onNotificationNew);
+        (resolvedSocket as any).off(SOCKET_EVENTS.BOOKING_BOARDED, onBoarded);
+        (resolvedSocket as any).off(SOCKET_EVENTS.TRIP_ACTIVATED, onTripActivated);
         if (onReconnect) (resolvedSocket as any).off('connect', onReconnect);
       }
     };

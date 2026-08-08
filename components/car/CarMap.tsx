@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import MapView, { Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -51,10 +52,18 @@ interface CarMapProps {
 export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, searching }: CarMapProps) {
   const { darkMode } = useTheme();
 
+  // CarServiceScreen lives on the home tab and stays mounted (native-stack
+  // doesn't unmount screens behind a push) when trip-tracking is opened on
+  // top of it — without this guard both maps would run their own live
+  // socket subscription, Directions polling, and follow-camera loop for the
+  // same ride at once. Pausing on blur instead of unmounting keeps camera/
+  // scroll state intact for when the passenger comes back to this tab.
+  const isFocused = useIsFocused();
+
   // Live-subscribes to the socket itself (seeded from driverLocationSeed) so
   // GPS ticks never bubble a state update up through CarServiceScreen's
   // rideState — only this map/marker subtree re-renders per tick.
-  const driverLocation = useDriverLocationSocket({ rideId, seed: driverLocationSeed });
+  const driverLocation = useDriverLocationSocket({ rideId, seed: driverLocationSeed, enabled: isFocused });
 
   // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are provided
   // by useMapCamera. onMapReady is passed directly to <MapView>.
@@ -85,8 +94,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
 
   // Phase 3C camera controller — follows the interpolated position + smoothed
   // heading via setCamera (course-up, tilted, fixed zoom). Follow is active
-  // only while a driver is visible and we're not in the searching state.
-  const followActive = !!showDriverMarker && !!driverLocation && !searching;
+  // only while a driver is visible, we're not in the searching state, and
+  // this screen is actually the one on screen.
+  const followActive = !!showDriverMarker && !!driverLocation && !searching && isFocused;
   const {
     onPanDrag: onCameraPan,
     onRegionChangeComplete: onCameraRegionChange,
@@ -260,7 +270,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   const { routeCoords: preBookingRouteCoords } = useGoogleRoute({
     origin:  userLocation,
     targets: destCoords ? [destCoords] : [],
-    enabled: !showDriverMarker && !!userLocation && !!destCoords,
+    enabled: !showDriverMarker && !!userLocation && !!destCoords && isFocused,
   });
 
   // B) Active ride: driverLocation → destCoords.
@@ -270,7 +280,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   const { routeCoords: activeRideRouteCoords } = useGoogleRoute({
     origin:  driverLocation,
     targets: destCoords ? [destCoords] : [],
-    enabled: !!showDriverMarker && !!driverLocation && !!destCoords,
+    enabled: !!showDriverMarker && !!driverLocation && !!destCoords && isFocused,
   });
 
   // Unified route — only one path is enabled at a time.

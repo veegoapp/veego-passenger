@@ -26,8 +26,6 @@ interface PickupMapPickerProps {
 }
 
 const DEFAULT_DELTA = { latitudeDelta: 0.004, longitudeDelta: 0.004 };
-// Cairo fallback only used if we open with no known location at all.
-const FALLBACK: Coords = { latitude: 30.0444, longitude: 31.2357 };
 
 /**
  * Full-screen "drag the map under a fixed pin" pickup picker — the Uber/Careem
@@ -42,16 +40,19 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
   const styles = useMemo(() => makeStyles(c, isRTL), [c, isRTL]);
 
   const mapRef = useRef<MapView | null>(null);
-  // The live map center — seeded from initialCoords, updated as the user pans.
-  const centerRef = useRef<Coords>(initialCoords ?? FALLBACK);
+  // The live map center — seeded once a real position (prop or fresh GPS
+  // fix) is known. No hardcoded city fallback: until this is set, the map
+  // itself isn't rendered (see the locating/error states below).
+  const centerRef = useRef<Coords | null>(initialCoords);
+  const [seedCoords, setSeedCoords] = useState<Coords | null>(initialCoords);
   const [address, setAddress] = useState<string>('');
   const [resolving, setResolving] = useState(false);
+  const [locateError, setLocateError] = useState(false);
   const geocodeSeqRef = useRef(0);
 
-  const initialRegion: Region = useMemo(() => ({
-    ...(initialCoords ?? FALLBACK),
-    ...DEFAULT_DELTA,
-  }), [initialCoords]);
+  const initialRegion: Region | null = useMemo(() => (
+    seedCoords ? { ...seedCoords, ...DEFAULT_DELTA } : null
+  ), [seedCoords]);
 
   // Reverse-geocode the current center into a human label. Best-effort and
   // sequence-guarded so a slow lookup never overwrites a newer one.
@@ -71,13 +72,47 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
     }
   }, []);
 
-  // Seed the label whenever the picker (re)opens.
+  // Shared GPS-fix helper: permission check + a fresh high-accuracy fix.
+  // Returns null on denial/failure — callers decide how to surface that.
+  const getFreshGpsFix = useCallback(async (): Promise<Coords | null> => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        const req = await Location.requestForegroundPermissionsAsync();
+        if (req.status !== 'granted') return null;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      return { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Seed the picker whenever it (re)opens. If a known location was passed in
+  // (current pickup or an already-resolved device fix), use it immediately —
+  // same fast path as before. Otherwise actively wait for a real GPS fix
+  // instead of guessing a city; on failure, show a retryable error state.
   useEffect(() => {
     if (!visible) return;
-    const seed = initialCoords ?? FALLBACK;
-    centerRef.current = seed;
-    resolveAddress(seed);
-  }, [visible, initialCoords, resolveAddress]);
+    if (initialCoords) {
+      centerRef.current = initialCoords;
+      setSeedCoords(initialCoords);
+      setLocateError(false);
+      resolveAddress(initialCoords);
+      return;
+    }
+
+    let cancelled = false;
+    setLocateError(false);
+    getFreshGpsFix().then((coords) => {
+      if (cancelled) return;
+      if (!coords) { setLocateError(true); return; }
+      centerRef.current = coords;
+      setSeedCoords(coords);
+      resolveAddress(coords);
+    });
+    return () => { cancelled = true; };
+  }, [visible, initialCoords, resolveAddress, getFreshGpsFix]);
 
   const onRegionChangeComplete = useCallback((region: Region) => {
     const coords = { latitude: region.latitude, longitude: region.longitude };
@@ -85,27 +120,29 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
     resolveAddress(coords);
   }, [resolveAddress]);
 
-  // Re-center the map on the device's live GPS position.
+  // Re-center the already-visible map on the device's live GPS position.
   const recenterOnGps = useCallback(async () => {
-    try {
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        const req = await Location.requestForegroundPermissionsAsync();
-        if (req.status !== 'granted') return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-      Haptics.selectionAsync();
-      mapRef.current?.animateToRegion({ ...coords, ...DEFAULT_DELTA }, 500);
-      // onRegionChangeComplete will fire from the animation and refresh label/center.
-    } catch {
-      /* ignore — user can still pan manually */
-    }
-  }, []);
+    const coords = await getFreshGpsFix();
+    if (!coords) return; // ignore — user can still pan manually
+    Haptics.selectionAsync();
+    mapRef.current?.animateToRegion({ ...coords, ...DEFAULT_DELTA }, 500);
+    // onRegionChangeComplete will fire from the animation and refresh label/center.
+  }, [getFreshGpsFix]);
+
+  // Retry the initial GPS fix from the error state (no known location at all).
+  const retryInitialLocate = useCallback(async () => {
+    setLocateError(false);
+    const coords = await getFreshGpsFix();
+    if (!coords) { setLocateError(true); return; }
+    centerRef.current = coords;
+    setSeedCoords(coords);
+    resolveAddress(coords);
+  }, [getFreshGpsFix, resolveAddress]);
 
   const handleConfirm = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const coords = centerRef.current;
+    if (!coords) return; // no valid pin location yet — button is disabled in this state
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const label = address || `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
     onConfirm(coords, label);
   }, [address, onConfirm]);
@@ -113,29 +150,7 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onCancel} presentationStyle="fullScreen">
       <View style={styles.root}>
-        <MapView
-          ref={mapRef}
-          style={StyleSheet.absoluteFill}
-          provider={PROVIDER_GOOGLE}
-          initialRegion={initialRegion}
-          customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
-          onRegionChangeComplete={onRegionChangeComplete}
-          showsUserLocation
-          showsMyLocationButton={false}
-          toolbarEnabled={false}
-        />
-
-        {/* Fixed center pin — sits above the map, never moves. The tip points at
-            the exact map center; the pin body is offset up by half its height so
-            the tip (not the middle) marks the spot. */}
-        <View pointerEvents="none" style={styles.pinWrap}>
-          <View style={styles.pinShift}>
-            <MapPin size={40} color={c.primary} fill={c.primary} strokeWidth={1.5} />
-          </View>
-          <View style={styles.pinShadow} />
-        </View>
-
-        {/* Close button */}
+        {/* Close button — always available, including while locating/failed */}
         <TouchableOpacity
           style={[styles.closeBtn, { top: insets.top + Spacing.sm }]}
           onPress={onCancel}
@@ -144,35 +159,80 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
           <X size={22} color={c.ink} />
         </TouchableOpacity>
 
-        {/* Recenter-on-GPS button */}
-        <TouchableOpacity
-          style={[styles.gpsBtn, { bottom: insets.bottom + 170 }]}
-          onPress={recenterOnGps}
-          activeOpacity={0.85}
-        >
-          <Navigation size={20} color={c.primary} />
-        </TouchableOpacity>
-
-        {/* Bottom sheet: address preview + confirm */}
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + Spacing.md }]}>
-          <Text style={styles.hint}>{t('move_map_to_set_pickup')}</Text>
-          <View style={styles.addressRow}>
-            <MapPin size={18} color={c.primary} />
-            {resolving && !address ? (
-              <View style={styles.addressLoading}>
-                <ActivityIndicator size="small" color={c.primary} />
-                <Text style={styles.addressText}>{t('locating')}</Text>
-              </View>
+        {!seedCoords || !initialRegion ? (
+          // No known location yet — wait for a real GPS fix rather than
+          // guessing a city. Locating spinner, or a retryable error state.
+          <View style={styles.centerState}>
+            {locateError ? (
+              <>
+                <Text style={styles.centerStateTitle}>{t('location_error')}</Text>
+                <Text style={styles.centerStateSub}>{t('location_error_msg')}</Text>
+                <TouchableOpacity style={styles.confirmBtn} onPress={retryInitialLocate} activeOpacity={0.9}>
+                  <Text style={styles.confirmText}>{t('retry')}</Text>
+                </TouchableOpacity>
+              </>
             ) : (
-              <Text style={styles.addressText} numberOfLines={2}>
-                {address || t('current_location')}
-              </Text>
+              <>
+                <ActivityIndicator size="large" color={c.primary} />
+                <Text style={styles.centerStateSub}>{t('locating')}</Text>
+              </>
             )}
           </View>
-          <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.9}>
-            <Text style={styles.confirmText}>{t('confirm_pickup')}</Text>
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <>
+            <MapView
+              ref={mapRef}
+              style={StyleSheet.absoluteFill}
+              provider={PROVIDER_GOOGLE}
+              initialRegion={initialRegion}
+              customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
+              onRegionChangeComplete={onRegionChangeComplete}
+              showsUserLocation
+              showsMyLocationButton={false}
+              toolbarEnabled={false}
+            />
+
+            {/* Fixed center pin — sits above the map, never moves. The tip points at
+                the exact map center; the pin body is offset up by half its height so
+                the tip (not the middle) marks the spot. */}
+            <View pointerEvents="none" style={styles.pinWrap}>
+              <View style={styles.pinShift}>
+                <MapPin size={40} color={c.primary} fill={c.primary} strokeWidth={1.5} />
+              </View>
+              <View style={styles.pinShadow} />
+            </View>
+
+            {/* Recenter-on-GPS button */}
+            <TouchableOpacity
+              style={[styles.gpsBtn, { bottom: insets.bottom + 170 }]}
+              onPress={recenterOnGps}
+              activeOpacity={0.85}
+            >
+              <Navigation size={20} color={c.primary} />
+            </TouchableOpacity>
+
+            {/* Bottom sheet: address preview + confirm */}
+            <View style={[styles.sheet, { paddingBottom: insets.bottom + Spacing.md }]}>
+              <Text style={styles.hint}>{t('move_map_to_set_pickup')}</Text>
+              <View style={styles.addressRow}>
+                <MapPin size={18} color={c.primary} />
+                {resolving && !address ? (
+                  <View style={styles.addressLoading}>
+                    <ActivityIndicator size="small" color={c.primary} />
+                    <Text style={styles.addressText}>{t('locating')}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.addressText} numberOfLines={2}>
+                    {address || t('current_location')}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.9}>
+                <Text style={styles.confirmText}>{t('confirm_pickup')}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
     </Modal>
   );
@@ -181,6 +241,24 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
 function makeStyles(c: ThemeColors, isRTL: boolean) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
+    centerState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.xl,
+      gap: Spacing.md,
+    },
+    centerStateTitle: {
+      fontSize: Typography.size.md,
+      fontWeight: Typography.weight.bold,
+      color: c.ink,
+      textAlign: 'center',
+    },
+    centerStateSub: {
+      fontSize: Typography.size.sm,
+      color: c.inkSoft,
+      textAlign: 'center',
+    },
     pinWrap: {
       ...StyleSheet.absoluteFillObject,
       alignItems: 'center',

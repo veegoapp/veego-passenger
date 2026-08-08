@@ -21,7 +21,6 @@ type BookingContextType = {
   tripsLoading: boolean;
   scheduledTrips: ShuttleTripSlot[];
   tripsTotal: number;
-  tripsPage: number;
   bookingError: string | null;
   seatCount: number;
   setSeatCount: (n: number) => void;
@@ -30,8 +29,6 @@ type BookingContextType = {
   handleBook: (booking: Booking) => void;
   handleConfirm: (promoCode?: string, paymentMethod?: 'cash' | 'wallet') => void;
   closeConfirmSheet: () => void;
-  fetchTripsForDate: (routeId: string, utcDate: string) => Promise<void>;
-  loadMoreTrips: () => Promise<void>;
   clearBookingError: () => void;
   refreshLineTrips: (routeId: string) => Promise<void>;
   prepareBooking: (booking: Booking) => void;
@@ -48,7 +45,6 @@ const BookingContext = createContext<BookingContextType>({
   tripsLoading: false,
   scheduledTrips: [],
   tripsTotal: 0,
-  tripsPage: 1,
   bookingError: null,
   seatCount: 1,
   setSeatCount: () => {},
@@ -57,8 +53,6 @@ const BookingContext = createContext<BookingContextType>({
   handleBook: () => {},
   handleConfirm: (_promoCode?: string, _paymentMethod?: 'cash' | 'wallet') => {},
   closeConfirmSheet: () => {},
-  fetchTripsForDate: async () => {},
-  loadMoreTrips: async () => {},
   clearBookingError: () => {},
   refreshLineTrips: async () => {},
   prepareBooking: () => {},
@@ -125,15 +119,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setTripsLoading(false);
     }
-  }, []);
-
-  // Client-side date filter — no extra API call needed
-  const fetchTripsForDate = useCallback(async (_routeId: string, _utcDate: string) => {
-    // Trips are already loaded from /shuttle/lines/:id — filtering is done in TripSheet
-  }, []);
-
-  const loadMoreTrips = useCallback(async () => {
-    // All trips are returned in a single call from /shuttle/lines/:id
   }, []);
 
   const openRoute = useCallback(async (route: Route) => {
@@ -355,7 +340,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       tripsLoading,
       scheduledTrips,
       tripsTotal,
-      tripsPage: 1,
       bookingError,
       seatCount,
       setSeatCount,
@@ -364,8 +348,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       handleBook,
       handleConfirm,
       closeConfirmSheet,
-      fetchTripsForDate,
-      loadMoreTrips,
       clearBookingError,
       refreshLineTrips,
       prepareBooking,
@@ -375,7 +357,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       confirmedBookingId, confirmedTripId, routeLoading, tripsLoading,
       scheduledTrips, tripsTotal, bookingError, seatCount,
       setSeatCount, openRoute, closeTripSheet, handleBook, handleConfirm,
-      closeConfirmSheet, fetchTripsForDate, loadMoreTrips, clearBookingError,
+      closeConfirmSheet, clearBookingError,
       refreshLineTrips, prepareBooking,
     ],
   );

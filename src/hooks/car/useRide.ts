@@ -96,7 +96,9 @@ export interface DriverInfo {
   vehicleColor?: string;
   plateNumber?: string;
   rating: number;
-  eta: number;
+  /** Minutes until arrival, or null when no real estimate has arrived yet
+   *  (never a guessed/default value — the UI must show a non-numeric state). */
+  eta: number | null;
 }
 
 export interface RideState {
@@ -160,7 +162,7 @@ function mapDriverFromRide(
     vehicleColor: rideDriver.vehicleColor ?? rideDriver.vehicle_color ?? fallback?.vehicleColor,
     plateNumber: rideDriver.plateNumber ?? rideDriver.plate_number ?? fallback?.plateNumber,
     rating: rideDriver.rating ?? fallback?.rating ?? 4.8,
-    eta: topLevelEta ?? rideDriver.eta ?? fallback?.eta ?? 5,
+    eta: topLevelEta ?? rideDriver.eta ?? fallback?.eta ?? null,
   };
 }
 
@@ -312,7 +314,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           vehicleColor: data.driver?.vehicleColor ?? data.driver?.vehicle_color ?? '',
           plateNumber: data.driver?.plateNumber ?? data.driver?.plate_number ?? '',
           rating: data.driver?.rating ?? 4.8,
-          eta: data.eta ?? 5,
+          eta: data.eta ?? null,
         },
       }));
     };
@@ -424,7 +426,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
             vehicleColor: m.vehicleColor ?? prev.driver?.vehicleColor,
             plateNumber: m.plateNumber ?? prev.driver?.plateNumber,
             rating: m.rating ?? prev.driver?.rating ?? 4.8,
-            eta: m.eta ?? prev.driver?.eta ?? 5,
+            eta: m.eta ?? prev.driver?.eta ?? null,
           };
         }
         if (status === 'completed') {

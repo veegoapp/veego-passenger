@@ -27,11 +27,7 @@
 
 import { useEffect, useRef, type MutableRefObject } from 'react';
 import { Animated } from 'react-native';
-
-interface LatLng {
-  latitude: number;
-  longitude: number;
-}
+import { haversineMeters, type LatLng } from '@/src/utils/geoHelpers';
 
 interface HeadingPoint extends LatLng {
   heading?: number;
@@ -56,20 +52,6 @@ interface UseSmoothedHeadingResult {
 const SPEED_THRESHOLD_MS = 1.5; // ~5.4 km/h
 // Duration of the rotation ease toward each newly accepted heading.
 const ROTATION_DURATION_MS = 400;
-const EARTH_RADIUS_M = 6371000;
-
-function toRad(d: number): number {
-  return (d * Math.PI) / 180;
-}
-
-function haversineMeters(a: LatLng, b: LatLng): number {
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLng = toRad(b.longitude - a.longitude);
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLng / 2) ** 2;
-  return EARTH_RADIUS_M * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
-}
 
 /** Signed shortest angular delta from `from` to `to`, in (−180, 180]. */
 function shortestDelta(from: number, to: number): number {

@@ -21,7 +21,6 @@ import Constants from 'expo-constants';
 import { BookingProvider } from '@/context/BookingContext';
 import { ActiveSessionProvider } from '@/context/ActiveSessionContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
-import { FavoritesProvider } from '@/context/FavoritesContext';
 import { TabBarProvider } from '@/context/TabBarContext';
 import { ServiceControlProvider } from '@/context/ServiceControlContext';
 import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
@@ -159,9 +158,9 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
   if (category === 'trip_request_fulfilled') {
     const routeId = data.routeId ?? data.route_id ?? null;
     if (routeId) {
-      router.push(`/(tabs)/routes?highlight=${routeId}` as any);
+      router.push(`/routes?highlight=${routeId}` as any);
     } else {
-      router.push('/(tabs)/routes' as any);
+      router.push('/routes' as any);
     }
     return;
   }
@@ -312,11 +311,9 @@ export default function RootLayout() {
               <PaymentConfigProvider>
                 <ActiveSessionProvider>
                   <BookingProvider>
-                    <FavoritesProvider>
-                      <AppErrorBoundary>
-                        <AppShell />
-                      </AppErrorBoundary>
-                    </FavoritesProvider>
+                    <AppErrorBoundary>
+                      <AppShell />
+                    </AppErrorBoundary>
                   </BookingProvider>
                 </ActiveSessionProvider>
               </PaymentConfigProvider>

@@ -15,6 +15,7 @@ import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { getSocket } from '@/src/api/socket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -340,7 +341,7 @@ export default function TicketScreen() {
 
     const reconnectHandler = () => {
       const tid = confirmedTripIdRef.current;
-      if (tid && resolvedSocket) resolvedSocket.emit('passenger:join:trip', tid);
+      if (tid && resolvedSocket) resolvedSocket.emit(SOCKET_EVENTS.PASSENGER_JOIN_TRIP, tid);
     };
 
     // Live trip status (started/completed) — same event trip-detail.tsx already
@@ -360,12 +361,12 @@ export default function TicketScreen() {
         resolvedSocket = socket;
 
         if (confirmedTripIdRef.current) {
-          socket.emit('passenger:join:trip', confirmedTripIdRef.current);
+          socket.emit(SOCKET_EVENTS.PASSENGER_JOIN_TRIP, confirmedTripIdRef.current);
         }
 
-        socket.on('booking:boarded', boardedHandler);
-        socket.on('shuttle:driver:location', driverLocationHandler);
-        socket.on('trip:activated', tripActivatedHandler);
+        socket.on(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler);
+        socket.on(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, driverLocationHandler);
+        socket.on(SOCKET_EVENTS.TRIP_ACTIVATED, tripActivatedHandler);
         socket.on('shuttle:trip:status', tripStatusHandler);
         socket.on('connect', reconnectHandler);
       } catch {
@@ -376,9 +377,9 @@ export default function TicketScreen() {
     return () => {
       isMounted = false;
       if (resolvedSocket) {
-        resolvedSocket.off('booking:boarded', boardedHandler);
-        resolvedSocket.off('shuttle:driver:location', driverLocationHandler);
-        resolvedSocket.off('trip:activated', tripActivatedHandler);
+        resolvedSocket.off(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler);
+        resolvedSocket.off(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, driverLocationHandler);
+        resolvedSocket.off(SOCKET_EVENTS.TRIP_ACTIVATED, tripActivatedHandler);
         resolvedSocket.off('shuttle:trip:status', tripStatusHandler);
         resolvedSocket.off('connect', reconnectHandler);
       }

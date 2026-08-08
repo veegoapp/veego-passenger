@@ -35,12 +35,6 @@
       "expo-font",
       "expo-secure-store",
       [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow VeeGo to access your camera to scan boarding QR codes."
-        }
-      ],
-      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow VeeGo to use your location during your trip.",

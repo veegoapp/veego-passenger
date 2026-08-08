@@ -17,6 +17,7 @@ import { ThemeColors } from '@/constants/colors';
 import { useTrips } from '@/src/hooks/shared/useTrips';
 import { cancelBooking } from '@/src/api/shuttleService';
 import { getSocket } from '@/src/api/socket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 import { UpcomingTripCard } from '@/components/shuttle/UpcomingTripCard';
 import { HistoryTripCard } from '@/components/shared/HistoryTripCard';
@@ -112,7 +113,7 @@ export default function TripsScreen() {
     getSocket().then((socket) => {
       if (cleanedUp) return;
 
-      tripIds.forEach((tid) => socket.emit('join:trip', { tripId: Number(tid) }));
+      tripIds.forEach((tid) => socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(tid) }));
 
       const statusHandler = (payload: {
         tripId: string | number;
@@ -142,7 +143,7 @@ export default function TripsScreen() {
 
       // Re-join trip rooms after socket reconnects
       const reconnectHandler = () => {
-        tripIds.forEach((tid) => socket.emit('join:trip', { tripId: Number(tid) }));
+        tripIds.forEach((tid) => socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(tid) }));
       };
 
       socket.on('shuttle:trip:status', statusHandler);

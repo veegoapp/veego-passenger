@@ -19,6 +19,7 @@ import { cancelBooking, submitShuttleRating } from '@/src/api/shuttleService';
 import { getRide } from '@/src/api/rideService';
 import { getGivenRatings } from '@/src/api/userService';
 import { getSocket } from '@/src/api/socket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import api, { tokenStore } from '@/src/api/client';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
 import type { Station } from '@/components/shared/PassengerTrackingMap';
@@ -557,7 +558,7 @@ export default function TripDetailScreen() {
     getSocket().then((socket) => {
       if (cleanedUp) return;
 
-      socket.emit('join:trip', { tripId: Number(id) });
+      socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(id) });
 
       // Driver location — moves the map marker in real time
       const locationHandler = (payload: {
@@ -602,7 +603,7 @@ export default function TripDetailScreen() {
 
       // Re-join trip room after socket reconnects (network recovery)
       const reconnectHandler = () => {
-        socket.emit('join:trip', { tripId: Number(id) });
+        socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(id) });
       };
 
       // Station arrival/completion — refresh the station list immediately instead
@@ -618,20 +619,20 @@ export default function TripDetailScreen() {
         if (meta) fetchStations(meta.routeId, meta.direction);
       };
 
-      socket.on('shuttle:driver:location', locationHandler);
+      socket.on(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, locationHandler);
       socket.on('shuttle:trip:status', statusHandler);
-      socket.on('booking:boarded', boardedHandler);
+      socket.on(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler);
       socket.on('connect', reconnectHandler);
-      socket.on('shuttle:station:arrived', stationArrivedHandler);
-      socket.on('shuttle:station:completed', stationCompletedHandler);
+      socket.on(SOCKET_EVENTS.SHUTTLE_STATION_ARRIVED, stationArrivedHandler);
+      socket.on(SOCKET_EVENTS.SHUTTLE_STATION_COMPLETED, stationCompletedHandler);
 
       handlers.push(
-        () => socket.off('shuttle:driver:location', locationHandler),
+        () => socket.off(SOCKET_EVENTS.SHUTTLE_DRIVER_LOCATION, locationHandler),
         () => socket.off('shuttle:trip:status', statusHandler),
-        () => socket.off('booking:boarded', boardedHandler),
+        () => socket.off(SOCKET_EVENTS.BOOKING_BOARDED, boardedHandler),
         () => socket.off('connect', reconnectHandler),
-        () => socket.off('shuttle:station:arrived', stationArrivedHandler),
-        () => socket.off('shuttle:station:completed', stationCompletedHandler),
+        () => socket.off(SOCKET_EVENTS.SHUTTLE_STATION_ARRIVED, stationArrivedHandler),
+        () => socket.off(SOCKET_EVENTS.SHUTTLE_STATION_COMPLETED, stationCompletedHandler),
       );
     }).catch(() => {});
 
@@ -639,7 +640,7 @@ export default function TripDetailScreen() {
       cleanedUp = true;
       handlers.forEach((off) => off());
       getSocket().then((socket) => {
-        socket.emit('leave:trip', { tripId: id });
+        socket.emit(SOCKET_EVENTS.LEAVE_TRIP, { tripId: id });
       }).catch(() => {});
     };
   }, [id, fetchStations, rideDetail]);

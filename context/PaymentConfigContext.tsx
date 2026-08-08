@@ -94,26 +94,34 @@ export function PaymentConfigProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  // Stable handler references (memoized once) so detachSocket can unregister
+  // the exact same function it registered. A bare `.off(eventName)` would
+  // remove ALL listeners for that event on the shared socket singleton,
+  // silently killing unrelated subscribers bound to the same event name —
+  // see the same warning in src/hooks/car/useRide.ts.
+  const handleWalletFeatureChanged = useCallback((data: any) => {
+    if (!isMounted.current) return;
+    setWalletFeature({
+      isEnabled:        typeof data.isEnabled === 'boolean' ? data.isEnabled : DEFAULT_WALLET_FEATURE.isEnabled,
+      displayMode:      data.displayMode      ?? DEFAULT_WALLET_FEATURE.displayMode,
+      unavailableMessage: data.unavailableMessage ?? DEFAULT_WALLET_FEATURE.unavailableMessage,
+    });
+  }, []);
+
+  const handlePaymentMethodsChanged = useCallback((data: any) => {
+    if (!isMounted.current) return;
+    if (Array.isArray(data)) {
+      setPaymentMethods(data as PaymentMethod[]);
+    }
+  }, []);
+
   function attachSocket() {
     if (socketListenerAttached.current) return;
     socketListenerAttached.current = true;
 
     getSocket().then((sock) => {
-      sock.on(SOCKET_EVENTS.WALLET_FEATURE_CHANGED, (data: any) => {
-        if (!isMounted.current) return;
-        setWalletFeature({
-          isEnabled:        typeof data.isEnabled === 'boolean' ? data.isEnabled : DEFAULT_WALLET_FEATURE.isEnabled,
-          displayMode:      data.displayMode      ?? DEFAULT_WALLET_FEATURE.displayMode,
-          unavailableMessage: data.unavailableMessage ?? DEFAULT_WALLET_FEATURE.unavailableMessage,
-        });
-      });
-
-      sock.on(SOCKET_EVENTS.PAYMENT_METHODS_CHANGED, (data: any) => {
-        if (!isMounted.current) return;
-        if (Array.isArray(data)) {
-          setPaymentMethods(data as PaymentMethod[]);
-        }
-      });
+      sock.on(SOCKET_EVENTS.WALLET_FEATURE_CHANGED, handleWalletFeatureChanged);
+      sock.on(SOCKET_EVENTS.PAYMENT_METHODS_CHANGED, handlePaymentMethodsChanged);
     }).catch(() => {});
   }
 
@@ -121,8 +129,8 @@ export function PaymentConfigProvider({ children }: { children: React.ReactNode 
     if (!socketListenerAttached.current) return;
     socketListenerAttached.current = false;
     getSocket().then((sock) => {
-      sock.off(SOCKET_EVENTS.WALLET_FEATURE_CHANGED);
-      sock.off(SOCKET_EVENTS.PAYMENT_METHODS_CHANGED);
+      sock.off(SOCKET_EVENTS.WALLET_FEATURE_CHANGED, handleWalletFeatureChanged);
+      sock.off(SOCKET_EVENTS.PAYMENT_METHODS_CHANGED, handlePaymentMethodsChanged);
     }).catch(() => {});
   }
 

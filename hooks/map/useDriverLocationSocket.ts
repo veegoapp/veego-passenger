@@ -12,6 +12,10 @@ interface Options {
    *  recovery still reaches the map, without that value living in the parent
    *  screen's state (which would re-render the whole screen on every tick). */
   seed?: DriverLocation | null;
+  /** Set to false to unbind the live subscription without unmounting the map
+   *  — e.g. when the screen holding this map is pushed behind another screen
+   *  (native-stack keeps it mounted). Defaults to true. */
+  enabled?: boolean;
 }
 
 /**
@@ -21,7 +25,7 @@ interface Options {
  * so re-renders stay scoped to the map/marker subtree instead of bubbling up
  * to a screen-level parent.
  */
-export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocation | null {
+export function useDriverLocationSocket({ rideId, seed, enabled = true }: Options): DriverLocation | null {
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(seed ?? null);
 
   // Wall-clock time of the most recently applied *live* socket tick. Used to
@@ -45,7 +49,7 @@ export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocati
   }, [seed]);
 
   useEffect(() => {
-    if (rideId == null) return;
+    if (rideId == null || !enabled) return;
 
     let active = true;
     // Tracks whichever socket instance onDriverLocation is currently bound
@@ -126,7 +130,7 @@ export function useDriverLocationSocket({ rideId, seed }: Options): DriverLocati
       unsubscribe();
       boundSocket?.off(SOCKET_EVENTS.RIDE_DRIVER_LOCATION, onDriverLocation);
     };
-  }, [rideId]);
+  }, [rideId, enabled]);
 
   return driverLocation;
 }
