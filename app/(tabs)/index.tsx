@@ -30,6 +30,7 @@ import { onSavedLocationsEvent } from '@/src/api/savedLocationsEvents';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { GlassView } from '@/components/ui/GlassView';
 import {
   SERVICES, type SavedLocation,
   HomeHeader, ServiceGrid, ServiceCards, DebtBanner, DebtErrorBanner,
@@ -491,11 +492,13 @@ export default function HomeScreen() {
             {/* Space reserved for the absolute-positioned sheetHeader (64 px) */}
             <View style={{ height: 64 }} />
             <View style={styles.stickySearch}>
-              <TouchableOpacity style={[gs, styles.searchBar]} onPress={() => router.push('/routes')} activeOpacity={0.85}>
-                <Search size={16} color={c.inkSoft} />
-                <Text style={styles.searchPlaceholder}>{t('search_route_station')}</Text>
-                <View style={styles.searchDivider} />
-                <MapPin size={16} color={c.ink} />
+              <TouchableOpacity onPress={() => router.push('/routes')} activeOpacity={0.85}>
+                <GlassView style={styles.searchBar} borderRadius={20}>
+                  <Search size={16} color={c.inkSoft} />
+                  <Text style={styles.searchPlaceholder}>{t('search_route_station')}</Text>
+                  <View style={styles.searchDivider} />
+                  <MapPin size={16} color={c.ink} />
+                </GlassView>
               </TouchableOpacity>
             </View>
             <View style={styles.routesSectionHeader}>

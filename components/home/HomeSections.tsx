@@ -257,7 +257,7 @@ export function ActiveBookingHero({ styles, c, t, isAr, isRTL, onPress,
 }) {
   return (
     <TouchableOpacity activeOpacity={0.92} onPress={onPress}>
-      <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2e2e3e']} style={styles.heroCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <LinearGradient colors={c.gradientPrimary} style={styles.heroCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
         <View style={styles.heroGlow} />
         <View style={styles.heroTop}>
           <View>
@@ -418,13 +418,15 @@ export function ServiceCards({ c, t, getService, isServiceVisibleForZone, onServ
         return (
           <TouchableOpacity
             key={item.id}
-            style={[scStyles.card, { backgroundColor: c.white, borderColor: c.border, opacity: isDisabled ? 0.5 : 1 }]}
             onPress={() => !isDisabled && onServicePress(item.id)}
             activeOpacity={0.75}
             disabled={isDisabled}
+            style={[scStyles.cardWrap, { opacity: isDisabled ? 0.5 : 1 }]}
           >
-            <Icon size={28} color={c.ink} strokeWidth={1.6} />
-            <Text style={[scStyles.label, { color: c.ink }]}>{t(item.labelKey)}</Text>
+            <GlassView strong style={scStyles.card} borderRadius={20}>
+              <Icon size={28} color={c.ink} strokeWidth={1.6} />
+              <Text style={[scStyles.label, { color: c.ink }]}>{t(item.labelKey)}</Text>
+            </GlassView>
           </TouchableOpacity>
         );
       })}
@@ -434,19 +436,19 @@ export function ServiceCards({ c, t, getService, isServiceVisibleForZone, onServ
 
 const scStyles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
-  card: {
+  cardWrap: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 8,
     elevation: 3,
+  },
+  card: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
   },
   label: {
     fontSize: 12,
