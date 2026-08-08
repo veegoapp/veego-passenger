@@ -117,6 +117,24 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   useEffect(() => () => { if (overviewTimerRef.current) clearTimeout(overviewTimerRef.current); }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let refineSub: Location.LocationSubscription | null = null;
+    let refineTimeout: ReturnType<typeof setTimeout> | null = null;
+    // Best (lowest) horizontal accuracy in metres seen so far during refinement.
+    let bestAccuracyM = Infinity;
+
+    const applyCoords = (coords: Coords) => {
+      if (cancelled) return;
+      setUserLocation(coords);
+      onUserLocationRef.current?.(coords);
+    };
+
+    const stopRefining = () => {
+      refineSub?.remove();
+      refineSub = null;
+      if (refineTimeout) { clearTimeout(refineTimeout); refineTimeout = null; }
+    };
+
     (async () => {
       try {
         let status = (await Location.getForegroundPermissionsAsync()).status;
@@ -131,16 +149,51 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         // that a ride can get booked with it as the pickup point before a
         // real GPS fix ever comes in.
         const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        if (cancelled) return;
         const coords: Coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-        setUserLocation(coords);
-        onUserLocationRef.current?.(coords);
+        bestAccuracyM = loc.coords.accuracy ?? Infinity;
+        applyCoords(coords);
         runOrQueueCamera(() => {
           mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 800);
         });
+
+        // ── Refinement window ────────────────────────────────────────────
+        // A single one-shot fix, taken the instant this screen mounts, can
+        // land on the GPS chip's very first ("cold") reading — commonly 50m+
+        // off (a couple of streets in a dense area) until the chip settles.
+        // Keep watching for a few seconds and only adopt a NEW fix if it's
+        // more accurate than anything seen so far, stopping once accuracy is
+        // good (<=15m) or GOOD_ENOUGH_MS elapses — bounded so this never
+        // drains battery browsing the booking screen indefinitely. Routes
+        // through the same applyCoords → onUserLocation path CarServiceScreen
+        // already guards against overwriting a manually-picked pickup.
+        const GOOD_ENOUGH_M = 15;
+        const REFINE_WINDOW_MS = 8000;
+        if (bestAccuracyM > GOOD_ENOUGH_M) {
+          const sub = await Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
+            (update) => {
+              const acc = update.coords.accuracy ?? Infinity;
+              if (acc >= bestAccuracyM) return; // not an improvement — ignore
+              bestAccuracyM = acc;
+              applyCoords({ latitude: update.coords.latitude, longitude: update.coords.longitude });
+              if (acc <= GOOD_ENOUGH_M) stopRefining();
+            },
+          );
+          // The component may have unmounted while this await was in flight.
+          if (cancelled) { sub.remove(); return; }
+          refineSub = sub;
+          refineTimeout = setTimeout(stopRefining, REFINE_WINDOW_MS);
+        }
       } catch (err: any) {
         console.error('[car map] initial location fetch failed', err?.message);
       }
     })();
+
+    return () => {
+      cancelled = true;
+      stopRefining();
+    };
   }, []);
 
   useEffect(() => {
