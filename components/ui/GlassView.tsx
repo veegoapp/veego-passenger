@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, ViewStyle, LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -8,6 +8,7 @@ interface GlassViewProps {
   strong?: boolean;
   children?: React.ReactNode;
   borderRadius?: number;
+  onLayout?: (e: LayoutChangeEvent) => void;
 }
 
 /**
@@ -15,7 +16,7 @@ interface GlassViewProps {
  * real native frosted blur on iOS light mode (the Driver app's signature
  * depth cue), flat translucent panel everywhere else.
  */
-export function GlassView({ style, strong = false, children, borderRadius = 16 }: GlassViewProps) {
+export function GlassView({ style, strong = false, children, borderRadius = 16, onLayout }: GlassViewProps) {
   const { colors: c } = useTheme();
   const bg = c.isDark
     ? (strong ? 'rgba(22,22,26,0.98)' : 'rgba(22,22,26,0.94)')
@@ -23,7 +24,7 @@ export function GlassView({ style, strong = false, children, borderRadius = 16 }
 
   if (Platform.OS === 'ios' && !c.isDark) {
     return (
-      <View style={[{ borderRadius, overflow: 'hidden', borderWidth: 1, borderColor: c.border }, style]}>
+      <View onLayout={onLayout} style={[{ borderRadius, overflow: 'hidden', borderWidth: 1, borderColor: c.border }, style]}>
         <BlurView intensity={strong ? 80 : 60} tint="light" style={StyleSheet.absoluteFill} />
         <View style={{ flex: 1 }}>{children}</View>
       </View>
@@ -31,7 +32,7 @@ export function GlassView({ style, strong = false, children, borderRadius = 16 }
   }
 
   return (
-    <View style={[{ backgroundColor: bg, borderRadius, borderWidth: 1, borderColor: c.border }, style]}>
+    <View onLayout={onLayout} style={[{ backgroundColor: bg, borderRadius, borderWidth: 1, borderColor: c.border }, style]}>
       {children}
     </View>
   );

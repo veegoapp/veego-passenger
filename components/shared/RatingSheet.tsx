@@ -3,11 +3,13 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Animated, Keyboard,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
+import { GlassView } from '@/components/ui/GlassView';
 import { Stars } from '@/components/ui/Stars';
 
 interface RatingSheetProps {
@@ -65,24 +67,22 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
   const cardBg    = c.white;
   const surfaceBg = c.surfaceMuted;
   const borderCol = c.border;
-  const primaryCol = c.primary;
 
   return (
     <Animated.View
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 32 }]}>
+      <GlassView strong borderRadius={0} style={[styles.sheetSurface, { paddingBottom: insets.bottom + 32 }]}>
         <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
         {submitted ? (
-          /* ── Success state ── */
+          /* ── Success state — driver-app parity gradient checkmark ── */
           <View style={styles.successWrap}>
-            <Animated.View style={[
-              styles.successCircle,
-              { backgroundColor: c.success, transform: [{ scale: checkScale }] },
-            ]}>
-              <Check size={38} color="#ffffff" strokeWidth={2.5} />
+            <Animated.View style={[styles.successCircle, { transform: [{ scale: checkScale }] }]}>
+              <LinearGradient colors={['#2d2d42', '#1e1e28']} style={styles.successCircleGrad}>
+                <Check size={38} color="#ffffff" strokeWidth={2.5} />
+              </LinearGradient>
             </Animated.View>
             <Text style={[styles.successTitle, { color: c.ink }]}>{t('thanks_rating')}</Text>
             <Text style={[styles.successSub, { color: c.inkSoft }]}>{t('ride_confirmed')}</Text>
@@ -126,17 +126,16 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
               />
             </View>
 
-            {/* Submit button */}
+            {/* Submit button — driver-app parity gradient */}
             <TouchableOpacity
               onPress={handleSubmit}
               disabled={stars === 0}
               activeOpacity={0.88}
-              style={[
-                styles.submitBtn,
-                { backgroundColor: stars > 0 ? primaryCol : c.silver, opacity: stars > 0 ? 1 : 0.5 },
-              ]}
+              style={[styles.submitBtnWrap, { opacity: stars > 0 ? 1 : 0.5 }]}
             >
-              <Text style={styles.submitBtnText}>{t('submit_rating')}</Text>
+              <LinearGradient colors={['#2d2d42', '#1e1e28']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.submitBtn}>
+                <Text style={styles.submitBtnText}>{t('submit_rating')}</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
             {/* Skip */}
@@ -145,7 +144,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </GlassView>
     </Animated.View>
   );
 }
@@ -176,8 +175,12 @@ const styles = StyleSheet.create({
     alignItems: 'center', gap: 14,
   },
   successCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    alignItems: 'center', justifyContent: 'center',
+    width: 80, height: 80, borderRadius: 40, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22, shadowRadius: 16, elevation: 6,
+  },
+  successCircleGrad: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
   },
   successTitle: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
   successSub: { fontSize: 14, marginTop: -6 },
@@ -211,11 +214,14 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
-  submitBtn: {
-    width: '100%', height: 56, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
+  submitBtnWrap: {
+    width: '100%', borderRadius: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.18, shadowRadius: 20, elevation: 6,
+  },
+  submitBtn: {
+    height: 56, borderRadius: 16, overflow: 'hidden',
+    alignItems: 'center', justifyContent: 'center',
   },
   submitBtnText: { fontSize: 15.5, fontWeight: '600', color: '#ffffff', letterSpacing: -0.15 },
 

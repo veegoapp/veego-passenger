@@ -1,5 +1,6 @@
 import { memo, useRef, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Pressable, StyleSheet, Animated, Linking, Easing } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   MessageCircle, Phone, X, AlertTriangle,
   Navigation, BadgeCheck, ChevronRight, ShieldAlert, LifeBuoy,
@@ -8,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
+import { GlassView } from '@/components/ui/GlassView';
 import { ChatModal } from './ChatModal';
 import { Stars } from '@/components/ui/Stars';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
@@ -48,14 +50,18 @@ function GhostButton({
   const borderCol = c.border;
   const surfaceBg = c.surfaceMuted;
 
+  // Driver-app parity: the driver ride screen's Message/Call icon buttons are
+  // a tinted circle (colors.primary + '26' — ~15% alpha) with a primary-colored
+  // icon/text, not a solid fill. Matches that exactly here instead of a flat
+  // navy block.
   const toneStyle =
     tone === 'danger'
       ? { borderColor: `${c.error}40`, backgroundColor: `${c.error}0F` }
       : tone === 'navy'
-      ? { borderColor: NAVY, backgroundColor: NAVY }
+      ? { borderColor: 'transparent', backgroundColor: `${NAVY}26` }
       : { borderColor: borderCol, backgroundColor: surfaceBg };
 
-  const textColor = tone === 'danger' ? c.error : tone === 'navy' ? '#ffffff' : c.ink;
+  const textColor = tone === 'danger' ? c.error : tone === 'navy' ? NAVY : c.ink;
 
   return (
     <TouchableOpacity
@@ -73,16 +79,21 @@ function GhostButton({
 }
 
 /* ─── PrimaryButton ──────────────────────────────────────────────────────── */
+// Driver-app parity: every primary CTA in the driver ride screen (Start/
+// Complete trip, Accept, Submit rating) is this exact two-stop gradient, not a
+// flat fill.
 function PrimaryButton({ onPress, label }: { onPress?: () => void; label: string }) {
-  const { colors: c } = useTheme();
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.88}
-      style={[styles.primaryBtn, { backgroundColor: NAVY }]}
-    >
-      <Text style={styles.primaryBtnText}>{label}</Text>
-      <ChevronRight size={18} color="#ffffff" strokeWidth={2.2} />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.primaryBtnWrap}>
+      <LinearGradient
+        colors={['#2d2d42', '#1e1e28']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.primaryBtn}
+      >
+        <Text style={styles.primaryBtnText}>{label}</Text>
+        <ChevronRight size={18} color="#ffffff" strokeWidth={2.2} />
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
@@ -187,9 +198,11 @@ function DriverAssignedCardBase({
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }, { translateY: collapseTranslate }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View
+      <GlassView
+        strong
+        borderRadius={0}
         onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
-        style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 20 }]}
+        style={[styles.sheetSurface, { paddingBottom: insets.bottom + 20 }]}
       >
         <Pressable
           onPress={() => { if (isStarted) setCollapsed((v) => !v); }}
@@ -249,7 +262,7 @@ function DriverAssignedCardBase({
               <GhostButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
                 tone="navy"
-                icon={<MessageCircle size={18} color="#ffffff" strokeWidth={1.8} />}
+                icon={<MessageCircle size={18} color={NAVY} strokeWidth={1.8} />}
                 label={t('chat')}
                 flex={1}
               />
@@ -257,7 +270,7 @@ function DriverAssignedCardBase({
                 onPress={handleCall}
                 disabled={!driver?.phone}
                 tone="navy"
-                icon={<Phone size={18} color="#ffffff" strokeWidth={1.8} />}
+                icon={<Phone size={18} color={NAVY} strokeWidth={1.8} />}
                 label={t('call') ?? 'Call'}
                 flex={1}
               />
@@ -274,7 +287,7 @@ function DriverAssignedCardBase({
             <GhostButton
               onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
               tone="navy"
-              icon={<LifeBuoy size={18} color="#ffffff" strokeWidth={1.9} />}
+              icon={<LifeBuoy size={18} color={NAVY} strokeWidth={1.9} />}
               label={'Need Help'}
             />
           </View>
@@ -378,14 +391,14 @@ function DriverAssignedCardBase({
                 onPress={handleCall}
                 disabled={!driver?.phone}
                 tone="navy"
-                icon={<Phone size={18} color="#ffffff" strokeWidth={1.9} />}
+                icon={<Phone size={18} color={NAVY} strokeWidth={1.9} />}
                 label={t('call') ?? 'Call'}
                 flex={1}
               />
               <GhostButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
                 tone="navy"
-                icon={<MessageCircle size={18} color="#ffffff" strokeWidth={1.9} />}
+                icon={<MessageCircle size={18} color={NAVY} strokeWidth={1.9} />}
                 label={t('chat')}
                 flex={1}
               />
@@ -418,7 +431,7 @@ function DriverAssignedCardBase({
           driverName={driver?.name ?? ''}
           tripId={rideId ?? null}
         />
-      </View>
+      </GlassView>
     </Animated.View>
   );
 }
@@ -558,11 +571,14 @@ const styles = StyleSheet.create({
   },
   ghostBtnText: { fontSize: 14, fontWeight: '600' },
 
-  primaryBtn: {
-    height: 56, borderRadius: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+  primaryBtnWrap: {
+    borderRadius: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.18, shadowRadius: 20, elevation: 6,
+  },
+  primaryBtn: {
+    height: 56, borderRadius: 16, overflow: 'hidden',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   primaryBtnText: {
     fontSize: 15.5, fontWeight: '600', color: '#ffffff', letterSpacing: -0.15,

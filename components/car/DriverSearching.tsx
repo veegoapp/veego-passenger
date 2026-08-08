@@ -1,9 +1,11 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Car } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
+import { GlassView } from '@/components/ui/GlassView';
 
 interface DriverSearchingProps {
   visible: boolean;
@@ -86,7 +88,6 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] });
 
   const isDark = c.isDark;
-  const cardBg    = c.white;
   const surfaceBg = c.surfaceMuted;
   const borderCol = c.border;
   const primaryCol = c.primary;
@@ -110,7 +111,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 20 }]}>
+      <GlassView strong borderRadius={0} style={[styles.sheetSurface, { paddingBottom: insets.bottom + 20 }]}>
         <View style={[styles.handle, { backgroundColor: borderCol }]} />
 
         {/* ── Radar animation ── */}
@@ -128,10 +129,10 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
             <View style={[styles.sweepArc, { borderColor: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(30,30,40,0.22)' }]} />
           </Animated.View>
 
-          {/* Center car icon */}
-          <View style={[styles.centerIcon, { backgroundColor: primaryCol }]}>
+          {/* Center car icon — driver-app parity gradient */}
+          <LinearGradient colors={['#2d2d42', '#1e1e28']} style={styles.centerIcon}>
             <Car size={22} color="#ffffff" strokeWidth={1.8} />
-          </View>
+          </LinearGradient>
         </View>
 
         {/* ── Status text ── */}
@@ -168,7 +169,7 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
             <Text style={[styles.cancelText, { color: c.ink }]}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </GlassView>
     </Animated.View>
   );
 }
