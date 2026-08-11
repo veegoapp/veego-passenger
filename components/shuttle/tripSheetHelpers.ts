@@ -15,20 +15,11 @@ export function isTripBookable(trip: any): boolean {
   return BOOKABLE_STATUSES.includes(status) && (trip?.availableSeats ?? 0) > 0;
 }
 
-export function shuttleStatusLabel(trip: any, t: (key: string) => string): string {
-  const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();
-  switch (status) {
-    case 'scheduled':       return t('status_confirmed');
-    case 'waiting_driver':  return t('status_searching');
-    case 'driver_assigned': return t('status_driver_assigned');
-    case 'open':            return t('status_open');
-    case 'active':          return t('status_active_trip');
-    case 'boarding':        return t('status_boarding');
-    case 'completed':       return t('status_completed');
-    case 'cancelled':       return t('status_cancelled_trip');
-    default:                return status || t('status_upcoming');
-  }
-}
+// D8-7: the trip-status label used to be duplicated here (t()-keyed) and in
+// constants/data.ts (hardcoded bilingual strings, status+lang signature).
+// constants/data.ts::shuttleStatusLabel is canonical — it's also used by
+// HistoryTripCard/UpcomingTripCard/trip-detail — see TripCard in
+// TripSheetSections.tsx for the migrated caller.
 
 export function shuttleStatusColor(trip: any): string {
   const status = (trip?.status ?? trip?.shuttleStatus ?? '').toLowerCase();

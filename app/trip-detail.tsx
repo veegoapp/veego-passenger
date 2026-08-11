@@ -14,6 +14,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
 import type { ShuttleDirection } from '@/constants/data';
+import { shuttleStatusColor } from '@/components/shuttle/tripSheetHelpers';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { cancelBooking, submitShuttleRating } from '@/src/api/shuttleService';
 import { getRide } from '@/src/api/rideService';
@@ -250,6 +251,8 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     mapLabel: { position: 'absolute', top: 12, left: 16, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 6 },
     mapLabelText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: '#fff' },
     mapPulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.ink },
+    staleLocationBadge: { position: 'absolute', top: 12, right: 16, zIndex: 10, backgroundColor: 'rgba(217,119,6,0.9)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+    staleLocationText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: '#fff' },
     shareCard: { marginHorizontal: 20, borderRadius: 20, borderWidth: 1.5, borderColor: c.accentMint, backgroundColor: 'rgba(85,196,154,0.06)', padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.lg },
     shareCardText: { flex: 1 },
     shareCardTitle: { fontSize: 13.5, fontWeight: Typography.weight.bold, color: c.ink },
@@ -330,6 +333,11 @@ export default function TripDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
+  // D6-4: last time driverLocation was actually refreshed (live tick or a
+  // resilient re-seed below) + a periodically-recomputed staleness flag, so
+  // the map never shows a frozen marker as if it were current.
+  const driverLocationUpdatedAtRef = useRef<number | null>(null);
+  const [driverLocationStale, setDriverLocationStale] = useState(false);
   const [liveStatus, setLiveStatus] = useState<string | null>(null);
   const liveStatusRef = useRef<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -358,19 +366,48 @@ export default function TripDetailScreen() {
   // REST result is never overwritten by a stale snapshot.
   const { session } = useActiveSession();
 
+  // D6-4: applies a driver location update and stamps when it happened, so
+  // staleness can be measured from either a live socket tick or a session
+  // re-seed (below) — single choke point used by both.
+  const applyDriverLocation = useCallback((loc: DriverLocation) => {
+    driverLocationUpdatedAtRef.current = Date.now();
+    setDriverLocationStale(false);
+    setDriverLocation(loc);
+  }, []);
+
   // ── Driver location seed from ActiveSession ───────────────────────────────
   // Seed driverLocation from the session's last-known driver position so the
   // map shows the driver marker immediately on open, before the first socket
   // event arrives. Socket updates continue replacing this value normally.
+  // D6-4: also re-applies once the current location has gone stale — this
+  // reuses ActiveSessionContext's existing refresh-on-foreground/reconnect
+  // behavior as the recovery path instead of standing up a second polling
+  // mechanism, so a frozen marker can recover without a live tick.
   useEffect(() => {
     if (session?.kind !== 'shuttle') return;
-    if (driverLocation !== null) return; // socket has already delivered a location
+    if (driverLocation !== null && !driverLocationStale) return;
     const lat = (session as any).trip?.driver?.currentLatitude;
     const lng = (session as any).trip?.driver?.currentLongitude;
     if (lat != null && lng != null) {
-      setDriverLocation({ lat: Number(lat), lng: Number(lng) });
+      applyDriverLocation({ lat: Number(lat), lng: Number(lng) });
     }
-  }, [session, driverLocation]);
+  }, [session, driverLocation, driverLocationStale, applyDriverLocation]);
+
+  // D6-4: periodically checks whether the last-applied driver location is
+  // still fresh. 30s is ~6x the ~5s foreground broadcast cadence and ~3x the
+  // ~10s background cadence, so normal jitter doesn't false-positive.
+  useEffect(() => {
+    if (!driverLocation) return;
+    const DRIVER_LOCATION_STALE_MS = 30000;
+    const check = () => {
+      const last = driverLocationUpdatedAtRef.current;
+      setDriverLocationStale(last != null && Date.now() - last > DRIVER_LOCATION_STALE_MS);
+    };
+    check();
+    const interval = setInterval(check, 10000);
+    return () => clearInterval(interval);
+  }, [driverLocation]);
+
   useEffect(() => {
     if (session?.kind !== 'shuttle') return;
     if (trip !== null) return;
@@ -569,7 +606,7 @@ export default function TripDetailScreen() {
         heading?: number;
       }) => {
         if (String(payload.tripId) === String(id)) {
-          setDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
+          applyDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
         }
       };
 
@@ -640,10 +677,12 @@ export default function TripDetailScreen() {
       cleanedUp = true;
       handlers.forEach((off) => off());
       getSocket().then((socket) => {
-        socket.emit(SOCKET_EVENTS.LEAVE_TRIP, { tripId: id });
+        // D5-2: backend requires a numeric tripId (matches the JOIN_TRIP emit
+        // at connect/reconnect below) — `id` is the route param, a string.
+        socket.emit(SOCKET_EVENTS.LEAVE_TRIP, { tripId: Number(id) });
       }).catch(() => {});
     };
-  }, [id, fetchStations, rideDetail]);
+  }, [id, fetchStations, rideDetail, applyDriverLocation]);
 
   // ETA is now computed inside PassengerTrackingMap (single source of truth)
   // and reported back via onEtaChange below — no local calculation here.
@@ -963,16 +1002,11 @@ export default function TripDetailScreen() {
     return null;
   }
 
-  const statusColor: Record<string, string> = {
-    waiting_driver: '#f59e0b',
-    scheduled: c.ink,
-    driver_assigned: c.ink,
-    active: '#55c49a',
-    boarding: '#55c49a',
-    completed: c.silver,
-    cancelled: c.badge,
-  };
-  const resolvedStatusColor = statusColor[effectiveStatus] ?? c.silver;
+  // D8-6: was a locally-duplicated status→color map that had drifted from
+  // components/shuttle/tripSheetHelpers.ts::shuttleStatusColor (e.g. this map
+  // gave 'active' and 'boarding' the same color; the shared one distinguishes
+  // them). Consolidated onto the shared implementation.
+  const resolvedStatusColor = shuttleStatusColor({ status: effectiveStatus }) ?? c.silver;
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
@@ -1071,6 +1105,15 @@ export default function TripDetailScreen() {
 
             {/* Realtime connection indicator */}
             <ConnectionBanner style={{ position: 'absolute', bottom: 12, alignSelf: 'center' }} />
+
+            {/* D6-4: driver-location staleness indicator — the marker below is
+                still the last known position, but this tells the passenger it
+                may not be current instead of silently going frozen. */}
+            {driverLocationStale && driverLocation && (
+              <View style={styles.staleLocationBadge}>
+                <Text style={styles.staleLocationText}>جاري تحديث موقع السائق…</Text>
+              </View>
+            )}
           </View>
         )}
 

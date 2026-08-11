@@ -267,13 +267,10 @@ export function isShuttleTripUpcoming(status: ShuttleTripStatus | string): boole
   return ['waiting_driver', 'scheduled', 'driver_assigned', 'active', 'boarding', 'upcoming'].includes(status);
 }
 
-/**
- * Returns true if a trip can still be booked (§21.2).
- * Note: "active" here means trip.status, not shuttleStatus.
- */
-export function isTripStatusBookable(status: string): boolean {
-  return ['scheduled', 'waiting_driver', 'driver_assigned'].includes(status.toLowerCase());
-}
+// D8-7: isTripStatusBookable was removed — dead (zero callers) and directly
+// contradicted the live bookable-status check: this one excluded 'active'/
+// 'boarding' from the bookable set, which the live one correctly includes.
+// Canonical: components/shuttle/tripSheetHelpers.ts::isTripBookable().
 
 /**
  * Parse a bilingual notification body separated by " / " (§3).

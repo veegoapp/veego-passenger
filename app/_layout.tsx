@@ -131,9 +131,14 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
   }
 
   // Fix 6: Booking confirmation notification — navigate to trip detail
-  // Also covers the shuttle "trip ended, rate your driver" push (category: trip / shuttle_trip_ended)
-  if (category === 'booking' || category === 'trip' || category === 'shuttle_trip_ended') {
-    const tripId = data.tripId ?? data.trip_id ?? data.bookingId ?? data.booking_id ?? null;
+  // Also covers the shuttle "trip ended" push (category: trip / shuttle_trip_ended /
+  // shuttle) and the post-trip driver-rating prompt (category: rating).
+  // D8-3: the generic sendNotification() push builder (lib/sendNotification.ts)
+  // encodes the trip id as data.entityId, never data.tripId/bookingId — added
+  // to the fallback chain so booking-cancellation/refund and "trip ended"
+  // pushes (which only ever carry entityId) can resolve their trip too.
+  if (category === 'booking' || category === 'trip' || category === 'shuttle_trip_ended' || category === 'shuttle' || category === 'rating') {
+    const tripId = data.tripId ?? data.trip_id ?? data.bookingId ?? data.booking_id ?? data.entityId ?? null;
     if (tripId) {
       router.push(tripDetailPath(String(tripId)) as any);
     } else {
@@ -251,7 +256,6 @@ function AppShell() {
         <Stack.Screen name="index" />
         <Stack.Screen name="auth" />
         <Stack.Screen name="(tabs)"        options={{ animation: 'fade' }} />
-        <Stack.Screen name="stations"      options={{ animation: slideAnim }} />
         <Stack.Screen name="notifications" options={{ animation: slideAnim }} />
         <Stack.Screen name="ticket"        options={{ animation: 'fade_from_bottom' }} />
         <Stack.Screen name="trip-detail"    options={{ animation: slideAnim }} />

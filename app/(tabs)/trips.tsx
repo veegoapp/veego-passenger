@@ -154,7 +154,10 @@ export default function TripsScreen() {
         () => socket.off(SOCKET_EVENTS.SHUTTLE_TRIP_STATUS, statusHandler),
         () => socket.off('shuttle:driver:location', locationHandler),
         () => socket.off('connect', reconnectHandler),
-        () => tripIds.forEach((tid) => socket.emit('leave:trip', { tripId: tid })),
+        // D5-2: backend requires a numeric tripId (same as the JOIN_TRIP emits
+        // above) — tripIds holds strings, so this must convert too or the
+        // backend silently no-ops the leave and the room membership leaks.
+        () => tripIds.forEach((tid) => socket.emit('leave:trip', { tripId: Number(tid) })),
       ];
     }).catch(() => {});
 

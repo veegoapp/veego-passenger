@@ -538,7 +538,7 @@ export function TripSheet() {
               visibleTrips.map((trip: any, i: number) => (
                 <TripCard
                   key={`${trip.id ?? i}`}
-                  styles={styles} c={c} t={t as (key: string) => string}
+                  styles={styles} c={c} t={t as (key: string) => string} isAr={isAr}
                   trip={trip} index={i} active={i === safeTimeIdx}
                   onPress={() => { setTimeIdx(i); Haptics.selectionAsync(); }}
                 />

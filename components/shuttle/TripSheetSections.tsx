@@ -16,10 +16,10 @@ import {
 import * as Haptics from 'expo-haptics';
 import type { ThemeColors } from '@/constants/colors';
 import type { Route } from '@/constants/data';
-import { DATES, formatCairoTime } from '@/constants/data';
+import { DATES, formatCairoTime, shuttleStatusLabel } from '@/constants/data';
 import { Spacing } from '@/constants/spacing';
 import {
-  ACTIVE_STATUSES, isTripBookable, shuttleStatusColor, shuttleStatusLabel, formatTripDateUTC,
+  ACTIVE_STATUSES, isTripBookable, shuttleStatusColor, formatTripDateUTC,
 } from './tripSheetHelpers';
 
 type T = (key: string) => string;
@@ -185,14 +185,14 @@ export function DateSelector({ styles, selectedDateIdx, onSelectDate }: {
 }
 
 /** ── One trip card in the departures list ── */
-export function TripCard({ styles, c, t, trip, index, active, onPress }: {
-  styles: any; c: ThemeColors; t: T; trip: any; index: number; active: boolean;
+export function TripCard({ styles, c, t, isAr, trip, index, active, onPress }: {
+  styles: any; c: ThemeColors; t: T; isAr: boolean; trip: any; index: number; active: boolean;
   onPress: () => void;
 }) {
   const bookable = isTripBookable(trip);
   const disabled = !bookable;
   const statusColor = shuttleStatusColor(trip);
-  const statusLbl = shuttleStatusLabel(trip, t);
+  const statusLbl = shuttleStatusLabel((trip?.status ?? trip?.shuttleStatus ?? ''), isAr ? 'ar' : 'en');
   const time = formatCairoTime(trip.departureTime ?? trip.departure_time ?? '');
   const date = formatTripDateUTC(trip.departureTime ?? trip.departure_time ?? '');
   const bookedSeats: number = trip.bookedSeats ?? 0;
