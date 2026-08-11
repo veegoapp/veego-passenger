@@ -605,9 +605,17 @@ export default function TripDetailScreen() {
         lng: number;
         heading?: number;
       }) => {
-        if (String(payload.tripId) === String(id)) {
-          applyDriverLocation({ lat: payload.lat, lng: payload.lng, heading: payload.heading });
-        }
+        if (String(payload.tripId) !== String(id)) return;
+        // D6-7: guard against a malformed/out-of-range payload reaching the
+        // map — a NaN or bogus lat/lng would otherwise crash the marker or
+        // silently render it in the wrong place.
+        const { lat, lng, heading } = payload;
+        if (
+          typeof lat !== 'number' || typeof lng !== 'number' ||
+          !Number.isFinite(lat) || !Number.isFinite(lng) ||
+          lat < -90 || lat > 90 || lng < -180 || lng > 180
+        ) return;
+        applyDriverLocation({ lat, lng, heading: typeof heading === 'number' && Number.isFinite(heading) ? heading : undefined });
       };
 
       // Live status — updates badge and map visibility instantly, no API refetch needed

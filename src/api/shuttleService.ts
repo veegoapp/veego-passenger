@@ -7,30 +7,10 @@
  */
 
 import api from './client';
-import type { DebtInfo, ShuttleBookingMeta } from '@/constants/data';
+import type { DebtInfo } from '@/constants/data';
 import { checkContract, DebtInfoSchema } from './schemas';
 
 // ── Request / response types ─────────────────────────────────────
-
-export interface CreateBookingBody {
-  tripId: number;
-  seatCount: 1;          // shuttle rule: always exactly 1 (§11)
-  promoCode?: string;
-}
-
-export interface CreateBookingResult {
-  id: number;
-  userId: number;
-  tripId: number;
-  seatCount: number;
-  totalPrice: number;
-  status: string;         // 'pending' | 'confirmed' — see §21.1
-  paymentStatus: string;  // 'pending' | 'paid'
-  promoCodeId: number | null;
-  createdAt: string;
-  updatedAt: string;
-  shuttle: ShuttleBookingMeta; // real-time seat counts after booking (§2.10)
-}
 
 export interface CancelBookingResult {
   ok: boolean;
@@ -39,42 +19,7 @@ export interface CancelBookingResult {
   refundAmount: number;   // 0 when refunded is false (e.g. cash booking, or within 12h)
 }
 
-// ── Public endpoints (no auth required) ─────────────────────────
-
-/** GET /shuttle/lines — list all active routes with trip counts & time-slots (§5.1) */
-export async function getShuttleLines() {
-  const { data } = await api.get('/shuttle/lines');
-  return data;
-}
-
-/** GET /shuttle/lines/:id — route detail with stations + next 20 trips (§5.2) */
-export async function getShuttleLine(id: string | number) {
-  const { data } = await api.get(`/shuttle/lines/${id}`);
-  return data;
-}
-
-/** GET /trips/:id — single trip detail (§10.2) */
-export async function getTrip(tripId: string | number) {
-  const { data } = await api.get(`/trips/${tripId}`);
-  return data?.data ?? data;
-}
-
-/** GET /routes/:id/stations — ordered station list for a route (§7.1) */
-export async function getRouteStations(routeId: string | number) {
-  const { data } = await api.get(`/routes/${routeId}/stations`);
-  return Array.isArray(data) ? data : data?.data ?? data?.stations ?? [];
-}
-
 // ── Authenticated passenger endpoints ────────────────────────────
-
-/**
- * GET /users/me/bookings — complete booking history with embedded trip data (§11.5).
- * Replaces the deprecated /shuttle/my-trips endpoint.
- */
-export async function getMyBookings() {
-  const { data } = await api.get('/users/me/bookings');
-  return Array.isArray(data) ? data : data?.data ?? data?.bookings ?? [];
-}
 
 export interface ShuttleMyTripsResponse {
   data: any[];
@@ -92,28 +37,6 @@ export async function getMyTrips(page = 1, limit = 10): Promise<ShuttleMyTripsRe
     page: Number(data?.page) || page,
     limit: Number(data?.limit) || limit,
   };
-}
-
-/**
- * GET /bookings/:id — single booking (§11.2).
- * Response includes embedded trip data on most backends.
- */
-export async function getBooking(bookingId: string | number) {
-  const { data } = await api.get(`/bookings/${bookingId}`);
-  return data?.data ?? data;
-}
-
-/**
- * POST /bookings — book a seat on a trip (§11.1).
- * Deducts wallet balance atomically. Returns booking + shuttle metadata block.
- *
- * Error codes to handle:
- *  400 — seatCount ≠ 1, trip unavailable, fully booked, insufficient wallet
- *  409 — duplicate booking or race condition (seats just taken)
- */
-export async function createBooking(body: CreateBookingBody): Promise<CreateBookingResult> {
-  const { data } = await api.post('/bookings', body);
-  return data;
 }
 
 /**
