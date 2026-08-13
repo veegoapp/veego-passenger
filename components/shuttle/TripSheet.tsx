@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
-  AlertCircle, Ticket, ArrowRight, ArrowLeft, AlertTriangle, Minus, Plus,
+  AlertCircle, Ticket, ArrowRight, ArrowLeft, AlertTriangle, Minus, Plus, X,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -48,6 +48,13 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
       width: 44, height: 5, borderRadius: 2.5,
       backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
       alignSelf: 'center', marginTop: 14,
+    },
+    closeBtn: {
+      position: 'absolute', top: 10, right: Spacing.md,
+      width: 32, height: 32, borderRadius: 16,
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
+      alignItems: 'center', justifyContent: 'center',
+      zIndex: 10,
     },
     scroll: { flex: 1 },
     scrollContent: { paddingBottom: Spacing.sm },
@@ -466,6 +473,24 @@ export function TripSheet() {
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
         <GlassView strong borderRadius={36} style={styles.sheetGlass}>
         <View style={styles.handle} />
+
+        {/* Close — the drag handle above is decorative (no pan gesture wired
+            to it), and this sheet is a plain overlay View, not a real
+            router-presented modal, so it gets neither a swipe-to-dismiss nor
+            the router's own dismiss gesture. Without this, the only way to
+            close it was BackHandler (Android-only) or tapping the sliver of
+            dimmed backdrop not covered by the sheet (~8% of the screen,
+            since the sheet is 92% tall) — effectively invisible on iOS. */}
+        <TouchableOpacity
+          onPress={closeTripSheet}
+          activeOpacity={0.75}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.closeBtn}
+          accessibilityLabel={t('close')}
+          accessibilityRole="button"
+        >
+          <X size={18} color={c.ink} strokeWidth={2.5} />
+        </TouchableOpacity>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 

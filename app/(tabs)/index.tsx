@@ -421,65 +421,80 @@ export default function HomeScreen() {
     setSearchScreenOpen(false);
   }, []);
 
+  // True while a car/scooter/delivery service is selected/active (booking or
+  // trip-tracking). These services get the driver-app-style full-screen map:
+  // no main Home header band, no floating back-arrow overlay. Shuttle is
+  // unaffected — it keeps the existing header + back-button sheet layout.
+  const fullScreenService = serviceOpen && mode !== 'shuttle';
+
   return (
     <View style={{ flex: 1 }}>
 
       {/* ── 1. Background map (always visible) ─────────────────── */}
       <CarMap />
 
-      {/* ── 2. Header — absolute, always on top ───────────────── */}
-      <View
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}
-        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
-      >
-        <View style={{ backgroundColor: c.background, paddingTop: top + 12 }}>
-          <HomeHeader
-            styles={styles} gs={gs} c={c} t={t as (key: string) => string}
-            greetingKey={greetingKey} firstName={firstName} avatarInitials={avatarInitials}
-            unreadCount={unreadCount}
-            onNotifications={() => router.push('/notifications')}
-            onProfile={() => router.push('/(tabs)/profile')}
-          />
-          {debt?.hasDebt && (
-            <DebtBanner c={c} t={t as (key: string) => string} />
-          )}
-          {!debt?.hasDebt && debtError && (
-            <DebtErrorBanner c={c} t={t as (key: string) => string} onRetry={refreshDebt} />
-          )}
-          <ZoneServicesBanner
-            c={c} t={t as (key: string) => string}
-            hiddenCount={SERVICES.filter(svc => !isServiceVisibleForZone(svc.id as ServiceType)).length}
-            userZoneId={userZoneId}
-          />
+      {/* ── 2. Header — absolute, always on top. Hidden entirely once a  */}
+      {/* car/scooter/delivery service is active so the map goes true    */}
+      {/* full-screen to the top of the viewport (SafeAreaView insets    */}
+      {/* are applied inside CarServiceScreen/CarMap's own overlays).    */}
+      {!fullScreenService && (
+        <View
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}
+          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        >
+          <View style={{ backgroundColor: c.background, paddingTop: top + 12 }}>
+            <HomeHeader
+              styles={styles} gs={gs} c={c} t={t as (key: string) => string}
+              greetingKey={greetingKey} firstName={firstName} avatarInitials={avatarInitials}
+              unreadCount={unreadCount}
+              onNotifications={() => router.push('/notifications')}
+              onProfile={() => router.push('/(tabs)/profile')}
+            />
+            {debt?.hasDebt && (
+              <DebtBanner c={c} t={t as (key: string) => string} />
+            )}
+            {!debt?.hasDebt && debtError && (
+              <DebtErrorBanner c={c} t={t as (key: string) => string} onRetry={refreshDebt} />
+            )}
+            <ZoneServicesBanner
+              c={c} t={t as (key: string) => string}
+              hiddenCount={SERVICES.filter(svc => !isServiceVisibleForZone(svc.id as ServiceType)).length}
+              userZoneId={userZoneId}
+            />
+          </View>
         </View>
-      </View>
+      )}
 
       {/* ── 3. Service sheet — slides up from below ─────────────── */}
       <Animated.View
         style={[
           StyleSheet.absoluteFillObject,
-          { top: headerHeight, transform: [{ translateY: slideAnim }], zIndex: 20 },
+          // Car/scooter/delivery: no header above it, so the sheet (and its
+          // own CarMap) starts at the true top of the viewport. Shuttle keeps
+          // sliding up from beneath the measured header height, unchanged.
+          { top: fullScreenService ? 0 : headerHeight, transform: [{ translateY: slideAnim }], zIndex: 20 },
         ]}
       >
-        {/* Back button + service title — overlaid at the top of the sheet */}
-        {serviceOpen && (
-          <View style={[
-            styles.sheetHeader,
-            mode !== 'shuttle' ? {} : { backgroundColor: c.background },
-          ]}>
+        {/* Back button + service title — shuttle only. Car/scooter/delivery
+            render true full-screen with no back-arrow overlay, matching the
+            driver app's ride screen. The Android hardware back button still
+            closes the sheet (see the BackHandler effect above); on iOS (no
+            hardware back gesture here), CarServiceScreen renders its own
+            small close ("X") affordance during idle/ride_options, wired to
+            the same onBack/closeService prop passed below. */}
+        {serviceOpen && mode === 'shuttle' && (
+          <View style={[styles.sheetHeader, { backgroundColor: c.background }]}>
             <TouchableOpacity
-              style={[styles.sheetBackBtn, {
-                backgroundColor: mode !== 'shuttle' ? 'rgba(0,0,0,0.45)' : c.mist,
-              }]}
+              style={[styles.sheetBackBtn, { backgroundColor: c.mist }]}
               onPress={closeService}
               activeOpacity={0.7}
             >
               {isRTL
-                ? <ArrowRight size={20} color={mode !== 'shuttle' ? '#ffffff' : c.ink} />
-                : <ArrowLeft  size={20} color={mode !== 'shuttle' ? '#ffffff' : c.ink} />
+                ? <ArrowRight size={20} color={c.ink} />
+                : <ArrowLeft  size={20} color={c.ink} />
               }
             </TouchableOpacity>
-            <Text style={[styles.sheetTitle, { color: mode !== 'shuttle' ? '#ffffff' : c.ink }]}>
+            <Text style={[styles.sheetTitle, { color: c.ink }]}>
               {t(mode)}
             </Text>
           </View>

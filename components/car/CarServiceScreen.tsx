@@ -905,6 +905,41 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         searching={phase === 'in_ride' && rideState.status === 'searching'}
       />
 
+      {/* ── Close-to-Home affordance ──────────────────────────────────────
+          The outer Home screen's back-arrow overlay was removed for this
+          full-screen layout (matches the driver app's ride screen), which
+          left iOS with no way to leave this screen — there's no hardware
+          back gesture here, and the tab bar is hidden while it's open.
+          A small, minimal "X" fills that gap. Scoped to idle/ride_options
+          only: once a ride is actually being searched/tracked, this would
+          collide with the nav card / connection banner (same top-left area)
+          and duplicate the trip's own explicit Cancel flow
+          (DriverAssignedCard's Cancel button) — a stray "leave" affordance
+          during an active trip isn't wanted there anyway. */}
+      {(phase === 'idle' || phase === 'ride_options') && (
+        <TouchableOpacity
+          onPress={onBack}
+          activeOpacity={0.75}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{
+            position: 'absolute',
+            top: insetTop + 12,
+            left: 16,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 40,
+          }}
+          accessibilityLabel={t('close')}
+          accessibilityRole="button"
+        >
+          <X size={18} color="#ffffff" strokeWidth={2.5} />
+        </TouchableOpacity>
+      )}
+
       {/* ── Idle state: floating glassmorphic search card + inline expanded search ── */}
       {phase === 'idle' && (
         <Animated.View
@@ -1280,19 +1315,26 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
       {/* Nav card — destination only (no live time/distance, kept off to avoid
           spending Google Directions). Target is the pickup while the driver is
-          on the way, the dropoff during the trip. */}
+          on the way, the dropoff during the trip.
+          Sizing matches the driver app's destination card exactly
+          (veego-driver/app/ride/[rideId].tsx: navCard/navIcon styles) —
+          Spacing.lg padding, Spacing.md gap, 20 corner radius, 48x48/14-radius
+          icon box. The icon box is solid #111827 (near-black) rather than the
+          previous dark-blue #1e3a8a, matching the driver app's dark icon box. */}
       {phase === 'in_ride' && rideState.status !== 'searching' && (() => {
         const navTarget = rideState.status === 'started' ? destination : pickupAddress;
         if (!navTarget) return null;
         return (
           <View style={{ position: 'absolute', top: insets.top + 8, left: 16, right: 16, zIndex: 55 }}>
             <View style={{
-              flexDirection: 'row', alignItems: 'center', gap: 12,
-              backgroundColor: c.white, borderRadius: 18, padding: 12,
+              flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+              backgroundColor: c.isDark ? 'rgba(18,20,40,0.92)' : 'rgba(255,255,255,0.92)',
+              borderRadius: 20, padding: Spacing.lg,
               borderWidth: 1, borderColor: c.border,
-              shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 6,
+              shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: c.isDark ? 0.45 : 0.14, shadowRadius: 22, elevation: 0,
             }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#1e3a8a', alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
                 <Navigation size={20} color="#ffffff" strokeWidth={2} />
               </View>
               <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: '700', color: c.ink }}>

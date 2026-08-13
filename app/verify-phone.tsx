@@ -6,6 +6,7 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { S } from '@/constants/colors';
@@ -28,6 +29,7 @@ export default function VerifyPhoneScreen() {
   const { phone, maskedPhone, termsVersion } = useLocalSearchParams<{ phone: string; maskedPhone?: string; termsVersion?: string }>();
   const { colors: c, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const insets = useSafeAreaInsets();
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -153,6 +155,27 @@ export default function VerifyPhoneScreen() {
 
   return (
     <LinearGradient colors={c.luxeGrad} style={styles.root}>
+      {/* Explicit back button — this screen is pushed with gestureEnabled:
+          false (app/_layout.tsx), so a mistyped phone number (reached from
+          sign-up/sign-in) previously had no way back short of force-quitting
+          the app. gestureEnabled stays false (avoids an accidental swipe
+          losing entered OTP digits); this button is the deliberate escape
+          hatch instead. */}
+      <TouchableOpacity
+        onPress={() => router.back()}
+        activeOpacity={0.75}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={[
+          styles.backBtn,
+          { top: insets.top + 12 },
+          isRTL ? { right: Spacing.lg } : { left: Spacing.lg },
+        ]}
+        accessibilityLabel={t('back')}
+        accessibilityRole="button"
+      >
+        {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
+      </TouchableOpacity>
+
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.container}>
           <View style={styles.iconWrap}>
@@ -268,6 +291,12 @@ export default function VerifyPhoneScreen() {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     root: { flex: 1 },
+    backBtn: {
+      position: 'absolute', zIndex: 10,
+      width: 40, height: 40, borderRadius: 20,
+      backgroundColor: 'rgba(255,255,255,0.55)',
+      alignItems: 'center', justifyContent: 'center',
+    },
     container: {
       flex: 1,
       alignItems: 'center',
