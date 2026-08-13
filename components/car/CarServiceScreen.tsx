@@ -905,6 +905,41 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         searching={phase === 'in_ride' && rideState.status === 'searching'}
       />
 
+      {/* ── Close-to-Home affordance ──────────────────────────────────────
+          The outer Home screen's back-arrow overlay was removed for this
+          full-screen layout (matches the driver app's ride screen), which
+          left iOS with no way to leave this screen — there's no hardware
+          back gesture here, and the tab bar is hidden while it's open.
+          A small, minimal "X" fills that gap. Scoped to idle/ride_options
+          only: once a ride is actually being searched/tracked, this would
+          collide with the nav card / connection banner (same top-left area)
+          and duplicate the trip's own explicit Cancel flow
+          (DriverAssignedCard's Cancel button) — a stray "leave" affordance
+          during an active trip isn't wanted there anyway. */}
+      {(phase === 'idle' || phase === 'ride_options') && (
+        <TouchableOpacity
+          onPress={onBack}
+          activeOpacity={0.75}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{
+            position: 'absolute',
+            top: insetTop + 12,
+            left: 16,
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 40,
+          }}
+          accessibilityLabel={t('close')}
+          accessibilityRole="button"
+        >
+          <X size={18} color="#ffffff" strokeWidth={2.5} />
+        </TouchableOpacity>
+      )}
+
       {/* ── Idle state: floating glassmorphic search card + inline expanded search ── */}
       {phase === 'idle' && (
         <Animated.View

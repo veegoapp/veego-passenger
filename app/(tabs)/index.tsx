@@ -477,10 +477,11 @@ export default function HomeScreen() {
       >
         {/* Back button + service title — shuttle only. Car/scooter/delivery
             render true full-screen with no back-arrow overlay, matching the
-            driver app's ride screen. NOTE: the Android hardware back button
-            still closes the sheet (see the BackHandler effect above), but
-            there is currently no equivalent affordance for iOS, which has no
-            hardware back gesture on this screen — see PR/task discussion. */}
+            driver app's ride screen. The Android hardware back button still
+            closes the sheet (see the BackHandler effect above); on iOS (no
+            hardware back gesture here), CarServiceScreen renders its own
+            small close ("X") affordance during idle/ride_options, wired to
+            the same onBack/closeService prop passed below. */}
         {serviceOpen && mode === 'shuttle' && (
           <View style={[styles.sheetHeader, { backgroundColor: c.background }]}>
             <TouchableOpacity
