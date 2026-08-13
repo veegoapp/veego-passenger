@@ -13,7 +13,9 @@ export function makeStyles(c: ThemeColors) {
     header: { paddingHorizontal: 20, paddingBottom: Spacing.md },
     headerTitle: { fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
     scrollContent: { paddingHorizontal: 20, paddingTop: Spacing.xs, gap: 0 },
-    heroCard: { borderRadius: 28, overflow: 'hidden', marginBottom: 20, ...S.float },
+    // No overflow:'hidden' here — it would clip the S.float shadow on iOS.
+    // heroGrad (below) has its own overflow:'hidden' to clip the gradient/glow.
+    heroCard: { borderRadius: 28, marginBottom: 20, ...S.float },
     heroGrad: { padding: 20, borderRadius: 28, overflow: 'hidden' },
     heroGlow: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
     heroContent: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.lg },
@@ -29,20 +31,23 @@ export function makeStyles(c: ThemeColors) {
     heroStatDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)' },
     section: { marginBottom: Spacing.lg, gap: Spacing.sm },
     sectionLabel: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 4 },
-    groupCard: { borderRadius: Radius.xl, overflow: 'hidden', backgroundColor: c.white },
+    // GlassView owns background/border — this only needs the corner clip.
+    groupCard: { overflow: 'hidden' },
     settingItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg, gap: Spacing.md },
     itemDivider: { height: 1, backgroundColor: c.border, opacity: 0.6, marginStart: 64 },
     settingIcon: { width: 40, height: 40, borderRadius: Radius.md, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    settingLabel: { flex: 1, fontSize: 13.5, fontWeight: Typography.weight.medium, color: c.ink },
+    settingLabel: { flex: 1, fontSize: 13.5, fontFamily: 'Inter_600SemiBold', color: c.ink },
     settingRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     settingValue: { fontSize: Typography.size.xs, color: c.inkSoft },
     langRow: { flexDirection: 'row', gap: 6 },
     langBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 99, borderWidth: 1 },
     langBtnActive: { backgroundColor: c.ink, borderColor: c.ink },
     langBtnInactive: { backgroundColor: c.white, borderColor: c.border },
-    langBtnText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
-    logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 52, borderRadius: 20, borderWidth: 1, borderColor: `${c.badge}40`, backgroundColor: `${c.badge}10` },
-    logoutText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.medium, color: c.badge },
+    langBtnText: { fontSize: Typography.size.xs, fontFamily: 'Inter_600SemiBold' },
+    // Plain GlassView card (matches Driver's signOutBtn exactly) — bold red
+    // icon/text carry the "destructive" meaning instead of a tinted fill.
+    logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 52 },
+    logoutText: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: c.badge },
 
     modal: { flex: 1, backgroundColor: c.isDark ? c.background : c.snow },
     modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.border, gap: Spacing.md, backgroundColor: c.white },

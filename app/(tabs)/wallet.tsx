@@ -13,14 +13,17 @@ import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { GlassView } from '@/components/ui/GlassView';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: { paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.xs },
     headerTitle: { fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
     headerSub: { fontSize: 13, color: c.inkSoft },
-    balanceCard: { marginHorizontal: 20, borderRadius: 28, overflow: 'hidden', marginBottom: 20, ...S.float },
-    balanceGrad: { padding: Spacing.xl, borderRadius: 28 },
+    // No overflow:'hidden' here — it would clip the S.float shadow on iOS.
+    // balanceGrad (below) has its own overflow:'hidden' to clip the gradient/glow.
+    balanceCard: { marginHorizontal: 20, borderRadius: 28, marginBottom: 20, ...S.float },
+    balanceGrad: { padding: Spacing.xl, borderRadius: 28, overflow: 'hidden' },
     balanceGlow: { position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' },
     balanceLabel: { fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium, marginBottom: Spacing.sm },
     balanceAmount: { fontSize: 42, fontWeight: Typography.weight.bold, color: '#ffffff', letterSpacing: -1.5, fontFamily: 'Inter_700Bold' },
@@ -32,20 +35,21 @@ function makeStyles(c: ThemeColors) {
     section: { marginBottom: 20 },
     sectionLabel: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, paddingStart: 24, marginBottom: 10 },
     txList: { paddingHorizontal: 20, gap: 10 },
-    txCard: { borderRadius: 20, padding: 14, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: c.white },
-    txEmpty: { marginHorizontal: 20, borderRadius: 20, padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm, backgroundColor: c.white },
+    // GlassView owns background/border — these only need inner layout.
+    txCard: { padding: 14, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    txEmpty: { marginHorizontal: 20, padding: Spacing.xl, alignItems: 'center', gap: Spacing.sm },
     txEmptyText: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center' },
     txIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     txMeta: { flex: 1, gap: 2 },
-    txTitle: { fontSize: 13.5, fontWeight: Typography.weight.semibold, color: c.ink },
+    txTitle: { fontSize: 13.5, fontFamily: 'Inter_600SemiBold', color: c.ink },
     txSub: { fontSize: 11.5, color: c.inkSoft },
-    txDate: { fontSize: 10.5, color: c.silver, marginTop: 2 },
+    txDate: { fontSize: 10.5, color: c.inkSoft, marginTop: 2 },
     txAmount: { fontSize: 15, fontWeight: Typography.weight.bold },
     pmSection: { marginBottom: 20 },
-    pmCard: { borderRadius: 20, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: c.white },
+    pmCard: { padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 14 },
     pmIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
     pmMeta: { flex: 1, gap: 2 },
-    pmName: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    pmName: { fontSize: Typography.size.sm, fontFamily: 'Inter_600SemiBold', color: c.ink },
     pmSub: { fontSize: Typography.size.xs, color: c.inkSoft },
     pmBadge: { paddingHorizontal: 10, paddingVertical: Spacing.xs, borderRadius: 99, backgroundColor: 'rgba(85,196,154,0.15)' },
     pmBadgeText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: '#55c49a' },
@@ -87,7 +91,7 @@ export default function WalletScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { tabBarHeight } = useTabBar();
-  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const { colors: c, t, language } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const isAr = language === 'ar';
 
@@ -225,7 +229,7 @@ export default function WalletScreen() {
         <View style={styles.pmSection}>
           <Text style={styles.sectionLabel}>{t('payment_title')}</Text>
           <View style={{ paddingHorizontal: 20, gap: 10 }}>
-            <View style={[styles.pmCard]}>
+            <GlassView style={styles.pmCard} borderRadius={20}>
               <View style={styles.pmIconBox}>
                 <Banknote size={20} color={c.ink} />
               </View>
@@ -236,8 +240,8 @@ export default function WalletScreen() {
               <View style={styles.pmBadge}>
                 <Text style={styles.pmBadgeText}>{t('active')}</Text>
               </View>
-            </View>
-            <View style={[styles.pmCard, !paymobEnabled && { opacity: 0.6 }]}>
+            </GlassView>
+            <GlassView style={[styles.pmCard, !paymobEnabled && { opacity: 0.6 }]} borderRadius={20}>
               <View style={styles.pmIconBox}>
                 <CreditCard size={20} color={paymobEnabled ? c.ink : c.inkSoft} />
               </View>
@@ -254,36 +258,38 @@ export default function WalletScreen() {
                   <Text style={[styles.pmBadgeText, { color: c.inkSoft }]}>{t('soon')}</Text>
                 </View>
               )}
-            </View>
+            </GlassView>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('tx_history')}</Text>
           {walletLoading && !hasLoadedWalletOnce ? (
-            <View style={[gs, styles.txEmpty]}>
+            <GlassView style={styles.txEmpty} borderRadius={20}>
               <ActivityIndicator size="small" color={c.inkSoft} />
-            </View>
+            </GlassView>
           ) : transactions.length === 0 ? (
-            <View style={[gs, styles.txEmpty]}>
+            <GlassView style={styles.txEmpty} borderRadius={20}>
               <Clock size={22} color={c.inkSoft} />
               <Text style={styles.txEmptyText}>{t('no_transactions')}</Text>
-            </View>
+            </GlassView>
           ) : (
           <View style={styles.txList}>
             {transactions.map((tx) => (
-              <TouchableOpacity key={tx.id} style={[gs, styles.txCard]} activeOpacity={0.85} onPress={() => { Haptics.selectionAsync(); }}>
-                <View style={[styles.txIcon, { backgroundColor: tx.type === 'credit' ? 'rgba(85,196,154,0.12)' : c.mist }]}>
-                  {React.createElement(tx.icon as React.ComponentType<{size?:number;color?:string}>, { size: 20, color: tx.type === 'credit' ? '#55c49a' : c.inkSoft })}
-                </View>
-                <View style={styles.txMeta}>
-                  <Text style={styles.txTitle}>{isAr ? tx.titleAr : tx.titleEn}</Text>
-                  <Text style={styles.txSub}>{isAr ? tx.subtitleAr : tx.subtitleEn}</Text>
-                  <Text style={styles.txDate}>{isAr ? tx.dateAr : tx.dateEn}</Text>
-                </View>
-                <Text style={[styles.txAmount, { color: tx.type === 'credit' ? '#55c49a' : c.ink }]}>
-                  {tx.type === 'credit' ? '+' : '-'}{tx.amount} {t('egp')}
-                </Text>
+              <TouchableOpacity key={tx.id} activeOpacity={0.85} onPress={() => { Haptics.selectionAsync(); }}>
+                <GlassView style={styles.txCard} borderRadius={20}>
+                  <View style={[styles.txIcon, { backgroundColor: tx.type === 'credit' ? 'rgba(85,196,154,0.12)' : c.mist }]}>
+                    {React.createElement(tx.icon as React.ComponentType<{size?:number;color?:string}>, { size: 20, color: tx.type === 'credit' ? '#55c49a' : c.inkSoft })}
+                  </View>
+                  <View style={styles.txMeta}>
+                    <Text style={styles.txTitle}>{isAr ? tx.titleAr : tx.titleEn}</Text>
+                    <Text style={styles.txSub}>{isAr ? tx.subtitleAr : tx.subtitleEn}</Text>
+                    <Text style={styles.txDate}>{isAr ? tx.dateAr : tx.dateEn}</Text>
+                  </View>
+                  <Text style={[styles.txAmount, { color: tx.type === 'credit' ? '#55c49a' : c.ink }]}>
+                    {tx.type === 'credit' ? '+' : '-'}{tx.amount} {t('egp')}
+                  </Text>
+                </GlassView>
               </TouchableOpacity>
             ))}
           </View>

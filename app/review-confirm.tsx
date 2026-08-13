@@ -16,10 +16,11 @@ import { useTheme } from '@/context/ThemeContext';
 import { useBooking } from '@/context/BookingContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { usePromos } from '@/src/hooks/shared/usePromos';
-import { S, makeGlassStyle } from '@/constants/colors';
+import { S } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { GlassView } from '@/components/ui/GlassView';
 
 /* ─────────────────────────────────────────────────────────── */
 /*  Helpers                                                     */
@@ -57,7 +58,6 @@ function parseDiscountAmount(discountStr: string, base: number): number {
 export default function ReviewConfirmScreen() {
   const insets     = useSafeAreaInsets();
   const { colors: c, t, isRTL } = useTheme();
-  const gs         = useMemo(() => makeGlassStyle(c), [c]);
   const { handleConfirm, bookingError, clearBookingError } = useBooking();
   const { validateCode } = usePromos();
   const { walletFeature } = usePaymentConfig();
@@ -152,12 +152,14 @@ export default function ReviewConfirmScreen() {
     scroll:        { flex: 1 },
     scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: 6, paddingBottom: 140 },
 
-    /* ── Hero card (dark) ── */
+    /* ── Hero card (dark).
+     * Shadow lives here (no overflow:'hidden' — that would clip it on iOS);
+     * heroGrad clips the gradient itself to the rounded corners instead. */
     heroCard: {
-      borderRadius: 26, overflow: 'hidden',
+      borderRadius: 26,
       marginBottom: 20, ...S.float,
     },
-    heroGrad:  { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 22 },
+    heroGrad:  { borderRadius: 26, overflow: 'hidden', paddingHorizontal: 22, paddingTop: 20, paddingBottom: 22 },
     heroGlow:  {
       position: 'absolute', top: -50, right: -50,
       width: 200, height: 200, borderRadius: 100,
@@ -195,14 +197,9 @@ export default function ReviewConfirmScreen() {
       marginBottom: 10, marginTop: 2, paddingHorizontal: 2,
     },
 
-    /* ── Trip card (glass) ── */
+    /* ── Trip card (glass) — GlassView owns background/border. ── */
     tripCard: {
-      ...gs,
-      borderRadius: 22,
       marginBottom: Spacing.lg,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
     },
 
     /* Vertical timeline inside trip card */
@@ -246,14 +243,10 @@ export default function ReviewConfirmScreen() {
     infoChipLabel: { fontSize: 9.5, color: c.inkSoft, letterSpacing: 0.3 },
     infoChipValue: { fontSize: 12.5, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
 
-    /* ── Promo card ── */
+    /* ── Promo card — GlassView owns background/border. ── */
     promoCard: {
-      ...gs,
-      borderRadius: 22,
       marginBottom: Spacing.lg,
       padding: Spacing.lg,
-      borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
     },
     promoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     promoIconBox: {
@@ -290,14 +283,9 @@ export default function ReviewConfirmScreen() {
     promoSuccessText: { flex: 1, fontSize: 13, fontWeight: Typography.weight.semibold, color: '#22a06b', marginStart: 6 },
     promoErrorText:   { fontSize: 12.5, color: '#e0584a', marginTop: 10, paddingHorizontal: 2 },
 
-    /* ── Fare card ── */
+    /* ── Fare card — GlassView owns background/border. ── */
     fareCard: {
-      ...gs,
-      borderRadius: 22,
       marginBottom: Spacing.lg,
-      overflow: 'hidden',
-      borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
     },
     fareRow: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -323,14 +311,10 @@ export default function ReviewConfirmScreen() {
     savingsDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: c.accentMint },
     savingsText: { fontSize: 11, fontWeight: Typography.weight.bold, color: '#22a06b', letterSpacing: 0.1 },
 
-    /* ── Payment method ── */
+    /* ── Payment method — GlassView owns background/border. ── */
     paymentCard: {
-      ...gs,
-      borderRadius: 22,
       marginBottom: Spacing.lg,
       padding: Spacing.lg,
-      borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
     },
     paymentChips: { flexDirection: 'row', gap: Spacing.sm },
     paymentChip: { flex: 1, height: 46, borderRadius: Radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
@@ -364,7 +348,7 @@ export default function ReviewConfirmScreen() {
     ctaSubDivider: { width: 3, height: 3, borderRadius: 2, backgroundColor: c.silver },
     ctaSubFinal:   { fontSize: 12.5, fontWeight: Typography.weight.bold, color: hasDiscount ? '#22a06b' : c.inkSoft },
 
-  }), [c, gs, insets, hasDiscount]);
+  }), [c, insets, hasDiscount]);
 
   return (
     <View style={styles.root}>
@@ -409,7 +393,7 @@ export default function ReviewConfirmScreen() {
 
         {/* ── Trip details ──────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>{t('selected_trip')}</Text>
-        <View style={styles.tripCard}>
+        <GlassView style={styles.tripCard} borderRadius={22}>
 
           {/* Vertical timeline */}
           <View style={styles.timelineWrap}>
@@ -470,11 +454,11 @@ export default function ReviewConfirmScreen() {
               <Text style={styles.infoChipValue}>{seats}</Text>
             </View>
           </View>
-        </View>
+        </GlassView>
 
         {/* ── Promo code ────────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>{t('promo_code')}</Text>
-        <View style={styles.promoCard}>
+        <GlassView style={styles.promoCard} borderRadius={22}>
           <View style={styles.promoRow}>
             <View style={styles.promoIconBox}>
               <Tag size={17} color={promoStatus === 'valid' ? '#22a06b' : c.inkSoft} strokeWidth={2} />
@@ -522,11 +506,11 @@ export default function ReviewConfirmScreen() {
           {promoStatus === 'invalid' && (
             <Text style={styles.promoErrorText}>{promoError}</Text>
           )}
-        </View>
+        </GlassView>
 
         {/* ── Fare summary ──────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>{t('total_fare')}</Text>
-        <View style={styles.fareCard}>
+        <GlassView style={styles.fareCard} borderRadius={22}>
           {/* Base fare row */}
           <View style={styles.fareRow}>
             <Text style={styles.fareRowLabel}>{t('base_fare')}</Text>
@@ -557,11 +541,11 @@ export default function ReviewConfirmScreen() {
               )}
             </View>
           </View>
-        </View>
+        </GlassView>
 
         {/* ── Payment method ────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>{t('payment_method_label')}</Text>
-        <View style={styles.paymentCard}>
+        <GlassView style={styles.paymentCard} borderRadius={22}>
           <View style={styles.paymentChips}>
             <TouchableOpacity
               style={[
@@ -596,7 +580,7 @@ export default function ReviewConfirmScreen() {
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </GlassView>
 
         {/* ── Booking error ─────────────────────────────────────── */}
         {!!bookingError && (

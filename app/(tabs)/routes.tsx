@@ -12,6 +12,7 @@ import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
 import { useTabBar } from '@/context/TabBarContext';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
+import { GlassView } from '@/components/ui/GlassView';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -21,9 +22,9 @@ function makeStyles(c: ThemeColors) {
     headerTopRow: {
       flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md
     },
-    headerTitle: { fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.8 },
+    headerTitle: { fontSize: 26, color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
     headerSub: { fontSize: Typography.size.xs, color: c.inkSoft, marginTop: 2 },
-    iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
 
     searchContainer: {
       flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 23,
@@ -34,7 +35,7 @@ function makeStyles(c: ThemeColors) {
     loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.md, paddingTop: 40 },
     emptyIcon: { width: 72, height: 72, borderRadius: 28, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    emptyTitle: { fontSize: Typography.size.md, fontWeight: Typography.weight.semibold, color: c.ink },
+    emptyTitle: { fontSize: Typography.size.md, fontFamily: 'Inter_600SemiBold', color: c.ink },
     emptySub: { fontSize: 13, color: c.inkSoft, textAlign: 'center', lineHeight: 20 },
   });
 }
@@ -45,7 +46,7 @@ export default function RoutesScreen() {
   const { tabBarHeight } = useTabBar();
   const [searchQuery, setSearchQuery] = useState('');
   const { openRoute } = useBooking();
-  const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
+  const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -78,8 +79,10 @@ export default function RoutesScreen() {
             <Text style={styles.headerTitle}>{t('routes_title')}</Text>
             <Text style={styles.headerSub}>{routes.length} {t('lines_available')}</Text>
           </View>
-          <TouchableOpacity style={[gs, styles.iconBtn]} onPress={refresh} activeOpacity={0.8}>
-            <RefreshCw size={16} color={c.ink} />
+          <TouchableOpacity onPress={refresh} activeOpacity={0.8}>
+            <GlassView style={styles.iconBtn} borderRadius={20}>
+              <RefreshCw size={16} color={c.ink} />
+            </GlassView>
           </TouchableOpacity>
         </View>
 
@@ -115,7 +118,7 @@ export default function RoutesScreen() {
           <Text style={styles.emptyTitle}>{error ? t('error') : t('no_routes')}</Text>
           <Text style={styles.emptySub}>{error ?? (searchQuery ? t('search_no_match') : t('routes_empty_msg'))}</Text>
           <TouchableOpacity onPress={refresh} activeOpacity={0.85}>
-            <Text style={{ color: c.ink, fontWeight: Typography.weight.semibold, fontSize: Typography.size.sm }}>{t('retry')}</Text>
+            <Text style={{ color: c.ink, fontFamily: 'Inter_600SemiBold', fontSize: Typography.size.sm }}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

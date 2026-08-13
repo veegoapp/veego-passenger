@@ -1,10 +1,10 @@
 import React from 'react';
-import { Platform, StyleSheet, View, ViewStyle, LayoutChangeEvent } from 'react-native';
+import { Platform, StyleSheet, View, StyleProp, ViewStyle, LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '@/context/ThemeContext';
 
 interface GlassViewProps {
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
   strong?: boolean;
   children?: React.ReactNode;
   borderRadius?: number;

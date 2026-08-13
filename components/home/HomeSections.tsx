@@ -46,8 +46,8 @@ export interface SavedLocation {
  * on the other for Notifications — both translucent cards floating directly
  * over the map, no opaque header band and no brand lockup.
  */
-export function HomeHeader({ styles, gs, c, t, greetingKey, firstName, avatarInitials, unreadCount, onNotifications, onProfile }: {
-  styles: any; gs: object; c: ThemeColors; t: T;
+export function HomeHeader({ styles, c, t, greetingKey, firstName, avatarInitials, unreadCount, onNotifications, onProfile }: {
+  styles: any; c: ThemeColors; t: T;
   greetingKey: string; firstName: string; avatarInitials: string; unreadCount: number;
   onNotifications: () => void; onProfile: () => void;
 }) {

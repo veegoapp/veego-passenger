@@ -18,6 +18,7 @@ import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { Shadows } from '@/constants/shadows';
+import { GlassView } from '@/components/ui/GlassView';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
@@ -25,11 +26,11 @@ function makeStyles(c: ThemeColors) {
       flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md,
     },
     backBtn: {
-      width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+      width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
     },
     headerText: { flex: 1 },
     headerTitle: {
-      fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
+      fontSize: 20, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
     },
     headerSub: { fontSize: 12.5, color: c.inkSoft, marginTop: 1 },
 
@@ -38,15 +39,15 @@ function makeStyles(c: ThemeColors) {
       flexDirection: 'row', alignItems: 'center', gap: 10,
     },
     inputWrap: {
-      flex: 1, height: 52, borderRadius: 18, borderWidth: 1.5,
+      flex: 1, height: 52,
       flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, gap: 10,
     },
-    inputField: { flex: 1, fontSize: 14.5, fontWeight: Typography.weight.semibold, letterSpacing: 0.5 },
+    inputField: { flex: 1, fontSize: 14.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5 },
     applyBtn: {
       height: 52, paddingHorizontal: 22, borderRadius: 18,
       alignItems: 'center', justifyContent: 'center',
     },
-    applyBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#ffffff' },
+    applyBtnText: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: '#ffffff' },
 
     sectionLabel: {
       fontSize: 11, fontWeight: Typography.weight.bold, color: c.inkSoft,
@@ -54,19 +55,22 @@ function makeStyles(c: ThemeColors) {
       paddingHorizontal: 20, marginBottom: Spacing.md,
     },
     promoList: { paddingHorizontal: 20, gap: Spacing.md },
+    // Shadow lives here (no overflow:'hidden' — that would clip it on iOS);
+    // promoGrad (below) has its own overflow:'hidden' + matching borderRadius
+    // to clip the gradient content to the rounded corners instead.
     promoCard: {
-      borderRadius: 22, overflow: 'hidden',
+      borderRadius: 22,
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.1, shadowRadius: 12, elevation: Shadows.medium.elevation,
     },
-    promoGrad: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+    promoGrad: { padding: 18, borderRadius: 22, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 14 },
     promoIconWrap: {
       width: 52, height: 52, borderRadius: 18,
       backgroundColor: 'rgba(255,255,255,0.2)',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
     promoMeta: { flex: 1 },
-    promoTitle: { fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#ffffff', letterSpacing: -0.2 },
+    promoTitle: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: '#ffffff', letterSpacing: -0.2 },
     promoSub: { fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
     promoExpiry: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: 6 },
     promoExpiryText: { fontSize: 10.5, color: 'rgba(255,255,255,0.6)' },
@@ -79,7 +83,7 @@ function makeStyles(c: ThemeColors) {
       paddingHorizontal: 10, paddingVertical: Spacing.xs,
     },
     promoCodeText: {
-      fontSize: 11, fontWeight: Typography.weight.bold, color: '#ffffff', letterSpacing: 1,
+      fontSize: 11, fontFamily: 'Inter_700Bold', color: '#ffffff', letterSpacing: 1,
     },
 
     successWrap: {
@@ -89,13 +93,13 @@ function makeStyles(c: ThemeColors) {
       width: 90, height: 90, borderRadius: 45,
       backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4, textAlign: 'center' },
+    successTitle: { fontSize: Typography.size.xl, color: c.ink, letterSpacing: -0.4, textAlign: 'center', fontFamily: 'Inter_700Bold' },
     successSub: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
     successBtn: {
       marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 18,
       backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
     },
-    successBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : c.white },
+    successBtnText: { fontSize: 15, color: c.isDark ? c.background : c.white, fontFamily: 'Inter_700Bold' },
 
     emptyState: {
       alignItems: 'center', gap: Spacing.md, paddingVertical: 40, paddingHorizontal: Spacing.xxl,
@@ -129,7 +133,7 @@ function normalizeDiscount(discount: string, egpLabel: string): string {
 export default function PromoScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
+  const { colors: c, t, language, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const isAr = language === 'ar';
 
@@ -190,8 +194,10 @@ export default function PromoScreen() {
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
-        <TouchableOpacity style={[gs, styles.backBtn]} onPress={() => router.back()} activeOpacity={0.8}>
-          {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
+          <GlassView style={styles.backBtn} borderRadius={20}>
+            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+          </GlassView>
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('promo_title')}</Text>
@@ -206,7 +212,7 @@ export default function PromoScreen() {
           </Animated.View>
           <Text style={styles.successTitle}>{t('promo_code_applied')}</Text>
           <Text style={styles.successSub}>
-            <Text style={{ fontWeight: Typography.weight.bold, color: '#55c49a' }}>{appliedCode}</Text>
+            <Text style={{ fontFamily: 'Inter_700Bold', color: '#55c49a' }}>{appliedCode}</Text>
             {'\n'}{t('promo_code_applied_msg')}
           </Text>
           <TouchableOpacity style={styles.successBtn} onPress={() => router.back()} activeOpacity={0.9}>
@@ -217,7 +223,7 @@ export default function PromoScreen() {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           <View style={styles.inputSection}>
             <View style={styles.inputRow}>
-              <View style={[gs, styles.inputWrap, { borderColor: c.border }]}>
+              <GlassView style={styles.inputWrap} borderRadius={18}>
                 <Tag size={16} color={c.inkSoft} />
                 <TextInput
                   style={[styles.inputField, { color: c.ink }]}
@@ -235,7 +241,7 @@ export default function PromoScreen() {
                     <XCircle size={16} color={c.silver} />
                   </TouchableOpacity>
                 )}
-              </View>
+              </GlassView>
               <TouchableOpacity
                 style={[styles.applyBtn, { backgroundColor: code.trim() && !validating ? c.ink : c.mist }]}
                 onPress={() => handleApply(code)}

@@ -26,6 +26,8 @@ import { HelpFaqModal } from '@/components/profile/HelpFaqModal';
 import { ContactSupportModal } from '@/components/profile/ContactSupportModal';
 import { RatingHistoryModal } from '@/components/profile/RatingHistoryModal';
 import { makeStyles, useProfileInfo } from '@/components/profile/shared';
+import { GlassView } from '@/components/ui/GlassView';
+import { Radius } from '@/constants/radius';
 
 type ProfileScreen =
   | 'personal_info'
@@ -41,7 +43,7 @@ type ProfileScreen =
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { colors: c, glassStyle: gs, darkMode, setDarkMode, language, setLanguage, t, isRTL } = useTheme();
+  const { colors: c, darkMode, setDarkMode, language, setLanguage, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
   const { openTerms } = useLocalSearchParams<{ openTerms?: string }>();
@@ -141,7 +143,7 @@ export default function ProfileScreen() {
           />
         }
       >
-        <View style={[gs, styles.heroCard]}>
+        <View style={styles.heroCard}>
           <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3a']} style={styles.heroGrad}>
             <View style={styles.heroGlow} />
             <View style={styles.heroContent}>
@@ -164,7 +166,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('account')}</Text>
-          <View style={[gs, styles.groupCard]}>
+          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
             {[
               { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileScreen },
@@ -178,23 +180,23 @@ export default function ProfileScreen() {
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {item.value && <Text style={styles.settingValue}>{item.value}</Text>}
-                    {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                    {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
                   </View>
                 </TouchableOpacity>
               </View>
             ))}
-          </View>
+          </GlassView>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('preferences')}</Text>
-          <View style={[gs, styles.groupCard]}>
+          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
             <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open('notifications')}>
               <View style={styles.settingIcon}><Bell size={16} color={c.ink} /></View>
               <Text style={styles.settingLabel}>{t('push_notifs')}</Text>
               <View style={styles.settingRight}>
                 <Text style={styles.settingValue}>{t('notif_on')}</Text>
-                {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
               </View>
             </TouchableOpacity>
 
@@ -233,12 +235,12 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </GlassView>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('support')}</Text>
-          <View style={[gs, styles.groupCard]}>
+          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
             {[
               { icon: HelpCircle, label: t('help_faq'), screen: 'help_faq' as ProfileScreen },
               { icon: MessageCircle, label: t('contact_support'), screen: 'contact_support' as ProfileScreen },
@@ -248,16 +250,16 @@ export default function ProfileScreen() {
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open(item.screen)}>
                   <View style={styles.settingIcon}><item.icon size={16} color={c.ink} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
-                  {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                  {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
                 </TouchableOpacity>
               </View>
             ))}
-          </View>
+          </GlassView>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('app_version_label')}</Text>
-          <View style={[gs, styles.groupCard]}>
+          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
             {[
               { icon: FileText, label: t('terms_of_service'), onPress: () => open('terms') },
               { icon: Info, label: t('about_veego'), value: 'v1.0.0', onPress: () => {} },
@@ -269,16 +271,15 @@ export default function ProfileScreen() {
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {(item as any).value && <Text style={styles.settingValue}>{(item as any).value}</Text>}
-                    {isRTL ? <ChevronLeft size={14} color={c.silver} /> : <ChevronRight size={14} color={c.silver} />}
+                    {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
                   </View>
                 </TouchableOpacity>
               </View>
             ))}
-          </View>
+          </GlassView>
         </View>
 
         <TouchableOpacity
-          style={styles.logoutBtn}
           activeOpacity={0.8}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -288,8 +289,10 @@ export default function ProfileScreen() {
             ]);
           }}
         >
-          <LogOut size={16} color={c.badge} />
-          <Text style={styles.logoutText}>{t('sign_out')}</Text>
+          <GlassView style={styles.logoutBtn} borderRadius={20}>
+            <LogOut size={16} color={c.badge} />
+            <Text style={styles.logoutText}>{t('sign_out')}</Text>
+          </GlassView>
         </TouchableOpacity>
 
         <View style={{ height: 120 }} />

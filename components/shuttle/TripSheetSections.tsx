@@ -18,6 +18,7 @@ import type { ThemeColors } from '@/constants/colors';
 import type { Route } from '@/constants/data';
 import { DATES, formatCairoTime, shuttleStatusLabel } from '@/constants/data';
 import { Spacing } from '@/constants/spacing';
+import { GlassView } from '@/components/ui/GlassView';
 import {
   ACTIVE_STATUSES, isTripBookable, shuttleStatusColor, formatTripDateUTC,
 } from './tripSheetHelpers';
@@ -107,45 +108,51 @@ export function StatsRow({ styles, c, t, route, visibleTripsCount }: {
 }) {
   return (
     <View style={styles.statsRow}>
-      <LinearGradient
-        colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-        style={styles.statCard}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.statIconBox}>
-          <Bus size={13} color={c.ink} />
-        </View>
-        <View>
-          <Text style={styles.statValue}>{(route.departureCount ?? visibleTripsCount) || route.stations}</Text>
-          <Text style={styles.statLabel}>{t('departure')}</Text>
-        </View>
-      </LinearGradient>
-      <LinearGradient
-        colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-        style={styles.statCard}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.statIconBox}>
-          <Clock size={13} color={c.ink} />
-        </View>
-        <View>
-          <Text style={styles.statValue}>{route.duration ?? '—'}</Text>
-          <Text style={styles.statLabel}>{t('trip_duration')}</Text>
-        </View>
-      </LinearGradient>
-      <LinearGradient
-        colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-        style={styles.statCard}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.statIconBox}>
-          <Ticket size={13} color={c.ink} />
-        </View>
-        <View>
-          <Text style={styles.statValue}>{route.price}</Text>
-          <Text style={styles.statLabel}>{t('egp')}</Text>
-        </View>
-      </LinearGradient>
+      <View style={styles.statCardWrap}>
+        <LinearGradient
+          colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+          style={styles.statCard}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.statIconBox}>
+            <Bus size={13} color={c.ink} />
+          </View>
+          <View>
+            <Text style={styles.statValue}>{(route.departureCount ?? visibleTripsCount) || route.stations}</Text>
+            <Text style={styles.statLabel}>{t('departure')}</Text>
+          </View>
+        </LinearGradient>
+      </View>
+      <View style={styles.statCardWrap}>
+        <LinearGradient
+          colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+          style={styles.statCard}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.statIconBox}>
+            <Clock size={13} color={c.ink} />
+          </View>
+          <View>
+            <Text style={styles.statValue}>{route.duration ?? '—'}</Text>
+            <Text style={styles.statLabel}>{t('trip_duration')}</Text>
+          </View>
+        </LinearGradient>
+      </View>
+      <View style={styles.statCardWrap}>
+        <LinearGradient
+          colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+          style={styles.statCard}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.statIconBox}>
+            <Ticket size={13} color={c.ink} />
+          </View>
+          <View>
+            <Text style={styles.statValue}>{route.price}</Text>
+            <Text style={styles.statLabel}>{t('egp')}</Text>
+          </View>
+        </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -293,10 +300,10 @@ export function TripCard({ styles, c, t, isAr, trip, index, active, onPress }: {
 
 /** ── Station picker: from/to tabs + station timeline ── */
 export function StationPicker({
-  styles, gs, c, t, isAr, route, routeLoading, hasPath,
+  styles, c, t, isAr, route, routeLoading, hasPath,
   pick, setPick, safeFrom, safeTo, lo, hi, pickStation, visibleStationIndices, onRetry,
 }: {
-  styles: any; gs: object; c: ThemeColors; t: T; isAr: boolean; route: Route;
+  styles: any; c: ThemeColors; t: T; isAr: boolean; route: Route;
   routeLoading: boolean; hasPath: boolean; pick: 'from' | 'to';
   setPick: (p: 'from' | 'to') => void; safeFrom: number; safeTo: number;
   lo: number; hi: number; pickStation: (idx: number) => void;
@@ -323,7 +330,7 @@ export function StationPicker({
         </View>
       ) : (
         <>
-          <View style={[gs, styles.pickTabWrap]}>
+          <GlassView style={styles.pickTabWrap} borderRadius={18}>
             {(['from', 'to'] as const).map((p) => {
               const active = pick === p;
               const stationName = p === 'from'
@@ -341,7 +348,7 @@ export function StationPicker({
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </GlassView>
 
           <View style={styles.timeline}>
             {visibleStationIndices.map((i, pos) => {

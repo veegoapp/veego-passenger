@@ -204,7 +204,7 @@ export default function HomeScreen() {
   const { time: heroTime } = shuttleHeroSession
     ? formatCairoDateTime(shuttleHeroSession.trip.departureTime)
     : { time: '' };
-  const { colors: c, glassStyle: gs, t, isRTL, language } = useTheme();
+  const { colors: c, t, isRTL, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes, refresh: refreshRoutes } = useRoutes();
@@ -444,7 +444,7 @@ export default function HomeScreen() {
         >
           <View style={{ paddingTop: top }}>
             <HomeHeader
-              styles={styles} gs={gs} c={c} t={t as (key: string) => string}
+              styles={styles} c={c} t={t as (key: string) => string}
               greetingKey={greetingKey} firstName={firstName} avatarInitials={avatarInitials}
               unreadCount={unreadCount}
               onNotifications={() => router.push('/notifications')}

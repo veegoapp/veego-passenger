@@ -17,6 +17,7 @@ import { getErrorMessage } from '@/src/utils/errorMessages';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
+import { GlassView } from '@/components/ui/GlassView';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 
@@ -31,7 +32,7 @@ const ISSUE_MAP: Record<string, { subject: string; category: string }> = {
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md },
-    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
     headerText: { flex: 1 },
     headerTitle: {
       fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
@@ -58,7 +59,7 @@ function makeStyles(c: ThemeColors) {
       shadowColor: c.ink, shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.25, shadowRadius: 14, elevation: 6,
     },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.bold },
+    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontFamily: 'Inter_700Bold' },
 
     successWrap: {
       flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.lg,
@@ -67,23 +68,24 @@ function makeStyles(c: ThemeColors) {
       width: 90, height: 90, borderRadius: 45,
       backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4, textAlign: 'center' },
+    successTitle: { fontSize: Typography.size.xl, color: c.ink, letterSpacing: -0.4, textAlign: 'center', fontFamily: 'Inter_700Bold' },
     successSub: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
     successBtn: {
       marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 18,
       backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
     },
-    successBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.isDark ? c.background : c.white },
+    successBtnText: { fontSize: 15, color: c.isDark ? c.background : c.white, fontFamily: 'Inter_700Bold' },
 
     contactRow: { flexDirection: 'row', gap: 10 },
+    // GlassView owns background/border — this only needs inner layout.
     contactCard: {
-      flex: 1, borderRadius: 20, padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm,
+      flex: 1, padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm,
     },
     contactIcon: {
       width: 48, height: 48, borderRadius: Radius.lg,
       alignItems: 'center', justifyContent: 'center',
     },
-    contactLabel: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: c.ink },
+    contactLabel: { fontSize: Typography.size.xs, fontFamily: 'Inter_600SemiBold', color: c.ink },
     contactSub: { fontSize: 11, color: c.inkSoft, textAlign: 'center' },
   });
 }
@@ -91,7 +93,7 @@ function makeStyles(c: ThemeColors) {
 export default function SupportScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { colors: c, glassStyle: gs, t, isRTL } = useTheme();
+  const { colors: c, t, isRTL } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
@@ -131,8 +133,10 @@ export default function SupportScreen() {
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
-        <TouchableOpacity style={[gs, styles.backBtn]} onPress={() => router.back()} activeOpacity={0.8}>
-          {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
+          <GlassView style={styles.backBtn} borderRadius={20}>
+            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+          </GlassView>
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('contact_title')}</Text>
@@ -166,18 +170,20 @@ export default function SupportScreen() {
               ].map((item) => (
                 <TouchableOpacity
                   key={item.label}
-                  style={[gs, styles.contactCard]}
+                  style={{ flex: 1 }}
                   activeOpacity={0.85}
                   onPress={() => {
                     Haptics.selectionAsync();
                     showAppAlert(item.label, item.sub);
                   }}
                 >
-                  <View style={[styles.contactIcon, { backgroundColor: item.bg }]}>
-                    <item.icon size={22} color={item.color} />
-                  </View>
-                  <Text style={styles.contactLabel}>{item.label}</Text>
-                  <Text style={styles.contactSub}>{item.sub}</Text>
+                  <GlassView style={styles.contactCard} borderRadius={20}>
+                    <View style={[styles.contactIcon, { backgroundColor: item.bg }]}>
+                      <item.icon size={22} color={item.color} />
+                    </View>
+                    <Text style={styles.contactLabel}>{item.label}</Text>
+                    <Text style={styles.contactSub}>{item.sub}</Text>
+                  </GlassView>
                 </TouchableOpacity>
               ))}
             </View>

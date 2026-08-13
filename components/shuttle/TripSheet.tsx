@@ -31,7 +31,7 @@ import {
   RouteHero, StatsRow, DateSelector, TripCard, StationPicker, PriceSummary,
 } from './TripSheetSections';
 
-function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
+function makeStyles(c: ThemeColors, insetsBottom: number) {
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 9999, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -104,14 +104,18 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
     journeyConnector: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: Spacing.md },
     journeyConnectorActive: { backgroundColor: 'rgba(255,255,255,0.65)' },
 
-    /* Stat cards row — compact horizontal */
+    /* Stat cards row — compact horizontal.
+     * Shadow lives on statCardWrap (no overflow:'hidden' — that would clip it
+     * on iOS); statCard (the LinearGradient itself) clips its own corners. */
     statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md, marginTop: 10, marginBottom: Spacing.xs },
-    statCard: {
-      flex: 1, borderRadius: 14, paddingHorizontal: 10, paddingVertical: Spacing.sm,
-      overflow: 'hidden',
-      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    statCardWrap: {
+      flex: 1, borderRadius: 14,
       shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
       shadowOpacity: c.isDark ? 0.25 : 0.06, shadowRadius: 8, elevation: 3,
+    },
+    statCard: {
+      borderRadius: 14, overflow: 'hidden', paddingHorizontal: 10, paddingVertical: Spacing.sm,
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
     },
     statIconBox: {
       width: 26, height: 26, borderRadius: Radius.sm,
@@ -194,10 +198,10 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
     noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xl },
 
     /* Station picker */
-    pickTabWrap: { flexDirection: 'row', padding: Spacing.xs, borderRadius: 18, gap: 2, backgroundColor: c.mist },
+    pickTabWrap: { flexDirection: 'row', padding: Spacing.xs, gap: 2, backgroundColor: c.mist },
     pickTab: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.sm },
     pickTabActive: { backgroundColor: c.ink, shadowColor: c.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: Shadows.medium.elevation },
-    pickTabText: { fontSize: 12.5, fontWeight: Typography.weight.medium },
+    pickTabText: { fontSize: 12.5, fontFamily: 'Inter_600SemiBold' },
 
     timeline: { marginTop: Spacing.md, backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, gap: 0, borderWidth: 1, borderColor: c.border },
     timelineRow: { flexDirection: 'row', gap: Spacing.md, paddingBottom: Spacing.md },
@@ -211,7 +215,7 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
     tlLineInactive: { backgroundColor: 'rgba(195,195,204,0.4)' },
     timelineRight: { flex: 1, paddingBottom: Spacing.xs },
     timelineTextRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-    tlName: { fontSize: 13.5, fontWeight: Typography.weight.medium },
+    tlName: { fontSize: 13.5, fontFamily: 'Inter_600SemiBold' },
     tlBadge: { backgroundColor: c.ink, borderRadius: 99, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
     tlBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.isDark ? c.background : c.white, textTransform: 'uppercase', letterSpacing: 0.8 },
     tlArea: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
@@ -252,25 +256,30 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
     },
     serviceBannerText: { flex: 1, fontSize: 12.5, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 18 },
 
-    /* CTA */
+    /* CTA.
+     * Shadow lives on ctaBtn (no overflow:'hidden' — that would clip it on
+     * iOS); ctaBtnGradient clips the gradient itself to the rounded corners. */
     cta: {
       padding: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.lg + insetsBottom,
       borderTopWidth: 1, borderTopColor: c.border,
     },
     ctaBtn: {
-      height: 58, borderRadius: 22, overflow: 'hidden',
+      height: 58, borderRadius: 22,
       shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
     },
     ctaBtnGradient: {
-      flex: 1,
+      flex: 1, borderRadius: 22, overflow: 'hidden',
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     },
-    ctaBtnText: { color: '#ffffff', fontSize: 15.5, fontWeight: Typography.weight.bold, letterSpacing: -0.2 },
+    ctaBtnText: { color: '#ffffff', fontSize: 15.5, fontFamily: 'Inter_700Bold', letterSpacing: -0.2 },
 
-    /* Request a Trip */
+    /* Request a Trip.
+     * No overflow:'hidden' here — requestTripBtnInner already clips its own
+     * corners (it has no decorative content that bleeds past its bounds), so
+     * this only needed the flag to stop the shadow below from rendering. */
     requestTripBtn: {
       marginHorizontal: Spacing.lg, marginTop: 14, marginBottom: 2,
-      borderRadius: Radius.lg, overflow: 'hidden',
+      borderRadius: Radius.lg,
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
     },
@@ -280,14 +289,14 @@ function makeStyles(c: ThemeColors, gs: object, insetsBottom: number) {
       backgroundColor: c.isDark ? 'rgba(85,196,154,0.16)' : 'rgba(85,196,154,0.12)',
       borderWidth: 1, borderColor: c.isDark ? 'rgba(85,196,154,0.4)' : 'rgba(85,196,154,0.32)',
     },
-    requestTripBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: c.accent, letterSpacing: -0.2 },
+    requestTripBtnText: { fontSize: 15, fontFamily: 'Inter_700Bold', color: c.accent, letterSpacing: -0.2 },
 
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
     loadingText: { fontSize: 13, color: c.inkSoft },
     errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
     retryBtn: { marginTop: Spacing.xs, paddingHorizontal: 20, paddingVertical: Spacing.sm, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border },
-    retryBtnText: { fontSize: 13, fontWeight: Typography.weight.medium, color: c.ink },
+    retryBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.ink },
   });
 }
 
@@ -298,10 +307,10 @@ export function TripSheet() {
     openRoute, seatCount, setSeatCount,
   } = useBooking();
   const { getService, handleServiceTap } = useServiceControl();
-  const { colors: c, glassStyle: gs, t, language, isRTL } = useTheme();
+  const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => makeStyles(c, gs, insets.bottom), [c, gs, insets.bottom]);
+  const styles = useMemo(() => makeStyles(c, insets.bottom), [c, insets.bottom]);
 
   const shuttleSvc = getService('shuttle');
   const shuttleServiceEnabled: boolean = !shuttleSvc || (shuttleSvc.isEnabled && shuttleSvc.displayMode === 'live');
@@ -573,7 +582,7 @@ export function TripSheet() {
 
           {/* ── Station picker ── */}
           <StationPicker
-            styles={styles} gs={gs} c={c} t={t as (key: string) => string} isAr={isAr}
+            styles={styles} c={c} t={t as (key: string) => string} isAr={isAr}
             route={route} routeLoading={routeLoading} hasPath={hasPath}
             pick={pick} setPick={setPick} safeFrom={safeFrom} safeTo={safeTo}
             lo={lo} hi={hi} pickStation={pickStation}
