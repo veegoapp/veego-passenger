@@ -96,9 +96,11 @@ export function makeGlassStyle(c: ThemeColors) {
   return {
     backgroundColor: c.isDark ? 'rgba(28,30,54,0.94)' : 'rgba(255,255,255,0.78)',
 
-    // 🛠️ التعديل هنا: تم إخفاء الخط تماماً بجعل السُمك 0 واللون شفاف
-    borderWidth: 0,
-    borderColor: 'transparent',
+    // Matches GlassView's own border treatment (components/ui/GlassView.tsx) —
+    // a defined edge is what gives glass surfaces depth/structure instead of
+    // reading as a flat, washed-out panel.
+    borderWidth: 1,
+    borderColor: c.border,
 
     shadowColor: c.isDark ? '#000' : '#1e1e28',
     shadowOffset: { width: 0, height: 6 },

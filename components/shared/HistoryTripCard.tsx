@@ -7,6 +7,7 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { Typography } from '@/constants/typography';
 import { shuttleStatusLabel, type Trip, type TripType } from '@/constants/data';
+import { GlassView } from '@/components/ui/GlassView';
 
 const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {
   shuttle: Bus,
@@ -35,7 +36,7 @@ interface HistoryTripCardProps {
  * reads the already-normalized `Trip` model; no API calls, no cancel action.
  */
 export function HistoryTripCard({ trip, accentColor, onPress }: HistoryTripCardProps) {
-  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const { colors: c, t, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -45,39 +46,41 @@ export function HistoryTripCard({ trip, accentColor, onPress }: HistoryTripCardP
   const TripTypeIcon = TYPE_ICONS[trip.type];
 
   return (
-    <TouchableOpacity style={[gs, styles.card]} onPress={onPress} disabled={!onPress} activeOpacity={0.9}>
-      <View style={[styles.accent, { backgroundColor: accentColor }]} />
+    <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.9}>
+      <GlassView style={styles.card} borderRadius={Radius.xl}>
+        <View style={[styles.accent, { backgroundColor: accentColor }]} />
 
-      <View style={styles.top}>
-        <View style={styles.iconBox}>
-          <TripTypeIcon size={18} color={c.isDark ? c.background : c.white} />
+        <View style={styles.top}>
+          <View style={styles.iconBox}>
+            <TripTypeIcon size={18} color={c.isDark ? c.background : c.white} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.routeName} numberOfLines={1}>{routeName}</Text>
+            <Text style={styles.dateText}>{trip.date} · {trip.time}</Text>
+          </View>
+          <TripStatusBadge status={trip.status} c={c} t={t} isAr={isAr} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.routeName} numberOfLines={1}>{routeName}</Text>
-          <Text style={styles.dateText}>{trip.date} · {trip.time}</Text>
-        </View>
-        <TripStatusBadge status={trip.status} c={c} t={t} isAr={isAr} />
-      </View>
 
-      <View style={styles.route}>
-        <View style={styles.station}>
-          <View style={[styles.dot, { backgroundColor: c.ink }]} />
-          <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
+        <View style={styles.route}>
+          <View style={styles.station}>
+            <View style={[styles.dot, { backgroundColor: c.ink }]} />
+            <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
+          </View>
+          <View style={styles.line} />
+          <View style={styles.station}>
+            <View style={[styles.dot, { backgroundColor: c.accentMint }]} />
+            <Text style={styles.stationText} numberOfLines={1}>{to}</Text>
+          </View>
         </View>
-        <View style={styles.line} />
-        <View style={styles.station}>
-          <View style={[styles.dot, { backgroundColor: c.accentMint }]} />
-          <Text style={styles.stationText} numberOfLines={1}>{to}</Text>
-        </View>
-      </View>
 
-      <View style={styles.bottom}>
-        <View style={styles.typeBadge}>
-          <TripTypeIcon size={10} color={c.inkSoft} />
-          <Text style={styles.typeBadgeText}>{t(`trip_type_${trip.type}` as any)}</Text>
+        <View style={styles.bottom}>
+          <View style={styles.typeBadge}>
+            <TripTypeIcon size={10} color={c.inkSoft} />
+            <Text style={styles.typeBadgeText}>{t(`trip_type_${trip.type}` as any)}</Text>
+          </View>
+          <Text style={styles.price}>{trip.price} {t('egp')}</Text>
         </View>
-        <Text style={styles.price}>{trip.price} {t('egp')}</Text>
-      </View>
+      </GlassView>
     </TouchableOpacity>
   );
 }
@@ -120,26 +123,28 @@ const badgeStyles = StyleSheet.create({
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
+    // GlassView (same primitive the Driver app's trips.tsx card uses) now owns
+    // the background/border — this only needs inner layout.
     card: {
-      borderRadius: Radius.xl,
       padding: Spacing.lg,
       overflow: 'hidden',
-      backgroundColor: c.isDark ? c.surface ?? '#1c1c1e' : c.white,
       gap: Spacing.md,
     },
-    accent: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60 },
+    // 4px left-edge accent stripe (mirrors Driver's tripCardAccent) instead of
+    // the old soft corner blob — a clearer status/route-color indicator.
+    accent: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 4, borderRadius: 2 },
     top: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     iconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    routeName: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
-    dateText: { fontSize: 11.5, color: c.inkSoft, marginTop: 1 },
+    routeName: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: c.ink },
+    dateText: { fontSize: 11.5, color: c.inkSoft, marginTop: 1, fontFamily: 'Inter_600SemiBold' },
     route: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     station: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     dot: { width: 8, height: 8, borderRadius: 4 },
-    stationText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium, color: c.ink },
+    stationText: { fontSize: Typography.size.xs, fontFamily: 'Inter_600SemiBold', color: c.ink },
     line: { flex: 1, height: 1, backgroundColor: c.silver, opacity: 0.7 },
     bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     typeBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 3, backgroundColor: 'rgba(0,0,0,0.06)' },
     typeBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.inkSoft },
-    price: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    price: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: c.ink },
   });
 }

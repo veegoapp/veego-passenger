@@ -7,6 +7,7 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { Typography } from '@/constants/typography';
 import { shuttleStatusLabel, type Trip, type BookingStatus } from '@/constants/data';
+import { GlassView } from '@/components/ui/GlassView';
 
 const BOOKING_STATUS_LABEL: Record<BookingStatus, { en: string; ar: string }> = {
   pending:   { en: 'Pending',   ar: 'قيد الانتظار' },
@@ -52,7 +53,7 @@ export function UpcomingTripCard({
   onPress,
   onCancelPress,
 }: UpcomingTripCardProps) {
-  const { colors: c, glassStyle: gs, t, language } = useTheme();
+  const { colors: c, t, language } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -75,85 +76,87 @@ export function UpcomingTripCard({
   const driverRating = (trip as { driverRating?: number | null }).driverRating;
 
   return (
-    <TouchableOpacity style={[gs, styles.card]} onPress={onPress} activeOpacity={0.9}>
-      <View style={[styles.accent, { backgroundColor: accentColor }]} />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+      <GlassView style={styles.card} borderRadius={Radius.xl}>
+        <View style={[styles.accent, { backgroundColor: accentColor }]} />
 
-      <View style={styles.top}>
-        <View style={styles.iconBox}>
-          <Bus size={18} color={c.isDark ? c.background : c.white} />
-          {isLive && (
-            <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-            </View>
-          )}
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.routeName} numberOfLines={1}>{routeName}</Text>
-          <Text style={styles.dateText}>{trip.date} · {trip.time}</Text>
-        </View>
-        <View style={styles.statusStack}>
-          <TripStatusBadge status={tripStatus} c={c} t={t} isAr={isAr} />
-          {!!bookingLabel && (
-            <View style={[styles.bookingBadge, { borderColor: c.border }]}>
-              <Text style={styles.bookingBadgeText}>{bookingLabel}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.route}>
-        <View style={styles.station}>
-          <View style={[styles.dot, { backgroundColor: c.ink }]} />
-          <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
-        </View>
-        <View style={styles.line} />
-        <View style={styles.station}>
-          <View style={[styles.dot, { backgroundColor: c.accentMint }]} />
-          <Text style={styles.stationText} numberOfLines={1}>{to}</Text>
-        </View>
-      </View>
-
-      {hasCapacity && (
-        <View style={styles.capacityWrap}>
-          <View style={styles.capacityLabelRow}>
-            <Text style={styles.capacityLabel}>{t('passengers')}</Text>
-            <Text style={styles.capacityCount}>{capacityText}</Text>
+        <View style={styles.top}>
+          <View style={styles.iconBox}>
+            <Bus size={18} color={c.isDark ? c.background : c.white} />
+            {isLive && (
+              <View style={styles.liveIndicator}>
+                <View style={styles.liveDot} />
+              </View>
+            )}
           </View>
-          <View style={styles.capacityTrack}>
-            <View style={[styles.capacityFill, { width: `${capacityPct}%` as any, backgroundColor: capacityColor }]} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.routeName} numberOfLines={1}>{routeName}</Text>
+            <Text style={styles.dateText}>{trip.date} · {trip.time}</Text>
+          </View>
+          <View style={styles.statusStack}>
+            <TripStatusBadge status={tripStatus} c={c} t={t} isAr={isAr} />
+            {!!bookingLabel && (
+              <View style={[styles.bookingBadge, { borderColor: c.border }]}>
+                <Text style={styles.bookingBadgeText}>{bookingLabel}</Text>
+              </View>
+            )}
           </View>
         </View>
-      )}
 
-      {!!driverName && (
-        <View style={styles.driverRow}>
-          <User size={13} color={c.inkSoft} />
-          <Text style={styles.driverName} numberOfLines={1}>{driverName}</Text>
-          {typeof driverRating === 'number' && (
-            <View style={styles.ratingRow}>
-              <Star size={12} color="#f5b93e" fill="#f5b93e" />
-              <Text style={styles.ratingText}>{driverRating.toFixed(1)}</Text>
-            </View>
-          )}
+        <View style={styles.route}>
+          <View style={styles.station}>
+            <View style={[styles.dot, { backgroundColor: c.ink }]} />
+            <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
+          </View>
+          <View style={styles.line} />
+          <View style={styles.station}>
+            <View style={[styles.dot, { backgroundColor: c.accentMint }]} />
+            <Text style={styles.stationText} numberOfLines={1}>{to}</Text>
+          </View>
         </View>
-      )}
 
-      <View style={styles.bottom}>
-        <Text style={styles.price}>{trip.price} {t('egp')}</Text>
-        {canCancel && (
-          <TouchableOpacity
-            style={[styles.cancelBtn, { borderColor: c.badge, opacity: isCancelling ? 0.5 : 1 }]}
-            onPress={(e) => { (e as any).stopPropagation?.(); onCancelPress(); }}
-            disabled={isCancelling}
-            activeOpacity={0.7}
-          >
-            <X size={12} color={c.badge} strokeWidth={2.5} />
-            <Text style={[styles.cancelBtnText, { color: c.badge }]}>
-              {isCancelling ? `${t('cancel_trip')}...` : t('cancel_trip')}
-            </Text>
-          </TouchableOpacity>
+        {hasCapacity && (
+          <View style={styles.capacityWrap}>
+            <View style={styles.capacityLabelRow}>
+              <Text style={styles.capacityLabel}>{t('passengers')}</Text>
+              <Text style={styles.capacityCount}>{capacityText}</Text>
+            </View>
+            <View style={styles.capacityTrack}>
+              <View style={[styles.capacityFill, { width: `${capacityPct}%` as any, backgroundColor: capacityColor }]} />
+            </View>
+          </View>
         )}
-      </View>
+
+        {!!driverName && (
+          <View style={styles.driverRow}>
+            <User size={13} color={c.inkSoft} />
+            <Text style={styles.driverName} numberOfLines={1}>{driverName}</Text>
+            {typeof driverRating === 'number' && (
+              <View style={styles.ratingRow}>
+                <Star size={12} color="#f5b93e" fill="#f5b93e" />
+                <Text style={styles.ratingText}>{driverRating.toFixed(1)}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={styles.bottom}>
+          <Text style={styles.price}>{trip.price} {t('egp')}</Text>
+          {canCancel && (
+            <TouchableOpacity
+              style={[styles.cancelBtn, { borderColor: c.badge, opacity: isCancelling ? 0.5 : 1 }]}
+              onPress={(e) => { (e as any).stopPropagation?.(); onCancelPress(); }}
+              disabled={isCancelling}
+              activeOpacity={0.7}
+            >
+              <X size={12} color={c.badge} strokeWidth={2.5} />
+              <Text style={[styles.cancelBtnText, { color: c.badge }]}>
+                {isCancelling ? `${t('cancel_trip')}...` : t('cancel_trip')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </GlassView>
     </TouchableOpacity>
   );
 }
@@ -196,27 +199,29 @@ const badgeStyles = StyleSheet.create({
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
+    // GlassView (same primitive the Driver app's trips.tsx card uses) now owns
+    // the background/border — this only needs inner layout.
     card: {
-      borderRadius: Radius.xl,
       padding: Spacing.lg,
       overflow: 'hidden',
-      backgroundColor: c.isDark ? c.surface ?? '#1c1c1e' : c.white,
       gap: Spacing.md,
     },
-    accent: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60 },
+    // 4px left-edge accent stripe (mirrors Driver's tripCardAccent) instead of
+    // the old soft corner blob — a clearer status/route-color indicator.
+    accent: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 4, borderRadius: 2 },
     top: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
     iconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
     liveIndicator: { position: 'absolute', top: -3, right: -3, width: 10, height: 10, borderRadius: 5, backgroundColor: c.white, alignItems: 'center', justifyContent: 'center' },
     liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#55c49a' },
-    routeName: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
-    dateText: { fontSize: 11.5, color: c.inkSoft, marginTop: 1 },
+    routeName: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: c.ink },
+    dateText: { fontSize: 11.5, color: c.inkSoft, marginTop: 1, fontFamily: 'Inter_600SemiBold' },
     statusStack: { alignItems: 'flex-end', gap: 5 },
     bookingBadge: { borderWidth: 1, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
     bookingBadgeText: { fontSize: 10, fontWeight: Typography.weight.medium, color: c.inkSoft },
     route: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     station: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     dot: { width: 8, height: 8, borderRadius: 4 },
-    stationText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.medium, color: c.ink },
+    stationText: { fontSize: Typography.size.xs, fontFamily: 'Inter_600SemiBold', color: c.ink },
     line: { flex: 1, height: 1, backgroundColor: c.silver, opacity: 0.7 },
     capacityWrap: { gap: 5 },
     capacityLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -229,7 +234,7 @@ function makeStyles(c: ThemeColors) {
     ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
     ratingText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft },
     bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    price: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+    price: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: c.ink },
     cancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 10, paddingHorizontal: Spacing.md, paddingVertical: 7 },
     cancelBtnText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
   });
