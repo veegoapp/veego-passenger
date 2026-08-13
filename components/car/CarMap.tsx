@@ -23,6 +23,10 @@ interface Coords { latitude: number; longitude: number }
 // to feel responsive.
 const OVERVIEW_HOLD_MS = 1500;
 
+// Horizontal accuracy (metres) below which the passenger's own-location watch
+// is considered "settled" — see the userLocation effect below.
+const GOOD_ENOUGH_ACCURACY_M = 15;
+
 interface CarMapProps {
   /** Initial/recovered seed only (e.g. rideState.driverLocation from a REST
    *  poll or ActiveSession snapshot). Once `rideId` is set, live ticks are
@@ -80,14 +84,16 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   // re-assignment after a cancel triggers a fresh fit.
   const driverFittedRef = useRef(false);
 
-  // Animated driver marker — glides between GPS ticks instead of snapping,
-  // and rotates to match heading. AnimatedRegion creation, stop-before-start
-  // guard, and 800 ms timing are handled by useAnimatedDriverMarker.
-  // No initialCoords needed — the marker only renders when driverLocation is
-  // non-null (guarded by showDriverMarker && driverLocation in JSX).
+  // Animated driver marker — glides between GPS ticks instead of snapping.
+  // AnimatedRegion creation, stop-before-start guard, and 800 ms timing are
+  // handled by useAnimatedDriverMarker. No initialCoords needed — the marker
+  // only renders when driverLocation is non-null (guarded by
+  // showDriverMarker && driverLocation in JSX). The hook's own `rotation`
+  // output is unused here — the marker is a symmetrical dot (see DriverMarker)
+  // that doesn't rotate with heading; heading is still consumed via
+  // headingRef below, for the follow camera.
   const {
     animatedCoord: animatedDriverCoord,
-    rotation: driverRotation,
     headingRef: driverHeadingRef,
     positionRef: driverPositionRef,
   } = useAnimatedDriverMarker({ driverLocation });
@@ -128,21 +134,20 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
 
   useEffect(() => {
     let cancelled = false;
-    let refineSub: Location.LocationSubscription | null = null;
-    let refineTimeout: ReturnType<typeof setTimeout> | null = null;
-    // Best (lowest) horizontal accuracy in metres seen so far during refinement.
+    let watchSub: Location.LocationSubscription | null = null;
+    // Best (lowest) horizontal accuracy in metres seen so far. Until a fix at
+    // or under GOOD_ENOUGH_ACCURACY_M has been seen, a later tick is only
+    // applied if it improves on the best seen so far — protects against the
+    // GPS chip's noisy "cold" first readings (commonly 50m+ off) visibly
+    // snapping the dot backward. Once settled, every subsequent tick is
+    // applied unconditionally: normal continuous tracking.
     let bestAccuracyM = Infinity;
+    let settled = false;
 
     const applyCoords = (coords: Coords) => {
       if (cancelled) return;
       setUserLocation(coords);
       onUserLocationRef.current?.(coords);
-    };
-
-    const stopRefining = () => {
-      refineSub?.remove();
-      refineSub = null;
-      if (refineTimeout) { clearTimeout(refineTimeout); refineTimeout = null; }
     };
 
     (async () => {
@@ -162,39 +167,39 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         if (cancelled) return;
         const coords: Coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         bestAccuracyM = loc.coords.accuracy ?? Infinity;
+        settled = bestAccuracyM <= GOOD_ENOUGH_ACCURACY_M;
         applyCoords(coords);
         runOrQueueCamera(() => {
           mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.012, longitudeDelta: 0.012 }, 800);
         });
 
-        // ── Refinement window ────────────────────────────────────────────
-        // A single one-shot fix, taken the instant this screen mounts, can
-        // land on the GPS chip's very first ("cold") reading — commonly 50m+
-        // off (a couple of streets in a dense area) until the chip settles.
-        // Keep watching for a few seconds and only adopt a NEW fix if it's
-        // more accurate than anything seen so far, stopping once accuracy is
-        // good (<=15m) or GOOD_ENOUGH_MS elapses — bounded so this never
-        // drains battery browsing the booking screen indefinitely. Routes
-        // through the same applyCoords → onUserLocation path CarServiceScreen
-        // already guards against overwriting a manually-picked pickup.
-        const GOOD_ENOUGH_M = 15;
-        const REFINE_WINDOW_MS = 8000;
-        if (bestAccuracyM > GOOD_ENOUGH_M) {
-          const sub = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
-            (update) => {
-              const acc = update.coords.accuracy ?? Infinity;
-              if (acc >= bestAccuracyM) return; // not an improvement — ignore
+        // ── Continuous idle / pre-ride tracking ──────────────────────────
+        // This used to be a bounded "refinement window" that stopped itself
+        // after 8 seconds (or once accuracy was good enough) — so the
+        // passenger's own position froze for the rest of the session the
+        // instant that window closed, even while they kept moving. CarMap
+        // stays mounted behind trip-tracking navigation (see the component
+        // doc comment above), so in practice that could be most of a session.
+        // The subscription now runs for the component's full lifetime,
+        // stopped only on unmount below — real continuous tracking, matching
+        // how the driver app's own idle-map GPS subscription behaves
+        // (useGPSProvider.tsx).
+        const sub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 5 },
+          (update) => {
+            const acc = update.coords.accuracy ?? Infinity;
+            const next: Coords = { latitude: update.coords.latitude, longitude: update.coords.longitude };
+            if (!settled) {
+              if (acc > bestAccuracyM) return; // not an improvement yet — ignore
               bestAccuracyM = acc;
-              applyCoords({ latitude: update.coords.latitude, longitude: update.coords.longitude });
-              if (acc <= GOOD_ENOUGH_M) stopRefining();
-            },
-          );
-          // The component may have unmounted while this await was in flight.
-          if (cancelled) { sub.remove(); return; }
-          refineSub = sub;
-          refineTimeout = setTimeout(stopRefining, REFINE_WINDOW_MS);
-        }
+              if (acc <= GOOD_ENOUGH_ACCURACY_M) settled = true;
+            }
+            applyCoords(next);
+          },
+        );
+        // The component may have unmounted while this await was in flight.
+        if (cancelled) { sub.remove(); return; }
+        watchSub = sub;
       } catch (err: any) {
         console.error('[car map] initial location fetch failed', err?.message);
       }
@@ -202,7 +207,8 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
 
     return () => {
       cancelled = true;
-      stopRefining();
+      watchSub?.remove();
+      watchSub = null;
     };
   }, []);
 
@@ -346,14 +352,10 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         {showDriverMarker && driverLocation && (
           <MarkerAnimated
             coordinate={animatedDriverCoord}
-            // Car: anchor slightly toward the rear so the GPS point sits at the
-            // rear/middle and the car pivots realistically; flat so it rotates
-            // in the map plane (course-up). Arrow markers keep their upright,
-            // centered behavior.
-            anchor={(serviceType ?? 'car') === 'car' ? { x: 0.5, y: 0.6 } : { x: 0.5, y: 0.5 }}
-            flat={(serviceType ?? 'car') === 'car'}
-            rotation={driverRotation}
-            tracksViewChanges={(serviceType ?? 'car') === 'car' ? !carMarkerReady : undefined}
+            // Symmetrical pill/circle dot — always centered, never rotates.
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={0}
+            tracksViewChanges={!carMarkerReady}
           >
             <DriverMarker vehicleType={serviceType ?? 'car'} onImageLoad={onCarMarkerLoad} />
           </MarkerAnimated>
@@ -367,12 +369,20 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
       <TouchableOpacity
         style={styles.locBtn}
         onPress={() => {
-          if (userLocation) {
-            // Manual recenter-on-self: treat as user control so the follow
-            // camera yields (it auto-resumes after the idle window).
-            if (followActive) onCameraPan();
+          if (!userLocation) return;
+          // Manual recenter-on-self: treat as user control so the follow
+          // camera yields (it auto-resumes after the idle window).
+          if (followActive) onCameraPan();
+          // Routed through runOrQueueCamera (like every other camera action in
+          // this file) instead of calling mapRef.current?.animateToRegion
+          // directly: react-native-maps silently discards camera calls made
+          // before the native MapView has finished initialising (see
+          // useMapCamera's doc comment), and this button renders and is
+          // tappable immediately — a tap in that window previously did
+          // nothing, with no feedback, reading as "unresponsive".
+          runOrQueueCamera(() => {
             mapRef.current?.animateToRegion({ ...userLocation, latitudeDelta: 0.008, longitudeDelta: 0.008 }, 600);
-          }
+          });
         }}
       >
         <Navigation size={18} color="#111827" fill="#111827" />
