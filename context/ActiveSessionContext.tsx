@@ -14,6 +14,7 @@ import {
   getSocket,
   getSocketSync,
   onSocketConnectionChange,
+  reconnectSocket,
   type SocketConnectionState,
 } from '@/src/api/socket';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
@@ -173,6 +174,13 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     mountedRef.current = true;
 
+    // ── Zombie-socket tracking ──────────────────────────────────────────
+    // Tracks the AppState value as of the last change event, so the handler
+    // below can tell a real background→active resume (the OS actually
+    // suspended JS execution) apart from an 'inactive' flap (control center,
+    // app switcher, a permission dialog) that never suspended anything.
+    let previousAppState: AppStateStatus = AppState.currentState;
+
     // ── Socket reconnect recovery ─────────────────────────────────────────
     // When the socket gets a brand-new instance (e.g. after a token-refresh
     // reconnect), re-attach the session:snapshot listener.  Then immediately
@@ -215,8 +223,38 @@ export function ActiveSessionProvider({ children }: { children: React.ReactNode 
     // Unauthenticated foreground resumes are handled separately by useAuthOnResume
     // in app/index.tsx and do not need a session refresh.
     const handleAppStateChange = (nextState: AppStateStatus) => {
+      const wasBackground = previousAppState === 'background';
+      previousAppState = nextState;
       if (nextState !== 'active' || !mountedRef.current || !initializedRef.current) return;
       if (__DEV__) console.log('[ActiveSession] foreground resume — refreshing session');
+
+      // ── Zombie-socket recovery ──────────────────────────────────────────
+      // A socket can report `connected: true` while its transport is actually
+      // dead: the OS freezes JS timers (including socket.io's own engine.io
+      // ping-timeout) while the app is backgrounded, and a TCP connection
+      // silently dropped during that suspension (carrier/NAT idle reap) never
+      // fires a `disconnect` event to correct the flag. The result is a
+      // socket that looks alive but has stopped delivering ride:driver_location
+      // and every other event until the user force-closes the app. Only a
+      // real 'background' state can cause this — 'inactive' is a transient
+      // flap with no meaningful suspension — so this is gated on the
+      // previous AppState rather than firing on every resume.
+      //
+      // reconnectSocket() tears down and rebuilds the socket unconditionally;
+      // it's safe to call even when the connection turns out to be fine
+      // (cheap, and this only runs on a real background resume, not on every
+      // token refresh — see softReconnectSocket for that hot path). The
+      // existing onSocketConnectionChange listener below picks up the new
+      // instance and re-attaches session:snapshot; useDriverLocationSocket /
+      // useRide's own onSocketConnectionChange listeners do the same for
+      // ride:driver_location and the rest of the ride event stream.
+      if (wasBackground) {
+        if (__DEV__) console.log('[ActiveSession] resumed from background — forcing socket reconnect to clear any zombie connection');
+        reconnectSocket().catch((err) => {
+          if (__DEV__) console.warn('[ActiveSession] forced socket reconnect on resume failed:', err);
+        });
+      }
+
       refreshActiveSession().catch((err) => {
         if (__DEV__) console.warn('[ActiveSession] foreground resume refresh failed:', err);
       });
