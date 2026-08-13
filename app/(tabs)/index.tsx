@@ -59,24 +59,24 @@ type ServiceMode = 'shuttle' | 'car' | 'scooter' | 'delivery';
 
 function makeStyles(c: ThemeColors) {
   return StyleSheet.create({
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: Spacing.md, zIndex: 10 },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
-    brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    brandIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    wordmark: { fontSize: 18, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.3, fontFamily: 'Inter_700Bold' },
-    wordmarkAccent: { color: '#507BE9' },
-    headerDivider: { width: 1, height: 26, backgroundColor: c.border },
+    // Mirrors the Driver app's Home header exactly: floating glass pills over
+    // the map (no opaque band, no brand lockup) — avatarPill on one side,
+    // a single glass icon-button pill (notifications) on the other.
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Spacing.sm, paddingBottom: Spacing.md, zIndex: 10 },
+    avatarPill: {},
+    avatarPillGlass: {},
+    avatarPillInner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: Spacing.xs, paddingRight: Spacing.md, paddingVertical: Spacing.xs },
     greeting: { fontSize: 11, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium },
     greetingName: { fontSize: 20, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.5 },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    iconBtnGlass: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', position: 'relative' },
     notifDot: {
       position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8,
       paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center',
       borderWidth: 1.5, borderColor: c.white,
     },
     notifDotText: { color: '#ffffff', fontSize: 9, fontWeight: Typography.weight.bold },
-    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
+    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
     avatarText: { color: c.isDark ? c.background : c.white, fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
 
     serviceGrid: { flexDirection: 'row', flexWrap: 'nowrap', gap: 7, paddingHorizontal: 20, marginBottom: Spacing.md, zIndex: 20 },
@@ -442,7 +442,7 @@ export default function HomeScreen() {
           style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
-          <View style={{ backgroundColor: c.background, paddingTop: top + 12 }}>
+          <View style={{ paddingTop: top }}>
             <HomeHeader
               styles={styles} gs={gs} c={c} t={t as (key: string) => string}
               greetingKey={greetingKey} firstName={firstName} avatarInitials={avatarInitials}
