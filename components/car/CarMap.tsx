@@ -84,14 +84,16 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   // re-assignment after a cancel triggers a fresh fit.
   const driverFittedRef = useRef(false);
 
-  // Animated driver marker — glides between GPS ticks instead of snapping,
-  // and rotates to match heading. AnimatedRegion creation, stop-before-start
-  // guard, and 800 ms timing are handled by useAnimatedDriverMarker.
-  // No initialCoords needed — the marker only renders when driverLocation is
-  // non-null (guarded by showDriverMarker && driverLocation in JSX).
+  // Animated driver marker — glides between GPS ticks instead of snapping.
+  // AnimatedRegion creation, stop-before-start guard, and 800 ms timing are
+  // handled by useAnimatedDriverMarker. No initialCoords needed — the marker
+  // only renders when driverLocation is non-null (guarded by
+  // showDriverMarker && driverLocation in JSX). The hook's own `rotation`
+  // output is unused here — the marker is a symmetrical dot (see DriverMarker)
+  // that doesn't rotate with heading; heading is still consumed via
+  // headingRef below, for the follow camera.
   const {
     animatedCoord: animatedDriverCoord,
-    rotation: driverRotation,
     headingRef: driverHeadingRef,
     positionRef: driverPositionRef,
   } = useAnimatedDriverMarker({ driverLocation });
@@ -350,14 +352,10 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         {showDriverMarker && driverLocation && (
           <MarkerAnimated
             coordinate={animatedDriverCoord}
-            // Car: anchor slightly toward the rear so the GPS point sits at the
-            // rear/middle and the car pivots realistically; flat so it rotates
-            // in the map plane (course-up). Arrow markers keep their upright,
-            // centered behavior.
-            anchor={(serviceType ?? 'car') === 'car' ? { x: 0.5, y: 0.6 } : { x: 0.5, y: 0.5 }}
-            flat={(serviceType ?? 'car') === 'car'}
-            rotation={driverRotation}
-            tracksViewChanges={(serviceType ?? 'car') === 'car' ? !carMarkerReady : undefined}
+            // Symmetrical pill/circle dot — always centered, never rotates.
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={0}
+            tracksViewChanges={!carMarkerReady}
           >
             <DriverMarker vehicleType={serviceType ?? 'car'} onImageLoad={onCarMarkerLoad} />
           </MarkerAnimated>

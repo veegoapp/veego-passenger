@@ -129,10 +129,12 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   // AnimatedRegion creation, stop-before-start guard, and 800 ms timing are
   // all handled by useAnimatedDriverMarker. pickup is passed as initialCoords
   // so the region seeds at the pickup point when driverLocation is not yet
-  // available — matching the previous initLat/initLng fallback logic.
+  // available — matching the previous initLat/initLng fallback logic. The
+  // hook's own `rotation` output is unused here — the marker is a
+  // symmetrical dot (see DriverMarker) that doesn't rotate with heading;
+  // heading is still consumed via headingRef below, for the follow camera.
   const {
     animatedCoord,
-    rotation: driverRotation,
     headingRef: driverHeadingRef,
     positionRef: driverPositionRef,
   } = useAnimatedDriverMarker({ driverLocation, initialCoords: pickup });
@@ -497,16 +499,13 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
           </Marker>
         )}
 
-        {/* Animated driver marker — rotates according to smoothed heading */}
+        {/* Animated driver marker — symmetrical pill/circle dot, no rotation */}
         {(driverLocation ?? pickup) && (
           <MarkerAnimated
             coordinate={animatedCoord}
-            // Car: rear/middle anchor + flat (course-up map plane). Arrow
-            // markers keep their upright, centered behavior.
-            anchor={vehicleType === 'car' ? { x: 0.5, y: 0.6 } : { x: 0.5, y: 0.5 }}
-            flat={vehicleType === 'car'}
-            rotation={driverRotation}
-            tracksViewChanges={vehicleType === 'car' ? !carMarkerReady : undefined}
+            anchor={{ x: 0.5, y: 0.5 }}
+            rotation={0}
+            tracksViewChanges={!carMarkerReady}
             title={t('driver_label')}
           >
             <DriverMarker vehicleType={vehicleType} onImageLoad={onCarMarkerLoad} />
