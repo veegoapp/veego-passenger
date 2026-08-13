@@ -36,15 +36,19 @@ export type ThemeColors = {
 
 export const LIGHT: ThemeColors = {
   ink: '#1e1e28',
-  inkSoft: '#5e5e72',
+  // Aligned to Driver's mutedForeground (#6B7280) — see palette audit.
+  inkSoft: '#6B7280',
   silver: '#c3c3cc',
-  mist: '#f2f2f5',
+  // Aligned to Driver's secondary/muted (#EAEDF2).
+  mist: '#EAEDF2',
   snow: '#f8f8fb',
   background: '#fafafd',
   white: '#ffffff',
-  border: '#e5e5ea',
+  // Aligned to Driver's border (rgba(0,0,0,0.08)).
+  border: 'rgba(0,0,0,0.08)',
   accentMint: '#55c49a',
-  badge: '#d95c35',
+  // Aligned to Driver's destructive/error (#E85454) — was a second, unrelated red.
+  badge: '#E85454',
   luxeGrad: ['#f4f4fb', '#ededf4'],
   luxeSoftGrad: ['#fafafa', '#f4f4f8'],
   // Shared VeeGo ink gradient — same identity used for the ride-journey CTA
@@ -55,10 +59,12 @@ export const LIGHT: ThemeColors = {
   accent: '#55c49a',
   surface: '#ffffff',
   text: '#1e1e28',
-  mutedText: '#5e5e72',
+  // Aligned to Driver's mutedForeground (#6B7280).
+  mutedText: '#6B7280',
   success: '#3CC97A',
   warning: '#D5A623',
-  error: '#D6432D',
+  // Aligned to Driver's destructive/error (#E85454) — was #D6432D.
+  error: '#E85454',
   info: '#3D52D5',
   surfaceMuted: '#f7f8fc',
   gold: '#C8A535',
@@ -66,27 +72,37 @@ export const LIGHT: ThemeColors = {
 
 export const DARK: ThemeColors = {
   ink: '#e8e8f2',
-  inkSoft: '#7878a0',
+  // Aligned to Driver's mutedForeground (#B0B0B0) — see palette audit.
+  inkSoft: '#B0B0B0',
   silver: '#3a3a58',
-  mist: '#1e1e32',
+  // Aligned to Driver's secondary/muted (#16161A).
+  mist: '#16161A',
   snow: '#16162a',
   background: '#0f0f1e',
-  white: '#1a1a2e',
-  border: '#2c2c46',
+  // Aligned to Driver's card/surface (#16162A) — was #1a1a2e, so dark-mode
+  // cards built on `white` now match `surface` (and Driver) exactly.
+  white: '#16162a',
+  // Aligned to Driver's border (#2A2A2A) — was navy-tinted #2c2c46.
+  border: '#2A2A2A',
   accentMint: '#55c49a',
-  badge: '#e07055',
+  // Aligned to Driver's destructive/error (#E85454) — was a second, unrelated red.
+  badge: '#E85454',
   luxeGrad: ['#1e1e32', '#0f0f1e'],
   luxeSoftGrad: ['#181828', '#0f0f1e'],
   gradientPrimary: ['#2d2d42', '#1e1e28'],
   isDark: true,
-  primary: '#1e1e28',
+  // Aligned to Driver's dark tint/primary (#2d2d42) — was #1e1e28, which sat
+  // almost on top of the dark background (#0f0f1e) with too little contrast.
+  primary: '#2d2d42',
   accent: '#55c49a',
   surface: '#16162a',
   text: '#e8e8f2',
-  mutedText: '#7878a0',
+  // Aligned to Driver's mutedForeground (#B0B0B0).
+  mutedText: '#B0B0B0',
   success: '#3CC97A',
   warning: '#D5A623',
-  error: '#D6432D',
+  // Aligned to Driver's destructive/error (#E85454) — was #D6432D.
+  error: '#E85454',
   info: '#3D52D5',
   surfaceMuted: '#16162a',
   gold: '#C8A535',

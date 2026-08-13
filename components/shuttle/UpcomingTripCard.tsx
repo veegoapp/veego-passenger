@@ -133,7 +133,7 @@ export function UpcomingTripCard({
             <Text style={styles.driverName} numberOfLines={1}>{driverName}</Text>
             {typeof driverRating === 'number' && (
               <View style={styles.ratingRow}>
-                <Star size={12} color="#f5b93e" fill="#f5b93e" />
+                <Star size={12} color={c.accent} fill={c.accent} />
                 <Text style={styles.ratingText}>{driverRating.toFixed(1)}</Text>
               </View>
             )}
