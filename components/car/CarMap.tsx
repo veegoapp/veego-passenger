@@ -312,13 +312,15 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         // @ts-expect-error react-native-maps@1.20.1 types no longer declare
         // compassEnabled, but the native view still supports and uses it.
         compassEnabled={false}
+        pitchEnabled={false}
+        showsBuildings={false}
         onMapReady={onMapReady}
         // Follow-camera suspension on user interaction (pan / pinch / rotate).
         onPanDrag={onCameraPan}
         onRegionChangeComplete={onCameraRegionChange}
       >
         {routeCoords.length > 0 && (
-          <Polyline coordinates={routeCoords} strokeColor={darkMode ? '#e5e7eb' : '#111827'} strokeWidth={4} />
+          <Polyline coordinates={routeCoords} strokeColor="#1A73E8" strokeWidth={5} />
         )}
 
         {userLocation && (searching ? (

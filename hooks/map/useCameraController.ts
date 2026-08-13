@@ -68,7 +68,7 @@ interface UseCameraControllerResult {
   resumeFollow: () => void;
 }
 
-const DEFAULT_PITCH = 45;
+const DEFAULT_PITCH = 0;
 const DEFAULT_ZOOM = 16;
 const DEFAULT_AUTO_RESUME_MS = 8000;
 // Cap effective setCamera writes to ~18fps regardless of display refresh.

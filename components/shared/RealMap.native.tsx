@@ -96,6 +96,7 @@ export function RealMap({
         scrollEnabled={false}
         zoomEnabled={false}
         pitchEnabled={false}
+        showsBuildings={false}
         customMapStyle={darkMode ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
       >
 
@@ -123,8 +124,8 @@ export function RealMap({
         {routeCoords.length >= 2 && (
           <Polyline
             coordinates={routeCoords}
-            strokeColor="#2563eb"
-            strokeWidth={3}
+            strokeColor="#1A73E8"
+            strokeWidth={5}
             lineDashPattern={[8, 4]}
           />
         )}

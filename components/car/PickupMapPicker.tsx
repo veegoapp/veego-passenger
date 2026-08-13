@@ -190,6 +190,8 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
               showsUserLocation
               showsMyLocationButton={false}
               toolbarEnabled={false}
+              pitchEnabled={false}
+              showsBuildings={false}
             />
 
             {/* Fixed center pin — sits above the map, never moves. The tip points at
