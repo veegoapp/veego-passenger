@@ -40,7 +40,12 @@ export interface SavedLocation {
   placeId?: string;
 }
 
-/** ── Greeting + notification/profile icons ── */
+/** ── Greeting + notification/profile icons ──
+ * Mirrors the Driver app's Home header: a floating "avatar pill" (glass
+ * capsule) on one side that opens Profile, and a floating glass icon button
+ * on the other for Notifications — both translucent cards floating directly
+ * over the map, no opaque header band and no brand lockup.
+ */
 export function HomeHeader({ styles, gs, c, t, greetingKey, firstName, avatarInitials, unreadCount, onNotifications, onProfile }: {
   styles: any; gs: object; c: ThemeColors; t: T;
   greetingKey: string; firstName: string; avatarInitials: string; unreadCount: number;
@@ -48,22 +53,23 @@ export function HomeHeader({ styles, gs, c, t, greetingKey, firstName, avatarIni
 }) {
   return (
     <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        <View style={styles.brandLockup}>
-          <View style={styles.brandIcon}>
-            <Navigation size={16} color="#ffffff" />
+      <TouchableOpacity onPress={onProfile} style={styles.avatarPill} accessibilityLabel="Profile">
+        <GlassView style={styles.avatarPillGlass} borderRadius={24}>
+          <View style={styles.avatarPillInner}>
+            <View style={[styles.avatar, { borderColor: c.primary + '66' }]}>
+              <Text style={styles.avatarText}>{avatarInitials}</Text>
+            </View>
+            <View>
+              <Text style={styles.greeting}>{t(greetingKey)}</Text>
+              <Text style={styles.greetingName}>{firstName}</Text>
+            </View>
           </View>
-          <Text style={styles.wordmark}>Vee<Text style={styles.wordmarkAccent}>Go</Text></Text>
-        </View>
-        <View style={styles.headerDivider} />
-        <View>
-          <Text style={styles.greeting}>{t(greetingKey)}</Text>
-          <Text style={styles.greetingName}>{firstName}</Text>
-        </View>
-      </View>
-      <View style={styles.headerRight}>
+        </GlassView>
+      </TouchableOpacity>
+
+      <View style={styles.headerActions}>
         <TouchableOpacity onPress={onNotifications} accessibilityLabel="Notifications">
-          <GlassView style={styles.iconBtn} borderRadius={20}>
+          <GlassView style={styles.iconBtnGlass} borderRadius={20}>
             <Bell size={18} color={c.ink} strokeWidth={2} />
             {unreadCount > 0 && (
               <View style={[styles.notifDot, { backgroundColor: c.error }]}>
@@ -71,9 +77,6 @@ export function HomeHeader({ styles, gs, c, t, greetingKey, firstName, avatarIni
               </View>
             )}
           </GlassView>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.avatar} onPress={onProfile} accessibilityLabel="Profile">
-          <Text style={styles.avatarText}>{avatarInitials}</Text>
         </TouchableOpacity>
       </View>
     </View>
