@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Share,
-  Modal, Pressable,
+  Modal, Pressable, Image, useWindowDimensions,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users, Phone, Car, HelpCircle } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users, Car, HelpCircle, Timer, CheckCircle2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -91,7 +91,7 @@ interface RideDetail {
   distanceKm: number | null;
   finalPrice: number | null;
   driverName: string | null;
-  driverPhone: string | null;
+  driverAvatarUrl: string | null;
   driverRating: number | null;
   vehicleMake: string | null;
   vehicleModel: string | null;
@@ -100,18 +100,15 @@ interface RideDetail {
 }
 
 const RIDE_LABEL = {
-  requestedAt:      { en: 'Requested',      ar: 'وقت الطلب' },
-  driverAssignedAt: { en: 'Driver Assigned', ar: 'تعيين السائق' },
-  startedAt:        { en: 'Started',        ar: 'بدأت' },
-  completedAt:      { en: 'Completed',      ar: 'اكتملت' },
-  distance:         { en: 'Distance',       ar: 'المسافة' },
-  duration:         { en: 'Duration',       ar: 'المدة' },
-  price:            { en: 'Price',          ar: 'السعر' },
-  driver:           { en: 'Driver',         ar: 'السائق' },
-  rating:           { en: 'Rating',         ar: 'التقييم' },
-  vehicle:          { en: 'Vehicle',        ar: 'المركبة' },
-  plate:            { en: 'Plate',          ar: 'رقم اللوحة' },
-  phone:            { en: 'Phone',          ar: 'الهاتف' },
+  startedAt:   { en: 'Started',   ar: 'بدأت' },
+  completedAt: { en: 'Completed', ar: 'اكتملت' },
+  distance:    { en: 'Distance',  ar: 'المسافة' },
+  duration:    { en: 'Duration',  ar: 'المدة' },
+  price:       { en: 'Total fare', ar: 'السعر الإجمالي' },
+  driver:      { en: 'Driver',    ar: 'السائق' },
+  rating:      { en: 'Rating',    ar: 'التقييم' },
+  vehicle:     { en: 'Vehicle',   ar: 'المركبة' },
+  plate:       { en: 'Plate',     ar: 'رقم اللوحة' },
 };
 
 const RIDE_STATUS_LABEL: Record<string, { en: string; ar: string }> = {
@@ -173,7 +170,7 @@ function mapRideToDetail(r: any): RideDetail {
     distanceKm: typeof r.distanceKm === 'number' ? r.distanceKm : null,
     finalPrice: typeof r.finalPrice === 'number' ? r.finalPrice : (typeof r.price === 'number' ? r.price : null),
     driverName: driver.name ?? null,
-    driverPhone: driver.phone ?? null,
+    driverAvatarUrl: driver.avatarUrl ?? driver.photoUrl ?? driver.avatar ?? driver.photo ?? null,
     driverRating: typeof driver.rating === 'number' ? driver.rating : null,
     vehicleMake: vehicle.make ?? null,
     vehicleModel: vehicle.model ?? null,
@@ -317,6 +314,71 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     nextStopName: { flex: 1, fontSize: 13, fontWeight: Typography.weight.bold, color: c.ink, textAlign: isRTL ? 'right' : 'left' },
     helpBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.isDark ? 'rgba(232,232,242,0.25)' : 'rgba(30,30,40,0.15)', backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: 14, flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: Spacing.sm },
     helpBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink },
+
+    // ── Ride trip-detail redesign (header map + unified card) ──────────────
+    rideMapHeader: { width: '100%', overflow: 'hidden' },
+    rideMapStatusPill: {
+      position: 'absolute', top: 14, left: 16, zIndex: 10,
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: Radius.full,
+      paddingHorizontal: 12, paddingVertical: 6,
+    },
+    rideMapStatusText: { fontSize: 12, fontWeight: Typography.weight.semibold, color: '#fff' },
+    unifiedCard: {
+      marginHorizontal: 20, borderRadius: Radius.xl,
+      borderWidth: 1, borderColor: c.border, backgroundColor: c.white,
+      padding: Spacing.lg, gap: Spacing.lg, marginBottom: Spacing.lg,
+      ...S.float,
+    },
+    divider: { height: 1, backgroundColor: c.border },
+
+    driverRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    avatarImg: { width: 56, height: 56, borderRadius: Radius.lg, backgroundColor: c.mist },
+    avatarFallback: {
+      width: 56, height: 56, borderRadius: Radius.lg,
+      backgroundColor: c.mist, borderWidth: 1, borderColor: c.border,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarInitials: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink },
+    driverInfo: { flex: 1, gap: 4 },
+    driverNameText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    ratingText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.inkSoft },
+    tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: 2 },
+    tag: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: c.mist, borderRadius: Radius.full,
+      paddingHorizontal: 10, paddingVertical: 4,
+    },
+    tagText: { fontSize: 11.5, fontWeight: Typography.weight.semibold, color: c.inkSoft },
+
+    timeline: { gap: 0 },
+    timelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, minHeight: 34 },
+    timelineDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+    timelineLine: { width: 10, alignItems: 'center' },
+    timelineLineBar: { width: 2, flex: 1, minHeight: 18, backgroundColor: c.border, marginVertical: 2 },
+    timelineText: { flex: 1, fontSize: Typography.size.sm, color: c.ink, lineHeight: 19 },
+
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
+    statTile: {
+      flexBasis: '47%', flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+      backgroundColor: c.mist, borderRadius: Radius.lg, borderWidth: 1, borderColor: c.border,
+      paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    },
+    statIconWrap: {
+      width: 32, height: 32, borderRadius: Radius.md,
+      backgroundColor: c.white, alignItems: 'center', justifyContent: 'center',
+    },
+    statLabel: { fontSize: 10, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.6 },
+    statValue: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink, marginTop: 2 },
+
+    priceRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: c.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(30,30,40,0.03)',
+      borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
+    },
+    priceLabel: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.inkSoft },
+    priceValue: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4 },
   });
 }
 
@@ -324,6 +386,7 @@ export default function TripDetailScreen() {
   const { id, openRating } = useLocalSearchParams<{ id: string; openRating?: string }>();
   const insets = useSafeAreaInsets();
   const top = insets.top;
+  const { height: windowHeight } = useWindowDimensions();
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c, isRTL), [c, isRTL]);
@@ -887,102 +950,128 @@ export default function TripDetailScreen() {
     const ridePickup = rd.pickupLat != null && rd.pickupLng != null ? { latitude: rd.pickupLat, longitude: rd.pickupLng } : undefined;
     const rideDropoff = rd.dropoffLat != null && rd.dropoffLng != null ? { latitude: rd.dropoffLat, longitude: rd.dropoffLng } : undefined;
     const rideStatusColor = RIDE_STATUS_COLOR[rd.status] ?? c.silver;
+    const vehicleLabel = rd.vehicleMake || rd.vehicleModel ? `${rd.vehicleMake ?? ''} ${rd.vehicleModel ?? ''}`.trim() : null;
+    const driverInitials = rd.driverName
+      ? rd.driverName.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+      : '?';
+
+    const statTiles = [
+      { icon: Clock, label: RIDE_LABEL.startedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.startedAt) },
+      { icon: CheckCircle2, label: RIDE_LABEL.completedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.completedAt) },
+      { icon: Navigation, label: RIDE_LABEL.distance[isAr ? 'ar' : 'en'], value: rd.distanceKm != null ? `${rd.distanceKm} km` : '—' },
+      { icon: Timer, label: RIDE_LABEL.duration[isAr ? 'ar' : 'en'], value: rd.actualDurationMinutes != null ? `${rd.actualDurationMinutes} ${t('min')}` : '—' },
+    ];
 
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
-        <View style={[styles.header, { paddingTop: top + 12 }]}>
+        <View style={[styles.header, { paddingTop: top + 12, paddingBottom: 0, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
             {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
-          <View style={styles.shareBtn} />
         </View>
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
-          <LinearGradient
-            colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-            style={styles.card}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.routeTitle}>{rd.pickupAddress}</Text>
-            <Text style={styles.routeSub}>{isRTL ? ' ← ' : ' → '}{rd.dropoffAddress}</Text>
-
-            <View style={styles.statusRow}>
+        {/* Header map — ~35% of screen height, route fitted to pickup/dropoff */}
+        {hasMapCoords && (
+          <View style={[styles.rideMapHeader, { height: windowHeight * 0.35 }]}>
+            <RealMap pickup={ridePickup} dropoff={rideDropoff} style={{ borderRadius: 0 }} />
+            <View style={[styles.rideMapStatusPill, { top: top + 60 }]}>
               <View style={[styles.statusDot, { backgroundColor: rideStatusColor }]} />
-              <Text style={[styles.statusText, { color: rideStatusColor }]}>
-                {rideStatusLabel(rd.status, isAr)}
-              </Text>
+              <Text style={styles.rideMapStatusText}>{rideStatusLabel(rd.status, isAr)}</Text>
+            </View>
+          </View>
+        )}
+
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: hasMapCoords ? Spacing.lg : top + 12 + 40 + Spacing.lg }}>
+          <View style={styles.unifiedCard}>
+            {!hasMapCoords && (
+              <View style={styles.statusRow}>
+                <View style={[styles.statusDot, { backgroundColor: rideStatusColor }]} />
+                <Text style={[styles.statusText, { color: rideStatusColor }]}>{rideStatusLabel(rd.status, isAr)}</Text>
+              </View>
+            )}
+
+            {/* Driver section */}
+            {hasDriverInfo && (
+              <>
+                <View style={styles.driverRow}>
+                  {rd.driverAvatarUrl ? (
+                    <Image source={{ uri: rd.driverAvatarUrl }} style={styles.avatarImg} />
+                  ) : (
+                    <View style={styles.avatarFallback}>
+                      <Text style={styles.avatarInitials}>{driverInitials}</Text>
+                    </View>
+                  )}
+                  <View style={styles.driverInfo}>
+                    <Text style={styles.driverNameText} numberOfLines={1}>{rd.driverName ?? '—'}</Text>
+                    {rd.driverRating != null && (
+                      <View style={styles.ratingRow}>
+                        <Star size={13} color={c.gold} fill={c.gold} strokeWidth={0} />
+                        <Text style={styles.ratingText}>{rd.driverRating.toFixed(1)}</Text>
+                      </View>
+                    )}
+                    {(vehicleLabel || rd.vehiclePlate) && (
+                      <View style={styles.tagsRow}>
+                        {vehicleLabel && (
+                          <View style={styles.tag}>
+                            <Car size={11} color={c.inkSoft} />
+                            <Text style={styles.tagText}>{vehicleLabel}</Text>
+                          </View>
+                        )}
+                        {rd.vehiclePlate && (
+                          <View style={styles.tag}>
+                            <Text style={styles.tagText}>{rd.vehiclePlate}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.divider} />
+              </>
+            )}
+
+            {/* Pickup → dropoff timeline */}
+            <View style={styles.timeline}>
+              <View style={styles.timelineRow}>
+                <View style={styles.timelineLine}>
+                  <View style={[styles.timelineDot, { backgroundColor: '#22c55e' }]} />
+                  <View style={styles.timelineLineBar} />
+                </View>
+                <Text style={styles.timelineText} numberOfLines={2}>{rd.pickupAddress}</Text>
+              </View>
+              <View style={styles.timelineRow}>
+                <View style={styles.timelineLine}>
+                  <View style={[styles.timelineDot, { backgroundColor: '#ef4444' }]} />
+                </View>
+                <Text style={styles.timelineText} numberOfLines={2}>{rd.dropoffAddress}</Text>
+              </View>
             </View>
 
-            <View style={styles.gridRow}>
-              {[
-                { label: RIDE_LABEL.requestedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.requestedAt) },
-                { label: RIDE_LABEL.driverAssignedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.driverAssignedAt) },
-                { label: RIDE_LABEL.startedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.startedAt) },
-                { label: RIDE_LABEL.completedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.completedAt) },
-              ].map((item) => (
-                <View key={item.label} style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>{item.label}</Text>
-                  <Text style={styles.gridValue}>{item.value}</Text>
+            <View style={styles.divider} />
+
+            {/* Trip stats */}
+            <View style={styles.statsGrid}>
+              {statTiles.map(({ icon: Icon, label, value }) => (
+                <View key={label} style={styles.statTile}>
+                  <View style={styles.statIconWrap}>
+                    <Icon size={15} color={c.ink} />
+                  </View>
+                  <View>
+                    <Text style={styles.statLabel}>{label}</Text>
+                    <Text style={styles.statValue}>{value}</Text>
+                  </View>
                 </View>
               ))}
             </View>
 
-            <View style={styles.gridRow}>
-              <View style={styles.gridItem}>
-                <Text style={styles.gridLabel}>{RIDE_LABEL.distance[isAr ? 'ar' : 'en']}</Text>
-                <Text style={styles.gridValue}>{rd.distanceKm != null ? `${rd.distanceKm} km` : '—'}</Text>
-              </View>
-              <View style={styles.gridItem}>
-                <Text style={styles.gridLabel}>{RIDE_LABEL.duration[isAr ? 'ar' : 'en']}</Text>
-                <Text style={styles.gridValue}>{rd.actualDurationMinutes != null ? `${rd.actualDurationMinutes} ${t('min')}` : '—'}</Text>
-              </View>
-              <View style={styles.gridItem}>
-                <Text style={styles.gridLabel}>{RIDE_LABEL.price[isAr ? 'ar' : 'en']}</Text>
-                <Text style={styles.gridValue}>{rd.finalPrice != null ? `${rd.finalPrice} ${t('egp')}` : '—'}</Text>
-              </View>
-            </View>
-          </LinearGradient>
+            <View style={styles.divider} />
 
-          {hasMapCoords && (
-            <View style={styles.mapCard}>
-              <RealMap pickup={ridePickup} dropoff={rideDropoff} style={{ borderRadius: Radius.xl }} />
+            {/* Price */}
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>{RIDE_LABEL.price[isAr ? 'ar' : 'en']}</Text>
+              <Text style={styles.priceValue}>{rd.finalPrice != null ? `${rd.finalPrice} ${t('egp')}` : '—'}</Text>
             </View>
-          )}
-
-          {hasDriverInfo && (
-            <LinearGradient
-              colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
-              style={styles.card}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            >
-              <Text style={styles.sectionLabel}>{RIDE_LABEL.driver[isAr ? 'ar' : 'en']}</Text>
-              <View style={styles.gridRow}>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>{RIDE_LABEL.driver[isAr ? 'ar' : 'en']}</Text>
-                  <Text style={styles.gridValue}>{rd.driverName ?? '—'}</Text>
-                </View>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>{RIDE_LABEL.rating[isAr ? 'ar' : 'en']}</Text>
-                  <Text style={styles.gridValue}>{rd.driverRating != null ? rd.driverRating.toFixed(1) : '—'}</Text>
-                </View>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>{RIDE_LABEL.phone[isAr ? 'ar' : 'en']}</Text>
-                  <Text style={styles.gridValue}>{rd.driverPhone ?? '—'}</Text>
-                </View>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>{RIDE_LABEL.vehicle[isAr ? 'ar' : 'en']}</Text>
-                  <Text style={styles.gridValue}>
-                    {rd.vehicleMake || rd.vehicleModel ? `${rd.vehicleMake ?? ''} ${rd.vehicleModel ?? ''}`.trim() : '—'}
-                  </Text>
-                </View>
-                <View style={styles.gridItem}>
-                  <Text style={styles.gridLabel}>{RIDE_LABEL.plate[isAr ? 'ar' : 'en']}</Text>
-                  <Text style={styles.gridValue}>{rd.vehiclePlate ?? '—'}</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          )}
+          </View>
 
           {/* Need Help — available for all ride statuses */}
           <TouchableOpacity

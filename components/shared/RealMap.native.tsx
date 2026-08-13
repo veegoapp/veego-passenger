@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useTheme } from '@/context/ThemeContext';
@@ -63,6 +63,24 @@ export function RealMap({
 
   const [routeCoords, setRouteCoords] = useState<LatLng[]>(straightLine);
 
+  // Fit the visible region to pickup/dropoff (+ driver, when live) so the full
+  // route is always framed, instead of relying on a fixed-delta initialRegion.
+  const mapRef = useRef<MapView>(null);
+  const fitPoints = useMemo(
+    () => [pickup, dropoff, driverLocation].filter(Boolean) as LatLng[],
+    [pickup, dropoff, driverLocation],
+  );
+  const fitMap = useCallback(() => {
+    if (fitPoints.length < 2) return;
+    mapRef.current?.fitToCoordinates(fitPoints, {
+      edgePadding: { top: 80, right: 60, bottom: 80, left: 60 },
+      animated: true,
+    });
+  }, [fitPoints]);
+  useEffect(() => {
+    fitMap();
+  }, [fitMap]);
+
   useEffect(() => {
     const origin = driverLocation ?? pickup;
     const dest = driverLocation ? pickup : dropoff;
@@ -84,11 +102,13 @@ export function RealMap({
   return (
     <View style={[StyleSheet.absoluteFillObject, style]}>
       <MapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
         // Only set initialRegion when we have a real centroid — avoids briefly
         // centering on a hardcoded fallback before real coordinates are available (audit L3).
         {...(center ? { initialRegion: { ...center, ...DELTA } } : {})}
+        onMapReady={fitMap}
         showsUserLocation={false}
         showsCompass={false}
         toolbarEnabled={false}
