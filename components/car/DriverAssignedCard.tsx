@@ -1,5 +1,5 @@
 import { memo, useRef, useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Pressable, StyleSheet, Animated, Linking, Easing } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Pressable, StyleSheet, Animated, Linking, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   MessageCircle, Phone, X, AlertTriangle,
@@ -36,46 +36,65 @@ const NAVY = '#1e3a8a';
 // status header + trip title). The rest slides below the screen edge.
 const PEEK_HEIGHT = 132;
 
-/* ─── GhostButton ────────────────────────────────────────────────────────── */
-function GhostButton({
-  onPress, disabled, tone = 'neutral', icon, label, flex,
+/* ─── FilledButton ───────────────────────────────────────────────────────── */
+// Every action CTA (Chat, Call, SOS, Need Help) is a fully filled, compact
+// pill — no more outlined/tinted "ghost" buttons — so the card reads as
+// vibrant and decisive rather than washed out.
+function FilledButton({
+  onPress, disabled, tone = 'primary', icon, label, flex,
 }: {
   onPress?: () => void;
   disabled?: boolean;
-  tone?: 'neutral' | 'danger' | 'navy';
+  tone?: 'primary' | 'danger' | 'neutral';
   icon: React.ReactNode;
   label: string;
   flex?: number;
 }) {
   const { colors: c } = useTheme();
-  const borderCol = c.border;
-  const surfaceBg = c.surfaceMuted;
 
-  // Driver-app parity: the driver ride screen's Message/Call icon buttons are
-  // a tinted circle (colors.primary + '26' — ~15% alpha) with a primary-colored
-  // icon/text, not a solid fill. Matches that exactly here instead of a flat
-  // navy block.
-  const toneStyle =
-    tone === 'danger'
-      ? { borderColor: `${c.error}40`, backgroundColor: `${c.error}0F` }
-      : tone === 'navy'
-      ? { borderColor: 'transparent', backgroundColor: `${NAVY}26` }
-      : { borderColor: borderCol, backgroundColor: surfaceBg };
-
-  const textColor = tone === 'danger' ? c.error : tone === 'navy' ? NAVY : c.ink;
+  const bg = tone === 'danger' ? c.error : tone === 'neutral' ? NAVY : c.primary;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
-      activeOpacity={0.78}
-      style={[styles.ghostBtn, flex ? { flex } : {}, toneStyle]}
+      activeOpacity={0.85}
+      style={[styles.filledBtn, flex ? { flex } : {}, { backgroundColor: bg, opacity: disabled ? 0.5 : 1 }]}
     >
       {icon}
-      <Text style={[styles.ghostBtnText, { color: textColor }]}>
+      <Text style={styles.filledBtnText} numberOfLines={1}>
         {label}
       </Text>
     </TouchableOpacity>
+  );
+}
+
+/* ─── DriverAvatar ───────────────────────────────────────────────────────── */
+// Circular avatar backed by the driver's real profile photo (fetched from
+// the ride API), falling back to initials-on-tint when there's no photo yet
+// or the image fails to load — never an empty/broken circle.
+function DriverAvatar({ uri, initials, size }: { uri?: string | null; initials: string; size: number }) {
+  const { colors: c } = useTheme();
+  const [failed, setFailed] = useState(false);
+  const showImage = !!uri && !failed;
+
+  return (
+    <View
+      style={[
+        styles.avatarWrap,
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: c.surfaceMuted, borderColor: c.border },
+      ]}
+    >
+      {showImage ? (
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Text style={[styles.avatarInitials, { color: c.ink, fontSize: size * 0.32 }]}>{initials}</Text>
+      )}
+    </View>
   );
 }
 
@@ -230,11 +249,6 @@ function DriverAssignedCardBase({
                   {'Heading to'} {destination ? destination : '—'}
                 </Text>
               </View>
-              {/* ETA chip */}
-              <View style={[styles.etaChip, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-                <Text style={[styles.etaChipValue, { color: c.ink }]}>{driver?.eta ?? '—'}</Text>
-                <Text style={[styles.etaChipUnit, { color: c.inkSoft }]}>{t('min')}</Text>
-              </View>
             </View>
 
             {/* Progress bar placeholder */}
@@ -242,53 +256,56 @@ function DriverAssignedCardBase({
               <View style={[styles.progressFill, { backgroundColor: c.primary, width: '60%' }]} />
             </View>
 
-            {/* Driver mini row */}
+            {/* Driver identity — avatar + name aligned on top, vehicle details underneath */}
             <View style={[styles.driverMiniRow, { backgroundColor: cardBg, borderColor: borderCol }]}>
-              <View style={[styles.driverMiniIcon, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={26} />
+              <View style={styles.driverMiniTopRow}>
+                <DriverAvatar uri={driver?.avatar} initials={initials} size={44} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[styles.driverMiniName, { color: c.ink }]} numberOfLines={1}>
+                    {driver?.name ?? '—'}
+                  </Text>
+                  {rating != null ? <Stars value={rating} /> : null}
+                </View>
               </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[styles.driverMiniName, { color: c.ink }]} numberOfLines={1}>
-                  {driver?.name ?? '—'}
-                </Text>
+              <View style={[styles.driverMiniVehicleRow, { borderTopColor: borderCol }]}>
+                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={40} />
                 <Text style={[styles.driverMiniSub, { color: c.inkSoft }]} numberOfLines={1}>
                   {[driver?.vehicle, driver?.plateNumber].filter(Boolean).join(' · ') || '—'}
                 </Text>
               </View>
-              {rating != null ? <Stars value={rating} /> : null}
             </View>
 
             {/* Action buttons row */}
             <View style={styles.actionsRow}>
-              <GhostButton
+              <FilledButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                tone="navy"
-                icon={<MessageCircle size={18} color={NAVY} strokeWidth={1.8} />}
+                tone="primary"
+                icon={<MessageCircle size={16} color="#ffffff" strokeWidth={2} />}
                 label={t('chat')}
                 flex={1}
               />
-              <GhostButton
+              <FilledButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                tone="navy"
-                icon={<Phone size={18} color={NAVY} strokeWidth={1.8} />}
+                tone="primary"
+                icon={<Phone size={16} color="#ffffff" strokeWidth={2} />}
                 label={t('call') ?? 'Call'}
                 flex={1}
               />
-              <GhostButton
+              <FilledButton
                 onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
                 tone="danger"
-                icon={<ShieldAlert size={18} color={c.error} strokeWidth={1.9} />}
+                icon={<ShieldAlert size={16} color="#ffffff" strokeWidth={2} />}
                 label="SOS"
                 flex={1}
               />
             </View>
 
             {/* Need Help — routes to SafetySheet via onSOS */}
-            <GhostButton
+            <FilledButton
               onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
-              tone="navy"
-              icon={<LifeBuoy size={18} color={NAVY} strokeWidth={1.9} />}
+              tone="neutral"
+              icon={<LifeBuoy size={16} color="#ffffff" strokeWidth={2} />}
               label={'Need Help'}
             />
           </View>
@@ -330,9 +347,7 @@ function DriverAssignedCardBase({
             {/* ── Driver identity card ── */}
             <View style={[styles.driverCard, { backgroundColor: cardBg, borderColor: borderCol }]}>
               {/* Avatar */}
-              <View style={[styles.avatar, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-                <Text style={[styles.avatarInitials, { color: c.ink }]}>{initials}</Text>
-              </View>
+              <DriverAvatar uri={driver?.avatar} initials={initials} size={52} />
 
               {/* Info */}
               <View style={{ flex: 1, minWidth: 0 }}>
@@ -358,9 +373,7 @@ function DriverAssignedCardBase({
 
             {/* ── Vehicle row ── */}
             <View style={[styles.vehicleRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-              <View style={[styles.vehicleIconBox, { backgroundColor: cardBg, borderColor: borderCol }]}>
-                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={30} />
-              </View>
+              <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={44} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[styles.vehicleName, { color: c.ink }]} numberOfLines={1}>
                   {driver?.vehicle ?? '—'}
@@ -391,18 +404,18 @@ function DriverAssignedCardBase({
 
             {/* ── Call / Message row ── */}
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <GhostButton
+              <FilledButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                tone="navy"
-                icon={<Phone size={18} color={NAVY} strokeWidth={1.9} />}
+                tone="primary"
+                icon={<Phone size={16} color="#ffffff" strokeWidth={2} />}
                 label={t('call') ?? 'Call'}
                 flex={1}
               />
-              <GhostButton
+              <FilledButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                tone="navy"
-                icon={<MessageCircle size={18} color={NAVY} strokeWidth={1.9} />}
+                tone="primary"
+                icon={<MessageCircle size={16} color="#ffffff" strokeWidth={2} />}
                 label={t('chat')}
                 flex={1}
               />
@@ -478,12 +491,6 @@ const styles = StyleSheet.create({
   inProgressTitle: {
     fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginTop: 4,
   },
-  etaChip: {
-    borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1, alignItems: 'flex-end',
-  },
-  etaChipValue: { fontSize: 15, fontWeight: '700' },
-  etaChipUnit: { fontSize: 11 },
   progressTrack: {
     height: 6, borderRadius: 3, width: '100%', overflow: 'hidden',
   },
@@ -491,18 +498,20 @@ const styles = StyleSheet.create({
     height: '100%', borderRadius: 3,
   },
   driverMiniRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
     borderRadius: 16, borderWidth: 1,
-    paddingHorizontal: 14, paddingVertical: 14,
+    paddingHorizontal: 14, paddingVertical: 14, gap: 12,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
   },
-  driverMiniIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  driverMiniTopRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
   },
-  driverMiniName: { fontSize: 15, fontWeight: '600', letterSpacing: -0.15 },
-  driverMiniSub: { fontSize: 13, marginTop: 2 },
+  driverMiniVehicleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderTopWidth: 1, paddingTop: 12,
+  },
+  driverMiniName: { fontSize: 15, fontWeight: '600', letterSpacing: -0.15, marginBottom: 3 },
+  driverMiniSub: { fontSize: 13, flex: 1 },
   actionsRow: { flexDirection: 'row', gap: 8 },
 
   /* ── Assigned/Arrived ── */
@@ -535,23 +544,19 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
   },
-  avatar: {
-    width: 52, height: 52, borderRadius: 26, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  avatarWrap: {
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, overflow: 'hidden',
   },
-  avatarInitials: { fontSize: 16, fontWeight: '700' },
+  avatarInitials: { fontWeight: '700' },
   driverName: { fontSize: 16, fontWeight: '600', letterSpacing: -0.15 },
   ratingText: { fontSize: 13, fontWeight: '500' },
   tripsText: { fontSize: 12 },
 
   vehicleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     borderRadius: 16, borderWidth: 1,
     paddingHorizontal: 14, paddingVertical: 14,
-  },
-  vehicleIconBox: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
   vehicleName: { fontSize: 15, fontWeight: '600' },
   vehicleSub: { fontSize: 13, marginTop: 2 },
@@ -569,11 +574,12 @@ const styles = StyleSheet.create({
   waitDot: { width: 8, height: 8, borderRadius: 4 },
   waitText: { fontSize: 13, fontWeight: '600' },
 
-  ghostBtn: {
-    height: 56, borderRadius: 16, borderWidth: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+  filledBtn: {
+    height: 46, borderRadius: 14,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+    paddingHorizontal: 10,
   },
-  ghostBtnText: { fontSize: 14, fontWeight: '600' },
+  filledBtnText: { fontSize: 13.5, fontWeight: '700', color: '#ffffff' },
 
   primaryBtnWrap: {
     borderRadius: 16,

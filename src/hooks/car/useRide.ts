@@ -17,6 +17,7 @@ const DriverAssignedSchema = z.object({
   driver: z.object({
     name: z.string().optional(),
     phone: z.string().optional(),
+    avatar: z.string().nullable().optional(),
     vehicle: z.string().optional(),
     vehicleColor: z.string().optional(),
     vehicle_color: z.string().optional(),
@@ -94,6 +95,8 @@ const RideEtaUpdateSchema = z.object({
 export interface DriverInfo {
   name: string;
   phone: string;
+  /** Signed URL to the driver's profile photo, or null when they have none set. */
+  avatar?: string | null;
   vehicle: string;
   vehicleColor?: string;
   vehicleColorHex?: string;
@@ -161,6 +164,7 @@ function mapDriverFromRide(
   return {
     name: rideDriver.name ?? fallback?.name ?? 'Driver',
     phone: rideDriver.phone ?? fallback?.phone ?? '',
+    avatar: rideDriver.avatar ?? fallback?.avatar ?? null,
     vehicle: rideDriver.vehicle ?? fallback?.vehicle ?? '',
     vehicleColor: rideDriver.vehicleColor ?? rideDriver.vehicle_color ?? fallback?.vehicleColor,
     vehicleColorHex: rideDriver.vehicleColorHex ?? rideDriver.vehicle_color_hex ?? fallback?.vehicleColorHex,
@@ -314,6 +318,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         driver: {
           name: data.driver?.name ?? 'Driver',
           phone: data.driver?.phone ?? '',
+          avatar: data.driver?.avatar ?? null,
           vehicle: data.driver?.vehicle ?? '',
           vehicleColor: data.driver?.vehicleColor ?? data.driver?.vehicle_color ?? '',
           vehicleColorHex: data.driver?.vehicleColorHex ?? data.driver?.vehicle_color_hex ?? '',
