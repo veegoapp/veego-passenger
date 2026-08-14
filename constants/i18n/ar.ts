@@ -613,6 +613,9 @@ export const ar: typeof en = {
   my_ratings: 'تقييماتي',
   ratings_given_empty: 'لم تقيّم أي سائق حتى الآن.',
   driver_response_label: 'رد السائق',
+  ratings_trips_summary: '{ratings} تقييم · {trips} رحلة',
+  recent_reviews: 'أحدث المراجعات',
+  ratings_load_error: 'تعذر تحميل التقييمات. حاول مجدداً.',
 
   // Profile — avatar picker
   tap_change_photo: 'اضغط لتغيير الصورة',

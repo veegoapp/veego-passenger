@@ -24,7 +24,6 @@ import { PaymentMethodsModal } from '@/components/profile/PaymentMethodsModal';
 import { NotificationsModal } from '@/components/profile/NotificationsModal';
 import { HelpFaqModal } from '@/components/profile/HelpFaqModal';
 import { ContactSupportModal } from '@/components/profile/ContactSupportModal';
-import { RatingHistoryModal } from '@/components/profile/RatingHistoryModal';
 import { makeStyles, useProfileInfo } from '@/components/profile/shared';
 import { GlassView } from '@/components/ui/GlassView';
 import { Radius } from '@/constants/radius';
@@ -120,6 +119,12 @@ export default function ProfileScreen() {
 
   const open = (screen: ProfileScreen) => {
     Haptics.selectionAsync();
+    // "My Ratings" is a full screen (exact port of the Driver app's ratings
+    // screen), not a modal — navigate instead of toggling activeModal.
+    if (screen === 'ratings_history') {
+      router.push('/ratings');
+      return;
+    }
     setActiveModal(screen);
   };
   const close = () => setActiveModal(null);
@@ -311,7 +316,6 @@ export default function ProfileScreen() {
       <NotificationsModal visible={activeModal === 'notifications'} onClose={close} />
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
-      <RatingHistoryModal visible={activeModal === 'ratings_history'} onClose={close} />
       <TermsModal
         visible={activeModal === 'terms'}
         onClose={close}

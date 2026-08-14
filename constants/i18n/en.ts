@@ -611,6 +611,9 @@ export const en = {
   my_ratings: 'My Ratings',
   ratings_given_empty: "You haven't rated any drivers yet.",
   driver_response_label: "Driver's response",
+  ratings_trips_summary: '{ratings} ratings · {trips} trips',
+  recent_reviews: 'Recent reviews',
+  ratings_load_error: 'Failed to load ratings. Please try again.',
 
   // Profile — avatar picker
   tap_change_photo: 'Tap to change photo',
