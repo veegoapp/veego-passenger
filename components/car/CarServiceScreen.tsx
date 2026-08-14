@@ -5,7 +5,6 @@ import {
   // Modal removed — pickup/destination editing now uses the unified inline sheet.
   // KeyboardAvoidingView removed — it caused a jitter loop fighting Animated.spring.
 } from 'react-native';
-import { router } from 'expo-router';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -780,45 +779,22 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     destSheetTop.setValue(SCREEN_H);
   }, [resetRide, destSheetTop, SCREEN_H]);
 
-  // Navigates to the full receipt breakdown once the completed-trip sheet is
-  // dismissed. Rating now happens inline in TripCompletedSheet (see
-  // handleCompletedDone below), so receipt.tsx's own Rate button only
-  // resurfaces if that inline submission failed or was skipped.
-  const handleFinishRide = useCallback(() => {
-    const finishedRideId = rideState.rideId;
-    if (finishedRideId) {
-      router.push({
-        pathname: '/receipt',
-        params: {
-          rideId: finishedRideId,
-          ...(rideState.fare != null ? { fare: String(rideState.fare) } : {}),
-          ...(rideState.grossFare != null ? { grossFare: String(rideState.grossFare) } : {}),
-          ...(rideState.promoDiscount != null ? { promoDiscount: String(rideState.promoDiscount) } : {}),
-          ...(rideState.walletDeduction != null ? { walletDeduction: String(rideState.walletDeduction) } : {}),
-          ...(destination ? { dropoff: destination } : {}),
-          ...(rideState.driver?.name ? { driverName: rideState.driver.name } : {}),
-          ...(rideState.driver?.rating != null ? { driverRating: String(rideState.driver.rating) } : {}),
-        },
-      } as any);
-    }
-    handleReset();
-  }, [rideState.rideId, rideState.fare, rideState.grossFare, rideState.promoDiscount, rideState.walletDeduction, rideState.driver, destination, handleReset]);
-
-  // Combined fare + inline-rating sheet (Lovable's CompletedSheet behavior).
-  // A skipped rating (stars === 0) still proceeds to the receipt — rating
-  // stays optional, matching Lovable's unconditional "OK" button.
+  // Combined fare + inline-rating sheet (Lovable's CompletedSheet behavior) is
+  // the only post-trip UI now — there's no separate receipt screen to hand
+  // off to, so "Done" just submits the rating (if any) and resets to a fresh
+  // booking. A skipped rating (stars === 0) still proceeds — rating stays
+  // optional, matching Lovable's unconditional "OK" button.
   const handleCompletedDone = useCallback(async (stars: number, comment: string) => {
     const finishedRideId = rideState.rideId;
     if (stars > 0 && finishedRideId) {
       try {
         await api.post(`/rides/${finishedRideId}/rate-driver`, { rating: stars, comment });
       } catch {
-        // Non-fatal — receipt.tsx checks passengerRating and still offers a
-        // Rate button if this submission didn't actually go through.
+        // Non-fatal — rating is best-effort; nothing left downstream to retry it.
       }
     }
-    handleFinishRide();
-  }, [rideState.rideId, handleFinishRide]);
+    handleReset();
+  }, [rideState.rideId, handleReset]);
 
   const handleCancel = useCallback(async (reason?: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -1426,6 +1402,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         walletDeduction={rideState.walletDeduction ?? null}
         paymentMethodLabel={paymentMethod === 'wallet' ? t('payment_methods_wallet') : t('payment_methods_cash')}
         driverName={rideState.driver?.name ?? null}
+        driverRating={rideState.driver?.rating ?? null}
+        pickup={pickupAddress || null}
+        dropoff={destination}
         onDone={handleCompletedDone}
       />
 

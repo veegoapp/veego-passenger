@@ -264,7 +264,6 @@ function AppShell() {
         <Stack.Screen name="support"       options={{ animation: slideAnim }} />
         <Stack.Screen name="suspended"     options={{ animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="verify-phone"  options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
-        <Stack.Screen name="receipt"       options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
       </Stack>
       <TripSheet />
       <ConfirmSheet />

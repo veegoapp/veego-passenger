@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { Banknote, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
 import { Stars } from '@/components/ui/Stars';
@@ -24,6 +25,13 @@ interface TripCompletedSheetProps {
   walletDeduction?: number | null;
   paymentMethodLabel: string;
   driverName?: string | null;
+  /** Driver's existing rating (e.g. 4.8) — distinct from the star rating the
+   *  passenger is submitting below. Omitted (or <= 0) hides the row. */
+  driverRating?: number | null;
+  /** Pickup address — omitted/empty hides the route section. */
+  pickup?: string | null;
+  /** Dropoff address — omitted/empty hides the route section. */
+  dropoff?: string | null;
   /** Called once, with stars === 0 if the passenger tapped Done without rating. */
   onDone: (stars: number, comment: string) => void;
 }
@@ -33,7 +41,8 @@ interface TripCompletedSheetProps {
  * 5-star rating live in a single sheet instead of a separate post-trip screen.
  */
 export function TripCompletedSheet({
-  visible, fare, grossFare, promoDiscount, walletDeduction, paymentMethodLabel, driverName, onDone,
+  visible, fare, grossFare, promoDiscount, walletDeduction, paymentMethodLabel,
+  driverName, driverRating, pickup, dropoff, onDone,
 }: TripCompletedSheetProps) {
   const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -42,6 +51,14 @@ export function TripCompletedSheet({
   const [comment, setComment] = useState('');
   const [detailsVisible, setDetailsVisible] = useState(false);
   const submittingRef = useRef(false);
+
+  const driverInitials = (driverName ?? '')
+    .split(' ')
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'DR';
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -78,6 +95,41 @@ export function TripCompletedSheet({
         <View style={styles.inner}>
           <Text style={[styles.completedLabel, { color: c.inkSoft }]}>{t('trip_complete')}</Text>
 
+          {!!(pickup || dropoff) && (
+            <View style={[styles.routeCard, { borderColor: c.border }]}>
+              {!!pickup && (
+                <View style={styles.routeRow}>
+                  <View style={[styles.routeDot, { backgroundColor: c.ink }]} />
+                  <Text style={[styles.routeText, { color: c.ink }]} numberOfLines={2}>{pickup}</Text>
+                </View>
+              )}
+              {!!pickup && !!dropoff && <View style={[styles.routeLine, { backgroundColor: c.border }]} />}
+              {!!dropoff && (
+                <View style={styles.routeRow}>
+                  <View style={[styles.routeDot, { backgroundColor: c.accent }]} />
+                  <Text style={[styles.routeText, { color: c.ink }]} numberOfLines={2}>{dropoff}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {!!driverName && (
+            <View style={[styles.driverCard, { borderColor: c.border }]}>
+              <View style={styles.driverAvatar}>
+                <Text style={styles.driverInitials}>{driverInitials}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.driverName, { color: c.ink }]} numberOfLines={1}>{driverName}</Text>
+                {driverRating != null && driverRating > 0 && (
+                  <View style={styles.driverRatingRow}>
+                    <Star size={11} color="#f5a623" fill="#f5a623" />
+                    <Text style={[styles.driverRatingText, { color: c.inkSoft }]}>{driverRating.toFixed(1)}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           {fare != null && (
             <Text style={[styles.fareAmount, { color: c.ink }]}>
               {fare.toFixed(2)} <Text style={[styles.fareCurrency, { color: c.inkSoft }]}>{t('egp')}</Text>
@@ -93,6 +145,18 @@ export function TripCompletedSheet({
           <View style={[styles.paymentChip, { backgroundColor: c.surfaceMuted, borderColor: c.border }]}>
             <Text style={[styles.paymentChipText, { color: c.ink }]}>{paymentMethodLabel}</Text>
           </View>
+
+          {/* Cash payment instruction — fare is netCashPayable, so this only
+              shows when there is genuinely cash left to hand over (0 for
+              wallet-paid rides). */}
+          {fare != null && fare > 0 && (
+            <View style={[styles.cashBanner, { backgroundColor: 'rgba(85,196,154,0.12)', borderColor: c.accent }]}>
+              <Banknote size={18} color={c.accent} />
+              <Text style={[styles.cashBannerText, { color: c.ink }]}>
+                {t('pay_driver_cash').replace('{amount}', fare.toFixed(2))}
+              </Text>
+            </View>
+          )}
 
           <View style={[styles.ratingSection, { backgroundColor: c.surfaceMuted, borderColor: c.border }]}>
             <Text style={[styles.ratingPrompt, { color: c.ink }]}>
@@ -167,6 +231,35 @@ const styles = StyleSheet.create({
 
   viewDetailsBtn: { paddingVertical: 4, paddingHorizontal: 8, marginTop: -4 },
   viewDetailsBtnText: { fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
+
+  routeCard: {
+    width: '100%', borderRadius: 16, borderWidth: 1,
+    padding: 14, gap: 8,
+  },
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  routeDot: { width: 9, height: 9, borderRadius: 4.5, flexShrink: 0 },
+  routeLine: { width: 2, height: 14, marginLeft: 3.5 },
+  routeText: { flex: 1, fontSize: 13, fontWeight: '500' },
+
+  driverCard: {
+    width: '100%', flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 16, borderWidth: 1, padding: 12,
+  },
+  driverAvatar: {
+    width: 40, height: 40, borderRadius: 13,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#3A7BD5',
+  },
+  driverInitials: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  driverName: { fontSize: 14.5, fontWeight: '600' },
+  driverRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  driverRatingText: { fontSize: 12 },
+
+  cashBanner: {
+    width: '100%', flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 14, borderWidth: 1.5, padding: 12,
+  },
+  cashBannerText: { flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 18 },
 
   paymentChip: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

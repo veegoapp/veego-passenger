@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppLoader } from '@/components/ui/AppLoader';
@@ -11,8 +11,9 @@ import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useTheme } from '@/context/ThemeContext';
 import type { ThemeColors } from '@/constants/colors';
 import { PassengerTrackingMap } from '@/components/shared/PassengerTrackingMap';
+import { TripCompletedSheet } from '@/components/car/TripCompletedSheet';
 import type { DriverLocation } from '@/src/api/socket';
-import { tokenStore } from '@/src/api/client';
+import api, { tokenStore } from '@/src/api/client';
 import { getRide } from '@/src/api/rideService';
 import { getErrorMessage } from '@/src/utils/errorMessages';
 import { Typography } from '@/constants/typography';
@@ -100,6 +101,20 @@ export default function TripTrackingScreen() {
   const [deepLinkLoading, setDeepLinkLoading] = useState(false);
   const [safetyOpen, setSafetyOpen] = useState(false);
   const [deepLinkError, setDeepLinkError] = useState<string | null>(null);
+  // Populated only when a completed ride is loaded via deep link (see the
+  // deep-link effect below) — this is what used to be handed off to the
+  // standalone receipt.tsx screen. Non-null is also what tells the render
+  // below to show TripCompletedSheet instead of the plain "done" card.
+  const [completion, setCompletion] = useState<{
+    fare: number | null;
+    grossFare: number | null;
+    promoDiscount: number | null;
+    walletDeduction: number | null;
+    pickupAddress: string | null;
+    dropoffAddress: string | null;
+    driverName: string | null;
+    driverRating: number | null;
+  } | null>(null);
 
   // ── Seed from ActiveSession ───────────────────────────────────────────────
   // When the centralized session has data for the ride this screen is tracking,
@@ -180,32 +195,31 @@ export default function TripTrackingScreen() {
           }
         } catch {}
 
-        if (normalized === 'completed' || normalized === 'cancelled') {
-          // receipt.tsx reads `rideId` (not `id`) and uses it both to check
-          // whether this ride was already rated and to submit the rating —
-          // passing the wrong key silently broke that lookup and the
-          // eventual POST /rides/:id/rate-driver call.
-          // receipt.tsx's `fare` param is netCashPayable (cash still owed to
-          // the driver, 0 for wallet-paid rides) — GET /rides/:id returns it
-          // directly now; `finalPrice` is kept only as a fallback for a ride
-          // fetched before that field existed on this response.
+        if (normalized === 'completed') {
+          // Was handed off to the standalone receipt.tsx screen — that screen
+          // is gone now, so this data feeds TripCompletedSheet inline instead
+          // (rendered below once `completion` is non-null).
+          // `fare` is netCashPayable (cash still owed to the driver, 0 for
+          // wallet-paid rides) — GET /rides/:id returns it directly now;
+          // `finalPrice` is kept only as a fallback for a ride fetched before
+          // that field existed on this response.
           const fare = d?.netCashPayable ?? d?.finalPrice;
-          const pickupAddress = d?.pickupAddress ?? d?.pickup_address;
-          const dropoffAddress = d?.dropoffAddress ?? d?.dropoff_address;
-          router.replace({
-            pathname: '/receipt',
-            params: {
-              rideId: deepId,
-              ...(fare != null ? { fare: String(fare) } : {}),
-              ...(d?.grossFare != null ? { grossFare: String(d.grossFare) } : {}),
-              ...(d?.promoDiscount != null ? { promoDiscount: String(d.promoDiscount) } : {}),
-              ...(d?.walletDeduction != null ? { walletDeduction: String(d.walletDeduction) } : {}),
-              ...(pickupAddress ? { pickup: pickupAddress } : {}),
-              ...(dropoffAddress ? { dropoff: dropoffAddress } : {}),
-              ...(d?.driver?.name ? { driverName: d.driver.name } : {}),
-              ...(d?.driver?.rating != null ? { driverRating: String(d.driver.rating) } : {}),
-            },
-          } as any);
+          setCompletion({
+            fare: fare != null ? Number(fare) : null,
+            grossFare: d?.grossFare != null ? Number(d.grossFare) : null,
+            promoDiscount: d?.promoDiscount != null ? Number(d.promoDiscount) : null,
+            walletDeduction: d?.walletDeduction != null ? Number(d.walletDeduction) : null,
+            pickupAddress: d?.pickupAddress ?? d?.pickup_address ?? null,
+            dropoffAddress: d?.dropoffAddress ?? d?.dropoff_address ?? null,
+            driverName: d?.driver?.name ?? null,
+            driverRating: d?.driver?.rating != null ? Number(d.driver.rating) : null,
+          });
+          setStatus('completed');
+          return;
+        }
+
+        if (normalized === 'cancelled') {
+          setStatus('cancelled');
           return;
         }
 
@@ -263,11 +277,29 @@ export default function TripTrackingScreen() {
   // Navigate away 3 seconds after the ride reaches a terminal state.
   // Status is fed by the activeRideSnapshot effect (via ActiveSessionContext)
   // so no separate socket listener is needed for terminal transitions.
+  // Skipped when TripCompletedSheet is showing (completed + completion data
+  // loaded) — that sheet is interactive (fare review, inline rating) and
+  // dismisses itself via handleCompletedDone, not a timer.
   useEffect(() => {
     if (status !== 'completed' && status !== 'cancelled' && status !== 'timeout') return;
+    if (status === 'completed' && completion) return;
     const timer = setTimeout(() => router.back(), 3000);
     return () => clearTimeout(timer);
-  }, [status]);
+  }, [status, completion]);
+
+  // TripCompletedSheet's Done button — submits the rating (best-effort, same
+  // as CarServiceScreen's handleCompletedDone) then returns to the home tab.
+  const handleCompletedDone = useCallback(async (stars: number, comment: string) => {
+    const finishedRideId = params.id ?? params.rideId;
+    if (stars > 0 && finishedRideId) {
+      try {
+        await api.post(`/rides/${finishedRideId}/rate-driver`, { rating: stars, comment });
+      } catch {
+        // Non-fatal — rating is best-effort.
+      }
+    }
+    router.replace('/(tabs)' as any);
+  }, [params.id, params.rideId, router]);
 
   const tripPhase = useMemo<'driver_arriving' | 'trip_started' | null>(() => {
     if (status === 'driver_assigned' || status === 'arrived') return 'driver_arriving';
@@ -357,7 +389,10 @@ export default function TripTrackingScreen() {
       {/* Realtime connection indicator */}
       <ConnectionBanner style={{ position: 'absolute', top: insets.top + 64, alignSelf: 'center', zIndex: 40 }} />
 
-      {/* Bottom card */}
+      {/* Bottom card — hidden once TripCompletedSheet takes over (completed
+          ride with receipt data loaded); that sheet is a full replacement,
+          not an overlay. */}
+      {!(status === 'completed' && completion) && (
       <GlassView strong borderRadius={Radius.xl} style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>
         {/* Driver info */}
         {driverInfo.name ? (
@@ -432,6 +467,23 @@ export default function TripTrackingScreen() {
           </TouchableOpacity>
         )}
       </GlassView>
+      )}
+
+      {/* Fare + inline rating — replaces the standalone receipt.tsx screen
+          that used to be navigated to here. */}
+      <TripCompletedSheet
+        visible={status === 'completed' && !!completion}
+        fare={completion?.fare ?? null}
+        grossFare={completion?.grossFare ?? null}
+        promoDiscount={completion?.promoDiscount ?? null}
+        walletDeduction={completion?.walletDeduction ?? null}
+        paymentMethodLabel={t('cash_payment')}
+        driverName={completion?.driverName ?? null}
+        driverRating={completion?.driverRating ?? null}
+        pickup={completion?.pickupAddress ?? null}
+        dropoff={completion?.dropoffAddress ?? null}
+        onDone={handleCompletedDone}
+      />
     </View>
   );
 }
