@@ -32,6 +32,13 @@ export type ThemeColors = {
   // needed a new home.
   surfaceMuted: string;
   gold: string;
+  // Single source for the two-stop gradient used behind Shuttle/trip "info"
+  // cards (RouteCard, TripSheetSections stat cards, trip-detail card) — was
+  // re-declared as a local ['#1e1e3a','#16162e'] / ['#ffffff','#f7f7fc']
+  // literal at every call site. Dark mode is flat and matches `surface`/
+  // `white` exactly so these cards read identically to GlassView-based cards
+  // (HistoryTripCard, UpcomingTripCard) instead of drifting to their own shade.
+  cardGrad: readonly [string, string];
 };
 
 export const LIGHT: ThemeColors = {
@@ -68,6 +75,7 @@ export const LIGHT: ThemeColors = {
   info: '#3D52D5',
   surfaceMuted: '#f7f8fc',
   gold: '#C8A535',
+  cardGrad: ['#ffffff', '#f7f7fc'],
 };
 
 export const DARK: ThemeColors = {
@@ -106,6 +114,9 @@ export const DARK: ThemeColors = {
   info: '#3D52D5',
   surfaceMuted: '#16162a',
   gold: '#C8A535',
+  // Flat, not a real gradient — same '#16162a' as `surface`/`white` so every
+  // dark-mode card (GlassView or LinearGradient-based) renders the identical shade.
+  cardGrad: ['#16162a', '#16162a'],
 };
 
 export function makeGlassStyle(c: ThemeColors) {

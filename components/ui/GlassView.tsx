@@ -18,8 +18,12 @@ interface GlassViewProps {
  */
 export function GlassView({ style, strong = false, children, borderRadius = 16, onLayout }: GlassViewProps) {
   const { colors: c } = useTheme();
+  // Dark mode is solid (not translucent) and reads `c.surface` directly —
+  // a translucent panel picks up whatever gradient sits behind it, so the
+  // same rgba literal rendered a different apparent shade on every screen.
+  // Solid + theme-token keeps every dark-mode card pixel-identical.
   const bg = c.isDark
-    ? (strong ? 'rgba(22,22,26,0.98)' : 'rgba(22,22,26,0.94)')
+    ? c.surface
     : (strong ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.85)');
 
   if (Platform.OS === 'ios' && !c.isDark) {

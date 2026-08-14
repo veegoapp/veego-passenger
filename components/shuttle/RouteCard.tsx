@@ -76,7 +76,7 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
       <LinearGradient
-        colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+        colors={c.cardGrad}
         style={styles.cardGrad}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       >
