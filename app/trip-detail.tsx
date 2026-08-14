@@ -1127,7 +1127,7 @@ export default function TripDetailScreen() {
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Trip info card */}
         <LinearGradient
-          colors={c.isDark ? ['#1e1e3a', '#16162e'] : ['#ffffff', '#f7f7fc']}
+          colors={c.cardGrad}
           style={styles.card}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         >
