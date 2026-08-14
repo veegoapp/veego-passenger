@@ -429,6 +429,13 @@ export default function TripDetailScreen() {
   // REST result is never overwritten by a stale snapshot.
   const { session } = useActiveSession();
 
+  // Shuttle-only: this trip's actual bus size (hiace = 14-seat microbus,
+  // minibus = 28-seat) — already present on the ActiveSession snapshot
+  // (PassengerShuttleTrip.vehicleType), no new fetch needed. Undefined until
+  // the session resolves, which leaves PassengerTrackingMap on its existing
+  // 'shuttle' default (generic bus) — never a broken/missing marker.
+  const shuttleVehicleType = session?.kind === 'shuttle' ? (session as any).trip?.vehicleType : undefined;
+
   // D6-4: applies a driver location update and stamps when it happened, so
   // staleness can be measured from either a live socket tick or a session
   // re-seed (below) — single choke point used by both.
@@ -1187,6 +1194,7 @@ export default function TripDetailScreen() {
               stations={stations}
               passengerStationId={trip.pickupStationId ?? undefined}
               boarded={boarded}
+              vehicleType={shuttleVehicleType}
               style={{ borderRadius: Radius.xl }}
               onEtaChange={setEtaMinutes}
               onTargetStationChange={setNextStation}

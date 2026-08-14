@@ -23,14 +23,16 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { VehicleIcon, mapServiceTypeToVehicleType } from './VehicleIcon';
 
-export type DriverVehicleType = 'car' | 'scooter' | 'delivery' | 'shuttle';
+// 'car'/'scooter'/'delivery'/'shuttle' are ride-level service types.
+// 'hiace'/'minibus' are specific shuttle trip vehicle types
+// (PassengerShuttleTrip.vehicleType) — pass these directly when known,
+// instead of the generic 'shuttle', so the marker shows the correct bus size.
+export type DriverVehicleType = 'car' | 'scooter' | 'delivery' | 'shuttle' | 'hiace' | 'minibus';
 
 interface DriverMarkerProps {
   /** CarMap / PassengerTrackingMap key their anchor/rotation props off this.
-   *  Mapped onto the VehicleIcon vocabulary (car/scooter/van/minibus) via
-   *  mapServiceTypeToVehicleType — this is the ride's service type, not the
-   *  driver's vehicles.vehicleType row, since that isn't available in the
-   *  map flow today. */
+   *  Normalized onto the VehicleIcon vocabulary (car/scooter/delivery/
+   *  hiace/minibus) via mapServiceTypeToVehicleType. */
   vehicleType: DriverVehicleType;
   /** Vehicle body color hex, e.g. from driver.vehicleColorHex. Optional —
    *  VehicleIcon falls back to a safe default when missing/invalid. */

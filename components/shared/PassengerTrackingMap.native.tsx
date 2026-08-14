@@ -50,8 +50,11 @@ export interface TrackingMapProps {
   stations?: Station[];
   passengerStationId?: number | null;
   style?: object;
-  /** Driver marker icon. Defaults to 'shuttle' (bus) — preserves existing behavior for shuttle tracking. */
-  vehicleType?: 'car' | 'scooter' | 'shuttle';
+  /** Driver marker icon. Defaults to 'shuttle' (generic bus fallback) —
+   *  callers tracking a shuttle trip should pass the trip's actual
+   *  'hiace' (14-seat microbus) or 'minibus' (28-seat) vehicleType instead,
+   *  once known, so the correct bus size renders. */
+  vehicleType?: 'car' | 'scooter' | 'shuttle' | 'hiace' | 'minibus';
   /** Assigned driver's vehicle body color (hex). Passed through to
    *  DriverMarker's VehicleIcon; falls back safely when absent. */
   driverColorHex?: string | null;
