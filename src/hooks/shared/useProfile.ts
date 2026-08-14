@@ -8,6 +8,8 @@ export interface UserProfile {
   email: string;
   phone: string;
   gender: 'male' | 'female' | null;
+  /** Signed profile-photo URL from GET /users/me, or null when unset. */
+  avatar: string | null;
 }
 
 const EMPTY_PROFILE: UserProfile = {
@@ -16,6 +18,7 @@ const EMPTY_PROFILE: UserProfile = {
   email: '',
   phone: '',
   gender: null,
+  avatar: null,
 };
 
 interface UseProfileResult {
@@ -33,6 +36,7 @@ function mapApiProfile(d: any): UserProfile {
     email: d.email ?? d.emailAddress ?? '',
     phone: d.phone ?? d.phoneNumber ?? d.mobile ?? '',
     gender: d.gender === 'male' || d.gender === 'female' ? d.gender : null,
+    avatar: d.avatar ?? null,
   };
 }
 

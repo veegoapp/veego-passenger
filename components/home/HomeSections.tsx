@@ -5,7 +5,8 @@
  * in HomeScreen and arrive here as props (including the makeStyles result,
  * passed as `styles`). No JSX structure, style, or logic changes.
  */
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, ScrollView, TextInput, Modal, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bus, Car, Bike as ScooterIcon, Package, Bell, Search,
@@ -46,23 +47,35 @@ export interface SavedLocation {
  * on the other for Notifications — both translucent cards floating directly
  * over the map, no opaque header band and no brand lockup.
  */
-export function HomeHeader({ styles, c, t, greetingKey, firstName, avatarInitials, unreadCount, onNotifications, onProfile }: {
+export function HomeHeader({ styles, c, t, firstName, avatarInitials, avatarUri, unreadCount, onNotifications, onProfile }: {
   styles: any; c: ThemeColors; t: T;
-  greetingKey: string; firstName: string; avatarInitials: string; unreadCount: number;
+  firstName: string; avatarInitials: string; avatarUri?: string | null; unreadCount: number;
   onNotifications: () => void; onProfile: () => void;
 }) {
+  // Falls back to initials-on-tint when there's no photo yet or the URL
+  // fails to load (e.g. an expired signed URL) — never a blank/broken image.
+  // Re-armed whenever the avatar URL itself changes.
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  useEffect(() => { setAvatarFailed(false); }, [avatarUri]);
+  const showAvatarImage = !!avatarUri && !avatarFailed;
+
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onProfile} style={styles.avatarPill} accessibilityLabel="Profile">
         <GlassView style={styles.avatarPillGlass} borderRadius={24}>
           <View style={styles.avatarPillInner}>
-            <View style={[styles.avatar, { borderColor: c.primary + '66' }]}>
-              <Text style={styles.avatarText}>{avatarInitials}</Text>
-            </View>
-            <View>
-              <Text style={styles.greeting}>{t(greetingKey)}</Text>
-              <Text style={styles.greetingName}>{firstName}</Text>
-            </View>
+            {showAvatarImage ? (
+              <Image
+                source={{ uri: avatarUri as string }}
+                style={[styles.avatar, { borderColor: c.primary + '66' }]}
+                onError={() => setAvatarFailed(true)}
+              />
+            ) : (
+              <View style={[styles.avatar, { borderColor: c.primary + '66' }]}>
+                <Text style={styles.avatarText}>{avatarInitials}</Text>
+              </View>
+            )}
+            <Text style={styles.hiText}>{t('hi')}, {firstName}</Text>
           </View>
         </GlassView>
       </TouchableOpacity>

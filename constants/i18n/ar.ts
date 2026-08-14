@@ -5,6 +5,7 @@ export const ar: typeof en = {
   good_morning: 'صباح الخير',
   good_afternoon: 'مساء الخير',
   good_evening: 'مساء النور',
+  hi: 'مرحباً',
   tap_to_apply: 'اضغط للتطبيق',
   continue_btn: 'متابعة',
   review_confirm_title: 'مراجعة وتأكيد',

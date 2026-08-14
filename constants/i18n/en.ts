@@ -3,6 +3,7 @@ export const en = {
   good_morning: 'Good morning',
   good_afternoon: 'Good afternoon',
   good_evening: 'Good evening',
+  hi: 'Hi',
   tap_to_apply: 'Tap to apply',
   continue_btn: 'Continue',
   review_confirm_title: 'Review & Confirm',

@@ -37,12 +37,6 @@ import {
   ZoneServicesBanner, ActiveBookingHero, DestinationSearchModal,
 } from '@/components/home/HomeSections';
 
-function getGreetingKey(hour: number): 'good_morning' | 'good_afternoon' | 'good_evening' {
-  if (hour >= 5 && hour < 12) return 'good_morning';
-  if (hour >= 12 && hour < 17) return 'good_afternoon';
-  return 'good_evening';
-}
-
 function getInitials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'VG';
@@ -66,8 +60,10 @@ function makeStyles(c: ThemeColors) {
     avatarPill: {},
     avatarPillGlass: {},
     avatarPillInner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: Spacing.xs, paddingRight: Spacing.md, paddingVertical: Spacing.xs },
-    greeting: { fontSize: 11, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: Typography.weight.medium },
-    greetingName: { fontSize: 20, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.5 },
+    // Matches the Driver app's Home header hiText exactly (Typography.size.xs,
+    // regular weight) — a single "Hi, {name}" line instead of a separate
+    // uppercase greeting caption + large bold name.
+    hiText: { fontSize: Typography.size.xs, color: c.inkSoft, fontWeight: Typography.weight.regular },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     iconBtnGlass: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', position: 'relative' },
     notifDot: {
@@ -214,7 +210,6 @@ export default function HomeScreen() {
   const { profile } = useProfile();
   const { promos } = usePromos();
 
-  const greetingKey = getGreetingKey(new Date().getHours());
   const firstName = getFirstName(profile.name);
   const avatarInitials = getInitials(profile.name);
 
@@ -445,7 +440,7 @@ export default function HomeScreen() {
           <View style={{ paddingTop: top }}>
             <HomeHeader
               styles={styles} c={c} t={t as (key: string) => string}
-              greetingKey={greetingKey} firstName={firstName} avatarInitials={avatarInitials}
+              firstName={firstName} avatarInitials={avatarInitials} avatarUri={profile.avatar}
               unreadCount={unreadCount}
               onNotifications={() => router.push('/notifications')}
               onProfile={() => router.push('/(tabs)/profile')}

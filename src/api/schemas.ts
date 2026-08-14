@@ -24,6 +24,7 @@ export const ProfileResponseSchema = z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   gender: z.enum(['male', 'female']).nullable().optional(),
+  avatar: z.string().nullable().optional(),
 }).passthrough();
 
 /** One item of GET /notifications. */
