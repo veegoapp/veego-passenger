@@ -20,6 +20,8 @@ const DriverAssignedSchema = z.object({
     vehicle: z.string().optional(),
     vehicleColor: z.string().optional(),
     vehicle_color: z.string().optional(),
+    vehicleColorHex: z.string().optional(),
+    vehicle_color_hex: z.string().optional(),
     plateNumber: z.string().optional(),
     plate_number: z.string().optional(),
     rating: z.number().optional(),
@@ -94,6 +96,7 @@ export interface DriverInfo {
   phone: string;
   vehicle: string;
   vehicleColor?: string;
+  vehicleColorHex?: string;
   plateNumber?: string;
   rating: number;
   /** Minutes until arrival, or null when no real estimate has arrived yet
@@ -160,6 +163,7 @@ function mapDriverFromRide(
     phone: rideDriver.phone ?? fallback?.phone ?? '',
     vehicle: rideDriver.vehicle ?? fallback?.vehicle ?? '',
     vehicleColor: rideDriver.vehicleColor ?? rideDriver.vehicle_color ?? fallback?.vehicleColor,
+    vehicleColorHex: rideDriver.vehicleColorHex ?? rideDriver.vehicle_color_hex ?? fallback?.vehicleColorHex,
     plateNumber: rideDriver.plateNumber ?? rideDriver.plate_number ?? fallback?.plateNumber,
     rating: rideDriver.rating ?? fallback?.rating ?? 4.8,
     eta: topLevelEta ?? rideDriver.eta ?? fallback?.eta ?? null,
@@ -312,6 +316,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           phone: data.driver?.phone ?? '',
           vehicle: data.driver?.vehicle ?? '',
           vehicleColor: data.driver?.vehicleColor ?? data.driver?.vehicle_color ?? '',
+          vehicleColorHex: data.driver?.vehicleColorHex ?? data.driver?.vehicle_color_hex ?? '',
           plateNumber: data.driver?.plateNumber ?? data.driver?.plate_number ?? '',
           rating: data.driver?.rating ?? 4.8,
           eta: data.eta ?? null,
@@ -424,6 +429,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
             phone: m.driverPhone ?? prev.driver?.phone ?? '',
             vehicle: m.vehicle ?? prev.driver?.vehicle ?? '',
             vehicleColor: m.vehicleColor ?? prev.driver?.vehicleColor,
+            vehicleColorHex: m.vehicleColorHex ?? prev.driver?.vehicleColorHex,
             plateNumber: m.plateNumber ?? prev.driver?.plateNumber,
             rating: m.rating ?? prev.driver?.rating ?? 4.8,
             eta: m.eta ?? prev.driver?.eta ?? null,

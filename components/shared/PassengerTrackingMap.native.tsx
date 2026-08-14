@@ -52,6 +52,9 @@ export interface TrackingMapProps {
   style?: object;
   /** Driver marker icon. Defaults to 'shuttle' (bus) — preserves existing behavior for shuttle tracking. */
   vehicleType?: 'car' | 'scooter' | 'shuttle';
+  /** Assigned driver's vehicle body color (hex). Passed through to
+   *  DriverMarker's VehicleIcon; falls back safely when absent. */
+  driverColorHex?: string | null;
   /** Called whenever the internally-computed ETA changes — lets the parent
    * screen display it without computing its own separate ETA. */
   onEtaChange?: (minutes: number | null) => void;
@@ -93,7 +96,7 @@ function stationFill(status: Station['status']): string {
 export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   pickup, dropoff, driverLocation: driverLocationSeed, rideId,
   stations = [], passengerStationId, style,
-  vehicleType = 'shuttle', onEtaChange,
+  vehicleType = 'shuttle', driverColorHex, onEtaChange,
   tripPhase = null,
   boarded = false,
   onTargetStationChange,
@@ -508,7 +511,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
             tracksViewChanges={!carMarkerReady}
             title={t('driver_label')}
           >
-            <DriverMarker vehicleType={vehicleType} onImageLoad={onCarMarkerLoad} />
+            <DriverMarker vehicleType={vehicleType} colorHex={driverColorHex} onImageLoad={onCarMarkerLoad} />
           </MarkerAnimated>
         )}
       </MapView>

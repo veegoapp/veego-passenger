@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Pressable, StyleSheet, Animated, Linking,
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   MessageCircle, Phone, X, AlertTriangle,
-  Navigation, BadgeCheck, ChevronRight, ShieldAlert, LifeBuoy,
+  BadgeCheck, ChevronRight, ShieldAlert, LifeBuoy,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { Animation } from '@/constants/animations';
 import { GlassView } from '@/components/ui/GlassView';
 import { ChatModal } from './ChatModal';
 import { Stars } from '@/components/ui/Stars';
+import { VehicleIcon, mapServiceTypeToVehicleType } from '@/components/shared/VehicleIcon';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
 
 interface DriverAssignedCardProps {
@@ -244,7 +245,7 @@ function DriverAssignedCardBase({
             {/* Driver mini row */}
             <View style={[styles.driverMiniRow, { backgroundColor: cardBg, borderColor: borderCol }]}>
               <View style={[styles.driverMiniIcon, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-                <Navigation size={18} color={c.ink} strokeWidth={1.7} />
+                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={26} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[styles.driverMiniName, { color: c.ink }]} numberOfLines={1}>
@@ -358,14 +359,17 @@ function DriverAssignedCardBase({
             {/* ── Vehicle row ── */}
             <View style={[styles.vehicleRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
               <View style={[styles.vehicleIconBox, { backgroundColor: cardBg, borderColor: borderCol }]}>
-                <Navigation size={18} color={c.ink} strokeWidth={1.7} />
+                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={30} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[styles.vehicleName, { color: c.ink }]} numberOfLines={1}>
                   {driver?.vehicle ?? '—'}
                 </Text>
-                <Text style={[styles.vehicleSub, { color: c.inkSoft }]}>
-                  {serviceType === 'car' ? 'Car' : serviceType === 'scooter' ? 'Scooter' : 'Delivery'}
+                <Text style={[styles.vehicleSub, { color: c.inkSoft }]} numberOfLines={1}>
+                  {[
+                    serviceType === 'car' ? 'Car' : serviceType === 'scooter' ? 'Scooter' : 'Delivery',
+                    driver?.vehicleColor,
+                  ].filter(Boolean).join(' · ')}
                 </Text>
               </View>
               {driver?.plateNumber ? (

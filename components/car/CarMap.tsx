@@ -41,6 +41,9 @@ interface CarMapProps {
   /** Pre-booking nearby-driver markers — pass undefined/empty once a real driver is assigned. */
   nearbyDrivers?: NearbyDriver[];
   serviceType?: 'car' | 'scooter' | 'delivery';
+  /** Assigned driver's vehicle body color (hex), e.g. rideState.driver?.vehicleColorHex.
+   *  Passed through to DriverMarker's VehicleIcon; falls back safely when absent. */
+  driverColorHex?: string | null;
   /** True while actively searching for a driver — layers the ripple/arrow
    *  pulse over the passenger's own-location dot instead of the plain dot. */
   searching?: boolean;
@@ -53,7 +56,7 @@ interface CarMapProps {
 // rideState at all — they're read directly by useDriverLocationSocket below,
 // scoped to this component — but the memo still matters for everything else
 // CarServiceScreen re-renders on.
-export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, searching }: CarMapProps) {
+export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, driverColorHex, searching }: CarMapProps) {
   const { darkMode } = useTheme();
 
   // CarServiceScreen lives on the home tab and stays mounted (native-stack
@@ -357,7 +360,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
             rotation={0}
             tracksViewChanges={!carMarkerReady}
           >
-            <DriverMarker vehicleType={serviceType ?? 'car'} onImageLoad={onCarMarkerLoad} />
+            <DriverMarker vehicleType={serviceType ?? 'car'} colorHex={driverColorHex} onImageLoad={onCarMarkerLoad} />
           </MarkerAnimated>
         )}
 

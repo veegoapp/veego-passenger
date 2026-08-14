@@ -878,6 +878,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         onUserLocation={handleUserLocation}
         nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
         serviceType={serviceType}
+        driverColorHex={rideState.driver?.vehicleColorHex}
         searching={phase === 'in_ride' && rideState.status === 'searching'}
       />
 
