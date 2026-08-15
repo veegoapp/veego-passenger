@@ -84,14 +84,17 @@ function FilledButton({
 // Icon-only circular Call/Chat buttons — driver-app parity: dark charcoal
 // fill, gold icon + ring, no text label.
 function IconCircleButton({
-  onPress, disabled, icon,
-}: { onPress?: () => void; disabled?: boolean; icon: React.ReactNode }) {
+  onPress, disabled, icon, size = 48,
+}: { onPress?: () => void; disabled?: boolean; icon: React.ReactNode; size?: number }) {
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.82}
-      style={[styles.iconCircleBtn, { opacity: disabled ? 0.4 : 1 }]}
+      style={[
+        styles.iconCircleBtn,
+        { width: size, height: size, borderRadius: size / 2, opacity: disabled ? 0.4 : 1 },
+      ]}
     >
       {icon}
     </TouchableOpacity>
@@ -301,6 +304,20 @@ function DriverAssignedCardBase({
                   </Text>
                   {rating != null ? <Stars value={rating} /> : null}
                 </View>
+                {/* Chat/Call sit right next to the name — driver-app parity */}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <IconCircleButton
+                    onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
+                    icon={<MessageCircle size={17} color={GOLD} strokeWidth={2} />}
+                    size={40}
+                  />
+                  <IconCircleButton
+                    onPress={handleCall}
+                    disabled={!driver?.phone}
+                    icon={<Phone size={17} color={GOLD} strokeWidth={2} />}
+                    size={40}
+                  />
+                </View>
               </View>
               <View style={[styles.driverMiniVehicleRow, { borderTopColor: borderCol }]}>
                 <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={80} />
@@ -310,17 +327,8 @@ function DriverAssignedCardBase({
               </View>
             </View>
 
-            {/* Action buttons row — Chat/Call are icon-only circles (driver-app parity), SOS stays a labeled pill */}
+            {/* Action buttons row — SOS stays a labeled pill */}
             <View style={styles.actionsRow}>
-              <IconCircleButton
-                onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                icon={<MessageCircle size={20} color={GOLD} strokeWidth={2} />}
-              />
-              <IconCircleButton
-                onPress={handleCall}
-                disabled={!driver?.phone}
-                icon={<Phone size={20} color={GOLD} strokeWidth={2} />}
-              />
               <FilledButton
                 onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
                 tone="danger"
@@ -384,6 +392,21 @@ function DriverAssignedCardBase({
                   )}
                 </View>
               </View>
+
+              {/* Chat/Call sit right next to the name — driver-app parity */}
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <IconCircleButton
+                  onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
+                  icon={<MessageCircle size={18} color={GOLD} strokeWidth={2} />}
+                  size={40}
+                />
+                <IconCircleButton
+                  onPress={handleCall}
+                  disabled={!driver?.phone}
+                  icon={<Phone size={18} color={GOLD} strokeWidth={2} />}
+                  size={40}
+                />
+              </View>
             </View>
 
             {/* ── Vehicle row ── */}
@@ -418,19 +441,6 @@ function DriverAssignedCardBase({
                 </Text>
               </View>
             )}
-
-            {/* ── Call / Message row — icon-only circles, driver-app parity ── */}
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <IconCircleButton
-                onPress={handleCall}
-                disabled={!driver?.phone}
-                icon={<Phone size={20} color={GOLD} strokeWidth={2} />}
-              />
-              <IconCircleButton
-                onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                icon={<MessageCircle size={20} color={GOLD} strokeWidth={2} />}
-              />
-            </View>
 
             {/* ── Primary action (Start trip / shown when arrived) ── */}
             {(isArrived || rideStatus === 'driver_assigned') && onStart && (
