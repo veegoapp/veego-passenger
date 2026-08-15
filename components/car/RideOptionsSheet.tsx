@@ -1,6 +1,6 @@
 import { memo, useRef, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Animated,
+  View, Text, Image, TouchableOpacity, StyleSheet, Animated,
   ActivityIndicator, TextInput, ScrollView, Switch,
 } from 'react-native';
 import {
@@ -40,6 +40,15 @@ interface RideOptionsSheetProps {
   onPaymentMethodChange?: (method: 'cash' | 'wallet') => void;
   walletAvailable?: boolean;
 }
+
+// Real car photos per catalog category (economy / economy_plus / comfort),
+// shown large and frameless in the ride option cards below — falls back to
+// the generic Car icon for any slug the backend adds later without a photo.
+const CATEGORY_IMAGES: Record<string, ReturnType<typeof require>> = {
+  economy: require('../../assets/images/vehicles/category/economy.png'),
+  economy_plus: require('../../assets/images/vehicles/category/economy-plus.png'),
+  comfort: require('../../assets/images/vehicles/category/comfort.png'),
+};
 
 /* ─── Shared primitives ──────────────────────────────────────────────────── */
 function PrimaryButton({
@@ -189,12 +198,20 @@ function RideOptionsSheetBase({
                         <Check size={10} color="#ffffff" strokeWidth={3} />
                       </View>
                     )}
-                    <View style={[
-                      styles.optionIconH,
-                      { backgroundColor: active ? (isDark ? 'rgba(30,30,40,0.25)' : 'rgba(30,30,40,0.08)') : surfaceBg },
-                    ]}>
-                      <Car size={20} color={active ? primaryCol : mutedCol} strokeWidth={1.8} />
-                    </View>
+                    {CATEGORY_IMAGES[cat.slug] ? (
+                      <Image
+                        source={CATEGORY_IMAGES[cat.slug]}
+                        style={styles.optionImageH}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View style={[
+                        styles.optionIconH,
+                        { backgroundColor: active ? (isDark ? 'rgba(30,30,40,0.25)' : 'rgba(30,30,40,0.08)') : surfaceBg },
+                      ]}>
+                        <Car size={20} color={active ? primaryCol : mutedCol} strokeWidth={1.8} />
+                      </View>
+                    )}
                     <Text style={[styles.optionNameH, { color: c.ink }]} numberOfLines={1}>{cat.name}</Text>
                     {estimate?.eta != null && !estimateLoading ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -463,15 +480,18 @@ const styles = StyleSheet.create({
     gap: 10, paddingRight: 4,
   },
   optionCardH: {
-    width: 128, borderRadius: 16,
-    paddingHorizontal: 12, paddingVertical: 14,
-    alignItems: 'center', gap: 6,
+    width: 156, borderRadius: 16,
+    paddingHorizontal: 10, paddingVertical: 12,
+    alignItems: 'center', gap: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
   },
   optionIconH: {
     width: 40, height: 40, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
+  },
+  optionImageH: {
+    width: 136, height: 80, marginBottom: 2,
   },
   optionNameH: {
     fontSize: 13, fontWeight: '600', letterSpacing: -0.1,
