@@ -34,9 +34,11 @@ interface DriverAssignedCardProps {
 // charcoal + metallic gold, independent of the app's light/dark theme,
 // matching the driver app's minimalist icon-button style.
 const GOLD = '#D5B23D';
-const CHARCOAL = '#1C1C1E';
 const CHARCOAL_SURFACE = '#26262A';
 const GOLD_BORDER = 'rgba(213,178,61,0.4)';
+// Call/Chat circles: neutral gray fill, no border, white icon — independent
+// of the app's light/dark theme like the rest of this card's fixed palette.
+const ICON_BTN_GRAY = '#8E8E93';
 // How much of the card stays visible when it's lowered to a peek (handle +
 // status header + trip title). The rest slides below the screen edge.
 const PEEK_HEIGHT = 132;
@@ -47,7 +49,7 @@ const PEEK_HEIGHT = 132;
 // decisive rather than washed out. Call/Chat use IconCircleButton instead
 // (icon-only, driver-app parity — see below).
 function FilledButton({
-  onPress, disabled, tone = 'primary', icon, label, flex,
+  onPress, disabled, tone = 'primary', icon, label, flex, compact,
 }: {
   onPress?: () => void;
   disabled?: boolean;
@@ -55,6 +57,8 @@ function FilledButton({
   icon: React.ReactNode;
   label: string;
   flex?: number;
+  /** Shrinks height/padding/font — used when two pills share a row (SOS + Need Help). */
+  compact?: boolean;
 }) {
   const { colors: c } = useTheme();
 
@@ -68,12 +72,13 @@ function FilledButton({
       activeOpacity={0.85}
       style={[
         styles.filledBtn,
+        compact ? styles.filledBtnCompact : null,
         flex ? { flex } : {},
         { backgroundColor: bg, borderColor, borderWidth: tone === 'neutral' ? 1.5 : 0, opacity: disabled ? 0.5 : 1 },
       ]}
     >
       {icon}
-      <Text style={styles.filledBtnText} numberOfLines={1}>
+      <Text style={[styles.filledBtnText, compact ? styles.filledBtnTextCompact : null]} numberOfLines={1}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -308,13 +313,13 @@ function DriverAssignedCardBase({
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <IconCircleButton
                     onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                    icon={<MessageCircle size={17} color={GOLD} strokeWidth={2} />}
+                    icon={<MessageCircle size={17} color="#ffffff" strokeWidth={2} />}
                     size={40}
                   />
                   <IconCircleButton
                     onPress={handleCall}
                     disabled={!driver?.phone}
-                    icon={<Phone size={17} color={GOLD} strokeWidth={2} />}
+                    icon={<Phone size={17} color="#ffffff" strokeWidth={2} />}
                     size={40}
                   />
                 </View>
@@ -327,24 +332,26 @@ function DriverAssignedCardBase({
               </View>
             </View>
 
-            {/* Action buttons row — SOS stays a labeled pill */}
+            {/* Action buttons row — SOS + Need Help side by side, compact */}
             <View style={styles.actionsRow}>
               <FilledButton
                 onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
                 tone="danger"
-                icon={<ShieldAlert size={16} color="#ffffff" strokeWidth={2} />}
+                icon={<ShieldAlert size={14} color="#ffffff" strokeWidth={2} />}
                 label={t('sos_label')}
                 flex={1}
+                compact
+              />
+              {/* Need Help — routes to SafetySheet via onSOS */}
+              <FilledButton
+                onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
+                tone="neutral"
+                icon={<LifeBuoy size={14} color={GOLD} strokeWidth={2} />}
+                label={t('need_help')}
+                flex={1}
+                compact
               />
             </View>
-
-            {/* Need Help — routes to SafetySheet via onSOS */}
-            <FilledButton
-              onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
-              tone="neutral"
-              icon={<LifeBuoy size={16} color={GOLD} strokeWidth={2} />}
-              label={t('need_help')}
-            />
           </View>
 
         ) : (
@@ -397,13 +404,13 @@ function DriverAssignedCardBase({
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <IconCircleButton
                   onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                  icon={<MessageCircle size={18} color={GOLD} strokeWidth={2} />}
+                  icon={<MessageCircle size={18} color="#ffffff" strokeWidth={2} />}
                   size={40}
                 />
                 <IconCircleButton
                   onPress={handleCall}
                   disabled={!driver?.phone}
-                  icon={<Phone size={18} color={GOLD} strokeWidth={2} />}
+                  icon={<Phone size={18} color="#ffffff" strokeWidth={2} />}
                   size={40}
                 />
               </View>
@@ -588,11 +595,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   filledBtnText: { fontSize: 13.5, fontWeight: '700', color: '#ffffff' },
+  // SOS + Need Help sharing a row — shorter and tighter than the standalone pill.
+  filledBtnCompact: { height: 36, borderRadius: 11, gap: 5, paddingHorizontal: 6 },
+  filledBtnTextCompact: { fontSize: 12 },
 
-  // Icon-only Call/Chat circles — driver-app parity.
+  // Icon-only Call/Chat circles — neutral gray, no border.
   iconCircleBtn: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: CHARCOAL, borderWidth: 1.5, borderColor: GOLD_BORDER,
+    backgroundColor: ICON_BTN_GRAY,
     alignItems: 'center', justifyContent: 'center',
   },
 

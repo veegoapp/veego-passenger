@@ -20,6 +20,8 @@ export type ActiveRideType = 'car' | 'scooter' | 'delivery';
 export interface ActiveRideDriverInfo {
   name: string;
   phone: string;
+  /** Signed URL to the driver's profile photo, or null when they have none set. */
+  avatar: string | null;
   /** Combined vehicle description (make/model or vehicleType label). */
   vehicle: string;
   vehicleColor?: string;
@@ -74,6 +76,7 @@ export function selectActiveRide(
     driver = {
       name: d.name,
       phone: d.phone ?? '',
+      avatar: d.avatar ?? null,
       vehicle: vehicleLabel,
       vehicleColor: d.vehicle?.color,
       plateNumber: d.vehicle?.plateNumber,

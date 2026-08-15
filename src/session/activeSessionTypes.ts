@@ -46,6 +46,8 @@ export interface PassengerRideDriver {
   id: number;
   name: string;
   phone: string | null;
+  /** Signed URL to the driver's profile photo, or null when they have none set. */
+  avatar: string | null;
   rating: number | null;
   vehicleType: string | null;
   location: PassengerRideLocation | null;

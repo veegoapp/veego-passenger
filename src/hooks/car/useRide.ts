@@ -812,8 +812,13 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         rideId: snapRideId,
         status: activeRideSnapshot.status,
         // Prefer snapshot driver data; fall back to previous to avoid blanking
-        // out details that socket events may have already enriched.
-        driver: activeRideSnapshot.driver ?? prev.driver,
+        // out details that socket events may have already enriched. Merged
+        // field-by-field (not a whole-object replace) so a snapshot that
+        // hasn't got a signed avatar URL back yet never blanks out one a
+        // ride:driver_assigned event already set.
+        driver: activeRideSnapshot.driver
+          ? { ...activeRideSnapshot.driver, avatar: activeRideSnapshot.driver.avatar ?? prev.driver?.avatar ?? null }
+          : prev.driver,
         // Prefer most-recent location; socket ride:driver_location events are
         // more frequent than snapshots, so only update when snapshot has data.
         driverLocation: activeRideSnapshot.driverLocation ?? prev.driverLocation,
