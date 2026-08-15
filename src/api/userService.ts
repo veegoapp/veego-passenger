@@ -85,7 +85,15 @@ export async function createTripSupportTicket(body: {
   return data;
 }
 
-/** POST /support/tickets/:id/attachments — upload one attachment (caller builds the FormData). */
+/**
+ * POST /support/tickets/:id/attachments — upload one attachment (caller builds the FormData).
+ * transformRequest bypasses axios's default FormData handling, which on React
+ * Native forces Content-Type to 'multipart/form-data;' with no boundary
+ * param — see the identical fix/comment on the avatar upload in
+ * app/(tabs)/profile.tsx for the full explanation.
+ */
 export async function uploadSupportAttachment(ticketId: string | number, form: FormData): Promise<void> {
-  await api.post(`/support/tickets/${ticketId}/attachments`, form);
+  await api.post(`/support/tickets/${ticketId}/attachments`, form, {
+    transformRequest: (data) => data,
+  });
 }

@@ -87,8 +87,15 @@ export default function ProfileScreen() {
       const compressed = await compressImageForUpload(asset.uri);
       const form = new FormData();
       form.append('avatar', { uri: compressed.uri, name: compressed.name, type: compressed.type } as any);
+      // `headers: { 'Content-Type': undefined }` doesn't survive axios's
+      // default transformRequest — on React Native (not a "standard browser
+      // env" from axios's point of view) it still forces the header to the
+      // bare string 'multipart/form-data;' with no boundary param, which the
+      // server can never parse into fields (every upload fails the same way).
+      // Bypassing transformRequest entirely lets RN's own networking layer
+      // compute the real multipart boundary when it serializes the FormData.
       const { data: uploadData } = await api.post('/users/me/avatar', form, {
-        headers: { 'Content-Type': undefined },
+        transformRequest: (data) => data,
       });
       if (uploadData?.avatarUrl) setAvatarUri(uploadData.avatarUrl);
     } catch (err: any) {
