@@ -21,6 +21,27 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { selectActiveRide } from '@/src/session/activeRideSelectors';
+import { getSocket } from '@/src/api/socket';
+
+// Shared by both the deep-link fetch (params.id) and the live ride:completed
+// socket listener below — GET /rides/:id and the ride:completed payload both
+// resolve to this same shape once the backend's financial_snapshots row for
+// the ride exists. `fare` is netCashPayable (cash still owed to the driver in
+// person, 0 for wallet-paid rides); `finalPrice` is kept only as a fallback
+// for a ride fetched before netCashPayable existed on this response.
+function buildCompletionFromRideData(d: any) {
+  const fare = d?.netCashPayable ?? d?.finalPrice;
+  return {
+    fare: fare != null ? Number(fare) : null,
+    grossFare: d?.grossFare != null ? Number(d.grossFare) : null,
+    promoDiscount: d?.promoDiscount != null ? Number(d.promoDiscount) : null,
+    walletDeduction: d?.walletDeduction != null ? Number(d.walletDeduction) : null,
+    pickupAddress: d?.pickupAddress ?? d?.pickup_address ?? null,
+    dropoffAddress: d?.dropoffAddress ?? d?.dropoff_address ?? null,
+    driverName: d?.driver?.name ?? null,
+    driverRating: d?.driver?.rating != null ? Number(d.driver.rating) : null,
+  };
+}
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   searching: 'status_finding_driver',
@@ -199,21 +220,7 @@ export default function TripTrackingScreen() {
           // Was handed off to the standalone receipt.tsx screen — that screen
           // is gone now, so this data feeds TripCompletedSheet inline instead
           // (rendered below once `completion` is non-null).
-          // `fare` is netCashPayable (cash still owed to the driver, 0 for
-          // wallet-paid rides) — GET /rides/:id returns it directly now;
-          // `finalPrice` is kept only as a fallback for a ride fetched before
-          // that field existed on this response.
-          const fare = d?.netCashPayable ?? d?.finalPrice;
-          setCompletion({
-            fare: fare != null ? Number(fare) : null,
-            grossFare: d?.grossFare != null ? Number(d.grossFare) : null,
-            promoDiscount: d?.promoDiscount != null ? Number(d.promoDiscount) : null,
-            walletDeduction: d?.walletDeduction != null ? Number(d.walletDeduction) : null,
-            pickupAddress: d?.pickupAddress ?? d?.pickup_address ?? null,
-            dropoffAddress: d?.dropoffAddress ?? d?.dropoff_address ?? null,
-            driverName: d?.driver?.name ?? null,
-            driverRating: d?.driver?.rating != null ? Number(d.driver.rating) : null,
-          });
+          setCompletion(buildCompletionFromRideData(d));
           setStatus('completed');
           return;
         }
@@ -257,6 +264,50 @@ export default function TripTrackingScreen() {
       .finally(() => setDeepLinkLoading(false));
   }, [params.id]);
 
+  // Live ride:completed listener — covers the case this screen is reached via
+  // rideId (the floating active-ride bubble / ActiveSession recovery), not a
+  // deep link. PassengerRideStatus (activeSessionTypes.ts) has no 'completed'
+  // value: the backend clears the ActiveSession snapshot the instant a ride
+  // completes, so activeRideSnapshot.status can never carry 'completed' and
+  // the effect above can never surface it. Without this listener, the only
+  // way this screen ever reached the fare/rating sheet on that path was a
+  // user tapping a push notification into the params.id deep link above —
+  // never for a ride that finished while already being watched here. Fetch
+  // via REST (same as the deep-link branch) rather than trusting the socket
+  // payload alone, since financial_snapshots — and therefore the fare
+  // breakdown — is written slightly after the event fires.
+  useEffect(() => {
+    const rideId = params.rideId ?? params.id ?? activeRideSnapshot?.rideId;
+    if (!rideId) return;
+
+    let cancelled = false;
+    let socket: Awaited<ReturnType<typeof getSocket>> | null = null;
+
+    const onCompleted = (raw: unknown) => {
+      const incomingId = (raw as { rideId?: string | number } | null)?.rideId;
+      if (incomingId == null || String(incomingId) !== String(rideId)) return;
+      getRide(String(rideId))
+        .then((res) => {
+          if (cancelled) return;
+          const d = res?.data ?? res;
+          setCompletion(buildCompletionFromRideData(d));
+          setStatus('completed');
+        })
+        .catch(() => {});
+    };
+
+    getSocket().then((s) => {
+      if (cancelled) return;
+      socket = s;
+      s.on('ride:completed', onCompleted);
+    });
+
+    return () => {
+      cancelled = true;
+      socket?.off('ride:completed', onCompleted);
+    };
+  }, [params.rideId, params.id, activeRideSnapshot?.rideId]);
+
   // NOTE: The standalone getRide(rideId) REST effect that previously lived here
   // was removed. All fields it populated (driverInfo, driverLocation, pickup,
   // dropoff, vehicleType) are already seeded by the activeRideSnapshot effect
@@ -267,16 +318,18 @@ export default function TripTrackingScreen() {
 
   // NOTE: The live `ride:driver_location` subscription that previously lived
   // here was moved into PassengerTrackingMap (via useDriverLocationSocket).
-  // Status transitions (arrived, started, completed, cancelled) continue to
-  // be driven by the activeRideSnapshot effect above, which stays live via
+  // Status transitions for arrived/started/cancelled continue to be driven by
+  // the activeRideSnapshot effect above, which stays live via
   // ActiveSessionContext's session:snapshot subscription (audit: C1 —
-  // duplicate socket ownership). Keeping a second `driverLocation` setState
-  // here re-rendered this entire screen (top bar/status pill/bottom card) on
-  // every location tick — the map now owns that state locally instead.
+  // duplicate socket ownership); completed is driven by the ride:completed
+  // listener just above instead, since ActiveSession can never carry it (see
+  // that listener's comment). Keeping a second `driverLocation` setState here
+  // re-rendered this entire screen (top bar/status pill/bottom card) on every
+  // location tick — the map now owns that state locally instead.
 
   // Navigate away 3 seconds after the ride reaches a terminal state.
-  // Status is fed by the activeRideSnapshot effect (via ActiveSessionContext)
-  // so no separate socket listener is needed for terminal transitions.
+  // cancelled/timeout are fed by the activeRideSnapshot effect; completed is
+  // fed by the ride:completed listener above.
   // Skipped when TripCompletedSheet is showing (completed + completion data
   // loaded) — that sheet is interactive (fare review, inline rating) and
   // dismisses itself via handleCompletedDone, not a timer.
