@@ -1,20 +1,18 @@
 import { useRef, useEffect } from 'react';
 import { View, Text, Animated, StyleSheet, Easing } from 'react-native';
-import { Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 
-const RING_COUNT = 3;
+const RING_COUNT = 5;
 const RING_DURATION = 2200;
-const RING_STAGGER = 550;
-const RING_HOST = 200;
-const RING_BASE = 100;
+const RING_STAGGER = 400;
+const RING_HOST = 260;
+const RING_BASE = 120;
 const BLINK_DURATION = 700;
 
 /**
  * Water-drop ripple layered over the map while the app is searching for a
  * driver: rings expanding/fading out from the passenger's own location,
- * a bigger Navigation arrow blinking on top, and a blinking "searching for
- * driver" label underneath.
+ * and a blinking "searching for driver" label underneath.
  *
  * Rendered as a plain absolute-fill overlay CENTERED on the CarMap
  * container — not a MapView Marker. The "searching" camera effect in
@@ -70,7 +68,7 @@ export function SearchingPulse() {
     <View style={styles.overlay} pointerEvents="none">
       <View style={styles.ringHost}>
         {rings.map((ring, i) => {
-          const scale = ring.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1.9] });
+          const scale = ring.interpolate({ inputRange: [0, 1], outputRange: [0.2, 2.3] });
           const opacity = ring.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.5, 0] });
           return (
             <Animated.View
@@ -83,11 +81,6 @@ export function SearchingPulse() {
         {/* The real own-location dot is CarMap's own Marker, geo-positioned
             independently — this overlay just needs to visually line up with
             it, not duplicate it. */}
-
-        {/* Bigger blinking arrow, layered on top of the location dot */}
-        <Animated.View style={[styles.arrowWrap, { opacity: blink, backgroundColor: c.ink }]}>
-          <Navigation size={30} color="#ffffff" />
-        </Animated.View>
       </View>
 
       <Animated.View style={[styles.labelWrap, { opacity: blink, backgroundColor: c.isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.9)' }]}>
@@ -112,12 +105,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: RING_BASE, height: RING_BASE, borderRadius: RING_BASE / 2,
     borderWidth: 1.5,
-  },
-  arrowWrap: {
-    position: 'absolute',
-    width: 56, height: 56, borderRadius: 28,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   labelWrap: {
     marginTop: 6, height: 26,
