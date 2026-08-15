@@ -522,8 +522,8 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
       {/* ETA overlay — rendered above the map, not inside MapView */}
       {etaMinutes !== null && (
         <View style={styles.etaBadge} pointerEvents="none">
-          <Text style={styles.etaLabel}>ETA</Text>
-          <Text style={styles.etaValue}>{etaMinutes} min</Text>
+          <Text style={styles.etaLabel}>{t('eta_label')}</Text>
+          <Text style={styles.etaValue}>{etaMinutes} {t('min')}</Text>
         </View>
       )}
 
@@ -533,7 +533,7 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
           style={styles.recenterBtn}
           onPress={handleRecenter}
           activeOpacity={0.85}
-          accessibilityLabel="Re-center map"
+          accessibilityLabel={t('recenter_map')}
         >
           <Navigation size={18} color="#fff" />
         </TouchableOpacity>

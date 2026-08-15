@@ -120,7 +120,7 @@ export function PersonalInfoModal({
               <View style={{ position: 'relative' }}>
                 <Text style={styles.readOnlyInput}>{savedName || '—'}</Text>
                 <View style={styles.readOnlyBadge}>
-                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                  <Text style={styles.readOnlyBadgeText}>{t('locked')}</Text>
                 </View>
               </View>
             </View>
@@ -131,7 +131,7 @@ export function PersonalInfoModal({
               <View style={{ position: 'relative' }}>
                 <Text style={styles.readOnlyInput}>{savedPhone || '—'}</Text>
                 <View style={styles.readOnlyBadge}>
-                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                  <Text style={styles.readOnlyBadgeText}>{t('locked')}</Text>
                 </View>
               </View>
             </View>
@@ -142,7 +142,7 @@ export function PersonalInfoModal({
               <View style={{ position: 'relative' }}>
                 <Text style={styles.readOnlyInput}>{savedEmail || '—'}</Text>
                 <View style={styles.readOnlyBadge}>
-                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                  <Text style={styles.readOnlyBadgeText}>{t('locked')}</Text>
                 </View>
               </View>
             </View>
@@ -155,7 +155,7 @@ export function PersonalInfoModal({
                   {savedGender === 'male' ? t('gender_male') : savedGender === 'female' ? t('gender_female') : '—'}
                 </Text>
                 <View style={styles.readOnlyBadge}>
-                  <Text style={styles.readOnlyBadgeText}>LOCKED</Text>
+                  <Text style={styles.readOnlyBadgeText}>{t('locked')}</Text>
                 </View>
               </View>
             </View>

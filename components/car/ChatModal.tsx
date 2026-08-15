@@ -67,7 +67,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             onPress={onClose}
             activeOpacity={0.8}
             style={[styles.iconBtn, { backgroundColor: surfaceBg, borderColor: borderCol }]}
-            aria-label="Back to ride"
+            aria-label={t('back_to_ride')}
           >
             {isRTL
               ? <ArrowRight size={18} color={c.ink} strokeWidth={2.2} />
@@ -86,7 +86,7 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[styles.headerName, { color: c.ink }]} numberOfLines={1}>{driverName || '—'}</Text>
-              <Text style={[styles.headerOnline, { color: c.inkSoft }]}>{'Online'}</Text>
+              <Text style={[styles.headerOnline, { color: c.inkSoft }]}>{t('online_status')}</Text>
             </View>
           </View>
 
@@ -95,14 +95,14 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
             <TouchableOpacity
               style={[styles.iconBtn, { backgroundColor: surfaceBg, borderColor: borderCol }]}
               activeOpacity={0.8}
-              aria-label="Call driver"
+              aria-label={t('call_driver')}
             >
               <Phone size={18} color={c.ink} strokeWidth={1.9} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.iconBtn, { backgroundColor: surfaceBg, borderColor: borderCol }]}
               activeOpacity={0.8}
-              aria-label="More options"
+              aria-label={t('more_options')}
             >
               <MoreVertical size={18} color={c.ink} strokeWidth={1.9} />
             </TouchableOpacity>
@@ -112,8 +112,8 @@ export function ChatModal({ visible, onClose, driverName, tripId }: ChatModalPro
         {/* ── Messages ── */}
         {messages.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={[styles.emptyTitle, { color: c.ink }]}>{t('no_messages_yet') ?? 'No messages yet'}</Text>
-            <Text style={[styles.emptySubtitle, { color: c.inkSoft }]}>Say hello to your driver!</Text>
+            <Text style={[styles.emptyTitle, { color: c.ink }]}>{t('no_messages_yet')}</Text>
+            <Text style={[styles.emptySubtitle, { color: c.inkSoft }]}>{t('say_hello_driver')}</Text>
           </View>
         ) : (
           <FlatList

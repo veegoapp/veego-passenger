@@ -106,7 +106,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
             {/* Star rating section */}
             <View style={[styles.ratingSection, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
               <Text style={[styles.ratingPrompt, { color: c.ink }]}>
-                {`How was your ride with ${driverName}?`}
+                {t('rate_ride_with_driver').replace('{driver}', driverName)}
               </Text>
               <Stars value={stars} size={34} gap={10} onRate={setStars} />
 

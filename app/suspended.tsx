@@ -41,7 +41,7 @@ const SUPPORT_URL = 'https://wa.me/201000000000';
 export default function SuspendedScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { colors: c } = useTheme();
+  const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const handleContactSupport = () => {
@@ -59,12 +59,11 @@ export default function SuspendedScreen() {
         </View>
 
         <Text style={styles.title}>
-          تم إيقاف حسابك بسبب تكرار الغياب.{'\n'}تواصل مع الدعم لإعادة التفعيل.
+          {t('suspended_title')}
         </Text>
 
         <Text style={styles.body}>
-          Your account has been suspended due to repeated no-shows.{'\n'}
-          Please contact support to reactivate it.
+          {t('suspended_body')}
         </Text>
 
         <TouchableOpacity
@@ -73,7 +72,7 @@ export default function SuspendedScreen() {
           activeOpacity={0.88}
         >
           <MessageCircle size={20} color={c.isDark ? c.background : c.white} />
-          <Text style={styles.primaryBtnText}>تواصل مع الدعم · Contact Support</Text>
+          <Text style={styles.primaryBtnText}>{t('contact_support')}</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>

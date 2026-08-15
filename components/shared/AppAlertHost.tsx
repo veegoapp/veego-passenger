@@ -30,7 +30,7 @@ let listener: Listener | null = null;
  * showAppAlert(...) from anywhere, no local state or JSX needed at the call site.
  */
 export function showAppAlert(title: string, message?: string, buttons?: AppAlertButton[]) {
-  const resolvedButtons = buttons && buttons.length > 0 ? buttons : [{ text: 'OK' }];
+  const resolvedButtons = buttons && buttons.length > 0 ? buttons : [{ text: '' }];
   listener?.({ title, message, buttons: resolvedButtons });
 }
 
