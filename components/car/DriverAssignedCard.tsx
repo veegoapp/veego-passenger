@@ -30,16 +30,22 @@ interface DriverAssignedCardProps {
   onSOS?: () => void;
 }
 
-// Navy (كحلي) fill for the ride action buttons.
-const NAVY = '#1e3a8a';
+// Fixed brand treatment for the icon action buttons and "Need Help" —
+// charcoal + metallic gold, independent of the app's light/dark theme,
+// matching the driver app's minimalist icon-button style.
+const GOLD = '#D5B23D';
+const CHARCOAL = '#1C1C1E';
+const CHARCOAL_SURFACE = '#26262A';
+const GOLD_BORDER = 'rgba(213,178,61,0.4)';
 // How much of the card stays visible when it's lowered to a peek (handle +
 // status header + trip title). The rest slides below the screen edge.
 const PEEK_HEIGHT = 132;
 
 /* ─── FilledButton ───────────────────────────────────────────────────────── */
-// Every action CTA (Chat, Call, SOS, Need Help) is a fully filled, compact
-// pill — no more outlined/tinted "ghost" buttons — so the card reads as
-// vibrant and decisive rather than washed out.
+// Every action CTA (SOS, Need Help) is a fully filled, compact pill — no
+// more outlined/tinted "ghost" buttons — so the card reads as vibrant and
+// decisive rather than washed out. Call/Chat use IconCircleButton instead
+// (icon-only, driver-app parity — see below).
 function FilledButton({
   onPress, disabled, tone = 'primary', icon, label, flex,
 }: {
@@ -52,19 +58,42 @@ function FilledButton({
 }) {
   const { colors: c } = useTheme();
 
-  const bg = tone === 'danger' ? c.error : tone === 'neutral' ? NAVY : c.primary;
+  const bg = tone === 'danger' ? c.error : tone === 'neutral' ? CHARCOAL_SURFACE : c.primary;
+  const borderColor = tone === 'neutral' ? GOLD_BORDER : 'transparent';
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.85}
-      style={[styles.filledBtn, flex ? { flex } : {}, { backgroundColor: bg, opacity: disabled ? 0.5 : 1 }]}
+      style={[
+        styles.filledBtn,
+        flex ? { flex } : {},
+        { backgroundColor: bg, borderColor, borderWidth: tone === 'neutral' ? 1.5 : 0, opacity: disabled ? 0.5 : 1 },
+      ]}
     >
       {icon}
       <Text style={styles.filledBtnText} numberOfLines={1}>
         {label}
       </Text>
+    </TouchableOpacity>
+  );
+}
+
+/* ─── IconCircleButton ───────────────────────────────────────────────────── */
+// Icon-only circular Call/Chat buttons — driver-app parity: dark charcoal
+// fill, gold icon + ring, no text label.
+function IconCircleButton({
+  onPress, disabled, icon,
+}: { onPress?: () => void; disabled?: boolean; icon: React.ReactNode }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.82}
+      style={[styles.iconCircleBtn, { opacity: disabled ? 0.4 : 1 }]}
+    >
+      {icon}
     </TouchableOpacity>
   );
 }
@@ -76,6 +105,11 @@ function FilledButton({
 function DriverAvatar({ uri, initials, size }: { uri?: string | null; initials: string; size: number }) {
   const { colors: c } = useTheme();
   const [failed, setFailed] = useState(false);
+  // Reset the failure flag whenever the URL itself changes — otherwise one
+  // failed load (e.g. a slow first paint before a freshly signed URL is
+  // reachable) permanently locks this avatar instance to initials for the
+  // rest of the ride, even once a valid uri comes through.
+  useEffect(() => { setFailed(false); }, [uri]);
   const showImage = !!uri && !failed;
 
   return (
@@ -89,6 +123,7 @@ function DriverAvatar({ uri, initials, size }: { uri?: string | null; initials: 
         <Image
           source={{ uri }}
           style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="cover"
           onError={() => setFailed(true)}
         />
       ) : (
@@ -220,7 +255,7 @@ function DriverAssignedCardBase({
     >
       <GlassView
         strong
-        borderRadius={0}
+        borderRadius={28}
         onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
         style={[styles.sheetSurface, { paddingBottom: insets.bottom + 20 }]}
       >
@@ -268,29 +303,23 @@ function DriverAssignedCardBase({
                 </View>
               </View>
               <View style={[styles.driverMiniVehicleRow, { borderTopColor: borderCol }]}>
-                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={40} />
+                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={80} />
                 <Text style={[styles.driverMiniSub, { color: c.inkSoft }]} numberOfLines={1}>
                   {[driver?.vehicle, driver?.plateNumber].filter(Boolean).join(' · ') || '—'}
                 </Text>
               </View>
             </View>
 
-            {/* Action buttons row */}
+            {/* Action buttons row — Chat/Call are icon-only circles (driver-app parity), SOS stays a labeled pill */}
             <View style={styles.actionsRow}>
-              <FilledButton
+              <IconCircleButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                tone="primary"
-                icon={<MessageCircle size={16} color="#ffffff" strokeWidth={2} />}
-                label={t('chat')}
-                flex={1}
+                icon={<MessageCircle size={20} color={GOLD} strokeWidth={2} />}
               />
-              <FilledButton
+              <IconCircleButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                tone="primary"
-                icon={<Phone size={16} color="#ffffff" strokeWidth={2} />}
-                label={t('call') ?? 'Call'}
-                flex={1}
+                icon={<Phone size={20} color={GOLD} strokeWidth={2} />}
               />
               <FilledButton
                 onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
@@ -305,7 +334,7 @@ function DriverAssignedCardBase({
             <FilledButton
               onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
               tone="neutral"
-              icon={<LifeBuoy size={16} color="#ffffff" strokeWidth={2} />}
+              icon={<LifeBuoy size={16} color={GOLD} strokeWidth={2} />}
               label={t('need_help')}
             />
           </View>
@@ -328,21 +357,7 @@ function DriverAssignedCardBase({
                   {t('status_driver_arrived')}
                 </Text>
               </Animated.View>
-            ) : (
-              <View style={styles.etaHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.etaHeaderLabel, { color: c.inkSoft }]}>
-                    {'Driver on the way'}
-                  </Text>
-                  <Text style={[styles.etaHeaderValue, { color: c.ink }]}>
-                    {'Arrives in'} {driver?.eta ?? '—'} {t('min')}
-                  </Text>
-                </View>
-                <View style={[styles.confirmedBadge, { backgroundColor: `${c.success}15`, borderColor: `${c.success}30` }]}>
-                  <Text style={[styles.confirmedText, { color: c.success }]}>{'Confirmed'}</Text>
-                </View>
-              </View>
-            )}
+            ) : null}
 
             {/* ── Driver identity card ── */}
             <View style={[styles.driverCard, { backgroundColor: cardBg, borderColor: borderCol }]}>
@@ -373,7 +388,7 @@ function DriverAssignedCardBase({
 
             {/* ── Vehicle row ── */}
             <View style={[styles.vehicleRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-              <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={44} />
+              <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={88} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[styles.vehicleName, { color: c.ink }]} numberOfLines={1}>
                   {driver?.vehicle ?? '—'}
@@ -384,12 +399,14 @@ function DriverAssignedCardBase({
                     driver?.vehicleColor,
                   ].filter(Boolean).join(' · ')}
                 </Text>
+                {/* Plate rendered like an actual vehicle plate: white plate
+                    stock + black lettering, regardless of app theme. */}
+                {driver?.plateNumber ? (
+                  <View style={styles.plateBadge}>
+                    <Text style={styles.plateText} numberOfLines={1}>{driver.plateNumber}</Text>
+                  </View>
+                ) : null}
               </View>
-              {driver?.plateNumber ? (
-                <View style={[styles.plateBadge, { backgroundColor: cardBg, borderColor: borderCol }]}>
-                  <Text style={[styles.plateText, { color: c.ink }]}>{driver.plateNumber}</Text>
-                </View>
-              ) : null}
             </View>
 
             {/* ── Waiting charge banner ── */}
@@ -402,22 +419,16 @@ function DriverAssignedCardBase({
               </View>
             )}
 
-            {/* ── Call / Message row ── */}
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <FilledButton
+            {/* ── Call / Message row — icon-only circles, driver-app parity ── */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <IconCircleButton
                 onPress={handleCall}
                 disabled={!driver?.phone}
-                tone="primary"
-                icon={<Phone size={16} color="#ffffff" strokeWidth={2} />}
-                label={t('call') ?? 'Call'}
-                flex={1}
+                icon={<Phone size={20} color={GOLD} strokeWidth={2} />}
               />
-              <FilledButton
+              <IconCircleButton
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
-                tone="primary"
-                icon={<MessageCircle size={16} color="#ffffff" strokeWidth={2} />}
-                label={t('chat')}
-                flex={1}
+                icon={<MessageCircle size={20} color={GOLD} strokeWidth={2} />}
               />
             </View>
 
@@ -457,17 +468,15 @@ export const DriverAssignedCard = memo(DriverAssignedCardBase);
 
 const styles = StyleSheet.create({
   sheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    position: 'absolute', bottom: 16, left: 16, right: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
     shadowRadius: 20,
     elevation: 26,
     zIndex: 999,
   },
   sheetSurface: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     paddingTop: 10,
   },
   handle: {
@@ -515,20 +524,6 @@ const styles = StyleSheet.create({
   actionsRow: { flexDirection: 'row', gap: 8 },
 
   /* ── Assigned/Arrived ── */
-  etaHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  etaHeaderLabel: {
-    fontSize: 11, fontWeight: '600', letterSpacing: 0.8, textTransform: 'uppercase',
-  },
-  etaHeaderValue: {
-    fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginTop: 4,
-  },
-  confirmedBadge: {
-    borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1,
-  },
-  confirmedText: { fontSize: 12, fontWeight: '600' },
-
   arrivedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
@@ -560,11 +555,14 @@ const styles = StyleSheet.create({
   },
   vehicleName: { fontSize: 15, fontWeight: '600' },
   vehicleSub: { fontSize: 13, marginTop: 2 },
+  // Styled like an actual vehicle plate — white plate stock + black
+  // lettering + a thin frame — instead of a theme-tinted generic badge.
   plateBadge: {
-    borderRadius: 10, borderWidth: 1,
-    paddingHorizontal: 10, paddingVertical: 6,
+    alignSelf: 'flex-start', marginTop: 8,
+    backgroundColor: '#f4f4f2', borderRadius: 6, borderWidth: 2, borderColor: '#1C1C1E',
+    paddingHorizontal: 10, paddingVertical: 4,
   },
-  plateText: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2 },
+  plateText: { fontSize: 14, fontWeight: '800', letterSpacing: 1.6, color: '#1C1C1E' },
 
   waitBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -580,6 +578,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   filledBtnText: { fontSize: 13.5, fontWeight: '700', color: '#ffffff' },
+
+  // Icon-only Call/Chat circles — driver-app parity.
+  iconCircleBtn: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: CHARCOAL, borderWidth: 1.5, borderColor: GOLD_BORDER,
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   primaryBtnWrap: {
     borderRadius: 16,
