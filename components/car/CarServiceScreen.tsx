@@ -328,6 +328,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const SCREEN_H = Dimensions.get('window').height;
 
   const [phase, setPhase]               = useState<CarPhase>('idle');
+  // Guards the phase-sync effect below during a passenger-initiated cancel
+  // (see handleCancel) — set while cancelRide()'s intermediate
+  // status:'cancelled' write is in flight, so that effect can't win a race
+  // against handleReset()'s own setPhase('idle') and leave the passenger
+  // stuck on the terminal Cancel Trip card for a cancel they chose themselves.
+  const suppressCancelledPhaseRef = useRef(false);
   const [destination, setDestination]   = useState<string | null>(null);
   const [destCoords, setDestCoords]     = useState<Coords | null>(null);
   const [userCoords, setUserCoords]     = useState<Coords | null>(null);
@@ -537,6 +543,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     } else if (s === 'completed') {
       setPhase('completed');
     } else if (s === 'cancelled' || s === 'timeout') {
+      // See suppressCancelledPhaseRef's declaration — a passenger-initiated
+      // cancel is mid-flight and handleReset() owns the outcome instead.
+      if (suppressCancelledPhaseRef.current) return;
       setPhase('cancelled');
     }
   }, [rideState.status, rideState.rideId]);
@@ -806,8 +815,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const handleCancel = useCallback(async (reason?: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     if (phase === 'in_ride' && rideState.rideId) {
+      suppressCancelledPhaseRef.current = true;
       const result = await cancelRide(reason || 'Cancelled by passenger');
       if (!result.success) {
+        suppressCancelledPhaseRef.current = false;
         showAppAlert(t('error'), result.error ?? t('cancel_error'));
         return;
       }
@@ -821,6 +832,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       }
     }
     handleReset();
+    suppressCancelledPhaseRef.current = false;
   }, [phase, rideState.rideId, cancelRide, handleReset, t, paymentMethod]);
 
   // Stable identities for DriverAssignedCard's callback props — it's wrapped
