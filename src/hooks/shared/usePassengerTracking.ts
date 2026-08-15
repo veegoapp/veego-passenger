@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,14 +75,17 @@ async function startBackgroundTask(taskName: string): Promise<void> {
     // Foreground permission is granted at first app open; don't re-prompt.
     const fg = (await Location.getForegroundPermissionsAsync()).status;
     if (fg !== 'granted') return;
-    // Do NOT request the "Allow all the time" (background) permission. On
-    // Android 11+ that request can't show a normal dialog — it dumps the rider
-    // into the App-Info settings page mid-ride, which is jarring and confusing
-    // (they think the app is re-asking for location). Passenger tracking is
-    // best-effort, so if background access was already granted we use the
-    // background task as a bonus; if not, we simply skip it and rely on the
-    // foreground watch (which runs whenever the app is open). No prompt, no
-    // settings redirect.
+    // Do NOT request the "Allow all the time" (background) permission here —
+    // by the time this runs the app is already backgrounding, and neither
+    // platform can show a request UI at that point anyway. On Android 11+ that
+    // request can't show a normal dialog even in the foreground — it dumps the
+    // rider into the App-Info settings page mid-ride, which is jarring and
+    // confusing (they think the app is re-asking for location), so Android
+    // never requests it at all; passenger tracking there is best-effort — if
+    // background access was already granted we use the background task as a
+    // bonus, otherwise we rely on the foreground watch only. iOS gets an actual
+    // chance at "Always Allow": see the proactive request in
+    // startForegroundWatch below, which runs while the app is still active.
     const bg = (await Location.getBackgroundPermissionsAsync()).status;
     if (bg !== 'granted') return;
     const started = await Location.hasStartedLocationUpdatesAsync(taskName);
@@ -215,6 +218,27 @@ export function usePassengerTracking({
       let fg = (await Location.getForegroundPermissionsAsync()).status;
       if (fg !== 'granted') fg = (await Location.requestForegroundPermissionsAsync()).status;
       if (fg !== 'granted') return;
+
+      // iOS only: proactively ask for "Always Allow" while the app is still
+      // active, so the background location task (see startBackgroundTask)
+      // has a real shot at running once the ride backgrounds. iOS can only
+      // present the "Change to Always Allow?" dialog while the app is in the
+      // foreground — asking at background time is too late (there's no UI to
+      // show), which is why this can't just live in startBackgroundTask.
+      // Android is deliberately NOT asked here — see the comment in
+      // startBackgroundTask for why. Fire-and-forget: the rider may take a
+      // while to respond to the system dialog, and that shouldn't delay the
+      // foreground watch (which already has everything it needs) from
+      // starting. Declining just leaves tracking on this foreground watch,
+      // same as today.
+      if (Platform.OS === 'ios') {
+        Location.getBackgroundPermissionsAsync()
+          .then(({ status }) => {
+            if (status !== 'granted') return Location.requestBackgroundPermissionsAsync();
+          })
+          .catch(() => {});
+      }
+
       // Flush anything buffered offline as soon as foreground tracking resumes.
       await flushOfflineSnapshots();
       watchSubRef.current = await Location.watchPositionAsync(

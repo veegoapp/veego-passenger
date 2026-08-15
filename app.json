@@ -13,7 +13,8 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.veego.app"
+      "bundleIdentifier": "com.veego.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -49,6 +50,12 @@
           "color": "#f8f8fb",
           "defaultChannel": "default",
           "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow VeeGo to access your photos to update your profile picture and attach images to a support ticket."
         }
       ]
     ],
