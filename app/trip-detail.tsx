@@ -1087,7 +1087,7 @@ export default function TripDetailScreen() {
             activeOpacity={0.8}
           >
             <HelpCircle size={14} color={c.ink} />
-            <Text style={styles.helpBtnText}>Need Help?</Text>
+            <Text style={styles.helpBtnText}>{t('need_help')}</Text>
           </TouchableOpacity>
         </ScrollView>
 
@@ -1182,7 +1182,7 @@ export default function TripDetailScreen() {
               <View style={styles.mapPulse} />
               <Navigation size={11} color="#fff" />
               <Text style={styles.mapLabelText}>
-                {boarded ? 'على متن الحافلة' : t('driver_en_route')}
+                {boarded ? t('on_board_label') : t('driver_en_route')}
               </Text>
             </View>
 
@@ -1204,7 +1204,7 @@ export default function TripDetailScreen() {
             {(boarded || effectiveStatus === 'active') && (
               <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
                 <ShieldAlert size={14} color="#fff" />
-                <Text style={styles.sosBtnText}>SOS</Text>
+                <Text style={styles.sosBtnText}>{t('sos_label')}</Text>
               </TouchableOpacity>
             )}
 
@@ -1216,7 +1216,7 @@ export default function TripDetailScreen() {
                 may not be current instead of silently going frozen. */}
             {driverLocationStale && driverLocation && (
               <View style={styles.staleLocationBadge}>
-                <Text style={styles.staleLocationText}>جاري تحديث موقع السائق…</Text>
+                <Text style={styles.staleLocationText}>{t('updating_driver_location')}</Text>
               </View>
             )}
           </View>
@@ -1227,7 +1227,7 @@ export default function TripDetailScreen() {
           <View style={styles.nextStopCard}>
             <MapPin size={14} color={c.ink} />
             <Text style={styles.nextStopLabel}>
-              {boarded ? 'المحطة القادمة' : 'محطة الركوب'}
+              {boarded ? t('next_station_label') : t('boarding_station_label')}
             </Text>
             <Text style={styles.nextStopName} numberOfLines={1}>
               {nextStation.name}
@@ -1240,8 +1240,8 @@ export default function TripDetailScreen() {
           <View style={styles.boardedBanner}>
             <Text style={styles.boardedEmoji}>✅</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.boardedTitle}>أنت على متن الحافلة</Text>
-              <Text style={styles.boardedSub}>استمتع برحلتك — سنُعلمك عند الوصول</Text>
+              <Text style={styles.boardedTitle}>{t('on_board_title')}</Text>
+              <Text style={styles.boardedSub}>{t('on_board_sub')}</Text>
             </View>
           </View>
         )}
@@ -1251,8 +1251,8 @@ export default function TripDetailScreen() {
           <View style={styles.etaCard}>
             <View style={styles.etaRow}>
               <Clock size={14} color={c.ink} />
-              <Text style={styles.etaLabel}>وقت الوصول لمحطتك</Text>
-              <Text style={styles.etaValue}>~{etaMinutes} دقيقة</Text>
+              <Text style={styles.etaLabel}>{t('eta_to_station_label')}</Text>
+              <Text style={styles.etaValue}>~{etaMinutes} {t('min')}</Text>
             </View>
             {trip.passengerCount != null && (
               <View style={styles.etaDivider} />
@@ -1260,7 +1260,7 @@ export default function TripDetailScreen() {
             {trip.passengerCount != null && (
               <View style={styles.etaRow}>
                 <Users size={14} color="#64748b" />
-                <Text style={styles.etaLabel}>الركاب حالياً</Text>
+                <Text style={styles.etaLabel}>{t('current_passengers_label')}</Text>
                 <Text style={[styles.etaValue, { color: '#64748b' }]}>{trip.passengerCount}</Text>
               </View>
             )}
@@ -1322,7 +1322,7 @@ export default function TripDetailScreen() {
           activeOpacity={0.8}
         >
           <HelpCircle size={14} color={c.ink} />
-          <Text style={styles.helpBtnText}>Need Help?</Text>
+          <Text style={styles.helpBtnText}>{t('need_help')}</Text>
         </TouchableOpacity>
       </ScrollView>
 

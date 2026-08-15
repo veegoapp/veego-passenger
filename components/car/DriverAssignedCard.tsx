@@ -296,7 +296,7 @@ function DriverAssignedCardBase({
                 onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
                 tone="danger"
                 icon={<ShieldAlert size={16} color="#ffffff" strokeWidth={2} />}
-                label="SOS"
+                label={t('sos_label')}
                 flex={1}
               />
             </View>
@@ -306,7 +306,7 @@ function DriverAssignedCardBase({
               onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onSOS?.(); }}
               tone="neutral"
               icon={<LifeBuoy size={16} color="#ffffff" strokeWidth={2} />}
-              label={'Need Help'}
+              label={t('need_help')}
             />
           </View>
 
@@ -423,7 +423,7 @@ function DriverAssignedCardBase({
 
             {/* ── Primary action (Start trip / shown when arrived) ── */}
             {(isArrived || rideStatus === 'driver_assigned') && onStart && (
-              <PrimaryButton onPress={onStart} label={'Start trip'} />
+              <PrimaryButton onPress={onStart} label={t('start_trip')} />
             )}
 
             {/* ── Cancel ── */}

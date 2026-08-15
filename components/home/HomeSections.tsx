@@ -61,7 +61,7 @@ export function HomeHeader({ styles, c, t, firstName, avatarInitials, avatarUri,
 
   return (
     <View style={styles.header}>
-      <TouchableOpacity onPress={onProfile} style={styles.avatarPill} accessibilityLabel="Profile">
+      <TouchableOpacity onPress={onProfile} style={styles.avatarPill} accessibilityLabel={t('profile')}>
         <GlassView style={styles.avatarPillGlass} borderRadius={24}>
           <View style={styles.avatarPillInner}>
             {showAvatarImage ? (
@@ -81,7 +81,7 @@ export function HomeHeader({ styles, c, t, firstName, avatarInitials, avatarUri,
       </TouchableOpacity>
 
       <View style={styles.headerActions}>
-        <TouchableOpacity onPress={onNotifications} accessibilityLabel="Notifications">
+        <TouchableOpacity onPress={onNotifications} accessibilityLabel={t('notifications')}>
           <GlassView style={styles.iconBtnGlass} borderRadius={20}>
             <Bell size={18} color={c.ink} strokeWidth={2} />
             {unreadCount > 0 && (

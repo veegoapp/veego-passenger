@@ -459,10 +459,12 @@ export default function TicketScreen() {
                 <Zap size={16} color="#f59e0b" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.pendingBannerTitle}>Waiting for passengers</Text>
+                <Text style={styles.pendingBannerTitle}>{t('waiting_for_passengers')}</Text>
                 <Text style={styles.pendingBannerBody}>
                   {t('booking_pending_notice')}
-                  {`  · ${shuttleSession.trip.totalSeats - shuttleSession.trip.availableSeats}/${shuttleSession.trip.minRequired} seats filled`}
+                  {`  · ${t('seats_filled')
+                    .replace('{current}', String(shuttleSession.trip.totalSeats - shuttleSession.trip.availableSeats))
+                    .replace('{min}', String(shuttleSession.trip.minRequired))}`}
                 </Text>
               </View>
             </View>
@@ -500,7 +502,7 @@ export default function TicketScreen() {
             {boarded ? (
               <View style={[styles.statusBadge, { backgroundColor: 'rgba(34,197,94,0.2)' }]}>
                 <View style={[styles.statusBadgeDot, { backgroundColor: '#22c55e' }]} />
-                <Text style={[styles.statusBadgeText, { color: '#22c55e' }]}>Boarded</Text>
+                <Text style={[styles.statusBadgeText, { color: '#22c55e' }]}>{t('boarded_badge')}</Text>
               </View>
             ) : liveStatus === 'active' ? (
               <View style={[styles.statusBadge, { backgroundColor: 'rgba(34,197,94,0.2)' }]}>
@@ -510,7 +512,7 @@ export default function TicketScreen() {
             ) : liveStatus === 'pending' ? (
               <View style={[styles.statusBadge, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
                 <View style={[styles.statusBadgeDot, { backgroundColor: '#f59e0b' }]} />
-                <Text style={[styles.statusBadgeText, { color: '#f59e0b' }]}>Pending</Text>
+                <Text style={[styles.statusBadgeText, { color: '#f59e0b' }]}>{t('trip_status_pending')}</Text>
               </View>
             ) : null}
 
@@ -542,7 +544,7 @@ export default function TicketScreen() {
             {/* Departure time — prominent */}
             <View style={styles.ticketTimeRow}>
               <Text style={styles.ticketTime}>{displayTime}</Text>
-              <Text style={styles.ticketTimeTz}>Cairo</Text>
+              <Text style={styles.ticketTimeTz}>{t('cairo_tz')}</Text>
             </View>
           </LinearGradient>
 

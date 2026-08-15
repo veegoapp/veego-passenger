@@ -369,10 +369,10 @@ export default function TripTrackingScreen() {
             style={styles.sosBtn}
             onPress={() => setSafetyOpen(true)}
             activeOpacity={0.85}
-            accessibilityLabel="Send SOS"
+            accessibilityLabel={t('send_sos')}
           >
             <ShieldAlert size={16} color="#fff" />
-            <Text style={styles.sosBtnText}>SOS</Text>
+            <Text style={styles.sosBtnText}>{t('sos_label')}</Text>
           </TouchableOpacity>
         )}
       </View>

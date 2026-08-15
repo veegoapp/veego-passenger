@@ -123,7 +123,7 @@ export function TripSupportSheet({
             <View style={styles.iconWrap}>
               <HelpCircle size={20} color="#4d9ef6" />
             </View>
-            <Text style={styles.title}>Need Help?</Text>
+            <Text style={styles.title}>{t('need_help')}</Text>
             <TouchableOpacity
               style={styles.closeBtn}
               onPress={handleClose}

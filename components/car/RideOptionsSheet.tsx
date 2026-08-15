@@ -316,7 +316,7 @@ function RideOptionsSheetBase({
                   <Banknote size={18} color={paymentMethod === 'cash' ? primaryCol : mutedCol} strokeWidth={1.8} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.payLabel, { color: c.ink }]}>{t('payment_methods_cash')}</Text>
-                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>Pay driver</Text>
+                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>{t('pay_driver')}</Text>
                   </View>
                   {paymentMethod === 'cash' ? <Check size={16} color={primaryCol} strokeWidth={2.4} /> : null}
                 </TouchableOpacity>

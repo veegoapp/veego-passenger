@@ -10,6 +10,7 @@ import { tokenStore } from '@/src/api/client';
 import { getSocket, disconnectSocket } from '@/src/api/socket';
 import { onAuthEvent } from '@/src/api/authEvents';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
+import { useTheme } from '@/context/ThemeContext';
 
 export type ServiceType = 'car' | 'shuttle' | 'scooter' | 'delivery';
 export type DisplayMode = 'live' | 'coming_soon' | 'unavailable' | 'maintenance';
@@ -83,6 +84,7 @@ async function fetchUserZoneId(): Promise<number | null> {
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function ServiceControlProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTheme();
   const [services, setServices] = useState<ServiceControlMap>({});
   const [isLoading, setIsLoading] = useState(false);
   const [userZoneId, setUserZoneId] = useState<number | null>(null);
@@ -292,14 +294,14 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
 
     if (mode === 'unavailable') {
       if (svc.unavailableMessage) {
-        showAppAlert('Service Unavailable', svc.unavailableMessage);
+        showAppAlert(t('service_unavailable'), svc.unavailableMessage);
       }
       return;
     }
 
     // Unknown displayMode — fail closed
     if (__DEV__) console.warn(`[ServiceControl] unknown displayMode "${mode}" for ${type} — blocking tap`);
-  }, [services, isServiceVisibleForZone]);
+  }, [services, isServiceVisibleForZone, t]);
 
   const value = useMemo(
     () => ({ services, getService, isLoading, userZoneId, isServiceVisibleForZone, handleServiceTap }),
