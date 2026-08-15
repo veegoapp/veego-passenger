@@ -71,7 +71,7 @@ export function HomeHeader({ styles, c, t, firstName, avatarInitials, avatarUri,
                 onError={() => setAvatarFailed(true)}
               />
             ) : (
-              <View style={[styles.avatar, { borderColor: c.primary + '66' }]}>
+              <View style={[styles.avatar, styles.avatarFallback, { borderColor: c.primary + '66' }]}>
                 <Text style={styles.avatarText}>{avatarInitials}</Text>
               </View>
             )}

@@ -56,7 +56,7 @@ function makeStyles(c: ThemeColors) {
     // Mirrors the Driver app's Home header exactly: floating glass pills over
     // the map (no opaque band, no brand lockup) — avatarPill on one side,
     // a single glass icon-button pill (notifications) on the other.
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Spacing.sm, paddingBottom: Spacing.md, zIndex: 10 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.md, zIndex: 10 },
     avatarPill: {},
     avatarPillGlass: {},
     avatarPillInner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: Spacing.xs, paddingRight: Spacing.md, paddingVertical: Spacing.xs },
@@ -66,14 +66,17 @@ function makeStyles(c: ThemeColors) {
     hiText: { fontSize: Typography.size.xs, color: c.inkSoft, fontWeight: Typography.weight.regular },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     iconBtnGlass: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+    // Matches the Driver app's Home header notifDot exactly (size/position/no ring).
     notifDot: {
-      position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8,
-      paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center',
-      borderWidth: 1.5, borderColor: c.white,
+      position: 'absolute', top: 2, right: 2, minWidth: 14, height: 14, borderRadius: 7,
+      paddingHorizontal: 2, alignItems: 'center', justifyContent: 'center',
     },
-    notifDotText: { color: '#ffffff', fontSize: 9, fontWeight: Typography.weight.bold },
-    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    avatarText: { color: c.isDark ? c.background : c.white, fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
+    notifDotText: { color: '#ffffff', fontSize: 7, fontWeight: Typography.weight.bold },
+    avatar: { width: 36, height: 36, borderRadius: 18, borderWidth: 2 },
+    // Fallback (initials) circle only — matches the Driver app's avatarFallback
+    // (light muted-tint circle, not painted behind the real photo).
+    avatarFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: c.mist },
+    avatarText: { color: c.inkSoft, fontSize: Typography.size.xs, fontWeight: Typography.weight.bold },
 
     serviceGrid: { flexDirection: 'row', flexWrap: 'nowrap', gap: 7, paddingHorizontal: 20, marginBottom: Spacing.md, zIndex: 20 },
     serviceBtn: { flex: 1, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.sm, paddingVertical: 6, gap: 6 },
