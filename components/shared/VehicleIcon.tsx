@@ -259,6 +259,12 @@ const CAR_IMAGES = {
 
 type CarColorKey = keyof typeof CAR_IMAGES;
 
+// Real width/height ratio of the CAR_IMAGES assets (700x420 side-profile
+// renders). Used so the car photo renders at its natural wide proportions —
+// same frameless/large treatment as the category photos in RideOptionsSheet
+// — instead of being letterboxed into a square `size x size` box.
+const CAR_ASPECT = 700 / 420;
+
 // Same 12 hex values as the VeeGo vehicle_colors catalog (nameEn -> hex),
 // used only to pick the nearest available CAR asset — never to recolor one.
 const CAR_COLOR_CATALOG: Record<CarColorKey, [number, number, number]> = {
@@ -316,7 +322,7 @@ export const VehicleIcon = React.memo(function VehicleIcon({
     return (
       <Image
         source={CAR_IMAGES[key]}
-        style={{ width: size, height: size }}
+        style={{ width: size * CAR_ASPECT, height: size }}
         resizeMode="contain"
       />
     );
