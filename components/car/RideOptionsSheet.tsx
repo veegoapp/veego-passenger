@@ -39,7 +39,14 @@ interface RideOptionsSheetProps {
   paymentMethod?: 'cash' | 'wallet';
   onPaymentMethodChange?: (method: 'cash' | 'wallet') => void;
   walletAvailable?: boolean;
+  walletBalance?: number;
 }
+
+// Fixed brand treatment for the payment/CTA controls below — charcoal +
+// metallic gold, independent of the app's light/dark theme tokens.
+const GOLD = '#D5B23D';
+const CHARCOAL = '#1C1C1E';
+const CHARCOAL_SURFACE = '#26262A';
 
 // Real car photos per catalog category (economy / economy_plus / comfort),
 // shown large and frameless in the ride option cards below — falls back to
@@ -54,7 +61,6 @@ const CATEGORY_IMAGES: Record<string, ReturnType<typeof require>> = {
 function PrimaryButton({
   onPress, disabled, children,
 }: { onPress?: () => void; disabled?: boolean; children: React.ReactNode }) {
-  const { colors: c } = useTheme();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -62,7 +68,9 @@ function PrimaryButton({
       activeOpacity={0.88}
       style={[
         styles.primaryBtn,
-        { backgroundColor: disabled ? (c.isDark ? '#2a2a40' : '#c8c8d0') : c.primary },
+        disabled
+          ? { backgroundColor: CHARCOAL_SURFACE, borderColor: 'rgba(255,255,255,0.08)' }
+          : { backgroundColor: GOLD, borderColor: '#B8952E' },
       ]}
     >
       {children}
@@ -76,7 +84,7 @@ function RideOptionsSheetBase({
   estimate, estimateLoading, confirming,
   serviceType = 'car', singleEstimate,
   recipientName, recipientPhone, onRecipientNameChange, onRecipientPhoneChange,
-  paymentMethod = 'cash', onPaymentMethodChange, walletAvailable,
+  paymentMethod = 'cash', onPaymentMethodChange, walletAvailable, walletBalance,
 }: RideOptionsSheetProps) {
   const { colors: c, t, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
@@ -118,6 +126,7 @@ function RideOptionsSheetBase({
 
   const recipientReady = !isDelivery || (!!recipientName?.trim() && !!recipientPhone?.trim());
   const canConfirm = !!selected && recipientReady && !confirming;
+  const walletHasFunds = (walletBalance ?? 0) > 0;
 
   /* ── Option icon ── */
   const OptionIcon = serviceType === 'scooter' ? ScooterIcon : serviceType === 'delivery' ? Package : Car;
@@ -136,12 +145,6 @@ function RideOptionsSheetBase({
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Sheet title ── */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={[styles.sheetTitle, { color: c.ink }]}>{t('select_ride_type')}</Text>
-            <Text style={[styles.sheetSubtitle, { color: mutedCol }]}>{'Prices include taxes and fees'}</Text>
-          </View>
-
           {/* ── Trip row ── */}
           {destination ? (
             <View style={[styles.tripRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
@@ -213,17 +216,6 @@ function RideOptionsSheetBase({
                       </View>
                     )}
                     <Text style={[styles.optionNameH, { color: c.ink }]} numberOfLines={1}>{cat.name}</Text>
-                    {estimate?.eta != null && !estimateLoading ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                        <Clock size={10} color={mutedCol} strokeWidth={2} />
-                        <Text style={[styles.etaTextH, { color: mutedCol }]}>{estimate.eta} {t('min')}</Text>
-                      </View>
-                    ) : estimateLoading ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                        <Clock size={10} color={mutedCol} strokeWidth={2} />
-                        <Text style={[styles.etaTextH, { color: mutedCol }]}>–</Text>
-                      </View>
-                    ) : null}
                     {estimateLoading ? (
                       <ActivityIndicator size="small" color={primaryCol} />
                     ) : (
@@ -314,7 +306,8 @@ function RideOptionsSheetBase({
               {/* Cash / Card — primary method, side-by-side. Card has no
                   payment gateway wired into ride requests yet, so it's
                   shown disabled with a "coming soon" badge rather than
-                  implying it's payable today. */}
+                  implying it's payable today. Solid charcoal/gold fills
+                  per the brand theme instead of theme-token outlines. */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
@@ -323,57 +316,69 @@ function RideOptionsSheetBase({
                     styles.payCard,
                     {
                       flex: 1,
-                      backgroundColor: paymentMethod === 'cash'
-                        ? (isDark ? 'rgba(30,30,40,0.18)' : 'rgba(30,30,40,0.04)')
-                        : cardBg,
-                      borderColor: paymentMethod === 'cash' ? primaryCol : borderCol,
+                      backgroundColor: paymentMethod === 'cash' ? CHARCOAL : CHARCOAL_SURFACE,
+                      borderColor: paymentMethod === 'cash' ? GOLD : 'rgba(255,255,255,0.08)',
+                      borderWidth: paymentMethod === 'cash' ? 2 : 1,
                     },
                   ]}
                 >
-                  <Banknote size={18} color={paymentMethod === 'cash' ? primaryCol : mutedCol} strokeWidth={1.8} />
+                  <Banknote size={18} color={paymentMethod === 'cash' ? GOLD : '#8A8A8E'} strokeWidth={1.8} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.payLabel, { color: c.ink }]}>{t('payment_methods_cash')}</Text>
-                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>{t('pay_driver')}</Text>
+                    <Text style={[styles.payLabel, { color: paymentMethod === 'cash' ? '#ffffff' : '#B0B0B5' }]}>{t('payment_methods_cash')}</Text>
+                    <Text style={[styles.paySub, { color: '#8A8A8E' }]} numberOfLines={1}>{t('pay_driver')}</Text>
                   </View>
-                  {paymentMethod === 'cash' ? <Check size={16} color={primaryCol} strokeWidth={2.4} /> : null}
+                  {paymentMethod === 'cash' ? <Check size={16} color={GOLD} strokeWidth={2.4} /> : null}
                 </TouchableOpacity>
 
                 <View
                   style={[
                     styles.payCard,
-                    { flex: 1, opacity: 0.55, backgroundColor: surfaceBg, borderColor: borderCol },
+                    { flex: 1, backgroundColor: CHARCOAL_SURFACE, borderColor: 'rgba(255,255,255,0.08)' },
                   ]}
                 >
-                  <CreditCard size={18} color={mutedCol} strokeWidth={1.8} />
+                  <CreditCard size={18} color="#6E6E73" strokeWidth={1.8} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.payLabel, { color: mutedCol }]}>{t('payment_methods_card')}</Text>
-                    <View style={[styles.soonBadge, { backgroundColor: borderCol }]}>
-                      <Text style={[styles.soonBadgeText, { color: mutedCol }]}>{t('soon')}</Text>
+                    <Text style={[styles.payLabel, { color: '#6E6E73' }]}>{t('payment_methods_card')}</Text>
+                    <View style={[styles.soonBadge, { backgroundColor: 'rgba(213,178,61,0.15)' }]}>
+                      <Text style={[styles.soonBadgeText, { color: GOLD }]}>{t('soon')}</Text>
                     </View>
                   </View>
                 </View>
               </View>
 
-              {/* Wallet balance toggle — applies wallet funds alongside the
-                  primary method above instead of competing with it as a
-                  third selectable chip. Maps onto the same 'cash' | 'wallet'
-                  paymentMethod state/callback the backend already expects. */}
+              {/* Wallet balance toggle — compact inline row. Applies wallet
+                  funds alongside the primary method above instead of
+                  competing with it as a third selectable chip; maps onto
+                  the same 'cash' | 'wallet' paymentMethod state/callback
+                  the backend already expects. Switch is gated on the live
+                  balance from GET /wallet, not just the feature flag. */}
               {walletAvailable && (
-                <View style={[styles.walletRow, { backgroundColor: surfaceBg, borderColor: borderCol, marginTop: 8 }]}>
-                  <View style={[styles.walletIcon, { backgroundColor: cardBg, borderColor: borderCol }]}>
-                    <Wallet size={16} color={primaryCol} strokeWidth={1.8} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.payLabel, { color: c.ink }]}>{t('payment_methods_wallet')}</Text>
-                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>{'Apply wallet balance'}</Text>
-                  </View>
+                <View
+                  style={[
+                    styles.walletRow,
+                    {
+                      backgroundColor: CHARCOAL_SURFACE,
+                      borderColor: paymentMethod === 'wallet' ? GOLD : 'rgba(255,255,255,0.08)',
+                      borderWidth: paymentMethod === 'wallet' ? 2 : 1,
+                      marginTop: 8,
+                      opacity: walletHasFunds ? 1 : 0.5,
+                    },
+                  ]}
+                >
+                  <Wallet size={16} color={walletHasFunds ? GOLD : '#6E6E73'} strokeWidth={1.8} />
+                  <Text style={[styles.payLabel, { color: '#ffffff', flex: 1 }]}>{t('payment_methods_wallet')}</Text>
+                  <Text style={[styles.walletBalanceText, { color: '#B0B0B5' }]} numberOfLines={1}>
+                    {'Balance: '}{walletBalance ?? 0} {t('egp')}
+                  </Text>
                   <Switch
                     value={paymentMethod === 'wallet'}
+                    disabled={!walletHasFunds}
                     onValueChange={(val) => {
+                      if (!walletHasFunds) return;
                       Haptics.selectionAsync();
                       onPaymentMethodChange(val ? 'wallet' : 'cash');
                     }}
-                    trackColor={{ false: borderCol, true: primaryCol }}
+                    trackColor={{ false: '#3A3A3C', true: GOLD }}
                     thumbColor="#ffffff"
                   />
                 </View>
@@ -385,14 +390,14 @@ function RideOptionsSheetBase({
           <PrimaryButton onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }} disabled={!canConfirm}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               {confirming ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+                <ActivityIndicator size="small" color={canConfirm ? CHARCOAL : '#8A8A8E'} />
               ) : (
                 <>
-                  <Text style={styles.primaryBtnText}>
+                  <Text style={[styles.primaryBtnText, { color: canConfirm ? CHARCOAL : '#8A8A8E' }]}>
                     {'Find Driver'}
                   </Text>
                   {selectedPrice != null ? (
-                    <Text style={[styles.primaryBtnText, { opacity: 0.7 }]}>
+                    <Text style={[styles.primaryBtnText, { color: canConfirm ? CHARCOAL : '#8A8A8E', opacity: 0.7 }]}>
                       · {selectedPrice.toFixed(2)} {t('egp')}
                     </Text>
                   ) : null}
@@ -410,29 +415,22 @@ export const RideOptionsSheet = memo(RideOptionsSheetBase);
 
 const styles = StyleSheet.create({
   sheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
+    position: 'absolute', bottom: 16, left: 16, right: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
     shadowRadius: 24,
     elevation: 28,
     zIndex: 999,
   },
   sheetSurface: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderRadius: 28,
     paddingTop: 10,
+    overflow: 'hidden',
   },
   handle: {
     width: 40, height: 5, borderRadius: 3,
     alignSelf: 'center', marginBottom: 20,
-  },
-
-  sheetTitle: {
-    fontSize: 22, fontWeight: '700', letterSpacing: -0.44,
-  },
-  sheetSubtitle: {
-    fontSize: 14, marginTop: 4,
   },
 
   tripRow: {
@@ -531,17 +529,16 @@ const styles = StyleSheet.create({
   soonBadgeText: { fontSize: 10, fontWeight: '600' },
 
   walletRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderRadius: 16, borderWidth: 1,
-    paddingHorizontal: 12, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 14,
+    paddingHorizontal: 12, paddingVertical: 10,
   },
-  walletIcon: {
-    width: 32, height: 32, borderRadius: 10, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
+  walletBalanceText: {
+    fontSize: 12, fontWeight: '600', marginRight: 4,
   },
 
   primaryBtn: {
-    height: 56, borderRadius: 16,
+    height: 56, borderRadius: 16, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -550,7 +547,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   primaryBtnText: {
-    fontSize: 15.5, fontWeight: '600',
-    color: '#ffffff', letterSpacing: -0.15,
+    fontSize: 15.5, fontWeight: '700', letterSpacing: -0.15,
   },
 });

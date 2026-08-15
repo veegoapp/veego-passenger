@@ -30,6 +30,7 @@ import { TripCompletedSheet } from './TripCompletedSheet';
 import { SafetySheet } from '@/components/shared/SafetySheet';
 import { ConnectionBanner } from '@/components/shared/ConnectionBanner';
 import { useRecentSearches } from '@/src/hooks/shared/useRecentSearches';
+import { useWallet } from '@/src/hooks/shared/useWallet';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -479,6 +480,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
 
   const { walletFeature } = usePaymentConfig();
   const walletAvailable = walletFeature.isEnabled && walletFeature.displayMode === 'live';
+  // Backend-confirmed live balance (GET /wallet) — gates the wallet toggle
+  // in RideOptionsSheet independently of the feature-flag above.
+  const { balance: walletBalance } = useWallet();
 
   // Phase 2: pass serviceType so resumeActiveRide only picks up rides that
   // belong to this tab — prevents state leakage across car/scooter/delivery.
@@ -1346,6 +1350,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         paymentMethod={paymentMethod}
         onPaymentMethodChange={setPaymentMethod}
         walletAvailable={walletAvailable}
+        walletBalance={walletBalance}
       />
 
       {/* Searching */}
