@@ -326,9 +326,21 @@ function DriverAssignedCardBase({
               </View>
               <View style={[styles.driverMiniVehicleRow, { borderTopColor: borderCol }]}>
                 <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={80} />
-                <Text style={[styles.driverMiniSub, { color: c.inkSoft }]} numberOfLines={1}>
-                  {[driver?.vehicle, driver?.plateNumber].filter(Boolean).join(' · ') || '—'}
-                </Text>
+                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                  <Text style={[styles.driverMiniVehicleName, { color: c.ink }]} numberOfLines={1}>
+                    {driver?.vehicle ?? '—'}
+                  </Text>
+                  {driver?.vehicleColor ? (
+                    <Text style={[styles.driverMiniVehicleColor, { color: c.ink }]} numberOfLines={1}>
+                      {driver.vehicleColor}
+                    </Text>
+                  ) : null}
+                  {driver?.plateNumber ? (
+                    <View style={styles.plateBadge}>
+                      <Text style={styles.plateText} numberOfLines={1}>{driver.plateNumber}</Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
             </View>
 
@@ -537,7 +549,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, paddingTop: 12,
   },
   driverMiniName: { fontSize: 15, fontWeight: '600', letterSpacing: -0.15, marginBottom: 3 },
-  driverMiniSub: { fontSize: 13, flex: 1 },
+  driverMiniVehicleName: { fontSize: 15, fontWeight: '800', letterSpacing: -0.15 },
+  driverMiniVehicleColor: { fontSize: 13, fontWeight: '700' },
   actionsRow: { flexDirection: 'row', gap: 8 },
 
   /* ── Assigned/Arrived ── */
@@ -570,8 +583,8 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1,
     paddingHorizontal: 14, paddingVertical: 14,
   },
-  vehicleName: { fontSize: 15, fontWeight: '600' },
-  vehicleSub: { fontSize: 13, marginTop: 2 },
+  vehicleName: { fontSize: 15, fontWeight: '800' },
+  vehicleSub: { fontSize: 13, fontWeight: '700', marginTop: 2 },
   // Styled like an actual vehicle plate — white plate stock + black
   // lettering + a thin frame — instead of a theme-tinted generic badge.
   plateBadge: {
