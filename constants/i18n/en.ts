@@ -565,6 +565,7 @@ export const en = {
   cash_fare: 'Cash · EGP {p}',
   cash_payment_label: 'Cash payment',
   pay_driver_cash: 'Please pay your driver {amount} EGP in cash',
+  cash_to_pay: 'Cash to pay',
   wallet_coming_soon_msg: 'Wallet payments are coming soon. Currently only cash is accepted.',
   discount_applied: 'Discount applied: -{amount}',
   confirm_ride_btn_requesting: 'Requesting…',

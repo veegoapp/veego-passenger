@@ -567,6 +567,7 @@ export const ar: typeof en = {
   cash_fare: 'نقداً · {p} ج.م',
   cash_payment_label: 'دفع نقداً',
   pay_driver_cash: 'يرجى دفع {amount} ج.م نقداً للسائق',
+  cash_to_pay: 'المبلغ النقدي المستحق',
   wallet_coming_soon_msg: 'المحفظة الإلكترونية قادمة قريباً. حالياً يُقبل الدفع النقدي فقط.',
   discount_applied: 'تم تطبيق الخصم: -{amount}',
   confirm_ride_btn_requesting: 'جاري الطلب…',

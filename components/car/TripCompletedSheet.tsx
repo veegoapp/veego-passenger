@@ -7,8 +7,16 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { GlassView } from '@/components/ui/GlassView';
 import { FareBreakdownModal } from '@/components/shared/FareBreakdownModal';
+
+// Fixed brand treatment for this screen's cards — solid charcoal fills
+// instead of theme-token glass panels, so map content behind the overlay
+// doesn't bleed through. Independent of light/dark theme, same as the
+// RideOptionsSheet payment controls.
+const GOLD = '#D5B23D';
+const CHARCOAL = '#1C1C1E';
+const CHARCOAL_SURFACE = '#26262A';
+const CARD_BORDER = 'rgba(255,255,255,0.08)';
 
 interface TripCompletedSheetProps {
   visible: boolean;
@@ -93,15 +101,6 @@ export function TripCompletedSheet({
     setSubmitting(false);
   }, [stars, comment, submitting, onDone]);
 
-  // Cash rides leave a positive amount owed (fare is netCashPayable, 0 for
-  // wallet-paid rides) — mirrors the driver app's cash_to_collect /
-  // added_to_earnings split, but doubles as the passenger-facing payment
-  // method indicator: the cash instruction names the method by itself, and
-  // the fallback shows the method label (e.g. "Wallet") directly.
-  const fareNoteText = fare != null && fare > 0
-    ? t('pay_driver_cash').replace('{amount}', fare.toFixed(2))
-    : paymentMethodLabel;
-
   const ratingLabel = driverName ? `${t('rate_your_ride')} ${driverName}?` : t('rate_your_ride');
 
   return (
@@ -121,70 +120,73 @@ export function TripCompletedSheet({
       <Text style={[styles.completedTitle, { color: c.ink }]}>{t('trip_complete')}</Text>
 
       {fare != null && (
-        <Text style={[styles.fareEarned, { color: c.primary }]}>
+        <Text style={[styles.fareLabel, { color: c.inkSoft }]}>{t('cash_to_pay')}</Text>
+      )}
+      {fare != null && (
+        <Text style={[styles.fareEarned, { color: GOLD }]}>
           {fare.toFixed(2)} {t('egp')}
         </Text>
       )}
       {fare != null && (
-        <Text style={[styles.fareNote, { color: c.inkSoft }]}>{fareNoteText}</Text>
+        <Text style={[styles.fareNote, { color: c.inkSoft }]}>{paymentMethodLabel}</Text>
       )}
 
       {fare != null && (
         <Pressable onPress={() => setDetailsVisible(true)} style={styles.viewDetailsBtn} accessibilityLabel={t('view_details')}>
-          <Text style={[styles.viewDetailsBtnText, { color: c.primary }]}>{t('view_details')}</Text>
+          <Text style={styles.viewDetailsBtnText}>{t('view_details')}</Text>
         </Pressable>
       )}
 
       {!!(pickup || dropoff) && (
-        <View style={[styles.routeCard, { borderColor: c.border }]}>
+        <View style={[styles.routeCard, { backgroundColor: CHARCOAL_SURFACE, borderColor: CARD_BORDER }]}>
           {!!pickup && (
             <View style={styles.routeRow}>
-              <View style={[styles.routeDot, { backgroundColor: c.ink }]} />
-              <Text style={[styles.routeText, { color: c.ink }]} numberOfLines={2}>{pickup}</Text>
+              <View style={[styles.routeDot, { backgroundColor: '#ffffff' }]} />
+              <Text style={[styles.routeText, { color: '#ffffff' }]} numberOfLines={2}>{pickup}</Text>
             </View>
           )}
-          {!!pickup && !!dropoff && <View style={[styles.routeLine, { backgroundColor: c.border }]} />}
+          {!!pickup && !!dropoff && <View style={[styles.routeLine, { backgroundColor: CARD_BORDER }]} />}
           {!!dropoff && (
             <View style={styles.routeRow}>
-              <View style={[styles.routeDot, { backgroundColor: c.accent }]} />
-              <Text style={[styles.routeText, { color: c.ink }]} numberOfLines={2}>{dropoff}</Text>
+              <View style={[styles.routeDot, { backgroundColor: GOLD }]} />
+              <Text style={[styles.routeText, { color: '#ffffff' }]} numberOfLines={2}>{dropoff}</Text>
             </View>
           )}
         </View>
       )}
 
-      <GlassView style={styles.ratingCard} borderRadius={16}>
+      <View style={[styles.ratingCard, { backgroundColor: CHARCOAL, borderColor: CARD_BORDER }]}>
         <View style={styles.ratingCardHeader}>
-          <View style={[styles.ratingAvatar, { backgroundColor: c.mist }]}>
-            <Text style={[styles.ratingAvatarText, { color: c.inkSoft }]}>{driverInitials}</Text>
+          <View style={[styles.ratingAvatar, { backgroundColor: CHARCOAL_SURFACE }]}>
+            <Text style={[styles.ratingAvatarText, { color: '#ffffff' }]}>{driverInitials}</Text>
           </View>
-          <Text style={[styles.ratingCardLabel, { color: c.inkSoft }]} numberOfLines={1}>{ratingLabel}</Text>
+          <Text style={[styles.ratingCardLabel, { color: '#B0B0B5' }]} numberOfLines={1}>{ratingLabel}</Text>
           {driverRating != null && driverRating > 0 && (
             <View style={styles.driverRatingRow}>
-              <Star size={11} color="#f5a623" fill="#f5a623" />
-              <Text style={[styles.driverRatingText, { color: c.inkSoft }]}>{driverRating.toFixed(1)}</Text>
+              <Star size={11} color={GOLD} fill={GOLD} />
+              <Text style={[styles.driverRatingText, { color: '#B0B0B5' }]}>{driverRating.toFixed(1)}</Text>
             </View>
           )}
         </View>
         <View style={styles.starsRow}>
           {[1, 2, 3, 4, 5].map((n) => (
             <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
-              <Star size={36} color={n <= stars ? c.accent : `${c.accent}60`} fill={n <= stars ? c.accent : 'transparent'} strokeWidth={2} />
+              <Star size={36} color={n <= stars ? GOLD : '#5A5A5E'} fill={n <= stars ? GOLD : 'transparent'} strokeWidth={2} />
             </Pressable>
           ))}
         </View>
         {stars > 0 && (
           <TextInput
-            style={[styles.commentInput, { borderColor: c.border, backgroundColor: c.mist, color: c.ink }]}
+            style={[styles.commentInput, { borderColor: CARD_BORDER, backgroundColor: CHARCOAL_SURFACE, color: '#ffffff' }]}
             placeholder={t('leave_comment')}
-            placeholderTextColor={c.inkSoft}
+            placeholderTextColor="#8A8A8E"
             value={comment}
             onChangeText={setComment}
             maxLength={200}
             multiline
           />
         )}
-      </GlassView>
+      </View>
 
       <View style={styles.ratingActionsRow}>
         <Pressable
@@ -235,11 +237,12 @@ const styles = StyleSheet.create({
   },
   checkCircleGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   completedTitle: { fontSize: 24, fontWeight: '700', marginTop: 24 },
-  fareEarned: { fontSize: 48, lineHeight: 52, fontWeight: '800', marginTop: 8 },
+  fareLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 20 },
+  fareEarned: { fontSize: 48, lineHeight: 52, fontWeight: '800', marginTop: 4 },
   fareNote: { fontSize: 14, marginTop: 8, textAlign: 'center' },
 
   viewDetailsBtn: { marginTop: 4, paddingVertical: 6, paddingHorizontal: 10 },
-  viewDetailsBtnText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
+  viewDetailsBtnText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline', color: GOLD },
 
   routeCard: {
     width: '100%', borderRadius: 16, borderWidth: 1,
@@ -250,7 +253,7 @@ const styles = StyleSheet.create({
   routeLine: { width: 2, height: 14, marginLeft: 3.5 },
   routeText: { flex: 1, fontSize: 13, fontWeight: '500' },
 
-  ratingCard: { padding: 16, marginTop: 24, width: '100%' },
+  ratingCard: { padding: 16, marginTop: 24, width: '100%', borderRadius: 16, borderWidth: 1 },
   ratingCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   ratingAvatar: {
     width: 32, height: 32, borderRadius: 16,
