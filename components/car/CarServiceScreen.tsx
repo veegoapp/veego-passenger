@@ -794,7 +794,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       }
     }
     handleReset();
-  }, [rideState.rideId, handleReset]);
+    // Return to the Home screen instead of leaving the passenger parked on a
+    // fresh booking form for this service.
+    onBack();
+  }, [rideState.rideId, handleReset, onBack]);
 
   const handleCancel = useCallback(async (reason?: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
