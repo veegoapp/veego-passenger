@@ -9,13 +9,6 @@ interface DriverSearchingProps {
   onCancel?: () => void;
 }
 
-// Fixed brand treatment — charcoal + metallic gold, independent of the
-// app's light/dark theme, matching the other ride-cycle cards.
-const GOLD = '#D5B23D';
-const CHARCOAL = '#1C1C1E';
-const CHARCOAL_SURFACE = '#26262A';
-const CARD_BORDER = 'rgba(255,255,255,0.08)';
-
 /**
  * Shown while actively searching for a driver. The car-icon radar animation
  * that used to live here has moved to the map itself — SearchingPulse (see
@@ -23,7 +16,7 @@ const CARD_BORDER = 'rgba(255,255,255,0.08)';
  * pin instead — so this card is just the status line and a Cancel button.
  */
 export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
-  const { t } = useTheme();
+  const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -42,18 +35,18 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={styles.sheetSurface}>
-        <View style={styles.handle} />
+      <View style={[styles.sheetSurface, { backgroundColor: c.white, borderColor: c.border }]}>
+        <View style={[styles.handle, { backgroundColor: c.border }]} />
 
-        <Text style={styles.headline}>{t('searching_driver')}</Text>
+        <Text style={[styles.headline, { color: c.ink }]}>{t('searching_driver')}</Text>
 
         {onCancel && (
           <TouchableOpacity
             onPress={onCancel}
             activeOpacity={0.85}
-            style={[styles.cancelBtn, { marginBottom: insets.bottom }]}
+            style={[styles.cancelBtn, { backgroundColor: c.surfaceMuted, borderColor: c.gold, marginBottom: insets.bottom }]}
           >
-            <Text style={styles.cancelText}>{t('cancel')}</Text>
+            <Text style={[styles.cancelText, { color: c.gold }]}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -75,27 +68,24 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   sheetSurface: {
-    backgroundColor: CHARCOAL,
-    borderRadius: 28, borderWidth: 1, borderColor: CARD_BORDER,
+    borderRadius: 28, borderWidth: 1,
     paddingTop: 10, paddingHorizontal: 20, paddingBottom: 20,
     alignItems: 'center',
   },
   handle: {
     width: 40, height: 5, borderRadius: 3,
-    backgroundColor: CARD_BORDER,
     alignSelf: 'center', marginBottom: 20,
   },
 
   headline: {
     fontSize: 18, fontWeight: '700', letterSpacing: -0.3,
-    textAlign: 'center', color: '#ffffff',
+    textAlign: 'center',
     marginBottom: 20,
   },
 
   cancelBtn: {
     width: '100%', height: 56, borderRadius: 16, borderWidth: 1.5,
-    backgroundColor: CHARCOAL_SURFACE, borderColor: GOLD,
     alignItems: 'center', justifyContent: 'center',
   },
-  cancelText: { fontSize: 15, fontWeight: '700', color: GOLD },
+  cancelText: { fontSize: 15, fontWeight: '700' },
 });

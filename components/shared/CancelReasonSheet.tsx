@@ -9,14 +9,6 @@ import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 
-// Fixed brand treatment — charcoal + metallic gold, independent of the
-// app's light/dark theme, matching the driver-assigned card and the other
-// ride-cycle sheets already redesigned this way.
-const GOLD = '#D5B23D';
-const CHARCOAL = '#1C1C1E';
-const CHARCOAL_SURFACE = '#26262A';
-const CARD_BORDER = 'rgba(255,255,255,0.08)';
-
 interface CancelReasonSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -25,7 +17,7 @@ interface CancelReasonSheetProps {
 }
 
 export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }: CancelReasonSheetProps) {
-  const { t } = useTheme();
+  const { colors: c, t } = useTheme();
   const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
 
@@ -81,14 +73,14 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-        <View style={[styles.sheet, { backgroundColor: CHARCOAL, borderColor: CARD_BORDER, paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.sheet, { backgroundColor: c.white, borderColor: c.border, paddingBottom: insets.bottom + 16 }]}>
           {/* Drag handle */}
-          <View style={[styles.handle, { backgroundColor: CARD_BORDER }]} />
+          <View style={[styles.handle, { backgroundColor: c.border }]} />
 
           {/* Title */}
           <View style={{ marginBottom: 4 }}>
-            <Text style={styles.title}>{t('cancel_trip')}</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: c.ink }]}>{t('cancel_trip')}</Text>
+            <Text style={[styles.subtitle, { color: c.inkSoft }]}>
               {mode === 'shuttle' ? t('cancel_trip_q') : (t('select_reason') ?? 'Your feedback helps us improve the service')}
             </Text>
           </View>
@@ -109,8 +101,8 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
                   style={[
                     styles.reasonRow,
                     {
-                      backgroundColor: CHARCOAL_SURFACE,
-                      borderColor: active ? GOLD : CARD_BORDER,
+                      backgroundColor: c.surfaceMuted,
+                      borderColor: active ? c.gold : c.border,
                       borderWidth: active ? 2 : 1,
                     },
                   ]}
@@ -118,19 +110,19 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
                   {/* Radio circle */}
                   <View style={[
                     styles.radio,
-                    { borderColor: active ? GOLD : 'rgba(255,255,255,0.25)' },
-                    active ? { backgroundColor: GOLD } : {},
+                    { borderColor: active ? c.gold : c.silver },
+                    active ? { backgroundColor: c.gold } : {},
                   ]}>
-                    {active ? <Check size={11} color={CHARCOAL} strokeWidth={3} /> : null}
+                    {active ? <Check size={11} color={c.white} strokeWidth={3} /> : null}
                   </View>
-                  <Text style={styles.reasonText}>{reason}</Text>
+                  <Text style={[styles.reasonText, { color: c.ink }]}>{reason}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
           {mode === 'shuttle' && (
-            <Text style={styles.optionalHint}>{t('selection_optional')}</Text>
+            <Text style={[styles.optionalHint, { color: c.inkSoft }]}>{t('selection_optional')}</Text>
           )}
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
@@ -141,9 +133,9 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
             <TouchableOpacity
               onPress={handleClose}
               activeOpacity={0.78}
-              style={[styles.ghostBtn, { flex: 1 }]}
+              style={[styles.ghostBtn, { flex: 1, backgroundColor: c.surfaceMuted, borderColor: c.border }]}
             >
-              <Text style={styles.ghostBtnText}>{t('no_back')}</Text>
+              <Text style={[styles.ghostBtnText, { color: c.ink }]}>{t('no_back')}</Text>
             </TouchableOpacity>
 
             {/* Confirm cancel (destructive) */}
@@ -195,10 +187,10 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 22, fontWeight: '700', letterSpacing: -0.44, color: '#ffffff',
+    fontSize: 22, fontWeight: '700', letterSpacing: -0.44,
   },
   subtitle: {
-    fontSize: 14, marginTop: 4, lineHeight: 20, color: '#B0B0B5',
+    fontSize: 14, marginTop: 4, lineHeight: 20,
   },
 
   reasonRow: {
@@ -210,22 +202,21 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   reasonText: {
-    fontSize: 15, fontWeight: '500', flex: 1, color: '#ffffff',
+    fontSize: 15, fontWeight: '500', flex: 1,
   },
 
   optionalHint: {
-    fontSize: 12, textAlign: 'center', marginBottom: 14, color: '#B0B0B5',
+    fontSize: 12, textAlign: 'center', marginBottom: 14,
   },
   errorText: {
     fontSize: 13, textAlign: 'center', marginBottom: 12, color: '#E85454',
   },
 
   ghostBtn: {
-    height: 56, borderRadius: 16, borderWidth: 1.5, borderColor: CARD_BORDER,
-    backgroundColor: CHARCOAL_SURFACE,
+    height: 56, borderRadius: 16, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
   },
-  ghostBtnText: { fontSize: 15, fontWeight: '600', color: '#ffffff' },
+  ghostBtnText: { fontSize: 15, fontWeight: '600' },
 
   dangerBtn: {
     height: 56, borderRadius: 16, borderWidth: 1.5,

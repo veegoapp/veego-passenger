@@ -42,12 +42,6 @@ interface RideOptionsSheetProps {
   walletBalance?: number;
 }
 
-// Fixed brand treatment for the payment/CTA controls below — charcoal +
-// metallic gold, independent of the app's light/dark theme tokens.
-const GOLD = '#D5B23D';
-const CHARCOAL = '#1C1C1E';
-const CHARCOAL_SURFACE = '#26262A';
-
 // Real car photos per catalog category (economy / economy_plus / comfort),
 // shown large and frameless in the ride option cards below — falls back to
 // the generic Car icon for any slug the backend adds later without a photo.
@@ -61,6 +55,7 @@ const CATEGORY_IMAGES: Record<string, ReturnType<typeof require>> = {
 function PrimaryButton({
   onPress, disabled, children,
 }: { onPress?: () => void; disabled?: boolean; children: React.ReactNode }) {
+  const { colors: c } = useTheme();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -69,8 +64,8 @@ function PrimaryButton({
       style={[
         styles.primaryBtn,
         disabled
-          ? { backgroundColor: CHARCOAL_SURFACE, borderColor: 'rgba(255,255,255,0.08)' }
-          : { backgroundColor: GOLD, borderColor: '#B8952E' },
+          ? { backgroundColor: c.surfaceMuted, borderColor: c.border }
+          : { backgroundColor: c.gold, borderColor: '#B8952E' },
       ]}
     >
       {children}
@@ -306,8 +301,10 @@ function RideOptionsSheetBase({
               {/* Cash / Card — primary method, side-by-side. Card has no
                   payment gateway wired into ride requests yet, so it's
                   shown disabled with a "coming soon" badge rather than
-                  implying it's payable today. Solid charcoal/gold fills
-                  per the brand theme instead of theme-token outlines. */}
+                  implying it's payable today. Theme-token surfaces so this
+                  reads as a light card in light mode (driver-app parity)
+                  and a dark card in dark mode, with gold reserved for the
+                  selected/accent state only. */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
@@ -316,31 +313,31 @@ function RideOptionsSheetBase({
                     styles.payCard,
                     {
                       flex: 1,
-                      backgroundColor: paymentMethod === 'cash' ? CHARCOAL : CHARCOAL_SURFACE,
-                      borderColor: paymentMethod === 'cash' ? GOLD : 'rgba(255,255,255,0.08)',
+                      backgroundColor: paymentMethod === 'cash' ? (isDark ? 'rgba(200,165,53,0.14)' : 'rgba(200,165,53,0.08)') : cardBg,
+                      borderColor: paymentMethod === 'cash' ? c.gold : borderCol,
                       borderWidth: paymentMethod === 'cash' ? 2 : 1,
                     },
                   ]}
                 >
-                  <Banknote size={18} color={paymentMethod === 'cash' ? GOLD : '#8A8A8E'} strokeWidth={1.8} />
+                  <Banknote size={18} color={paymentMethod === 'cash' ? c.gold : mutedCol} strokeWidth={1.8} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.payLabel, { color: paymentMethod === 'cash' ? '#ffffff' : '#B0B0B5' }]}>{t('payment_methods_cash')}</Text>
-                    <Text style={[styles.paySub, { color: '#8A8A8E' }]} numberOfLines={1}>{t('pay_driver')}</Text>
+                    <Text style={[styles.payLabel, { color: paymentMethod === 'cash' ? c.ink : mutedCol }]}>{t('payment_methods_cash')}</Text>
+                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>{t('pay_driver')}</Text>
                   </View>
-                  {paymentMethod === 'cash' ? <Check size={16} color={GOLD} strokeWidth={2.4} /> : null}
+                  {paymentMethod === 'cash' ? <Check size={16} color={c.gold} strokeWidth={2.4} /> : null}
                 </TouchableOpacity>
 
                 <View
                   style={[
                     styles.payCard,
-                    { flex: 1, backgroundColor: CHARCOAL_SURFACE, borderColor: 'rgba(255,255,255,0.08)' },
+                    { flex: 1, backgroundColor: surfaceBg, borderColor: borderCol, opacity: 0.6 },
                   ]}
                 >
-                  <CreditCard size={18} color="#6E6E73" strokeWidth={1.8} />
+                  <CreditCard size={18} color={mutedCol} strokeWidth={1.8} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.payLabel, { color: '#6E6E73' }]}>{t('payment_methods_card')}</Text>
-                    <View style={[styles.soonBadge, { backgroundColor: 'rgba(213,178,61,0.15)' }]}>
-                      <Text style={[styles.soonBadgeText, { color: GOLD }]}>{t('soon')}</Text>
+                    <Text style={[styles.payLabel, { color: mutedCol }]}>{t('payment_methods_card')}</Text>
+                    <View style={[styles.soonBadge, { backgroundColor: isDark ? 'rgba(200,165,53,0.18)' : 'rgba(200,165,53,0.12)' }]}>
+                      <Text style={[styles.soonBadgeText, { color: c.gold }]}>{t('soon')}</Text>
                     </View>
                   </View>
                 </View>
@@ -357,17 +354,17 @@ function RideOptionsSheetBase({
                   style={[
                     styles.walletRow,
                     {
-                      backgroundColor: CHARCOAL_SURFACE,
-                      borderColor: paymentMethod === 'wallet' ? GOLD : 'rgba(255,255,255,0.08)',
+                      backgroundColor: surfaceBg,
+                      borderColor: paymentMethod === 'wallet' ? c.gold : borderCol,
                       borderWidth: paymentMethod === 'wallet' ? 2 : 1,
                       marginTop: 8,
                       opacity: walletHasFunds ? 1 : 0.5,
                     },
                   ]}
                 >
-                  <Wallet size={16} color={walletHasFunds ? GOLD : '#6E6E73'} strokeWidth={1.8} />
-                  <Text style={[styles.payLabel, { color: '#ffffff', flex: 1 }]}>{t('payment_methods_wallet')}</Text>
-                  <Text style={[styles.walletBalanceText, { color: '#B0B0B5' }]} numberOfLines={1}>
+                  <Wallet size={16} color={walletHasFunds ? c.gold : mutedCol} strokeWidth={1.8} />
+                  <Text style={[styles.payLabel, { color: c.ink, flex: 1 }]}>{t('payment_methods_wallet')}</Text>
+                  <Text style={[styles.walletBalanceText, { color: mutedCol }]} numberOfLines={1}>
                     {'Balance: '}{walletBalance ?? 0} {t('egp')}
                   </Text>
                   <Switch
@@ -378,7 +375,7 @@ function RideOptionsSheetBase({
                       Haptics.selectionAsync();
                       onPaymentMethodChange(val ? 'wallet' : 'cash');
                     }}
-                    trackColor={{ false: '#3A3A3C', true: GOLD }}
+                    trackColor={{ false: c.silver, true: c.gold }}
                     thumbColor="#ffffff"
                   />
                 </View>
@@ -390,14 +387,14 @@ function RideOptionsSheetBase({
           <PrimaryButton onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }} disabled={!canConfirm}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               {confirming ? (
-                <ActivityIndicator size="small" color={canConfirm ? CHARCOAL : '#8A8A8E'} />
+                <ActivityIndicator size="small" color={canConfirm ? '#1e1e28' : mutedCol} />
               ) : (
                 <>
-                  <Text style={[styles.primaryBtnText, { color: canConfirm ? CHARCOAL : '#8A8A8E' }]}>
+                  <Text style={[styles.primaryBtnText, { color: canConfirm ? '#1e1e28' : mutedCol }]}>
                     {'Find Driver'}
                   </Text>
                   {selectedPrice != null ? (
-                    <Text style={[styles.primaryBtnText, { color: canConfirm ? CHARCOAL : '#8A8A8E', opacity: 0.7 }]}>
+                    <Text style={[styles.primaryBtnText, { color: canConfirm ? '#1e1e28' : mutedCol, opacity: 0.7 }]}>
                       · {selectedPrice.toFixed(2)} {t('egp')}
                     </Text>
                   ) : null}
