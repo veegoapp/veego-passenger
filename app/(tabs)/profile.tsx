@@ -87,15 +87,23 @@ export default function ProfileScreen() {
       const compressed = await compressImageForUpload(asset.uri);
       const form = new FormData();
       form.append('avatar', { uri: compressed.uri, name: compressed.name, type: compressed.type } as any);
-      // `headers: { 'Content-Type': undefined }` doesn't survive axios's
-      // default transformRequest — on React Native (not a "standard browser
-      // env" from axios's point of view) it still forces the header to the
-      // bare string 'multipart/form-data;' with no boundary param, which the
-      // server can never parse into fields (every upload fails the same way).
-      // Bypassing transformRequest entirely lets RN's own networking layer
-      // compute the real multipart boundary when it serializes the FormData.
+      // Root cause of the recurring "Network Error" on this upload: the
+      // shared `api` instance (src/api/client.ts) sets a default
+      // Content-Type of 'application/json' on every request. Bypassing
+      // transformRequest (below) stops axios from mangling the FormData
+      // body, but on its own it does nothing about that header — the
+      // request still went out as `Content-Type: application/json` with a
+      // multipart body, which React Native's native networking layer
+      // refuses to send (it only walks/serializes a FormData body into a
+      // real multipart request when it sees a 'multipart/form-data'
+      // Content-Type; anything else and the request never leaves the
+      // device, surfacing as axios's generic "Network Error"). Both parts
+      // are required together: transformRequest so axios doesn't touch the
+      // body, and this header so RN's bridge recognizes it as multipart and
+      // appends its own boundary param.
       const { data: uploadData } = await api.post('/users/me/avatar', form, {
         transformRequest: (data) => data,
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (uploadData?.avatarUrl) setAvatarUri(uploadData.avatarUrl);
     } catch (err: any) {

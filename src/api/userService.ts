@@ -87,13 +87,17 @@ export async function createTripSupportTicket(body: {
 
 /**
  * POST /support/tickets/:id/attachments — upload one attachment (caller builds the FormData).
- * transformRequest bypasses axios's default FormData handling, which on React
- * Native forces Content-Type to 'multipart/form-data;' with no boundary
- * param — see the identical fix/comment on the avatar upload in
- * app/(tabs)/profile.tsx for the full explanation.
+ * Needs both transformRequest (stop axios from touching the FormData body)
+ * and the explicit multipart Content-Type (override the `api` instance's
+ * default 'application/json' header) — see the full explanation on the
+ * avatar upload in app/(tabs)/profile.tsx. Without the header override this
+ * silently fails as a generic "Network Error": RN's native networking layer
+ * only serializes a FormData body into multipart when it sees a
+ * 'multipart/form-data' Content-Type, and otherwise never sends the request.
  */
 export async function uploadSupportAttachment(ticketId: string | number, form: FormData): Promise<void> {
   await api.post(`/support/tickets/${ticketId}/attachments`, form, {
     transformRequest: (data) => data,
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 }
