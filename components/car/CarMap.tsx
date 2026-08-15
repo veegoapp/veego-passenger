@@ -5,7 +5,7 @@ import MapView, { Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from 'reac
 import { MapPin, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { NearbyDriversLayer } from './NearbyDriversLayer';
-import { SearchingPulse, SEARCHING_PULSE_ANCHOR_Y } from './SearchingPulse';
+import { SearchingPulse } from './SearchingPulse';
 import type { NearbyDriver } from '@/src/hooks/car/useNearbyDrivers';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
@@ -332,17 +332,13 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
           <Polyline coordinates={routeCoords} strokeColor="#1A73E8" strokeWidth={5} />
         )}
 
-        {userLocation && (searching ? (
-          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: SEARCHING_PULSE_ANCHOR_Y }} tracksViewChanges>
-            <SearchingPulse />
-          </Marker>
-        ) : (
+        {userLocation && (
           <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={styles.userDot}>
               <View style={styles.userDotInner} />
             </View>
           </Marker>
-        ))}
+        )}
 
         {destCoords && (
           <Marker coordinate={destCoords} anchor={{ x: 0.5, y: 1 }}>
@@ -368,6 +364,17 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
           <NearbyDriversLayer drivers={nearbyDrivers} />
         )}
       </MapView>
+
+      {/* Water-drop ripple while searching for a driver. Rendered as a plain
+          absolute-positioned overlay (not a MapView Marker) — the "searching"
+          camera effect above always centers the map exactly on userLocation,
+          so a screen-centered overlay lines up with it without needing a
+          continuously self-animating custom Marker view, which react-native-
+          maps doesn't render reliably (unlike DriverMarker, whose position is
+          animated externally via MarkerAnimated and whose own content is
+          static once tracksViewChanges flips off — this needed content that
+          animates itself, which the Marker snapshot pipeline doesn't support). */}
+      {searching && <SearchingPulse />}
 
       <TouchableOpacity
         style={styles.locBtn}
