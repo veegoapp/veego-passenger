@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, MarkerAnimated, PROVIDER_GOOGLE } from 'reac
 import { Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
-import { estimateEtaMinutes, haversineMeters } from '@/src/utils/geoHelpers';
+import { estimateEtaMinutes, haversineMeters, trimRouteToPosition } from '@/src/utils/geoHelpers';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
 import { useMapCamera } from '@/hooks/map/useMapCamera';
 import { useCameraController } from '@/hooks/map/useCameraController';
@@ -322,6 +322,15 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   const routeCoords          = sorted.length > 0 ? shuttleRouteCoords : (carRouteIsStale ? [] : carRouteCoords);
   const routeDurationSeconds = sorted.length > 0 ? shuttleDuration    : carDuration;
 
+  // Trim the already-traveled segment behind the driver's current position so
+  // the drawn line shortens as it moves, instead of staying frozen as the full
+  // origin->target polyline between Directions refetches (75s / 300m throttle
+  // in useGoogleRoute). Recomputed on every GPS tick, independent of that throttle.
+  const trimmedRouteCoords = useMemo(() => {
+    if (!driverLocation || routeCoords.length < 2) return routeCoords;
+    return trimRouteToPosition(routeCoords, driverLocation);
+  }, [routeCoords, driverLocation?.latitude, driverLocation?.longitude]);
+
   // Reset the camera phase-fit guard when the trip ends so a subsequent ride
   // triggers a fresh camera fit. The old car-route useEffect did this as a
   // side effect inside its !tripPhase branch; now it lives in its own effect.
@@ -455,10 +464,11 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
           <Polyline coordinates={completedCoords} strokeColor="#22c55e" strokeWidth={4} />
         )}
 
-        {/* Upcoming leg — Google road-snapped route, straight-line until loaded */}
-        {(routeCoords.length >= 2 ? routeCoords : upcomingCoords).length >= 2 && (
+        {/* Upcoming leg — Google road-snapped route (trimmed behind the driver's
+            current position), straight-line until loaded */}
+        {(routeCoords.length >= 2 ? trimmedRouteCoords : upcomingCoords).length >= 2 && (
           <Polyline
-            coordinates={routeCoords.length >= 2 ? routeCoords : upcomingCoords}
+            coordinates={routeCoords.length >= 2 ? trimmedRouteCoords : upcomingCoords}
             strokeColor="#1A73E8"
             strokeWidth={5}
           />

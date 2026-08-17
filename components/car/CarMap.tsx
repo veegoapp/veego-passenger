@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import MapView, { Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -15,6 +15,7 @@ import { useCameraController } from '@/hooks/map/useCameraController';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
 import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
+import { trimRouteToPosition } from '@/src/utils/geoHelpers';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -308,6 +309,15 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
     ? hookRouteCoords
     : (routeOrigin && destCoords ? [routeOrigin, destCoords] : []);
 
+  // Trim the already-traveled segment behind the current position so the
+  // drawn line shortens as it moves, instead of staying frozen as the full
+  // origin->destination polyline between Directions refetches. Recomputed on
+  // every position tick (routeOrigin), independent of the route's own throttle.
+  const displayRouteCoords: Coords[] = useMemo(() => {
+    if (!routeOrigin || routeCoords.length < 2) return routeCoords;
+    return trimRouteToPosition(routeCoords, routeOrigin);
+  }, [routeCoords, routeOrigin?.latitude, routeOrigin?.longitude]);
+
   return (
     <View style={StyleSheet.absoluteFillObject}>
       <MapView
@@ -328,8 +338,8 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         onPanDrag={onCameraPan}
         onRegionChangeComplete={onCameraRegionChange}
       >
-        {routeCoords.length > 0 && (
-          <Polyline coordinates={routeCoords} strokeColor="#1A73E8" strokeWidth={5} />
+        {displayRouteCoords.length > 0 && (
+          <Polyline coordinates={displayRouteCoords} strokeColor="#1A73E8" strokeWidth={5} />
         )}
 
         {userLocation && (
