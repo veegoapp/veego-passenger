@@ -15,7 +15,7 @@ import { useCameraController } from '@/hooks/map/useCameraController';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
 import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
-import { trimRouteToPosition } from '@/src/utils/geoHelpers';
+import { trimRouteToPosition, haversineMeters } from '@/src/utils/geoHelpers';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -27,6 +27,10 @@ const OVERVIEW_HOLD_MS = 1500;
 // Horizontal accuracy (metres) below which the passenger's own-location watch
 // is considered "settled" — see the userLocation effect below.
 const GOOD_ENOUGH_ACCURACY_M = 15;
+
+// Max distance (metres) between the raw GPS fix and the drawn route before
+// the rendered dot stops snapping to it — see displayUserLocation below.
+const SNAP_TO_ROUTE_MAX_M = 30;
 
 interface CarMapProps {
   /** Initial/recovered seed only (e.g. rideState.driverLocation from a REST
@@ -318,6 +322,22 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
     return trimRouteToPosition(routeCoords, routeOrigin);
   }, [routeCoords, routeOrigin?.latitude, routeOrigin?.longitude]);
 
+  // Visual-only: when the drawn route starts at the passenger's own position
+  // (pre-booking, walking toward the pickup point — no driver assigned yet),
+  // snap the RENDERED dot onto the route line if the raw GPS fix is close
+  // enough to it. Ordinary urban GPS drift (multipath off buildings) can
+  // offset a fix 10-30m sideways, which reads as the dot walking beside the
+  // path instead of on it. This never touches `userLocation` itself — the
+  // raw fix still drives onUserLocation / the pickup point unmodified; only
+  // where the dot is drawn changes.
+  const displayUserLocation: Coords | null = useMemo(() => {
+    if (!userLocation) return null;
+    const routeStartsAtUser = !(showDriverMarker && driverLocation);
+    if (!routeStartsAtUser || displayRouteCoords.length < 2) return userLocation;
+    const snapped = displayRouteCoords[0];
+    return haversineMeters(userLocation, snapped) <= SNAP_TO_ROUTE_MAX_M ? snapped : userLocation;
+  }, [userLocation, displayRouteCoords, showDriverMarker, driverLocation]);
+
   return (
     <View style={StyleSheet.absoluteFillObject}>
       <MapView
@@ -342,8 +362,8 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
           <Polyline coordinates={displayRouteCoords} strokeColor="#1A73E8" strokeWidth={5} />
         )}
 
-        {userLocation && (
-          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
+        {displayUserLocation && (
+          <Marker coordinate={displayUserLocation} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={styles.userDot}>
               <View style={styles.userDotInner} />
             </View>
