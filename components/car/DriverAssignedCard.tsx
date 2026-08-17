@@ -265,7 +265,7 @@ function DriverAssignedCardBase({
         strong
         borderRadius={28}
         onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
-        style={[styles.sheetSurface, { paddingBottom: insets.bottom + 20 }]}
+        style={[styles.sheetSurface, { paddingBottom: insets.bottom + 8 }]}
       >
         <Pressable
           onPress={() => { if (isStarted) setCollapsed((v) => !v); }}
@@ -324,22 +324,24 @@ function DriverAssignedCardBase({
                   />
                 </View>
               </View>
-              <View style={[styles.driverMiniVehicleRow, { borderTopColor: borderCol }]}>
-                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={80} />
-                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+              <View style={styles.driverMiniVehicleRow}>
+                <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={40} />
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={[styles.driverMiniVehicleName, { color: c.ink }]} numberOfLines={1}>
                     {driver?.vehicle ?? '—'}
                   </Text>
-                  {driver?.vehicleColor ? (
-                    <Text style={[styles.driverMiniVehicleColor, { color: c.ink }]} numberOfLines={1}>
-                      {driver.vehicleColor}
-                    </Text>
-                  ) : null}
-                  {driver?.plateNumber ? (
-                    <View style={styles.plateBadge}>
-                      <Text style={styles.plateText} numberOfLines={1}>{driver.plateNumber}</Text>
-                    </View>
-                  ) : null}
+                  <View style={styles.vehicleMetaRow}>
+                    {driver?.vehicleColor ? (
+                      <Text style={[styles.driverMiniVehicleColor, { color: c.ink }]} numberOfLines={1}>
+                        {driver.vehicleColor}
+                      </Text>
+                    ) : null}
+                    {driver?.plateNumber ? (
+                      <View style={styles.plateBadge}>
+                        <Text style={styles.plateText} numberOfLines={1}>{driver.plateNumber}</Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
               </View>
             </View>
@@ -429,25 +431,27 @@ function DriverAssignedCardBase({
             </View>
 
             {/* ── Vehicle row ── */}
-            <View style={[styles.vehicleRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-              <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={88} />
+            <View style={styles.vehicleRow}>
+              <VehicleIcon vehicleType={mapServiceTypeToVehicleType(serviceType)} colorHex={driver?.vehicleColorHex} size={44} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={[styles.vehicleName, { color: c.ink }]} numberOfLines={1}>
                   {driver?.vehicle ?? '—'}
                 </Text>
-                <Text style={[styles.vehicleSub, { color: c.inkSoft }]} numberOfLines={1}>
-                  {[
-                    serviceType === 'car' ? 'Car' : serviceType === 'scooter' ? 'Scooter' : 'Delivery',
-                    driver?.vehicleColor,
-                  ].filter(Boolean).join(' · ')}
-                </Text>
-                {/* Plate rendered like an actual vehicle plate: white plate
-                    stock + black lettering, regardless of app theme. */}
-                {driver?.plateNumber ? (
-                  <View style={styles.plateBadge}>
-                    <Text style={styles.plateText} numberOfLines={1}>{driver.plateNumber}</Text>
-                  </View>
-                ) : null}
+                <View style={styles.vehicleMetaRow}>
+                  <Text style={[styles.vehicleSub, { color: c.inkSoft }]} numberOfLines={1}>
+                    {[
+                      serviceType === 'car' ? 'Car' : serviceType === 'scooter' ? 'Scooter' : 'Delivery',
+                      driver?.vehicleColor,
+                    ].filter(Boolean).join(' · ')}
+                  </Text>
+                  {/* Plate rendered like an actual vehicle plate: white plate
+                      stock + black lettering, regardless of app theme. */}
+                  {driver?.plateNumber ? (
+                    <View style={styles.plateBadge}>
+                      <Text style={styles.plateText} numberOfLines={1}>{driver.plateNumber}</Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
             </View>
 
@@ -473,9 +477,9 @@ function DriverAssignedCardBase({
                 onCancel();
               }}
               activeOpacity={0.78}
-              style={styles.cancelTextBtn}
+              style={[styles.cancelBtn, { borderColor: c.error }]}
             >
-              <Text style={[styles.cancelTextBtnLabel, { color: c.error }]}>
+              <Text style={[styles.cancelBtnLabel, { color: c.error }]}>
                 {'Cancel Ride'}
               </Text>
             </TouchableOpacity>
@@ -546,7 +550,6 @@ const styles = StyleSheet.create({
   },
   driverMiniVehicleRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderTopWidth: 1, paddingTop: 12,
   },
   driverMiniName: { fontSize: 15, fontWeight: '600', letterSpacing: -0.15, marginBottom: 3 },
   driverMiniVehicleName: { fontSize: 15, fontWeight: '800', letterSpacing: -0.15 },
@@ -579,16 +582,18 @@ const styles = StyleSheet.create({
   tripsText: { fontSize: 12 },
 
   vehicleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderRadius: 16, borderWidth: 1,
-    paddingHorizontal: 14, paddingVertical: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   vehicleName: { fontSize: 15, fontWeight: '800' },
-  vehicleSub: { fontSize: 13, fontWeight: '700', marginTop: 2 },
+  vehicleSub: { fontSize: 13, fontWeight: '700' },
+  // Vehicle type/color text + plate sit side by side under the name.
+  vehicleMetaRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3,
+  },
   // Styled like an actual vehicle plate — white plate stock + black
   // lettering + a thin frame — instead of a theme-tinted generic badge.
   plateBadge: {
-    alignSelf: 'flex-start', marginTop: 8,
+    alignSelf: 'flex-start',
     backgroundColor: '#f4f4f2', borderRadius: 6, borderWidth: 2, borderColor: '#1C1C1E',
     paddingHorizontal: 10, paddingVertical: 4,
   },
@@ -632,10 +637,11 @@ const styles = StyleSheet.create({
     fontSize: 15.5, fontWeight: '600', color: '#ffffff', letterSpacing: -0.15,
   },
 
-  cancelTextBtn: {
-    height: 44, alignItems: 'center', justifyContent: 'center',
+  cancelBtn: {
+    height: 48, borderRadius: 14, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center',
   },
-  cancelTextBtnLabel: {
-    fontSize: 14, fontWeight: '600',
+  cancelBtnLabel: {
+    fontSize: 14.5, fontWeight: '700',
   },
 });
