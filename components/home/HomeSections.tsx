@@ -6,7 +6,7 @@
  * passed as `styles`). No JSX structure, style, or logic changes.
  */
 import { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, TextInput, Modal, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, TextInput, Modal, StyleSheet, I18nManager } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bus, Car, Bike as ScooterIcon, Package, Bell, Search,
@@ -421,9 +421,16 @@ export function ServiceCards({ c, t, getService, isServiceVisibleForZone, onServ
     { id: 'delivery' as const, icon: Package,    labelKey: 'svc_card_delivery' },
   ];
 
+  // scStyles.row is a plain flexDirection:'row' — under Arabic (I18nManager
+  // forceRTL), React Native auto-mirrors row layout, which reversed the
+  // visual left-to-right order of these cards vs. the English layout.
+  // Reversing the array here cancels that mirror out so the order always
+  // reads left-to-right the same as English, in both languages.
+  const orderedCardItems = I18nManager.isRTL ? [...CARD_ITEMS].reverse() : CARD_ITEMS;
+
   return (
     <View style={scStyles.row}>
-      {CARD_ITEMS.map((item) => {
+      {orderedCardItems.map((item) => {
         const ctrl = getService(item.id as ServiceType);
         const isEnabled  = ctrl?.isEnabled  ?? true;
         const displayMode = ctrl?.displayMode ?? 'live';
