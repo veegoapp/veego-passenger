@@ -9,6 +9,10 @@ import { ar as i18nAr } from '../../../constants/i18n/ar';
 export interface Transaction {
   id: string;
   type: 'credit' | 'debit';
+  /** Raw transaction kind from the backend (deposit/payment/refund/bonus),
+   *  when available — drives the type label in the detail view. Falls back
+   *  to a credit/debit-derived guess when the backend doesn't send one. */
+  kind: 'deposit' | 'payment' | 'refund' | 'bonus';
   titleAr: string;
   titleEn: string;
   subtitleAr: string;
@@ -56,6 +60,15 @@ interface RawTransaction {
   note?: string;
 }
 
+function detectKind(t: RawTransaction): Transaction['kind'] {
+  const type = (t.transactionType ?? t.category ?? t.type ?? '').toLowerCase();
+  if (type.includes('deposit') || type.includes('recharge') || type.includes('top')) return 'deposit';
+  if (type.includes('refund')) return 'refund';
+  if (type.includes('bonus')) return 'bonus';
+  if (type.includes('payment') || type.includes('booking')) return 'payment';
+  return detectCredit(t) ? 'deposit' : 'payment';
+}
+
 function detectCredit(t: RawTransaction): boolean {
   const type = (t.transactionType ?? t.type ?? '').toLowerCase();
   if (type.includes('credit') || type.includes('recharge') || type.includes('top') || type.includes('refund')) return true;
@@ -93,6 +106,7 @@ function mapTransaction(t: RawTransaction): Transaction {
   return {
     id: String(t.id ?? `${t.createdAt ?? t.date ?? ''}_${t.amount ?? 0}_${t.transactionType ?? t.type ?? ''}`),
     type: isCredit ? 'credit' : 'debit',
+    kind: detectKind(t),
     titleEn: t.description ?? t.title ?? t.titleEn ?? (isCredit ? i18nEn.tx_wallet_recharge : i18nEn.tx_trip_payment),
     titleAr: t.descriptionAr ?? t.titleAr ?? t.description ?? (isCredit ? i18nAr.tx_wallet_recharge : i18nAr.tx_trip_payment),
     subtitleEn: t.subDescription ?? t.subtitleEn ?? t.note ?? '',

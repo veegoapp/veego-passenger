@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Pressable, Modal, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { TrendingDown, AlertTriangle, Banknote, CreditCard, Clock } from 'lucide-react-native';
+import { TrendingDown, AlertTriangle, Banknote, CreditCard, Clock, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { useWallet } from '@/src/hooks/shared/useWallet';
+import { useWallet, type Transaction } from '@/src/hooks/shared/useWallet';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { Typography } from '@/constants/typography';
@@ -84,6 +84,30 @@ function makeStyles(c: ThemeColors) {
     },
     walletErrorText: { flex: 1, fontSize: Typography.size.xs, lineHeight: 17, color: '#e0584a' },
     walletErrorRetry: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: '#e0584a' },
+
+    /* Transaction detail modal */
+    txDetailBackdrop: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+      alignItems: 'center', justifyContent: 'center', padding: 24,
+    },
+    txDetailCard: { padding: Spacing.xl, alignItems: 'center', width: '100%', maxWidth: 400, alignSelf: 'center' },
+    txDetailIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md },
+    txDetailTitle: { fontSize: 15.5, fontFamily: 'Inter_600SemiBold', color: c.ink, textAlign: 'center', marginBottom: 4 },
+    txDetailAmount: { fontSize: 28, fontWeight: Typography.weight.bold, letterSpacing: -0.8, marginBottom: Spacing.lg },
+    txDetailDivider: { height: 1, width: '100%', backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)', marginBottom: Spacing.md },
+    txDetailRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      width: '100%', paddingVertical: 7,
+    },
+    txDetailLabel: { fontSize: 12.5, color: c.inkSoft },
+    txDetailValue: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink },
+    txDetailCloseBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      marginTop: Spacing.lg, paddingVertical: 12, paddingHorizontal: 24,
+      borderRadius: 14, borderWidth: 1.5, borderColor: c.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+      alignSelf: 'stretch',
+    },
+    txDetailCloseText: { fontSize: 13.5, fontWeight: Typography.weight.semibold, color: c.ink },
   });
 }
 
@@ -101,6 +125,7 @@ export default function WalletScreen() {
     if (!walletLoading) setHasLoadedWalletOnce(true);
   }, [walletLoading]);
   const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const { walletFeature, paymentMethods } = usePaymentConfig();
   const paymobEnabled = paymentMethods.some((m) => m.key === 'paymob');
   const walletUnavailable = !walletFeature.isEnabled || walletFeature.displayMode !== 'live';
@@ -276,7 +301,7 @@ export default function WalletScreen() {
           ) : (
           <View style={styles.txList}>
             {transactions.map((tx) => (
-              <TouchableOpacity key={tx.id} activeOpacity={0.85} onPress={() => { Haptics.selectionAsync(); }}>
+              <TouchableOpacity key={tx.id} activeOpacity={0.85} onPress={() => { Haptics.selectionAsync(); setSelectedTx(tx); }}>
                 <GlassView style={styles.txCard} borderRadius={20}>
                   <View style={[styles.txIcon, { backgroundColor: tx.type === 'credit' ? 'rgba(85,196,154,0.12)' : c.mist }]}>
                     {React.createElement(tx.icon as React.ComponentType<{size?:number;color?:string}>, { size: 20, color: tx.type === 'credit' ? '#55c49a' : c.inkSoft })}
@@ -296,6 +321,63 @@ export default function WalletScreen() {
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={!!selectedTx}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedTx(null)}
+      >
+        <Pressable style={styles.txDetailBackdrop} onPress={() => setSelectedTx(null)}>
+          <Pressable onPress={() => {}} style={{ width: '100%' }}>
+            {selectedTx && (
+              <GlassView strong style={styles.txDetailCard} borderRadius={24}>
+                <View style={[styles.txDetailIcon, { backgroundColor: selectedTx.type === 'credit' ? 'rgba(85,196,154,0.12)' : c.mist }]}>
+                  {React.createElement(selectedTx.icon as React.ComponentType<{ size?: number; color?: string }>, {
+                    size: 26, color: selectedTx.type === 'credit' ? '#55c49a' : c.inkSoft,
+                  })}
+                </View>
+                <Text style={styles.txDetailTitle}>{isAr ? selectedTx.titleAr : selectedTx.titleEn}</Text>
+                <Text style={[styles.txDetailAmount, { color: selectedTx.type === 'credit' ? '#55c49a' : c.ink }]}>
+                  {selectedTx.type === 'credit' ? '+' : '-'}{selectedTx.amount} {t('egp')}
+                </Text>
+
+                <View style={styles.txDetailDivider} />
+
+                <View style={styles.txDetailRow}>
+                  <Text style={styles.txDetailLabel}>{t('tx_detail_type')}</Text>
+                  <Text style={styles.txDetailValue}>{t(`tx_kind_${selectedTx.kind}`)}</Text>
+                </View>
+                <View style={styles.txDetailRow}>
+                  <Text style={styles.txDetailLabel}>{t('tx_detail_date')}</Text>
+                  <Text style={styles.txDetailValue}>{isAr ? selectedTx.dateAr : selectedTx.dateEn}</Text>
+                </View>
+                <View style={styles.txDetailRow}>
+                  <Text style={styles.txDetailLabel}>{t('tx_detail_reference')}</Text>
+                  <Text style={styles.txDetailValue}>#{selectedTx.id}</Text>
+                </View>
+                {!!(isAr ? selectedTx.subtitleAr : selectedTx.subtitleEn) && (
+                  <View style={[styles.txDetailRow, { alignItems: 'flex-start' }]}>
+                    <Text style={styles.txDetailLabel}>{t('tx_history')}</Text>
+                    <Text style={[styles.txDetailValue, { flex: 1, textAlign: isAr ? 'left' : 'right' }]}>
+                      {isAr ? selectedTx.subtitleAr : selectedTx.subtitleEn}
+                    </Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.txDetailCloseBtn}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedTx(null)}
+                >
+                  <X size={16} color={c.ink} strokeWidth={2.2} />
+                  <Text style={styles.txDetailCloseText}>{t('close')}</Text>
+                </TouchableOpacity>
+              </GlassView>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </LinearGradient>
   );
 }
