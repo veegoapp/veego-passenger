@@ -31,7 +31,20 @@ import {
   RouteHero, StatsRow, DateSelector, TripCard, StationPicker, PriceSummary,
 } from './TripSheetSections';
 
+// routeHero's background is c.ink — deliberately dark in light mode (so the
+// hardcoded white text below reads fine there), but c.ink flips to near-white
+// in dark mode, which made that same white text invisible against its own
+// card. Text inside the hero card uses this instead: white on light mode's
+// dark card, and the app's dark-mode background color (a fixed dark navy,
+// unaffected by the card-background flip) on dark mode's light card.
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function makeStyles(c: ThemeColors, insetsBottom: number) {
+  const heroInk = (alpha: number) => c.isDark ? hexToRgba(c.background, alpha) : `rgba(255,255,255,${alpha})`;
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 9999, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -78,17 +91,17 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       backgroundColor: 'rgba(255,255,255,0.12)',
       alignItems: 'center', justifyContent: 'center',
     },
-    heroCodeText: { color: '#ffffff', fontSize: 11, fontWeight: Typography.weight.bold, letterSpacing: 0.5 },
+    heroCodeText: { color: heroInk(1), fontSize: 11, fontWeight: Typography.weight.bold, letterSpacing: 0.5 },
     heroFavBtn: {
       width: 38, height: 38, borderRadius: 19,
       backgroundColor: 'rgba(255,255,255,0.1)',
       alignItems: 'center', justifyContent: 'center',
     },
     heroRouteName: {
-      fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: '#ffffff',
+      fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: heroInk(1),
       letterSpacing: -0.5, marginBottom: Spacing.xs,
     },
-    heroRoutePath: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 20 },
+    heroRoutePath: { fontSize: 13, color: heroInk(0.6), marginBottom: 20 },
 
     /* Journey track — pin-marker style */
     journeyWrap: { paddingBottom: 20 },
@@ -97,10 +110,10 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     journeyStop: { alignItems: 'center', width: 70 },
     journeyPin: { height: 28, alignItems: 'center', justifyContent: 'center' },
     journeyLabel: {
-      fontSize: 10, color: 'rgba(255,255,255,0.55)',
+      fontSize: 10, color: heroInk(0.55),
       textAlign: 'center', marginTop: 5, lineHeight: 13,
     },
-    journeyLabelActive: { color: '#ffffff', fontWeight: Typography.weight.semibold },
+    journeyLabelActive: { color: heroInk(1), fontWeight: Typography.weight.semibold },
     journeyConnector: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: Spacing.md },
     journeyConnectorActive: { backgroundColor: 'rgba(255,255,255,0.65)' },
 
@@ -521,7 +534,7 @@ export function TripSheet() {
             >
               <View style={styles.requestTripBtnInner}>
                 <Ticket size={16} color={c.accent} strokeWidth={2} />
-                <Text style={styles.requestTripBtnText}>{t('request_a_trip')}</Text>
+                <Text style={styles.requestTripBtnText} numberOfLines={1}>{t('request_a_trip')}</Text>
               </View>
             </TouchableOpacity>
           )}
