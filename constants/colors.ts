@@ -56,8 +56,12 @@ export const LIGHT: ThemeColors = {
   accentMint: '#55c49a',
   // Aligned to Driver's destructive/error (#E85454) — was a second, unrelated red.
   badge: '#E85454',
-  luxeGrad: ['#f4f4fb', '#ededf4'],
-  luxeSoftGrad: ['#fafafa', '#f4f4f8'],
+  // Flattened to Driver's solid light background (#FAFAFD) — both stops equal
+  // so the page reads as one flat color instead of a purple-grey gradient,
+  // matching the Driver app. Kept as two-stop tuples so all LinearGradient
+  // call sites stay unchanged. Dark mode keeps its gradient below.
+  luxeGrad: ['#fafafd', '#fafafd'],
+  luxeSoftGrad: ['#fafafd', '#fafafd'],
   // Shared VeeGo ink gradient — same identity used for the ride-journey CTA
   // gradients on the Driver app (mirrors that app's `gradientPrimary`).
   gradientPrimary: ['#2d2d42', '#1e1e28'],
