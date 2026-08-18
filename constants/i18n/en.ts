@@ -734,4 +734,11 @@ export const en = {
   active_ride_banner_arrived: 'Driver has arrived',
   active_ride_banner_started: 'Trip in progress',
   active_ride_banner_tap: 'Tap to return',
+
+  battery_optimization_title: 'Keep notifications reliable',
+  battery_optimization_message:
+    "Some phone makers (Xiaomi, Huawei, Oppo, Vivo, Samsung...) can silently block ride alerts when the app isn't open. To make sure you never miss an update, allow VeeGo to run without battery restrictions.",
+  battery_optimization_open_settings: 'Open Settings',
+  battery_optimization_dont_ask: "Don't ask again",
+  battery_optimization_later: 'Later',
 };

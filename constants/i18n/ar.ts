@@ -736,4 +736,11 @@ export const ar: typeof en = {
   active_ride_banner_arrived: 'وصل السائق',
   active_ride_banner_started: 'الرحلة جارية',
   active_ride_banner_tap: 'اضغط للعودة',
+
+  battery_optimization_title: 'خلّي الإشعارات تصلك دايمًا',
+  battery_optimization_message:
+    'بعض الهواتف (شاومي، هواوي، أوبو، فيفو، سامسونج...) ممكن توقف إشعارات الرحلة من غير ما تحس، لما التطبيق يكون مقفول. عشان توصلك كل التحديثات، اسمح لتطبيق VeeGo إنه يشتغل من غير قيود توفير البطارية.',
+  battery_optimization_open_settings: 'فتح الإعدادات',
+  battery_optimization_dont_ask: 'متسألنيش تاني',
+  battery_optimization_later: 'لاحقًا',
 };

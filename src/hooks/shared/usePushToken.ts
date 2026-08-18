@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import api from '../../api/client';
+import { useTheme } from '@/context/ThemeContext';
+import { maybePromptBatteryOptimization } from './batteryOptimization';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -40,6 +42,7 @@ async function registerPushToken(): Promise<string | null> {
 
 export function usePushToken() {
   const registered = useRef(false);
+  const { t } = useTheme();
 
   useEffect(() => {
     if (registered.current) return;
@@ -50,6 +53,15 @@ export function usePushToken() {
       try {
         await api.post('/users/me/push-token', { token, platform: Platform.OS });
         console.log('[Push] Token registered successfully');
+        // Only prompt once we know push actually works for this device —
+        // no point asking the user to fix OEM battery settings otherwise.
+        maybePromptBatteryOptimization({
+          title: t('battery_optimization_title'),
+          message: t('battery_optimization_message'),
+          openSettingsLabel: t('battery_optimization_open_settings'),
+          dontAskLabel: t('battery_optimization_dont_ask'),
+          laterLabel: t('battery_optimization_later'),
+        });
       } catch (e: any) {
         console.warn('[Push] Failed to register token:', e?.response?.data?.message ?? e?.message);
       }
