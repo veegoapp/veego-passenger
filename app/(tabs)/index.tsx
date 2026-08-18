@@ -22,6 +22,7 @@ import { useTabBar } from '@/context/TabBarContext';
 import { CarServiceScreen, CarServiceScreenHandle } from '@/components/car/CarServiceScreen';
 import { CarMap } from '@/components/car/CarMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
+import { useHomeService } from '@/context/HomeServiceContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
 import api from '@/src/api/client';
@@ -209,6 +210,7 @@ export default function HomeScreen() {
   const { routes, refresh: refreshRoutes } = useRoutes();
   const { setVisible: setTabBarVisible, tabBarHeight } = useTabBar();
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
+  const { setOpenServiceType } = useHomeService();
   const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
   const { profile } = useProfile();
   const { promos } = usePromos();
@@ -303,6 +305,16 @@ export default function HomeScreen() {
   useEffect(() => {
     setTabBarVisible(!serviceOpen);
   }, [serviceOpen, setTabBarVisible]);
+
+  // Publish which ride service the home tab is currently showing so the global
+  // ActiveRideBanner can tell whether the active ride is actually visible here.
+  // Only car/scooter/delivery count — the shuttle landing never shows a
+  // car-family ride. Cleared on unmount so a stale value can't linger.
+  useEffect(() => {
+    const shown = serviceOpen && mode !== 'shuttle' ? (mode as ServiceType) : null;
+    setOpenServiceType(shown);
+    return () => setOpenServiceType(null);
+  }, [serviceOpen, mode, setOpenServiceType]);
 
   const openService = useCallback((id: string) => {
     if (id !== 'shuttle' && id !== 'car' && id !== 'scooter' && id !== 'delivery') return;

@@ -23,6 +23,7 @@ import { ActiveSessionProvider } from '@/context/ActiveSessionContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { TabBarProvider } from '@/context/TabBarContext';
 import { ServiceControlProvider } from '@/context/ServiceControlContext';
+import { HomeServiceProvider } from '@/context/HomeServiceContext';
 import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
 import { TripSheet } from '@/components/shuttle/TripSheet';
 import { ConfirmSheet } from '@/components/shuttle/ConfirmSheet';
@@ -315,9 +316,11 @@ export default function RootLayout() {
               <PaymentConfigProvider>
                 <ActiveSessionProvider>
                   <BookingProvider>
-                    <AppErrorBoundary>
-                      <AppShell />
-                    </AppErrorBoundary>
+                    <HomeServiceProvider>
+                      <AppErrorBoundary>
+                        <AppShell />
+                      </AppErrorBoundary>
+                    </HomeServiceProvider>
                   </BookingProvider>
                 </ActiveSessionProvider>
               </PaymentConfigProvider>

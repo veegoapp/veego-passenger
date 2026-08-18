@@ -13,6 +13,7 @@ import { Navigation } from 'lucide-react-native';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { selectActiveRide } from '@/src/session/activeRideSelectors';
 import { useTabBar } from '@/context/TabBarContext';
+import { useHomeService } from '@/context/HomeServiceContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BUBBLE_SIZE = 68;
@@ -30,6 +31,7 @@ export function ActiveRideBanner() {
   const router      = useRouter();
   const pathname    = usePathname();
   const { tabBarHeight } = useTabBar();
+  const { openServiceType } = useHomeService();
   const insets      = useSafeAreaInsets();
 
   const { width: SW, height: SH } = Dimensions.get('window');
@@ -58,12 +60,20 @@ export function ActiveRideBanner() {
     pathnameRef.current = pathname;
   }, [pathname]);
 
-  // (tabs) is a route group — expo-router strips it from the resolved
-  // pathname, so the home tab (app/(tabs)/index.tsx, which renders
-  // CarServiceScreen) only ever resolves to '/'. trip-tracking is the other
-  // screen that already shows this ride's live state. These are the only two
-  // pathnames the bubble needs to hide on; no other tab renders ride UI.
-  const onRideScreen = pathname === '/' || pathname === '/trip-tracking';
+  // trip-tracking always shows this ride's live state, so hide there.
+  //
+  // The home tab (app/(tabs)/index.tsx) is a route group — expo-router strips
+  // (tabs) so it only ever resolves to '/'. But home is a container: it shows
+  // the shuttle landing OR a car/scooter/delivery service screen. It only
+  // displays THIS ride when the open service screen matches the ride's type
+  // (a scooter screen won't resume a car ride, and the shuttle landing shows
+  // no ride at all). openServiceType, published by HomeScreen, tells us which
+  // service is open ('car' | 'scooter' | 'delivery' | null). So hide on home
+  // only when it's actually showing this ride; otherwise the ride is invisible
+  // and the bubble must stay up so the rider can get back into their trip.
+  const homeShowsThisRide =
+    pathname === '/' && !!activeRide && openServiceType === activeRide.rideType;
+  const onRideScreen = pathname === '/trip-tracking' || homeShowsThisRide;
 
   const visible = !!activeRide && !onRideScreen;
 
