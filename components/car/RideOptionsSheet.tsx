@@ -65,7 +65,9 @@ function PrimaryButton({
         styles.primaryBtn,
         disabled
           ? { backgroundColor: c.surfaceMuted, borderColor: c.border }
-          : { backgroundColor: c.gold, borderColor: '#B8952E' },
+          // Matches VeeGoButton's primary variant so the sheet's main CTA
+          // reads as the same button as everywhere else in the app.
+          : { backgroundColor: c.primary, borderColor: c.primary },
       ]}
     >
       {children}
@@ -93,6 +95,9 @@ function RideOptionsSheetBase({
   const borderCol = c.border;
   const mutedCol  = c.inkSoft;
   const primaryCol = c.primary;
+  // Readable text/icon color on top of primaryCol, matching VeeGoButton's
+  // primary variant so the CTA reads the same across light and dark mode.
+  const onPrimaryCol = isDark ? c.background : c.white;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -298,47 +303,31 @@ function RideOptionsSheetBase({
             <View style={{ marginBottom: 16 }}>
               <Text style={[styles.sectionLabel, { color: mutedCol }]}>{t('payment_method_label')}</Text>
 
-              {/* Cash / Card — primary method, side-by-side. Card has no
-                  payment gateway wired into ride requests yet, so it's
-                  shown disabled with a "coming soon" badge rather than
-                  implying it's payable today. Theme-token surfaces so this
-                  reads as a light card in light mode (driver-app parity)
-                  and a dark card in dark mode, with gold reserved for the
-                  selected/accent state only. */}
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              {/* Cash / Card — compact segmented pill instead of two big
+                  bordered cards, so it reads as one cohesive control.
+                  Card has no payment gateway wired into ride requests yet,
+                  so it stays a muted, disabled segment with a "coming
+                  soon" badge rather than implying it's payable today. */}
+              <View style={[styles.payPill, { backgroundColor: surfaceBg }]}>
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
                   activeOpacity={0.82}
                   style={[
-                    styles.payCard,
-                    {
-                      flex: 1,
-                      backgroundColor: paymentMethod === 'cash' ? (isDark ? 'rgba(200,165,53,0.14)' : 'rgba(200,165,53,0.08)') : cardBg,
-                      borderColor: paymentMethod === 'cash' ? c.gold : borderCol,
-                      borderWidth: paymentMethod === 'cash' ? 2 : 1,
-                    },
+                    styles.payPillOption,
+                    paymentMethod === 'cash' ? { backgroundColor: primaryCol } : null,
                   ]}
                 >
-                  <Banknote size={18} color={paymentMethod === 'cash' ? c.gold : mutedCol} strokeWidth={1.8} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.payLabel, { color: paymentMethod === 'cash' ? c.ink : mutedCol }]}>{t('payment_methods_cash')}</Text>
-                    <Text style={[styles.paySub, { color: mutedCol }]} numberOfLines={1}>{t('pay_driver')}</Text>
-                  </View>
-                  {paymentMethod === 'cash' ? <Check size={16} color={c.gold} strokeWidth={2.4} /> : null}
+                  <Banknote size={15} color={paymentMethod === 'cash' ? onPrimaryCol : mutedCol} strokeWidth={1.8} />
+                  <Text style={[styles.payPillLabel, { color: paymentMethod === 'cash' ? onPrimaryCol : mutedCol }]}>
+                    {t('payment_methods_cash')}
+                  </Text>
                 </TouchableOpacity>
 
-                <View
-                  style={[
-                    styles.payCard,
-                    { flex: 1, backgroundColor: surfaceBg, borderColor: borderCol, opacity: 0.6 },
-                  ]}
-                >
-                  <CreditCard size={18} color={mutedCol} strokeWidth={1.8} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.payLabel, { color: mutedCol }]}>{t('payment_methods_card')}</Text>
-                    <View style={[styles.soonBadge, { backgroundColor: isDark ? 'rgba(200,165,53,0.18)' : 'rgba(200,165,53,0.12)' }]}>
-                      <Text style={[styles.soonBadgeText, { color: c.gold }]}>{t('soon')}</Text>
-                    </View>
+                <View style={[styles.payPillOption, { opacity: 0.55 }]}>
+                  <CreditCard size={15} color={mutedCol} strokeWidth={1.8} />
+                  <Text style={[styles.payPillLabel, { color: mutedCol }]}>{t('payment_methods_card')}</Text>
+                  <View style={[styles.soonBadge, { backgroundColor: cardBg }]}>
+                    <Text style={[styles.soonBadgeText, { color: mutedCol }]}>{t('soon')}</Text>
                   </View>
                 </View>
               </View>
@@ -355,15 +344,15 @@ function RideOptionsSheetBase({
                     styles.walletRow,
                     {
                       backgroundColor: surfaceBg,
-                      borderColor: paymentMethod === 'wallet' ? c.gold : borderCol,
-                      borderWidth: paymentMethod === 'wallet' ? 2 : 1,
+                      borderColor: paymentMethod === 'wallet' ? primaryCol : borderCol,
+                      borderWidth: paymentMethod === 'wallet' ? 1.5 : 1,
                       marginTop: 8,
                       opacity: walletHasFunds ? 1 : 0.5,
                     },
                   ]}
                 >
-                  <Wallet size={16} color={walletHasFunds ? c.gold : mutedCol} strokeWidth={1.8} />
-                  <Text style={[styles.payLabel, { color: c.ink, flex: 1 }]}>{t('payment_methods_wallet')}</Text>
+                  <Wallet size={15} color={walletHasFunds ? primaryCol : mutedCol} strokeWidth={1.8} />
+                  <Text style={[styles.payPillLabel, { color: c.ink, flex: 1 }]}>{t('payment_methods_wallet')}</Text>
                   <Text style={[styles.walletBalanceText, { color: mutedCol }]} numberOfLines={1}>
                     {'Balance: '}{walletBalance ?? 0} {t('egp')}
                   </Text>
@@ -375,7 +364,7 @@ function RideOptionsSheetBase({
                       Haptics.selectionAsync();
                       onPaymentMethodChange(val ? 'wallet' : 'cash');
                     }}
-                    trackColor={{ false: c.silver, true: c.gold }}
+                    trackColor={{ false: c.silver, true: primaryCol }}
                     thumbColor="#ffffff"
                   />
                 </View>
@@ -387,14 +376,14 @@ function RideOptionsSheetBase({
           <PrimaryButton onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }} disabled={!canConfirm}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               {confirming ? (
-                <ActivityIndicator size="small" color={canConfirm ? '#1e1e28' : mutedCol} />
+                <ActivityIndicator size="small" color={canConfirm ? onPrimaryCol : mutedCol} />
               ) : (
                 <>
-                  <Text style={[styles.primaryBtnText, { color: canConfirm ? '#1e1e28' : mutedCol }]}>
+                  <Text style={[styles.primaryBtnText, { color: canConfirm ? onPrimaryCol : mutedCol }]}>
                     {'Find Driver'}
                   </Text>
                   {selectedPrice != null ? (
-                    <Text style={[styles.primaryBtnText, { color: canConfirm ? '#1e1e28' : mutedCol, opacity: 0.7 }]}>
+                    <Text style={[styles.primaryBtnText, { color: canConfirm ? onPrimaryCol : mutedCol, opacity: 0.7 }]}>
                       · {selectedPrice.toFixed(2)} {t('egp')}
                     </Text>
                   ) : null}
@@ -470,13 +459,16 @@ const styles = StyleSheet.create({
   },
   priceCurrency: { fontSize: 11, fontWeight: '600', marginTop: 1 },
 
-  /* ── Horizontal category selector cards (Task 1) ── */
+  /* ── Horizontal category selector cards (Task 1) ──
+     Sized so a third card always peeks in at the sheet's edge — the
+     visual cue that the strip scrolls, instead of two cards landing
+     flush with nothing hinting there's more. */
   optionScrollContent: {
-    gap: 10, paddingRight: 4,
+    gap: 8, paddingRight: 4,
   },
   optionCardH: {
-    width: 156, borderRadius: 16,
-    paddingHorizontal: 10, paddingVertical: 12,
+    width: 132, borderRadius: 16,
+    paddingHorizontal: 8, paddingVertical: 10,
     alignItems: 'center', gap: 4,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
@@ -486,7 +478,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   optionImageH: {
-    width: 136, height: 80, marginBottom: 2,
+    width: 108, height: 56, marginBottom: 2,
   },
   optionNameH: {
     fontSize: 13, fontWeight: '600', letterSpacing: -0.1,
@@ -512,23 +504,28 @@ const styles = StyleSheet.create({
     fontSize: 11, fontWeight: '600', letterSpacing: 0.8,
     textTransform: 'uppercase', marginBottom: 8,
   },
-  payCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderRadius: 16, borderWidth: 1,
-    paddingHorizontal: 12, paddingVertical: 12,
+  /* Compact Cash/Card segmented control — one pill-shaped track holding
+     two options, instead of two separate bordered cards. */
+  payPill: {
+    flexDirection: 'row', gap: 6,
+    borderRadius: 999, padding: 4,
   },
-  payLabel: { fontSize: 14, fontWeight: '600' },
-  paySub: { fontSize: 12, marginTop: 1 },
+  payPillOption: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 9,
+  },
+  payPillLabel: { fontSize: 13, fontWeight: '700' },
   soonBadge: {
-    alignSelf: 'flex-start', borderRadius: 6,
-    paddingHorizontal: 6, paddingVertical: 2, marginTop: 3,
+    borderRadius: 999,
+    paddingHorizontal: 6, paddingVertical: 2,
   },
-  soonBadgeText: { fontSize: 10, fontWeight: '600' },
+  soonBadgeText: { fontSize: 9.5, fontWeight: '600' },
 
   walletRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderRadius: 14,
-    paddingHorizontal: 12, paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 12, paddingVertical: 9,
   },
   walletBalanceText: {
     fontSize: 12, fontWeight: '600', marginRight: 4,
