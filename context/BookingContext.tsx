@@ -151,6 +151,13 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       // Use trip with most available seats for route-level seat display
       const bestTrip = activeTrips.find((t) => (t.availableSeats ?? 0) > 0) ?? activeTrips[0];
 
+      // Tiered-pricing fields — only present on routes that opted in; absent
+      // (undefined) leaves the flat-pricing display from the list endpoint untouched.
+      const pricingModel: 'flat' | 'tiered' | undefined =
+        full.pricingModel === 'tiered' || full.pricingModel === 'flat' ? full.pricingModel : undefined;
+      const startingPrice: number | undefined =
+        typeof full.startingPrice === 'number' ? full.startingPrice : undefined;
+
       setSelectedRoute((prev) =>
         prev
           ? {
@@ -158,6 +165,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
               path,
               seatsLeft: bestTrip?.availableSeats ?? prev.seatsLeft,
               totalSeats: bestTrip?.totalSeats ?? prev.totalSeats ?? 14,
+              pricingModel: pricingModel ?? prev.pricingModel,
+              startingPrice: startingPrice ?? prev.startingPrice,
             }
           : prev,
       );
@@ -236,6 +245,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Tiered routes require both boarding and destination stations — the
+    // backend rejects the booking outright without them, so fail fast here
+    // with a clear message instead of a generic server error.
+    if (pendingBooking.route?.pricingModel === 'tiered') {
+      if (!pendingBooking.boardingStationId || !pendingBooking.alightingStationId) {
+        showAppAlert(t('error'), t('booking_stations_required'));
+        confirmingRef.current = false;
+        return;
+      }
+    }
+
     let bookingSuccess = false;
 
     try {
@@ -245,9 +265,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         paymentMethod: paymentMethod ?? 'cash',
       };
       if (promoCode) body.promoCode = promoCode;
-      // Pass along the boarding station the passenger actually selected —
-      // previously the station picker's choice never reached the backend.
-      if (pendingBooking.boardingStationId) body.boardingStationId = pendingBooking.boardingStationId;
+      // Pass along the boarding/alighting stations the passenger actually
+      // selected — the backend expects these as JSON numbers, not strings,
+      // so they're coerced with Number() here (Station.id is a string
+      // throughout the app's UI layer; only the wire payload needs a number).
+      if (pendingBooking.boardingStationId) body.boardingStationId = Number(pendingBooking.boardingStationId);
+      if (pendingBooking.alightingStationId) body.alightingStationId = Number(pendingBooking.alightingStationId);
 
       const { data } = await api.post('/bookings', body);
       const bookingId = data?.id ?? data?.booking?.id ?? null;

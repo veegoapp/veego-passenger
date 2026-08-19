@@ -148,8 +148,12 @@ export function StatsRow({ styles, c, t, route, visibleTripsCount }: {
             <Ticket size={13} color={c.ink} />
           </View>
           <View>
-            <Text style={styles.statValue}>{route.price}</Text>
-            <Text style={styles.statLabel}>{t('egp')}</Text>
+            <Text style={styles.statValue}>
+              {route.pricingModel === 'tiered' && route.startingPrice != null ? route.startingPrice : route.price}
+            </Text>
+            <Text style={styles.statLabel}>
+              {route.pricingModel === 'tiered' && route.startingPrice != null ? `${t('starting_from')} ${t('egp')}` : t('egp')}
+            </Text>
           </View>
         </LinearGradient>
       </View>
@@ -411,7 +415,9 @@ export function PriceSummary({
             : (route.path[safeTo]?.name ?? route.to)}
           {seatCount > 1 ? ` · ${seatCount} ${t('seat_count')}` : ''}
         </Text>
-        <Text style={styles.priceTotal}>{total} {t('egp')}</Text>
+        <Text style={styles.priceTotal}>
+          {route.pricingModel === 'tiered' ? `${t('approx_fare')} ` : ''}{total} {t('egp')}
+        </Text>
       </View>
       {isRTL ? <ChevronLeft size={16} color={c.inkSoft} /> : <ChevronRight size={16} color={c.inkSoft} />}
     </View>

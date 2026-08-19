@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Platform, TextInput,
@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { useBooking } from '@/context/BookingContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
+import api from '@/src/api/client';
 import { usePromos } from '@/src/hooks/shared/usePromos';
 import { S } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
@@ -35,6 +36,8 @@ type Params = {
   time: string;
   boardingStation: string;
   dropOffStation: string;
+  boardingStationId: string;
+  alightingStationId: string;
   price: string;
   seatCount: string;
 };
@@ -77,12 +80,46 @@ export default function ReviewConfirmScreen() {
   const {
     routeName = '', routeCode = '', date = '', time = '',
     boardingStation = '', dropOffStation = '',
-    price = '0', seatCount = '1',
+    boardingStationId = '', alightingStationId = '',
+    tripId = '', price = '0', seatCount = '1',
   } = params;
 
-  const baseTotal   = Number(price) || 0;
-  const seats       = Number(seatCount) || 1;
-  const perSeat     = seats > 0 ? Math.round(baseTotal / seats) : baseTotal;
+  const seats = Number(seatCount) || 1;
+  const estimatedTotal = Number(price) || 0;
+
+  // The fare shown while TripSheet was open is a client-side estimate
+  // (calcSegmentPrice) for tiered routes — fetch the authoritative
+  // per-seat fare from the backend before letting the passenger confirm.
+  const [livePerSeat, setLivePerSeat] = useState<number | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+
+  useEffect(() => {
+    if (!tripId || !boardingStationId || !alightingStationId) return;
+    let cancelled = false;
+    setPriceLoading(true);
+    api
+      .get(`/trips/${tripId}/fare-preview`, {
+        params: { boardingStationId, alightingStationId },
+      })
+      .then(({ data }) => {
+        if (cancelled) return;
+        const fare = data?.farePerSeat ?? data?.data?.farePerSeat;
+        if (typeof fare === 'number') setLivePerSeat(fare);
+      })
+      .catch(() => {
+        // Fare-preview failure isn't fatal — fall back to the estimate;
+        // the backend still recomputes and enforces the real fare at booking time.
+      })
+      .finally(() => {
+        if (!cancelled) setPriceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId, boardingStationId, alightingStationId]);
+
+  const perSeat     = livePerSeat != null ? livePerSeat : (seats > 0 ? Math.round(estimatedTotal / seats) : estimatedTotal);
+  const baseTotal   = livePerSeat != null ? Math.round(livePerSeat * seats) : estimatedTotal;
   const discountAmt = useMemo(() => parseDiscountAmount(promoDiscount, baseTotal), [promoDiscount, baseTotal]);
   const finalTotal  = Math.max(0, baseTotal - discountAmt);
   const hasDiscount = promoStatus === 'valid' && discountAmt > 0;
@@ -595,12 +632,12 @@ export default function ReviewConfirmScreen() {
       {/* ── Sticky CTA ────────────────────────────────────────── */}
       <View style={styles.cta}>
         <TouchableOpacity
-          style={[styles.ctaBtn, confirming && styles.ctaBtnDisabled]}
-          disabled={confirming}
+          style={[styles.ctaBtn, (confirming || priceLoading) && styles.ctaBtnDisabled]}
+          disabled={confirming || priceLoading}
           activeOpacity={0.88}
           onPress={onConfirm}
         >
-          {confirming
+          {confirming || priceLoading
             ? <AppLoader size={24} />
             : <>
                 <Check size={18} color={c.isDark ? c.background : '#ffffff'} strokeWidth={3} />

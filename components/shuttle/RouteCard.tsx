@@ -90,8 +90,17 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
             <Text style={styles.routePath}>{displayFrom} {arrow} {displayTo}</Text>
           </View>
           <View style={styles.priceBox}>
-            <Text style={styles.priceText}>{route.price} {t('egp')}</Text>
-            <Text style={styles.priceLabel}>{t('full_route')}</Text>
+            {route.pricingModel === 'tiered' && route.startingPrice != null ? (
+              <>
+                <Text style={styles.priceText}>{route.startingPrice} {t('egp')}</Text>
+                <Text style={styles.priceLabel}>{t('starting_from')}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.priceText}>{route.price} {t('egp')}</Text>
+                <Text style={styles.priceLabel}>{t('full_route')}</Text>
+              </>
+            )}
           </View>
         </View>
         <View style={styles.cardStats}>
