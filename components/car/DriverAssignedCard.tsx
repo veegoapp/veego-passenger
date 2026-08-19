@@ -378,7 +378,7 @@ function DriverAssignedCardBase({
               <Animated.View
                 style={[
                   styles.arrivedBadge,
-                  { backgroundColor: `${c.success}18`, borderColor: `${c.success}50`, transform: [{ scale: arrivedPulse }] },
+                  { backgroundColor: `${c.success}26`, borderColor: `${c.success}50`, transform: [{ scale: arrivedPulse }] },
                 ]}
               >
                 <View style={[styles.arrivedDot, { backgroundColor: c.success }]} />
@@ -457,7 +457,7 @@ function DriverAssignedCardBase({
 
             {/* ── Waiting charge banner ── */}
             {waitingChargeStatus === 'active' && waitingCharge != null && (
-              <View style={[styles.waitBanner, { backgroundColor: `${c.warning}12`, borderColor: `${c.warning}40` }]}>
+              <View style={[styles.waitBanner, { backgroundColor: `${c.warning}20`, borderColor: `${c.warning}40` }]}>
                 <View style={[styles.waitDot, { backgroundColor: c.warning }]} />
                 <Text style={[styles.waitText, { color: c.warning }]}>
                   {t('waiting_charge')}: {waitingCharge.toFixed(2)} {t('egp')}

@@ -93,7 +93,7 @@ function TripStatusBadge({ status, c, t, isAr }: {
 }) {
   if (isActiveTripStatus(status)) {
     return (
-      <View style={[badgeStyles.badge, { backgroundColor: 'rgba(85,196,154,0.14)' }]}>
+      <View style={[badgeStyles.badge, { backgroundColor: '#DCFCE7', borderColor: '#86EFAC', borderWidth: 1 }]}>
         <View style={[badgeStyles.dot, { backgroundColor: '#55c49a' }]} />
         <Text style={[badgeStyles.text, { color: '#2d9e72' }]}>{t('trip_status_active')}</Text>
       </View>
@@ -101,7 +101,7 @@ function TripStatusBadge({ status, c, t, isAr }: {
   }
   if (isPendingTripStatus(status)) {
     return (
-      <View style={[badgeStyles.badge, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+      <View style={[badgeStyles.badge, { backgroundColor: '#FEF3C7', borderColor: '#FCD34D', borderWidth: 1 }]}>
         <View style={[badgeStyles.dot, { backgroundColor: '#f59e0b' }]} />
         <Text style={[badgeStyles.text, { color: '#b97b10' }]}>{t('trip_status_pending')}</Text>
       </View>
