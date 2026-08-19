@@ -673,6 +673,7 @@ export function TripSheet() {
                 seatCount,
                 direction: selectedTripDirection,
                 boardingStationId: route.path[safeFrom]?.id,
+                alightingStationId: route.path[safeTo]?.id,
               });
               closeTripSheet();
               router.push({
@@ -686,6 +687,8 @@ export function TripSheet() {
                   time: tripTime,
                   boardingStation,
                   dropOffStation,
+                  boardingStationId: String(route.path[safeFrom]?.id ?? ''),
+                  alightingStationId: String(route.path[safeTo]?.id ?? ''),
                   price: String(total),
                   seatCount: String(seatCount),
                 },

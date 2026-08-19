@@ -174,6 +174,7 @@ export const ar: typeof en = {
   no_results: 'لا توجد نتائج',
   pick_on_map: 'حدد على الخريطة',
   full_route: 'كامل الخط',
+  starting_from: 'يبدأ من',
   stops: 'محطة',
   seats_left: 'متبقي',
   error: 'خطأ',
@@ -476,6 +477,7 @@ export const ar: typeof en = {
   booking_failed_title: 'فشل الحجز',
   no_trip_selected: 'لم يتم اختيار رحلة. يرجى اختيار موعد المغادرة.',
   booking_station_mismatch: 'المحطة المختارة لا تتطابق مع اتجاه هذه الرحلة. يرجى اختيار محطة أخرى.',
+  booking_stations_required: 'يرجى اختيار محطة الصعود ومحطة الوصول للمتابعة.',
   wallet_load_error: 'تعذر تحميل محفظتك. يرجى المحاولة مجدداً.',
   payment_methods_online: 'الدفع الإلكتروني',
 

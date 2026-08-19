@@ -52,6 +52,8 @@ function mapApiRoute(r: any, idx: number): Route {
     seatsLeft:    r.availableSeats ?? (hasActiveTrips ? totalSeats : hasOpenTrips ? totalSeats : 0),
     totalSeats,
     price:        r.basePrice ?? r.price ?? 0,
+    pricingModel: r.pricingModel === 'tiered' || r.pricingModel === 'flat' ? r.pricingModel : undefined,
+    startingPrice: typeof r.startingPrice === 'number' ? r.startingPrice : undefined,
     nextDeparture: r.nextDeparture ?? '—',
     color:        r.color ?? ROUTE_COLORS[idx % ROUTE_COLORS.length],
 

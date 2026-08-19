@@ -173,6 +173,7 @@ export const en = {
   no_results: 'No results found',
   pick_on_map: 'Pick on map',
   full_route: 'Full route',
+  starting_from: 'From',
   stops: 'stops',
   seats_left: 'left',
   error: 'Error',
@@ -475,6 +476,7 @@ export const en = {
   booking_failed_title: 'Booking Failed',
   no_trip_selected: 'No trip selected. Please select a departure time.',
   booking_station_mismatch: "Selected boarding station does not match this trip's direction. Please choose a station again.",
+  booking_stations_required: 'Please select both a boarding station and a destination station to continue.',
   wallet_load_error: 'Could not load your wallet. Please try again.',
   payment_methods_online: 'Online Payment',
 

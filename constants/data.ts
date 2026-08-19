@@ -116,6 +116,15 @@ export type Route = {
   seatsLeft: number;
   totalSeats: number;
   price: number;                 // basePrice in EGP
+  /** 'tiered' when the route charges a minimum fare below a coverage
+   * threshold and the full `price` at/above it (based on boarding/
+   * destination station); 'flat' (or absent, for older cached data) means
+   * `price` is simply what every booking pays. */
+  pricingModel?: 'flat' | 'tiered';
+  /** Only present when pricingModel === 'tiered' — the minimum possible
+   * fare on this route, i.e. what a short trip costs. `price` stays the
+   * ceiling/full fare in that case. */
+  startingPrice?: number;
   nextDeparture: string;
   color: string;                 // UI colour, not from API
   path: Station[];
@@ -185,6 +194,13 @@ export type Booking = {
   direction?: ShuttleDirection;
   /** id of the station the passenger picked as boarding point (fromIdx's station). */
   boardingStationId?: string;
+  /** id of the station the passenger picked as their destination (toIdx's station).
+   * Required by the backend whenever the route uses tiered pricing. */
+  alightingStationId?: string;
+  /** Set once GET /trips/:id/fare-preview responds — the authoritative
+   * per-seat fare for the picked boarding/destination pair. Falls back to
+   * the client-estimated `price` above until this resolves. */
+  farePerSeat?: number;
 };
 
 export type Notification = {
