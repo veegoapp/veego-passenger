@@ -194,14 +194,15 @@ export function PickupMapPicker({ visible, initialCoords, onCancel, onConfirm }:
               showsBuildings={false}
             />
 
-            {/* Fixed center pin — sits above the map, never moves. The tip points at
-                the exact map center; the pin body is offset up by half its height so
-                the tip (not the middle) marks the spot. */}
+            {/* Fixed center pin — sits above the map, never moves. The icon and its
+                shadow are shifted up together as one rigid unit so the tip (not the
+                middle) lands on the exact map center, with the shadow sitting flush
+                under it — shifting only the icon left a visible gap between the two. */}
             <View pointerEvents="none" style={styles.pinWrap}>
-              <View style={styles.pinShift}>
+              <View style={styles.pinCluster}>
                 <MapPin size={40} color={c.primary} fill={c.primary} strokeWidth={1.5} />
+                <View style={styles.pinShadow} />
               </View>
-              <View style={styles.pinShadow} />
             </View>
 
             {/* Recenter-on-GPS button */}
@@ -266,14 +267,15 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    // Lift the pin up by half its height so its tip marks the exact center.
-    pinShift: { transform: [{ translateY: -20 }] },
+    // Icon + shadow move as one block, lifted up by half the icon's height so
+    // the icon's tip (not the middle of the block) lands on the exact center.
+    pinCluster: { alignItems: 'center', transform: [{ translateY: -20 }] },
     pinShadow: {
       width: 8,
       height: 4,
       borderRadius: 4,
       backgroundColor: 'rgba(0,0,0,0.25)',
-      // Sits at the true center, just below the pin tip.
+      // Sits flush against the pin tip right above it.
       marginTop: -2,
     },
     closeBtn: {
