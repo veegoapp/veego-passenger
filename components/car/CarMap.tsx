@@ -57,6 +57,11 @@ interface CarMapProps {
   /** True while actively searching for a driver — layers the ripple/arrow
    *  pulse over the passenger's own-location dot instead of the plain dot. */
   searching?: boolean;
+  /** True once the trip has actually started (passenger is in the vehicle).
+   *  Hides the passenger's own-GPS dot so only the driver's vehicle marker
+   *  shows — the two are redundant once the passenger is inside the car,
+   *  and can visibly drift apart (raw phone GPS vs. the driver's device). */
+  hideOwnLocationDot?: boolean;
   /** Called whenever the internally-computed ETA changes — lets the parent
    *  screen display it without computing its own separate ETA. Mirrors
    *  PassengerTrackingMap's onEtaChange so both live-tracking surfaces stay
@@ -71,7 +76,7 @@ interface CarMapProps {
 // rideState at all — they're read directly by useDriverLocationSocket below,
 // scoped to this component — but the memo still matters for everything else
 // CarServiceScreen re-renders on.
-export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, driverColorHex, searching, onEtaChange }: CarMapProps) {
+export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, driverColorHex, searching, hideOwnLocationDot, onEtaChange }: CarMapProps) {
   const { darkMode, t } = useTheme();
 
   // CarServiceScreen lives on the home tab and stays mounted (native-stack
@@ -407,7 +412,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
           <Polyline coordinates={displayRouteCoords} strokeColor="#000000" strokeWidth={7} />
         )}
 
-        {displayUserLocation && (
+        {displayUserLocation && !hideOwnLocationDot && (
           <Marker coordinate={displayUserLocation} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={styles.userDot}>
               <View style={styles.userDotInner} />

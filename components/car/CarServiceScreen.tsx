@@ -896,6 +896,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         serviceType={serviceType}
         driverColorHex={rideState.driver?.vehicleColorHex}
         searching={phase === 'in_ride' && rideState.status === 'searching'}
+        hideOwnLocationDot={rideState.status === 'started'}
       />
 
       {/* ── Close-to-Home affordance ──────────────────────────────────────
