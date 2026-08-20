@@ -19,7 +19,7 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { BookingProvider } from '@/context/BookingContext';
-import { ActiveSessionProvider } from '@/context/ActiveSessionContext';
+import { ActiveSessionProvider, useActiveSession } from '@/context/ActiveSessionContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { TabBarProvider } from '@/context/TabBarContext';
 import { ServiceControlProvider } from '@/context/ServiceControlContext';
@@ -92,7 +92,15 @@ async function preloadAssets(): Promise<void> {
   ]);
 }
 
-function handleNotificationDeepLink(notification: Notifications.Notification | null) {
+// activeRideType: resolved from ActiveSessionContext by the caller (AppShell,
+// which has hook access) — this function itself is module-level and can't
+// call hooks. The 'veego://ride/{id}' branch needs it to know which service
+// screen (car/scooter/delivery) to resume on the home tab; the notification
+// payload itself only carries a rideId, not the vehicle type.
+function handleNotificationDeepLink(
+  notification: Notifications.Notification | null,
+  activeRideType: 'car' | 'scooter' | 'delivery' | null,
+) {
   if (!notification) return;
   const data = (notification.request.content.data ?? {}) as Record<string, any>;
   const category = (data.category ?? data.type ?? '').toLowerCase();
@@ -113,11 +121,21 @@ function handleNotificationDeepLink(notification: Notifications.Notification | n
     }
   }
 
-  // Task 6: veego://ride/{id} → trip tracking screen
+  // Task 6: veego://ride/{id} → resume the ride on the home tab (same screen
+  // the ActiveRideBanner bubble uses — there is no separate trip-tracking
+  // screen anymore). The deep link only carries a rideId, not the vehicle
+  // type, so this relies on activeRideType already being resolved from the
+  // live ActiveSessionContext by the time the notification is tapped — true
+  // in practice since the notification is about a ride the passenger already
+  // has open in that context. If it's somehow unresolved, land on the plain
+  // home tab rather than guessing a service type — the ActiveRideBanner
+  // bubble will still be there to resume it once the session loads.
   if (deepLink.startsWith('veego://ride/')) {
     const rideId = deepLink.replace('veego://ride/', '').split('?')[0];
     if (rideId) {
-      router.push(`/trip-tracking?id=${rideId}` as any);
+      router.push((activeRideType
+        ? `/(tabs)?resumeService=${activeRideType}&resumeNonce=${Date.now()}`
+        : '/(tabs)') as any);
       return;
     }
   }
@@ -221,6 +239,16 @@ function AppShell() {
     usePushToken();
   }
 
+  // Kept current via effect below so handleNotificationDeepLink (a
+  // module-level function, no hook access) can read the active ride's
+  // vehicle type without it being threaded through as a prop.
+  const activeRideTypeRef = useRef<'car' | 'scooter' | 'delivery' | null>(null);
+  const { session: activeSessionForDeepLink } = useActiveSession();
+  useEffect(() => {
+    activeRideTypeRef.current =
+      activeSessionForDeepLink?.kind === 'ride' ? activeSessionForDeepLink.serviceType : null;
+  }, [activeSessionForDeepLink]);
+
   const notifSubRef = useRef<any>(null);
 
   useEffect(() => {
@@ -228,11 +256,11 @@ function AppShell() {
 
     try {
       notifSubRef.current = Notifications.addNotificationResponseReceivedListener(
-        (response) => handleNotificationDeepLink(response.notification),
+        (response) => handleNotificationDeepLink(response.notification, activeRideTypeRef.current),
       );
 
       Notifications.getLastNotificationResponseAsync()
-        .then((response) => { if (response) handleNotificationDeepLink(response.notification); })
+        .then((response) => { if (response) handleNotificationDeepLink(response.notification, activeRideTypeRef.current); })
         .catch(() => {});
     } catch (e) {
       console.warn('[Notifications] Setup bypassed or failed:', e);
@@ -261,7 +289,6 @@ function AppShell() {
         <Stack.Screen name="ratings"       options={{ animation: slideAnim }} />
         <Stack.Screen name="ticket"        options={{ animation: 'fade_from_bottom' }} />
         <Stack.Screen name="trip-detail"    options={{ animation: slideAnim }} />
-        <Stack.Screen name="trip-tracking"  options={{ animation: slideAnim }} />
         <Stack.Screen name="promo"         options={{ animation: slideAnim }} />
         <Stack.Screen name="support"       options={{ animation: slideAnim }} />
         <Stack.Screen name="suspended"     options={{ animation: 'fade', gestureEnabled: false }} />

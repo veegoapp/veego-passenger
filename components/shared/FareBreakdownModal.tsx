@@ -18,7 +18,7 @@ interface FareBreakdownModalProps {
   netCashPayable: number | null;
 }
 
-/** Itemized fare receipt ("View Details") shared by TripCompletedSheet and trip-tracking.tsx. */
+/** Itemized fare receipt ("View Details") shown by TripCompletedSheet. */
 export function FareBreakdownModal({
   visible, onClose, grossFare, promoDiscount, walletDeduction, netCashPayable,
 }: FareBreakdownModalProps) {

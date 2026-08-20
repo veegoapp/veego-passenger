@@ -22,8 +22,8 @@ const EDGE_PADDING = 14;
 /**
  * Messenger-style floating bubble shown whenever the passenger has an active
  * ride but is not on a screen that already shows it (the home tab's
- * CarServiceScreen, or trip-tracking itself). The bubble is draggable and
- * snaps to the nearest screen edge on release.
+ * CarServiceScreen). The bubble is draggable and snaps to the nearest screen
+ * edge on release.
  */
 export function ActiveRideBanner() {
   const { session } = useActiveSession();
@@ -45,41 +45,40 @@ export function ActiveRideBanner() {
   const pulse    = useRef(new Animated.Value(1)).current;
 
   const isDragging    = useRef(false);
-  // Keep latest rideId/pathname accessible inside the panResponder closure
+  // Keep latest ride/pathname accessible inside the panResponder closure
   // (created once via useRef below) without recreating the responder on
   // every render.
-  const activeRideIdRef = useRef<string | null>(null);
+  const activeRideRef = useRef<{ rideId: string; rideType: 'car' | 'scooter' | 'delivery' } | null>(null);
   const pathnameRef = useRef(pathname);
 
   // Keep the refs current so the panResponder closure always reads the latest values.
   useEffect(() => {
-    activeRideIdRef.current = activeRide?.rideId ?? null;
+    activeRideRef.current = activeRide ? { rideId: activeRide.rideId, rideType: activeRide.rideType } : null;
   }, [activeRide]);
 
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
 
-  // trip-tracking always shows this ride's live state, so hide there.
-  //
   // The home tab (app/(tabs)/index.tsx) is a route group — expo-router strips
   // (tabs) so it only ever resolves to '/'. But home is a container: it shows
-  // the shuttle landing OR a car/scooter/delivery service screen. It only
-  // displays THIS ride when the open service screen matches the ride's type
-  // (a scooter screen won't resume a car ride, and the shuttle landing shows
-  // no ride at all). openServiceType, published by HomeScreen, tells us which
-  // service is open ('car' | 'scooter' | 'delivery' | null). So hide on home
-  // only when it's actually showing this ride; otherwise the ride is invisible
-  // and the bubble must stay up so the rider can get back into their trip.
-  const homeShowsThisRide =
+  // the shuttle landing OR a car/scooter/delivery service screen (the only
+  // place an active ride's live state is shown — there is no separate
+  // trip-tracking screen anymore). It only displays THIS ride when the open
+  // service screen matches the ride's type (a scooter screen won't resume a
+  // car ride, and the shuttle landing shows no ride at all). openServiceType,
+  // published by HomeScreen, tells us which service is open
+  // ('car' | 'scooter' | 'delivery' | null). So hide on home only when it's
+  // actually showing this ride; otherwise the ride is invisible and the
+  // bubble must stay up so the rider can get back into their trip.
+  const onRideScreen =
     pathname === '/' && !!activeRide && openServiceType === activeRide.rideType;
-  const onRideScreen = pathname === '/trip-tracking' || homeShowsThisRide;
 
   const visible = !!activeRide && !onRideScreen;
 
   // Pulsing ring animation — only runs while the bubble is actually visible,
   // so it doesn't keep animating in the background (CPU/GPU drain) while
-  // hidden on the home tab or the trip-tracking screen.
+  // hidden on the home tab.
   useEffect(() => {
     if (!visible) return;
     const loop = Animated.loop(
@@ -145,18 +144,17 @@ export function ActiveRideBanner() {
         Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start();
 
         if (!isDragging.current) {
-          const rideId = activeRideIdRef.current;
-          // Already on trip-tracking (bubble is normally hidden/non-interactive
-          // there via pointerEvents, but this guards belt-and-suspenders against
-          // any timing gap between a pathname change and `visible` catching up).
-          if (rideId && pathnameRef.current !== '/trip-tracking') {
-            // router.navigate reuses a matching screen already in the stack
-            // instead of always pushing a new one — router.push here would let
-            // repeated bubble taps (after switching tabs instead of pressing
-            // back) pile up duplicate /trip-tracking instances, each mounting
-            // its own live PassengerTrackingMap + driver-location socket
-            // subscription for the same ride.
-            router.navigate(`/trip-tracking?rideId=${rideId}` as any);
+          const ride = activeRideRef.current;
+          // Already on the home tab showing this ride (bubble is normally
+          // hidden/non-interactive there via pointerEvents, but this guards
+          // belt-and-suspenders against any timing gap before `visible`
+          // catches up). resumeNonce forces the param to change on every tap
+          // (expo-router won't re-fire effects for a navigation whose query
+          // string is byte-for-byte identical to the current one), so
+          // re-tapping the bubble after closing the service sheet reliably
+          // reopens it even though resumeService itself didn't change.
+          if (ride && pathnameRef.current !== '/') {
+            router.navigate(`/(tabs)?resumeService=${ride.rideType}&resumeNonce=${Date.now()}` as any);
           }
           return;
         }

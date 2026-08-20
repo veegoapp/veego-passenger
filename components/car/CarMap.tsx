@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import MapView, { Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Navigation } from 'lucide-react-native';
@@ -15,7 +15,7 @@ import { useCameraController } from '@/hooks/map/useCameraController';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
 import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
-import { trimRouteToPosition, haversineMeters } from '@/src/utils/geoHelpers';
+import { trimRouteToPosition, haversineMeters, estimateEtaMinutes } from '@/src/utils/geoHelpers';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -31,6 +31,11 @@ const GOOD_ENOUGH_ACCURACY_M = 15;
 // Max distance (metres) between the raw GPS fix and the drawn route before
 // the rendered dot stops snapping to it — see displayUserLocation below.
 const SNAP_TO_ROUTE_MAX_M = 30;
+
+// Throttle for the Haversine ETA fallback — mirrors PassengerTrackingMap's
+// same constant so the two ETA implementations behave identically.
+const ETA_FALLBACK_THROTTLE_MS = 3000;
+const ETA_FALLBACK_MOVE_METERS = 50;
 
 interface CarMapProps {
   /** Initial/recovered seed only (e.g. rideState.driverLocation from a REST
@@ -52,6 +57,11 @@ interface CarMapProps {
   /** True while actively searching for a driver — layers the ripple/arrow
    *  pulse over the passenger's own-location dot instead of the plain dot. */
   searching?: boolean;
+  /** Called whenever the internally-computed ETA changes — lets the parent
+   *  screen display it without computing its own separate ETA. Mirrors
+   *  PassengerTrackingMap's onEtaChange so both live-tracking surfaces stay
+   *  consistent. */
+  onEtaChange?: (minutes: number | null) => void;
 }
 
 
@@ -61,15 +71,15 @@ interface CarMapProps {
 // rideState at all — they're read directly by useDriverLocationSocket below,
 // scoped to this component — but the memo still matters for everything else
 // CarServiceScreen re-renders on.
-export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, driverColorHex, searching }: CarMapProps) {
-  const { darkMode } = useTheme();
+export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, driverColorHex, searching, onEtaChange }: CarMapProps) {
+  const { darkMode, t } = useTheme();
 
   // CarServiceScreen lives on the home tab and stays mounted (native-stack
-  // doesn't unmount screens behind a push) when trip-tracking is opened on
-  // top of it — without this guard both maps would run their own live
-  // socket subscription, Directions polling, and follow-camera loop for the
-  // same ride at once. Pausing on blur instead of unmounting keeps camera/
-  // scroll state intact for when the passenger comes back to this tab.
+  // doesn't unmount screens behind a push) whenever another screen is pushed
+  // on top of it — without this guard the map would keep running its live
+  // socket subscription, Directions polling, and follow-camera loop while not
+  // even visible. Pausing on blur instead of unmounting keeps camera/scroll
+  // state intact for when the passenger comes back to this tab.
   const isFocused = useIsFocused();
 
   // Live-subscribes to the socket itself (seeded from driverLocationSeed) so
@@ -186,8 +196,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         // after 8 seconds (or once accuracy was good enough) — so the
         // passenger's own position froze for the rest of the session the
         // instant that window closed, even while they kept moving. CarMap
-        // stays mounted behind trip-tracking navigation (see the component
-        // doc comment above), so in practice that could be most of a session.
+        // stays mounted behind other screens pushed on top of the home tab
+        // (see the component doc comment above), so in practice that could
+        // be most of a session.
         // The subscription now runs for the component's full lifetime,
         // stopped only on unmount below — real continuous tracking, matching
         // how the driver app's own idle-map GPS subscription behaves
@@ -291,11 +302,45 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   //    The hook applies the 75 s / 300 m throttle and detects destination
   //    changes via targetsKey — equivalent to the original
   //    activeDestinationKeyRef + elapsed + movedSignificantly guards.
-  const { routeCoords: activeRideRouteCoords } = useGoogleRoute({
+  const { routeCoords: activeRideRouteCoords, durationSeconds: activeRideDurationSeconds } = useGoogleRoute({
     origin:  driverLocation,
     targets: destCoords ? [destCoords] : [],
     enabled: !!showDriverMarker && !!driverLocation && !!destCoords && isFocused,
   });
+
+  // ── ETA ─────────────────────────────────────────────────────────────────────
+  // Prefer the Google Directions route duration; fall back to a throttled
+  // Haversine distance/speed estimate. Mirrors PassengerTrackingMap's ETA
+  // logic exactly (driverLocation → destCoords, which is already phase-aware
+  // — pickup during driver_assigned/arrived, dropoff during started).
+  const etaFallbackCacheRef = useRef<{ value: number | null; atMs: number; lat: number; lng: number } | null>(null);
+
+  const etaMinutes = useMemo(() => {
+    if (!showDriverMarker) return null;
+    if (activeRideDurationSeconds !== null) {
+      etaFallbackCacheRef.current = null; // invalidate — a real route duration is now available
+      return Math.max(1, Math.ceil(activeRideDurationSeconds / 60));
+    }
+    if (!driverLocation || !destCoords) return null;
+
+    const cache = etaFallbackCacheRef.current;
+    const now = Date.now();
+    if (
+      cache &&
+      now - cache.atMs < ETA_FALLBACK_THROTTLE_MS &&
+      haversineMeters({ latitude: cache.lat, longitude: cache.lng }, driverLocation) < ETA_FALLBACK_MOVE_METERS
+    ) {
+      return cache.value;
+    }
+
+    const value = estimateEtaMinutes(driverLocation, destCoords);
+    etaFallbackCacheRef.current = { value, atMs: now, lat: driverLocation.latitude, lng: driverLocation.longitude };
+    return value;
+  }, [showDriverMarker, activeRideDurationSeconds, driverLocation?.latitude, driverLocation?.longitude, destCoords]);
+
+  useEffect(() => {
+    onEtaChange?.(etaMinutes);
+  }, [etaMinutes, onEtaChange]);
 
   // Unified route — only one path is enabled at a time.
   const hookRouteCoords: Coords[] = showDriverMarker && driverLocation
@@ -395,6 +440,15 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         )}
       </MapView>
 
+      {/* ETA overlay — rendered above the map, not inside MapView. Same
+          badge styling as PassengerTrackingMap's ETA overlay. */}
+      {etaMinutes !== null && (
+        <View style={styles.etaBadge} pointerEvents="none">
+          <Text style={styles.etaLabel}>{t('eta_label')}</Text>
+          <Text style={styles.etaValue}>{etaMinutes} {t('min')}</Text>
+        </View>
+      )}
+
       {/* Water-drop ripple while searching for a driver. Rendered as a plain
           absolute-positioned overlay (not a MapView Marker) — the "searching"
           camera effect above always centers the map exactly on userLocation,
@@ -442,4 +496,19 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6,
   },
+  // ETA badge — floats above the map. Matches PassengerTrackingMap's styling.
+  etaBadge: {
+    position: 'absolute',
+    top: 14,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(17,24,39,0.88)',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 24,
+  },
+  etaLabel: { color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+  etaValue: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
 });

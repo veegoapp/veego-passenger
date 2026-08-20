@@ -8,7 +8,7 @@
  * - Returns null when there is no session, or when the session is a
  *   shuttle_booking (Shuttle is not migrated in this phase).
  * - Converts ActiveSession field shapes (lat/lng, backend status enums) to
- *   the client-side shapes already used by useRide / trip-tracking.
+ *   the client-side shapes already used by useRide / CarServiceScreen.
  */
 
 import type { NormalizedPassengerActiveSession } from './activeSessionTypes';

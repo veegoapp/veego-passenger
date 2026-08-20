@@ -185,7 +185,7 @@ export default function HomeScreen() {
   // getActiveSessionRecoveryDestination). It selects the correct initial service
   // mode before hooks initialise, avoiding a shuttle-UI flash on ride recovery.
   // CarServiceScreen's resumeActiveRide() then takes over once mounted.
-  const { resumeService } = useLocalSearchParams<{ resumeService?: string }>();
+  const { resumeService, resumeNonce } = useLocalSearchParams<{ resumeService?: string; resumeNonce?: string }>();
   // Cold-start recovery: ActiveSession navigation passes resumeService when the
   // rider reopens the app with an active ride. Open that service screen straight
   // away (below) instead of landing on Home and forcing them to tap the service
@@ -359,6 +359,25 @@ export default function HomeScreen() {
       setDestinationLocation('');
     });
   }, [slideAnim, cardsOpacity, screenHeight, setTabBarVisible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resume-in-place: the ActiveRideBanner bubble and the ride push-notification
+  // deep link both land here (instead of a separate trip-tracking screen) by
+  // navigating to '/(tabs)?resumeService=<car|scooter|delivery>&resumeNonce=<ts>'.
+  // resumeNonce is only ever set by those two entry points — cold-start
+  // recovery (app/index.tsx) never sets it, and already seeds mode/serviceOpen
+  // directly via the useState initializers above, so this effect skips
+  // without it to avoid redoing that same open (haptic, animation, service-
+  // availability check) a second time right after mount. resumeNonce changes
+  // on every tap specifically so this effect re-fires even when resumeService
+  // itself repeats (e.g. closing the sheet and re-tapping the bubble for the
+  // same ride type, where the query string would otherwise be identical).
+  useEffect(() => {
+    if (!resumeNonce) return;
+    if (resumeService === 'car' || resumeService === 'scooter' || resumeService === 'delivery') {
+      openService(resumeService);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeService, resumeNonce]);
 
   // Fix 1: intercept Android hardware back button while a service sheet is open
   useEffect(() => {

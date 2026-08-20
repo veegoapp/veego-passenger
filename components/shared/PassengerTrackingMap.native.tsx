@@ -92,10 +92,11 @@ function stationFill(status: Station['status']): string {
   return '#94a3b8';
 }
 
-// Wrapped in React.memo: the trip-tracking screen re-renders on every
-// driver-location socket tick, and without this the map fully re-rendered
-// in lockstep even for state changes elsewhere on the screen (top bar,
-// status pill, bottom card) that have nothing to do with the map itself.
+// Wrapped in React.memo: the hosting screen (trip-detail.tsx, for a live
+// shuttle trip) re-renders on every driver-location socket tick, and without
+// this the map fully re-rendered in lockstep even for state changes
+// elsewhere on the screen (top bar, status pill, bottom card) that have
+// nothing to do with the map itself.
 export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   pickup, dropoff, driverLocation: driverLocationSeed, rideId,
   stations = [], passengerStationId, style,

@@ -4,7 +4,7 @@
  *
  * Pure API-access layer: every function wraps exactly one endpoint with the
  * exact path and request body previously issued inline from useRide.ts,
- * useRideChat.ts, CarServiceScreen.tsx, and trip-tracking.tsx. Responses are
+ * useRideChat.ts, and CarServiceScreen.tsx. Responses are
  * returned RAW (no envelope unwrapping) so callers keep their existing
  * `data?.data ?? data` handling unchanged.
  *
