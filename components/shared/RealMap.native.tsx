@@ -144,8 +144,8 @@ export function RealMap({
         {routeCoords.length >= 2 && (
           <Polyline
             coordinates={routeCoords}
-            strokeColor="#1A73E8"
-            strokeWidth={5}
+            strokeColor="#000000"
+            strokeWidth={7}
             lineDashPattern={[8, 4]}
           />
         )}

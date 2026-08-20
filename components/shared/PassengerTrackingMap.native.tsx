@@ -469,14 +469,14 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
         {(routeCoords.length >= 2 ? trimmedRouteCoords : upcomingCoords).length >= 2 && (
           <Polyline
             coordinates={routeCoords.length >= 2 ? trimmedRouteCoords : upcomingCoords}
-            strokeColor="#1A73E8"
-            strokeWidth={5}
+            strokeColor="#000000"
+            strokeWidth={7}
           />
         )}
 
         {/* Fallback line when no stations provided — hidden once Google route loads */}
         {fallbackCoords.length >= 2 && routeCoords.length < 2 && (
-          <Polyline coordinates={fallbackCoords} strokeColor="#1A73E8" strokeWidth={5} />
+          <Polyline coordinates={fallbackCoords} strokeColor="#000000" strokeWidth={7} />
         )}
 
         {/* Station markers — filtered to passenger-relevant stops only */}

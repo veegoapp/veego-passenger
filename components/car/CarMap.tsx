@@ -359,7 +359,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         onRegionChangeComplete={onCameraRegionChange}
       >
         {displayRouteCoords.length > 0 && (
-          <Polyline coordinates={displayRouteCoords} strokeColor="#1A73E8" strokeWidth={5} />
+          <Polyline coordinates={displayRouteCoords} strokeColor="#000000" strokeWidth={7} />
         )}
 
         {displayUserLocation && (
