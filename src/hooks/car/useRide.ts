@@ -273,7 +273,26 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           const updatedPassengerRating =
             ride.passengerRating !== undefined ? ride.passengerRating : prev.passengerRating;
 
-          return { ...prev, status, driver: updatedDriver, driverLocation: updatedLocation, passengerRating: updatedPassengerRating };
+          const next: RideState = {
+            ...prev, status, driver: updatedDriver, driverLocation: updatedLocation, passengerRating: updatedPassengerRating,
+          };
+
+          // A missed/late ride:completed socket event (backgrounded app, flaky
+          // connection, reconnect gap around the exact moment the trip ends) can
+          // leave this poll as the only signal that the ride is done — the
+          // socket handlers that normally carry netCashPayable/grossFare/
+          // promoDiscount/walletDeduction into state never fire. Without this,
+          // TripCompletedSheet's `fare != null` guard hides the whole fare block
+          // forever, even though GET /rides/:id already has the financial
+          // snapshot (written before the ride's status flips to "completed").
+          if (status === 'completed') {
+            next.fare = ride.netCashPayable ?? prev.fare;
+            next.grossFare = ride.grossFare ?? prev.grossFare;
+            next.promoDiscount = ride.promoDiscount ?? prev.promoDiscount;
+            next.walletDeduction = ride.walletDeduction ?? prev.walletDeduction;
+          }
+
+          return next;
         });
 
         if (TERMINAL_STATUSES.includes(status)) {
