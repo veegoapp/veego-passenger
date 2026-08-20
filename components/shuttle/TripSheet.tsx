@@ -344,8 +344,12 @@ export function TripSheet() {
   const [requestSheetOpen, setRequestSheetOpen] = useState(false);
   const { enabledIds: tripRequestEnabledIds } = useEnabledTripRequestRoutes();
 
+  // Reset on every sheet open (not just when the selected route changes) —
+  // reopening the same route after a previous booking/close left selectedRoute.id
+  // unchanged, so a route-id-only dependency here missed that case and let seatCount
+  // (and the other picks) silently carry over from the prior visit.
   useEffect(() => {
-    if (selectedRoute && selectedRoute.path.length >= 2) {
+    if (tripSheetOpen && selectedRoute && selectedRoute.path.length >= 2) {
       setFromIdx(0);
       setToIdx(selectedRoute.path.length - 1);
       setTimeIdx(0);
@@ -353,7 +357,7 @@ export function TripSheet() {
       setPick('from');
       setSeatCount(1);
     }
-  }, [selectedRoute?.id, selectedRoute?.path.length]);
+  }, [tripSheetOpen, selectedRoute?.id, selectedRoute?.path.length]);
 
   useEffect(() => {
     if (tripSheetOpen) {
