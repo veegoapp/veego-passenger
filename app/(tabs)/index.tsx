@@ -234,6 +234,17 @@ export default function HomeScreen() {
   const slideAnim = useRef(new Animated.Value(isRideResume ? 0 : Dimensions.get('window').height)).current;
   const cardsOpacity = useRef(new Animated.Value(isRideResume ? 0 : 1)).current;
 
+  // Cold-start recovery for an active shuttle trip: mirrors isRideResume's
+  // car/scooter/delivery handling above, but shuttle has no in-place resume
+  // screen, so it replaces straight to the ticket screen instead of landing
+  // on Home. shuttleHeroSession only populates once ActiveSession finishes
+  // loading, so this can't just be part of the isRideResume initial state.
+  useEffect(() => {
+    if (resumeService === 'shuttle' && shuttleHeroSession) {
+      router.replace('/ticket');
+    }
+  }, [resumeService, shuttleHeroSession]);
+
   const fetchSavedLocations = useCallback(() => {
     return api.get('/user/locations')
       .then(({ data }) => {
@@ -317,6 +328,15 @@ export default function HomeScreen() {
     if (id !== 'shuttle' && id !== 'car' && id !== 'scooter' && id !== 'delivery') return;
     handleServiceTap(id as ServiceType, () => {
       Haptics.selectionAsync();
+      // Match car/scooter/delivery: tapping the service icon while a trip of
+      // that kind is already active goes straight to the active trip, never
+      // back to the booking screen (car does this inside CarServiceScreen's
+      // own resumeActiveRide; shuttle has no equivalent in-place resume, so
+      // it routes to the dedicated ticket screen instead).
+      if (id === 'shuttle' && shuttleHeroSession) {
+        router.push('/ticket');
+        return;
+      }
       setMode(id as ServiceMode);
       setActiveSearchField(null);
       setDestinationLocation('');
@@ -326,7 +346,7 @@ export default function HomeScreen() {
         Animated.timing(cardsOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
     });
-  }, [handleServiceTap, slideAnim, cardsOpacity]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleServiceTap, slideAnim, cardsOpacity, shuttleHeroSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeService = useCallback(() => {
     // Fix 4: show tab bar immediately with animation, not after it completes
