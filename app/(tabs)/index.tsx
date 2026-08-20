@@ -12,9 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
-import { RouteCard, FeaturedOffers } from '@/components/shuttle/RouteCard';
-import { usePromos } from '@/src/hooks/shared/usePromos';
-import { SectionHeader } from '@/components/shared/Shared';
+import { RouteCard } from '@/components/shuttle/RouteCard';
 import { useBooking } from '@/context/BookingContext';
 import { useActiveSession } from '@/context/ActiveSessionContext';
 import { formatCairoDateTime } from '@/constants/data';
@@ -213,7 +211,6 @@ export default function HomeScreen() {
   const { setOpenServiceType } = useHomeService();
   const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
   const { profile } = useProfile();
-  const { promos } = usePromos();
 
   const firstName = getFirstName(profile.name);
   const avatarInitials = getInitials(profile.name);
@@ -431,11 +428,12 @@ export default function HomeScreen() {
     setSearchScreenOpen(false);
   }, []);
 
-  // True while a car/scooter/delivery service is selected/active (booking or
-  // trip-tracking). These services get the driver-app-style full-screen map:
-  // no main Home header band, no floating back-arrow overlay. Shuttle is
-  // unaffected — it keeps the existing header + back-button sheet layout.
-  const fullScreenService = serviceOpen && mode !== 'shuttle';
+  // True while any service (including shuttle) is selected/active (booking or
+  // trip-tracking) — the sheet then covers the full screen from the top, with
+  // no main Home header band showing above it. Shuttle keeps its own
+  // back-button + title bar (rendered below); car/scooter/delivery render
+  // true full-screen with no back-arrow overlay, matching the driver app.
+  const fullScreenService = serviceOpen;
 
   return (
     <View style={{ flex: 1 }}>
@@ -479,9 +477,10 @@ export default function HomeScreen() {
       <Animated.View
         style={[
           StyleSheet.absoluteFillObject,
-          // Car/scooter/delivery: no header above it, so the sheet (and its
-          // own CarMap) starts at the true top of the viewport. Shuttle keeps
-          // sliding up from beneath the measured header height, unchanged.
+          // Any open service (shuttle included): no header above it, so the
+          // sheet (and car/scooter/delivery's own CarMap) starts at the true
+          // top of the viewport. Only the pre-selection landing view (no
+          // service open yet) keeps the sheet below the measured header.
           { top: fullScreenService ? 0 : headerHeight, transform: [{ translateY: slideAnim }], zIndex: 20 },
         ]}
       >
@@ -493,7 +492,7 @@ export default function HomeScreen() {
             small close ("X") affordance during idle/ride_options, wired to
             the same onBack/closeService prop passed below. */}
         {serviceOpen && mode === 'shuttle' && (
-          <View style={[styles.sheetHeader, { backgroundColor: c.background }]}>
+          <View style={[styles.sheetHeader, { backgroundColor: c.background, paddingTop: 14 + top }]}>
             <TouchableOpacity
               style={[styles.sheetBackBtn, { backgroundColor: c.mist }]}
               onPress={closeService}
@@ -514,8 +513,8 @@ export default function HomeScreen() {
         {/* Fix 2: guard with serviceOpen so shuttle never flashes while opening another service */}
         {serviceOpen && mode === 'shuttle' && (
           <View style={{ flex: 1, backgroundColor: c.background }}>
-            {/* Space reserved for the absolute-positioned sheetHeader (64 px) */}
-            <View style={{ height: 64 }} />
+            {/* Space reserved for the absolute-positioned sheetHeader (64px + the safe-area top inset it now pads by) */}
+            <View style={{ height: 64 + top }} />
             <View style={styles.stickySearch}>
               <TouchableOpacity onPress={() => router.push('/routes')} activeOpacity={0.85}>
                 <GlassView style={styles.searchBar} borderRadius={20}>
@@ -557,12 +556,6 @@ export default function HomeScreen() {
                   toName={shuttleHeroSession.trip.route.toLocation}
                   onPress={() => router.push('/ticket')}
                 />
-              )}
-              {promos.length > 0 && (
-                <>
-                  <SectionHeader title={t('featured_offers')} />
-                  <FeaturedOffers />
-                </>
               )}
               {mostBookedRoutes.length > 0 && (
                 <View>
