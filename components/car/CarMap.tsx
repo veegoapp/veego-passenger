@@ -107,12 +107,12 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   // AnimatedRegion creation, stop-before-start guard, and 800 ms timing are
   // handled by useAnimatedDriverMarker. No initialCoords needed — the marker
   // only renders when driverLocation is non-null (guarded by
-  // showDriverMarker && driverLocation in JSX). The hook's own `rotation`
-  // output is unused here — the marker is a symmetrical dot (see DriverMarker)
-  // that doesn't rotate with heading; heading is still consumed via
-  // headingRef below, for the follow camera.
+  // showDriverMarker && driverLocation in JSX). `rotation` drives the
+  // MarkerAnimated's heading directly — DriverMarker now renders a top-down
+  // car image (front pointing up at 0deg) instead of a symmetrical dot.
   const {
     animatedCoord: animatedDriverCoord,
+    rotation: driverRotation,
     headingRef: driverHeadingRef,
     positionRef: driverPositionRef,
   } = useAnimatedDriverMarker({ driverLocation });
@@ -427,9 +427,9 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         {showDriverMarker && driverLocation && (
           <MarkerAnimated
             coordinate={animatedDriverCoord}
-            // Symmetrical pill/circle dot — always centered, never rotates.
             anchor={{ x: 0.5, y: 0.5 }}
-            rotation={0}
+            rotation={driverRotation}
+            flat
             tracksViewChanges={!carMarkerReady}
           >
             <DriverMarker vehicleType={serviceType ?? 'car'} colorHex={driverColorHex} onImageLoad={onCarMarkerLoad} />

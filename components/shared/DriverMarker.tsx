@@ -2,13 +2,11 @@
  * DriverMarker
  *
  * Canonical driver-location marker icon used on the map in both CarMap.tsx
- * and PassengerTrackingMap.native.tsx: a route-blue (#1A73E8, matching the
- * Polyline stroke) pill/circle dot with a solid white halo ring. Symmetrical,
- * so the parent <MarkerAnimated> should keep passing rotation={0} and
- * anchor={{x:0.5,y:0.5}} — the dot never needs to rotate with heading, and
- * because it's centered exactly on the coordinate it always reads as sitting
- * right on the route polyline instead of a directional icon that can look
- * off-axis from it.
+ * and PassengerTrackingMap.native.tsx: a top-down car image that rotates to
+ * face the direction of travel. The image's own front (windshield/mirrors)
+ * points straight up at 0deg, so the parent <MarkerAnimated> should pass the
+ * live heading as `rotation` (see useAnimatedDriverMarker's `rotation`
+ * output) and anchor={{x:0.5,y:0.5}} so it pivots around its own center.
  *
  * This component renders only the marker content (the inner view). It is
  * intended to be placed inside a <MarkerAnimated> in the caller:
@@ -16,14 +14,26 @@
  *   <MarkerAnimated
  *     coordinate={animatedCoord}
  *     anchor={{ x: 0.5, y: 0.5 }}
- *     rotation={0}
+ *     rotation={rotation}
+ *     flat
  *   >
  *     <DriverMarker vehicleType="car" onImageLoad={onCarMarkerLoad} />
  *   </MarkerAnimated>
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Image, StyleSheet } from 'react-native';
+
+// Source asset is a cropped top-down car photo, front pointing up, at its
+// native aspect ratio (294 x 635).
+const CAR_TOP_IMAGE = require('../../assets/images/vehicles/driver-marker-car-top.png');
+const CAR_TOP_ASPECT = 294 / 635; // width / height
+
+// Rendered height in map points — kept close to the old dot's footprint
+// (22px) while reading as a real car rather than a dot. Width follows from
+// the source image's aspect ratio.
+const MARKER_HEIGHT = 34;
+const MARKER_WIDTH = MARKER_HEIGHT * CAR_TOP_ASPECT;
 
 // 'car'/'scooter'/'delivery'/'shuttle' are ride-level service types.
 // 'hiace'/'minibus' are specific shuttle trip vehicle types
@@ -51,30 +61,20 @@ interface DriverMarkerProps {
 export const DriverMarker = React.memo(function DriverMarker({
   onImageLoad,
 }: DriverMarkerProps): React.JSX.Element {
-  // A plain View (no Svg/image content) paints synchronously, but the small
-  // delay is kept so the parent's tracksViewChanges-off flip still lands
-  // after react-native-maps has taken at least one snapshot on Android —
-  // same contract callers already rely on.
-  React.useEffect(() => {
-    if (!onImageLoad) return;
-    const id = setTimeout(onImageLoad, 300);
-    return () => clearTimeout(id);
-  }, [onImageLoad]);
-
-  return <View style={styles.dot} />;
+  return (
+    <Image
+      source={CAR_TOP_IMAGE}
+      style={styles.car}
+      resizeMode="contain"
+      onLoad={onImageLoad}
+    />
+  );
 });
 
 const styles = StyleSheet.create({
-  // Pill/circle dot — route-blue fill (matches the Polyline's #1A73E8
-  // stroke), solid white halo ring, subtle shadow so it reads as sitting
-  // slightly above the route line.
-  dot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#1A73E8',
-    borderWidth: 3,
-    borderColor: '#ffffff',
+  car: {
+    width: MARKER_WIDTH,
+    height: MARKER_HEIGHT,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
