@@ -451,6 +451,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           updates.driver = {
             name: m.driverName ?? prev.driver?.name ?? 'Driver',
             phone: m.driverPhone ?? prev.driver?.phone ?? '',
+            avatar: m.avatar ?? prev.driver?.avatar ?? null,
             vehicle: m.vehicle ?? prev.driver?.vehicle ?? '',
             vehicleColor: m.vehicleColor ?? prev.driver?.vehicleColor,
             vehicleColorHex: m.vehicleColorHex ?? prev.driver?.vehicleColorHex,
