@@ -13,7 +13,3 @@ export function onSavedLocationsEvent(event: SavedLocationsEventType, listener: 
   _listeners.get(event)!.add(listener);
   return () => { _listeners.get(event)?.delete(listener); };
 }
-
-export function emitSavedLocationsEvent(event: SavedLocationsEventType): void {
-  _listeners.get(event)?.forEach((cb) => cb());
-}
