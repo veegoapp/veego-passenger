@@ -15,7 +15,6 @@ import { ThemeColors } from '@/constants/colors';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { useRide } from '@/src/hooks/car/useRide';
-import { useNearbyDrivers } from '@/src/hooks/car/useNearbyDrivers';
 import { getRideEstimate } from '@/src/api/rideService';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
@@ -489,17 +488,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const { rideState, requesting, requestRide, cancelRide, resetRide, resumeActiveRide } = useRide(serviceType);
   const [resuming, setResuming] = useState(false);
 
-  // Nearby-driver markers — pre-booking only. Stops the moment a ride is
-  // requested or the phase moves past ride_options; CarServiceScreen itself
-  // unmounts when the passenger leaves this service on Home, which tears the
-  // hook's interval down via its own cleanup.
-  const nearbyDriversActive = ['idle', 'ride_options'].includes(phase) && !requesting;
-  const { drivers: nearbyDrivers } = useNearbyDrivers({
-    isActive: nearbyDriversActive,
-    location: userCoords,
-    serviceType,
-  });
-
   // On mount: check if there's an active ride in the backend and resume it
   useEffect(() => {
     let cancelled = false;
@@ -892,7 +880,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         destCoords={mapDestCoords}
         showDriverMarker={showDriverMarker}
         onUserLocation={handleUserLocation}
-        nearbyDrivers={showDriverMarker ? undefined : nearbyDrivers}
         serviceType={serviceType}
         driverColorHex={rideState.driver?.vehicleColorHex}
         searching={phase === 'in_ride' && rideState.status === 'searching'}

@@ -4,9 +4,7 @@ import { useIsFocused } from '@react-navigation/native';
 import MapView, { Marker, MarkerAnimated, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin, Navigation } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import { NearbyDriversLayer } from './NearbyDriversLayer';
 import { SearchingPulse } from './SearchingPulse';
-import type { NearbyDriver } from '@/src/hooks/car/useNearbyDrivers';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
@@ -30,7 +28,7 @@ const GOOD_ENOUGH_ACCURACY_M = 15;
 
 // Max distance (metres) between the raw GPS fix and the drawn route before
 // the rendered dot stops snapping to it — see displayUserLocation below.
-const SNAP_TO_ROUTE_MAX_M = 30;
+const SNAP_TO_ROUTE_MAX_M = 15;
 
 // Throttle for the Haversine ETA fallback — mirrors PassengerTrackingMap's
 // same constant so the two ETA implementations behave identically.
@@ -48,8 +46,6 @@ interface CarMapProps {
   destCoords?: Coords | null;
   showDriverMarker?: boolean;
   onUserLocation?: (loc: Coords) => void;
-  /** Pre-booking nearby-driver markers — pass undefined/empty once a real driver is assigned. */
-  nearbyDrivers?: NearbyDriver[];
   serviceType?: 'car' | 'scooter' | 'delivery';
   /** Assigned driver's vehicle body color (hex), e.g. rideState.driver?.vehicleColorHex.
    *  Passed through to DriverMarker's VehicleIcon; falls back safely when absent. */
@@ -76,7 +72,7 @@ interface CarMapProps {
 // rideState at all — they're read directly by useDriverLocationSocket below,
 // scoped to this component — but the memo still matters for everything else
 // CarServiceScreen re-renders on.
-export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, nearbyDrivers, serviceType, driverColorHex, searching, hideOwnLocationDot, onEtaChange }: CarMapProps) {
+export const CarMap = React.memo(function CarMap({ driverLocation: driverLocationSeed, rideId, destCoords, showDriverMarker, onUserLocation, serviceType, driverColorHex, searching, hideOwnLocationDot, onEtaChange }: CarMapProps) {
   const { darkMode, t } = useTheme();
 
   // CarServiceScreen lives on the home tab and stays mounted (native-stack
@@ -409,7 +405,7 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
         onRegionChangeComplete={onCameraRegionChange}
       >
         {displayRouteCoords.length > 0 && (
-          <Polyline coordinates={displayRouteCoords} strokeColor="#000000" strokeWidth={7} />
+          <Polyline coordinates={displayRouteCoords} strokeColor="#4285F4" strokeWidth={4} />
         )}
 
         {displayUserLocation && !hideOwnLocationDot && (
@@ -440,9 +436,6 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
           </MarkerAnimated>
         )}
 
-        {nearbyDrivers && nearbyDrivers.length > 0 && (
-          <NearbyDriversLayer drivers={nearbyDrivers} />
-        )}
       </MapView>
 
       {/* ETA overlay — rendered above the map, not inside MapView. Same
