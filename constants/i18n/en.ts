@@ -10,6 +10,8 @@ export const en = {
   selected_trip: 'Selected Trip',
   boarding: 'Boarding',
   drop_off: 'Drop-off',
+  boarding_time_label: 'Boarding time',
+  alighting_time_label: 'Drop-off time',
   confirm_book: 'Confirm & Book',
   no_trips_this_date: 'No trips available for this date',
   promo_code: 'Promo Code',
