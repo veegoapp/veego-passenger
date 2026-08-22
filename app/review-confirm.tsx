@@ -17,6 +17,7 @@ import { useBooking } from '@/context/BookingContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import api from '@/src/api/client';
 import { usePromos } from '@/src/hooks/shared/usePromos';
+import { formatCairoTime } from '@/constants/data';
 import { S } from '@/constants/colors';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
@@ -112,6 +113,38 @@ export default function ReviewConfirmScreen() {
       })
       .finally(() => {
         if (!cancelled) setPriceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId, boardingStationId, alightingStationId]);
+
+  // Per-station scheduled times (GET /trips/:id/stations-schedule) — no
+  // booking exists yet at this point, so this is the only source for the
+  // boarding/alighting station's own time; the trip-wide `time` param above
+  // is the departure from the route's first station, not necessarily this
+  // trip's boarding station. Same fail-soft pattern as fare-preview above:
+  // a failure here just leaves the times blank, never blocks confirming.
+  const [boardingScheduledTime, setBoardingScheduledTime] = useState<string | null>(null);
+  const [alightingScheduledTime, setAlightingScheduledTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tripId || !boardingStationId || !alightingStationId) return;
+    let cancelled = false;
+    api
+      .get(`/trips/${tripId}/stations-schedule`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const stations = data?.stations ?? data?.data?.stations ?? [];
+        const boardingIdNum  = Number(boardingStationId);
+        const alightingIdNum = Number(alightingStationId);
+        const boardingEntry  = stations.find((s: any) => s.stationId === boardingIdNum);
+        const alightingEntry = stations.find((s: any) => s.stationId === alightingIdNum);
+        setBoardingScheduledTime(boardingEntry?.scheduledTime ?? null);
+        setAlightingScheduledTime(alightingEntry?.scheduledTime ?? null);
+      })
+      .catch(() => {
+        // Non-fatal — the boarding/drop-off station names still show without a time.
       });
     return () => {
       cancelled = true;
@@ -264,6 +297,7 @@ export default function ReviewConfirmScreen() {
     },
     stationBadgeText: { fontSize: 9, fontWeight: Typography.weight.bold, color: c.inkSoft, letterSpacing: 0.8, textTransform: 'uppercase' as any },
     stationName: { fontSize: 14.5, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.3 },
+    stationScheduledTime: { fontSize: 12, fontWeight: Typography.weight.semibold, color: c.inkSoft, marginTop: 2 },
 
     /* Info chips row */
     infoDivider: { height: 1, backgroundColor: c.isDark ? 'rgba(255,255,255,0.07)' : '#ebebf0', marginHorizontal: 18 },
@@ -448,6 +482,11 @@ export default function ReviewConfirmScreen() {
                 <Text style={styles.stationName} numberOfLines={2}>
                   {boardingStation || '—'}
                 </Text>
+                {!!boardingScheduledTime && (
+                  <Text style={styles.stationScheduledTime}>
+                    {t('boarding_time_label')}: {formatCairoTime(boardingScheduledTime)}
+                  </Text>
+                )}
               </View>
 
               <View style={{ height: 18 }} />
@@ -460,6 +499,11 @@ export default function ReviewConfirmScreen() {
                 <Text style={styles.stationName} numberOfLines={2}>
                   {dropOffStation || '—'}
                 </Text>
+                {!!alightingScheduledTime && (
+                  <Text style={styles.stationScheduledTime}>
+                    {t('alighting_time_label')}: {formatCairoTime(alightingScheduledTime)}
+                  </Text>
+                )}
               </View>
             </View>
           </View>

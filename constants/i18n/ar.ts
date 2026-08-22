@@ -12,6 +12,8 @@ export const ar: typeof en = {
   selected_trip: 'الرحلة المختارة',
   boarding: 'مكان الصعود',
   drop_off: 'مكان النزول',
+  boarding_time_label: 'موعد الصعود',
+  alighting_time_label: 'موعد النزول',
   confirm_book: 'تأكيد الحجز',
   no_trips_this_date: 'لا توجد رحلات لهذا اليوم',
   promo_code: 'كود خصم',

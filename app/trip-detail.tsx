@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
-import { shuttleStatusLabel, formatCairoDateTime } from '@/constants/data';
+import { shuttleStatusLabel, formatCairoDateTime, formatCairoTime } from '@/constants/data';
 import type { ShuttleDirection } from '@/constants/data';
 import { shuttleStatusColor } from '@/components/shuttle/tripSheetHelpers';
 import { useActiveSession } from '@/context/ActiveSessionContext';
@@ -61,6 +61,13 @@ interface TripDetail {
   pickupLat?: number | null;
   pickupLng?: number | null;
   pickupStationId?: number | null;
+  /** Scheduled time at this booking's boarding/alighting station — derived
+   *  before the trip starts, frozen once it has (GET /bookings/:id's
+   *  boardingScheduledTime/alightingScheduledTime). Distinct from `time`
+   *  above, which is the trip's departure from the route's first station,
+   *  not necessarily this passenger's own boarding station. */
+  boardingScheduledTime?: string | null;
+  alightingScheduledTime?: string | null;
   driverName?: string | null;
   driverUserId?: number | null;
   /** This trip's physical direction, when the backend provides it — never fabricated. */
@@ -188,7 +195,10 @@ function mapApiToDetail(b: any): TripDetail {
     trip.departureTime ?? b.scheduledAt ?? '';
   // §21.9: display in Africa/Cairo, not UTC
   const { date, time } = formatCairoDateTime(departureIso);
-  const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
+  // GET /bookings/:id returns the boarding station as `fromStation` (not
+  // `pickupStation`) — kept as a fallback in case another response shape
+  // (e.g. the GET /users/me/bookings list fallback) still uses the older name.
+  const pickupStation = b.fromStation ?? trip.pickupStation ?? b.pickupStation ?? null;
   return {
     id: trip.id ?? b.id ?? '',
     // Distinct from `id` above (which resolves to the trip id when available) —
@@ -212,6 +222,8 @@ function mapApiToDetail(b: any): TripDetail {
     pickupLat: pickupStation?.latitude ?? null,
     pickupLng: pickupStation?.longitude ?? null,
     pickupStationId: pickupStation?.id ?? null,
+    boardingScheduledTime: b.boardingScheduledTime ?? null,
+    alightingScheduledTime: b.alightingScheduledTime ?? null,
     driverName: trip.driver?.name ?? b.driver?.name ?? null,
     driverUserId: trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
     direction: trip.direction ?? b.direction ?? undefined,
@@ -1165,6 +1177,15 @@ export default function TripDetailScreen() {
               { label: t('time_label'), value: trip.time },
               { label: t('seat_label'), value: trip.seat },
               { label: t('price_label'), value: `${trip.price} ${t('egp')}` },
+              // Only shown when this booking has its own boarding/alighting
+              // station — falls back to nothing (not the trip-wide `time`
+              // above) rather than imply a time that isn't this passenger's.
+              ...(trip.boardingScheduledTime
+                ? [{ label: t('boarding_time_label'), value: formatCairoTime(trip.boardingScheduledTime) }]
+                : []),
+              ...(trip.alightingScheduledTime
+                ? [{ label: t('alighting_time_label'), value: formatCairoTime(trip.alightingScheduledTime) }]
+                : []),
             ].map((item) => (
               <View key={item.label} style={styles.gridItem}>
                 <Text style={styles.gridLabel}>{item.label}</Text>
