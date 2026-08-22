@@ -62,16 +62,16 @@ export const TransactionItemSchema = z.object({
   createdAt: z.string().optional(),
 }).passthrough();
 
-/** One item of GET /users/me/bookings (shuttle trip bookings). */
+/** One item of GET /shuttle/my-trips (shuttle trip bookings) — flat shape, no nested `trip`/`route`. */
 export const BookingItemSchema = z.object({
-  id: z.union([z.string(), z.number()]).optional(),
+  bookingId: z.union([z.string(), z.number()]).optional(),
+  tripId: z.union([z.string(), z.number()]).optional(),
   status: z.string().optional(),
-  seatNumber: z.union([z.string(), z.number()]).optional(),
-  totalPrice: z.number().optional(),
-  trip: z.object({
-    id: z.union([z.string(), z.number()]).optional(),
-    departureTime: z.string().optional(),
-  }).passthrough().optional(),
+  tripStatus: z.string().optional(),
+  departureTime: z.string().optional(),
+  routeName: z.string().nullable().optional(),
+  toLocation: z.string().nullable().optional(),
+  ticketPrice: z.number().optional(),
 }).passthrough();
 
 /**

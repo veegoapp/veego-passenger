@@ -45,65 +45,66 @@ function mapBackendStatus(raw: string): ShuttleTripStatus {
  * Maps a raw item from GET /shuttle/my-trips into the normalized Trip model.
  * Always tagged type: 'shuttle' — the source endpoint already tells us this.
  * Departure times are formatted in Africa/Cairo timezone per §21.9.
+ *
+ * The backend (getMyShuttleTrips, shuttleService.ts) returns a FLAT object —
+ * no nested `trip`/`route` — with `tripId`, `bookingId`, `routeName`,
+ * `toLocation`, `fromStation: {id, name} | null`, `date`, `departureTime`,
+ * `driverName`, `driverRating`, `status` (booking status), `tripStatus` (raw
+ * trip status — the authoritative one for upcoming/cancelled filtering),
+ * `ticketPrice`, `paymentStatus`, `passengerRating`, `direction`,
+ * `totalSeats`, `passengerCount`, `canCancel`.
  */
 function mapShuttleTrip(b: any): Trip {
-  const trip  = b.trip  ?? {};
-  const route = trip.route ?? trip.shuttleLine ?? trip.line ?? {};
-
   const rawBookingStatus = (b.status ?? '').toLowerCase() as BookingStatus;
-  const rawTripStatus    = (trip.shuttleStatus ?? trip.status ?? '').toLowerCase();
+  const rawTripStatus    = (b.tripStatus ?? '').toLowerCase();
+  // tripStatus is authoritative for whether this trip is still upcoming (it's
+  // the real trips.status column — auto-cancelled/expired trips flip it to
+  // 'cancelled'/'completed' independently of the booking's own status).
   const status: ShuttleTripStatus = mapBackendStatus(rawTripStatus || rawBookingStatus);
 
-  const departureIso = trip.departureTime ?? b.scheduledAt ?? '';
+  const departureIso = b.departureTime ?? '';
   const { date, time } = formatCairoDateTime(departureIso);
 
-  const routeName   = route.name   ?? trip.name ?? '—';
-  const routeNameAr = route.nameAr ?? null;
+  const routeName = b.routeName ?? '—';
+  const from      = b.fromStation?.name ?? '—';
+  const to        = b.toLocation ?? '—';
+  const routeCode = b.tripId ? `L${b.tripId}` : '—';
 
-  const from   = route.fromLocation   ?? route.from ?? b.pickupAddress ?? '—';
-  const fromAr = route.fromLocationAr ?? null;
-
-  const to     = route.toLocation   ?? route.to ?? b.destinationAddress ?? '—';
-  const toAr   = route.toLocationAr ?? null;
-
-  const routeCode = route.code ?? (trip.lineId ? `L${trip.lineId}` : '—');
-
-  const pickupStation = trip.pickupStation ?? b.pickupStation ?? null;
-  const direction = trip.direction ?? b.direction ?? undefined;
+  const direction = b.direction ?? undefined;
 
   // Backend field is authoritative; only fall back to a status-based guess when it's absent.
   const canCancel: boolean =
     typeof b.canCancel === 'boolean' ? b.canCancel : FALLBACK_CANCELLABLE_STATUSES.includes(status);
 
   return {
-    id:   String(b.id ?? Math.random()),
+    id:   String(b.bookingId ?? Math.random()),
     type: 'shuttle',
     routeCode,
     routeName,
-    routeNameAr,
+    routeNameAr:  null,
     from,
-    fromAr,
+    fromAr:       null,
     to,
-    toAr,
+    toAr:         null,
     date,
     time,
     departureIso,
-    seat: b.seatNumber ?? b.seat ?? '—',
+    seat: '—',
     status,
     bookingStatus: rawBookingStatus || undefined,
     paymentStatus: b.paymentStatus as PaymentStatus | undefined,
-    price:         b.totalPrice ?? trip.price ?? b.price ?? 0,
-    tripId:        trip.id ?? b.tripId ?? null,
-    bookingId:     String(b.id ?? ''),
-    pickupLat:     pickupStation?.latitude ?? null,
-    pickupLng:     pickupStation?.longitude ?? null,
-    passengerCount: trip.passengerCount ?? null,
-    minPassengers:  trip.minPassengers  ?? null,
-    seatCount:      b.seatCount         ?? 1,
-    promoCodeId:    b.promoCodeId       ?? null,
-    vehicleType:    trip.vehicleType    ?? undefined,
-    totalSeats:     trip.totalSeats     ?? undefined,
-    availableSeats: trip.availableSeats ?? undefined,
+    price:         b.ticketPrice ?? 0,
+    tripId:        b.tripId ?? null,
+    bookingId:     String(b.bookingId ?? ''),
+    pickupLat:     null,
+    pickupLng:     null,
+    passengerCount: b.passengerCount ?? null,
+    minPassengers:  undefined,
+    seatCount:      1,
+    promoCodeId:    null,
+    vehicleType:    undefined,
+    totalSeats:     b.totalSeats ?? undefined,
+    availableSeats: undefined,
     direction,
     canCancel,
   };
