@@ -24,8 +24,14 @@ interface UseTripsResult {
 
 const PAGE_LIMIT = 10;
 
-/** Statuses a shuttle booking can still be self-cancelled from, used only when the backend omits `canCancel`. */
-const FALLBACK_CANCELLABLE_STATUSES: ShuttleTripStatus[] = ['scheduled', 'waiting_driver', 'driver_assigned', 'upcoming'];
+/**
+ * Statuses a shuttle booking can still be self-cancelled from, used only
+ * when the backend omits `canCancel`. Deliberately excludes 'upcoming' —
+ * mapBackendStatus's default case, i.e. a genuinely unrecognized backend
+ * status. An unknown status should default to NOT cancellable, not the
+ * other way around.
+ */
+const FALLBACK_CANCELLABLE_STATUSES: ShuttleTripStatus[] = ['scheduled', 'waiting_driver', 'driver_assigned'];
 
 function mapBackendStatus(raw: string): ShuttleTripStatus {
   switch (raw.toLowerCase()) {
