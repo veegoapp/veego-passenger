@@ -214,18 +214,39 @@ export type Notification = {
 
 // ── Date helpers ─────────────────────────────────────────────────
 
+/**
+ * "Today" in Africa/Cairo as { y, m, d } — trips are filtered against this
+ * timezone (see tripSheetHelpers.ts::formatTripDateUTC), so the date picker
+ * must be anchored the same way. Using device-local time here made booking
+ * compare mismatched calendar dates on any device not already set to Cairo.
+ */
+function getCairoYMD(date: Date): { y: number; m: number; d: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  return {
+    y: Number(parts.find((p) => p.type === 'year')?.value),
+    m: Number(parts.find((p) => p.type === 'month')?.value),
+    d: Number(parts.find((p) => p.type === 'day')?.value),
+  };
+}
+
 /** 7-day date selector used in booking UI */
 export const DATES = (() => {
   const result: { id: string; label: string; day: string; date: string }[] = [];
-  const now = new Date();
+  const { y, m, d } = getCairoYMD(new Date());
   for (let i = 0; i < 7; i++) {
-    const d = new Date(now);
-    d.setDate(now.getDate() + i);
+    // Once anchored to Cairo's current calendar date, walk forward with pure
+    // UTC-midnight arithmetic and format with timeZone: 'UTC' — the
+    // calendar date this represents never shifts regardless of the device's
+    // own timezone, and matches formatTripDateUTC's output format exactly.
+    const anchor = new Date(Date.UTC(y, m - 1, d + i));
+    const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'short' }).format(anchor);
     result.push({
       id: `d${i}`,
-      label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' }),
-      day: d.getDate().toString().padStart(2, '0'),
-      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : weekday,
+      day: String(anchor.getUTCDate()).padStart(2, '0'),
+      date: new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }).format(anchor),
     });
   }
   return result;

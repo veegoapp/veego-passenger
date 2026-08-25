@@ -335,18 +335,25 @@ export default function TripsScreen() {
         ) : (
           <>
             {upcoming.map((trip) => {
-              // ── Strict ghost-trip guard ───────────────────────────────────
+              // ── Ghost-trip guard ────────────────────────────────────────────
+              // Route name is a genuine invalid-data signal. A missing boarding
+              // station is not — a paid booking made without picking a station
+              // is a real, valid trip and used to vanish from this list entirely.
               const hasValidRoute =
                 (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
-              const hasValidStations =
-                (trip.from && trip.from !== '—') || !!trip.fromAr;
-              if (!trip || !hasValidRoute || !hasValidStations) return null;
+              if (!trip || !hasValidRoute) return null;
 
               const patch = trip.tripId ? (liveUpdates[String(trip.tripId)] ?? {}) : {};
               const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status | 'pending';
               const effectivePassCount =
                 patch.passengerCount !== undefined ? patch.passengerCount : trip.passengerCount;
               const isLive = !!patch.status || patch.passengerCount !== undefined;
+
+              // A live cancellation used to only patch the status badge — the
+              // card stayed in Upcoming with an active Cancel button that then
+              // failed with "already cancelled." A full refetch will drop it
+              // from this list properly; until then, stop rendering it here.
+              if (effectiveStatus === 'cancelled') return null;
 
               const isUpcoming =
                 trip.id !== 'live' &&
@@ -417,12 +424,13 @@ export default function TripsScreen() {
         ) : (
           <>
             {pastTrips.map((trip) => {
-              // ── Strict ghost-trip guard ───────────────────────────────────
+              // ── Ghost-trip guard ────────────────────────────────────────────
+              // Route name is a genuine invalid-data signal. A missing boarding
+              // station is not — a paid booking made without picking a station
+              // is a real, valid trip and used to vanish from this list entirely.
               const hasValidRoute =
                 (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
-              const hasValidStations =
-                (trip.from && trip.from !== '—') || !!trip.fromAr;
-              if (!trip || !hasValidRoute || !hasValidStations) return null;
+              if (!trip || !hasValidRoute) return null;
 
               const fadeAnim = getFadeAnim(trip.bookingId || trip.id);
 

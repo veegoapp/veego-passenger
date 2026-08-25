@@ -406,6 +406,7 @@ export const en = {
   password_reset_success: 'Password reset! Please sign in with your new password.',
 
   ticket_load_error: 'Could not load your ticket. Please go back and try again.',
+  ticket_session_slow: "This is taking longer than expected. Your booking may still have gone through — check My Trips, or retry loading your ticket.",
   go_back: 'Go Back',
 
   seat_count: 'Seats',
@@ -457,6 +458,8 @@ export const en = {
   seats_taken_title: 'Seats Taken',
   seats_taken_msg: 'Sorry, those seats were just taken. Please check for another trip.',
   booking_failed_title: 'Booking Failed',
+  booking_unclear_title: 'Something Went Wrong',
+  booking_unclear_msg: "We couldn't confirm your booking went through. If you were charged, please contact support before trying again — do not book twice.",
   no_trip_selected: 'No trip selected. Please select a departure time.',
   booking_station_mismatch: "Selected boarding station does not match this trip's direction. Please choose a station again.",
   booking_stations_required: 'Please select both a boarding station and a destination station to continue.',

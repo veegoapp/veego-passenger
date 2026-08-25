@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { useNotifications } from '@/src/hooks/shared/useNotifications';
+import { useNotificationsBadge } from '@/context/NotificationsBadgeContext';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
@@ -56,6 +57,7 @@ export default function NotificationsScreen() {
   const styles = useMemo(() => makeStyles(c), [c]);
   const iconBg = c.isDark ? ICON_BG_DARK : ICON_BG_LIGHT;
   const { notifications, unreadCount, loading, error, markAllRead, refresh } = useNotifications();
+  const { refresh: refreshBadge } = useNotificationsBadge();
 
   return (
     <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
@@ -71,7 +73,7 @@ export default function NotificationsScreen() {
             <Text style={styles.unreadCount}>{unreadCount} {t('new_notif')}</Text>
           )}
         </View>
-        <TouchableOpacity activeOpacity={0.7} onPress={markAllRead}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => { markAllRead(); refreshBadge(); }}>
           <GlassView style={styles.backBtn} borderRadius={20}>
             <CheckCheck size={16} color={c.ink} />
           </GlassView>

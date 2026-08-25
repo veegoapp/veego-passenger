@@ -158,6 +158,12 @@ function byNewestFirst(a: Trip, b: Trip): number {
   return (isNaN(bt) ? 0 : bt) - (isNaN(at) ? 0 : at);
 }
 
+function bySoonestFirst(a: Trip, b: Trip): number {
+  const at = new Date(a.departureIso).getTime();
+  const bt = new Date(b.departureIso).getTime();
+  return (isNaN(at) ? 0 : at) - (isNaN(bt) ? 0 : bt);
+}
+
 async function fetchShuttlePage(page: number) {
   const res = await getMyTrips(page, PAGE_LIMIT);
   if (__DEV__ && res.data.length > 0) checkContract('Shuttle my-trips item', res.data[0], BookingItemSchema);
@@ -184,7 +190,7 @@ export function useTrips(): UseTripsResult {
   const ride    = usePaginatedList(fetchRidePage, 'Failed to load ride trips');
 
   const upcomingTrips = useMemo(
-    () => shuttle.items.map(mapShuttleTrip).filter((t) => isShuttleTripUpcoming(t.status)),
+    () => shuttle.items.map(mapShuttleTrip).filter((t) => isShuttleTripUpcoming(t.status)).sort(bySoonestFirst),
     [shuttle.items],
   );
 

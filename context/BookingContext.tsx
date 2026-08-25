@@ -95,6 +95,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const getServiceRef = useRef(getService);
   getServiceRef.current = getService;
   const confirmingRef = useRef(false);
+  // One idempotency key per pending booking attempt — reused across retries
+  // of the SAME attempt (e.g. after a timeout) so a duplicate POST /bookings
+  // never double-charges. Regenerated only when a genuinely new booking is
+  // prepared (handleBook/prepareBooking below).
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const newIdempotencyKey = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [tripSheetOpen, setTripSheetOpen] = useState(false);
@@ -189,10 +195,12 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const prepareBooking = useCallback((booking: Booking) => {
+    idempotencyKeyRef.current = newIdempotencyKey();
     setPendingBooking(booking);
   }, []);
 
   const handleBook = useCallback((booking: Booking) => {
+    idempotencyKeyRef.current = newIdempotencyKey();
     setTripSheetOpen(false);
     setPendingBooking(booking);
     setTimeout(() => setConfirmSheetOpen(true), 280);
@@ -274,7 +282,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (pendingBooking.boardingStationId) body.boardingStationId = Number(pendingBooking.boardingStationId);
       if (pendingBooking.alightingStationId) body.alightingStationId = Number(pendingBooking.alightingStationId);
 
-      const { data } = await api.post('/bookings', body);
+      const { data } = await api.post('/bookings', body, {
+        headers: { 'Idempotency-Key': idempotencyKeyRef.current ?? newIdempotencyKey() },
+      });
       const bookingId = data?.id ?? data?.booking?.id ?? null;
 
       if (bookingId) {
@@ -294,6 +304,14 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         } catch (socketErr) {
           console.warn('[BookingContext] Socket join failed:', socketErr);
         }
+      } else {
+        // A 2xx response with no recognizable booking id — the request
+        // reached the server (it may well have succeeded and charged the
+        // wallet) but this screen had no way to tell. Previously this fell
+        // through silently: no success, no error, no navigation.
+        console.warn('[BookingContext] Unexpected booking response shape:', data);
+        setBookingError(t('booking_unclear_msg'));
+        showAppAlert(t('booking_unclear_title'), t('booking_unclear_msg'));
       }
     } catch (e: any) {
       const status = e?.response?.status;
