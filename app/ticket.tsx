@@ -597,6 +597,11 @@ export default function TicketScreen() {
                 <View style={[styles.statusBadgeDot, { backgroundColor: '#22c55e' }]} />
                 <Text style={[styles.statusBadgeText, { color: '#22c55e' }]}>{t('active')}</Text>
               </View>
+            ) : liveStatus === 'boarding' ? (
+              <View style={[styles.statusBadge, { backgroundColor: 'rgba(124,58,237,0.2)' }]}>
+                <View style={[styles.statusBadgeDot, { backgroundColor: '#7c3aed' }]} />
+                <Text style={[styles.statusBadgeText, { color: '#7c3aed' }]}>{t('status_boarding')}</Text>
+              </View>
             ) : liveStatus === 'pending' ? (
               <View style={[styles.statusBadge, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
                 <View style={[styles.statusBadgeDot, { backgroundColor: '#f59e0b' }]} />
