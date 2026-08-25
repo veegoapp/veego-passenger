@@ -72,11 +72,12 @@ export default function TripsScreen() {
   const top = insets.top;
   const { tabBarHeight } = useTabBar();
   const { session } = useActiveSession();
+  const { colors: c, t, language } = useTheme();
+  const dateLocale = language === 'ar' ? 'ar-EG' : 'en-US';
   const shuttleSession = session?.kind === 'shuttle' ? session : null;
   const { date: sessionDate, time: sessionTime } = shuttleSession
-    ? formatCairoDateTime(shuttleSession.trip.departureTime)
+    ? formatCairoDateTime(shuttleSession.trip.departureTime, dateLocale)
     : { date: '', time: '' };
-  const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const routeColors = c.isDark ? ROUTE_COLORS_DARK : ROUTE_COLORS_LIGHT;
 

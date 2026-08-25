@@ -512,7 +512,7 @@ export default function TripDetailScreen() {
     const matchesBookingId = id && String(s.bookingId)  === String(id);
     if (!matchesTripId && !matchesBookingId) return;
 
-    const { date, time } = formatCairoDateTime(s.trip.departureTime);
+    const { date, time } = formatCairoDateTime(s.trip.departureTime, isRTL ? 'ar-EG' : 'en-US');
     setTrip({
       id:             s.trip.id,
       bookingId:      s.bookingId,

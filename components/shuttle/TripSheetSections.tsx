@@ -16,7 +16,8 @@ import {
 import * as Haptics from 'expo-haptics';
 import type { ThemeColors } from '@/constants/colors';
 import type { Route } from '@/constants/data';
-import { DATES, formatCairoTime, shuttleStatusLabel } from '@/constants/data';
+import type { DateOption } from '@/constants/data';
+import { formatCairoTime, shuttleStatusLabel } from '@/constants/data';
 import { Spacing } from '@/constants/spacing';
 import { GlassView } from '@/components/ui/GlassView';
 import {
@@ -162,8 +163,8 @@ export function StatsRow({ styles, c, t, route, visibleTripsCount }: {
 }
 
 /** ── Date selector strip ── */
-export function DateSelector({ styles, selectedDateIdx, onSelectDate }: {
-  styles: any; selectedDateIdx: number; onSelectDate: (idx: number) => void;
+export function DateSelector({ styles, dates, selectedDateIdx, onSelectDate }: {
+  styles: any; dates: DateOption[]; selectedDateIdx: number; onSelectDate: (idx: number) => void;
 }) {
   return (
     <View style={styles.dateSelectorWrap}>
@@ -172,7 +173,7 @@ export function DateSelector({ styles, selectedDateIdx, onSelectDate }: {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingEnd: 12 }}
       >
-        {DATES.map((d, i) => {
+        {dates.map((d, i) => {
           const active = i === selectedDateIdx;
           return (
             <TouchableOpacity

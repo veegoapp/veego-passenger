@@ -460,6 +460,7 @@ export const en = {
   booking_failed_title: 'Booking Failed',
   booking_unclear_title: 'Something Went Wrong',
   booking_unclear_msg: "We couldn't confirm your booking went through. If you were charged, please contact support before trying again — do not book twice.",
+  booking_timeout_msg: "The request timed out and we couldn't confirm whether it went through. Check My Trips before retrying — it's safe to try again if nothing shows up there.",
   no_trip_selected: 'No trip selected. Please select a departure time.',
   booking_station_mismatch: "Selected boarding station does not match this trip's direction. Please choose a station again.",
   booking_stations_required: 'Please select both a boarding station and a destination station to continue.',

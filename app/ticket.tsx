@@ -282,7 +282,7 @@ export default function TicketScreen() {
 
   // All display values come from ActiveSession — no synthetic fallbacks.
   const { date: sessionDate, time: sessionTime } = shuttleSession
-    ? formatCairoDateTime(shuttleSession.trip.departureTime)
+    ? formatCairoDateTime(shuttleSession.trip.departureTime, isRTL ? 'ar-EG' : 'en-US')
     : { date: '', time: '' };
   const displayRouteName   = shuttleSession?.trip.route.name   ?? '';
   const displayRouteNameAr = shuttleSession?.trip.route.nameAr ?? null;

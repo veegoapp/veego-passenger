@@ -107,6 +107,9 @@ function mapShuttleTrip(b: any): Trip {
     availableSeats: undefined,
     direction,
     canCancel,
+    driverName:      b.driverName ?? null,
+    driverRating:    typeof b.driverRating === 'number' ? b.driverRating : null,
+    passengerRating: typeof b.passengerRating === 'number' ? b.passengerRating : null,
   };
 }
 

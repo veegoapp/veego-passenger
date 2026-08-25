@@ -175,9 +175,14 @@ export type Trip = {
   direction?: ShuttleDirection;
   /** Whether this booking can be self-cancelled — from backend `canCancel`, with a status-based fallback when absent. */
   canCancel?: boolean;
+  /** Driver's name and rating, sent by GET /shuttle/my-trips. */
+  driverName?: string | null;
+  driverRating?: number | null;
+  /** The passenger's own rating already given for this trip, if any (used to show "already rated"). */
+  passengerRating?: number | null;
 };
 
-/** Pending booking held in BookingContext while user reviews in ConfirmSheet */
+/** Pending booking held in BookingContext while user reviews on /review-confirm */
 export type Booking = {
   route: Route;
   fromIdx: number;
@@ -231,9 +236,16 @@ function getCairoYMD(date: Date): { y: number; m: number; d: number } {
   };
 }
 
-/** 7-day date selector used in booking UI */
-export const DATES = (() => {
-  const result: { id: string; label: string; day: string; date: string }[] = [];
+export type DateOption = { id: string; label: string; day: string; date: string };
+
+/**
+ * 7-day date selector used in booking UI. A function, not a frozen constant —
+ * computed once at module-import time, "today" could still read "Today" a
+ * day (or more, across an app left backgrounded) after midnight, and picking
+ * it would return zero trips. Call this fresh wherever the picker is shown.
+ */
+export function getDates(): DateOption[] {
+  const result: DateOption[] = [];
   const { y, m, d } = getCairoYMD(new Date());
   for (let i = 0; i < 7; i++) {
     // Once anchored to Cairo's current calendar date, walk forward with pure
@@ -250,7 +262,7 @@ export const DATES = (() => {
     });
   }
   return result;
-})();
+}
 
 // ── Capacity constants (§4) ───────────────────────────────────────
 
@@ -323,27 +335,30 @@ export function parseNotificationBody(body: string, lang: 'ar' | 'en'): string {
  * Format a UTC ISO 8601 date string for display in Africa/Cairo timezone (§21.9).
  * Falls back to UTC if Intl timezone support is not available.
  */
-export function formatCairoDateTime(raw: string): { date: string; time: string } {
+export function formatCairoDateTime(raw: string, locale: string = 'en-US'): { date: string; time: string } {
   if (!raw) return { date: '—', time: '—' };
   const d = new Date(raw);
   if (isNaN(d.getTime())) return { date: raw, time: '—' };
   try {
-    const time = new Intl.DateTimeFormat('en-US', {
+    const time = new Intl.DateTimeFormat(locale, {
       timeZone: 'Africa/Cairo',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     }).format(d);
-    const date = new Intl.DateTimeFormat('en-US', {
+    // year included — a trip from a different year used to be
+    // indistinguishable from one this year (e.g. "12 June" either way).
+    const date = new Intl.DateTimeFormat(locale, {
       timeZone: 'Africa/Cairo',
       month: 'long',
       day: 'numeric',
+      year: 'numeric',
     }).format(d);
     return { date, time };
   } catch {
     return {
-      date: d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }),
-      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }),
+      date: d.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }),
+      time: d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }),
     };
   }
 }
@@ -351,18 +366,18 @@ export function formatCairoDateTime(raw: string): { date: string; time: string }
 /**
  * Format time-only from UTC ISO to Africa/Cairo display string.
  */
-export function formatCairoTime(raw: string): string {
+export function formatCairoTime(raw: string, locale: string = 'en-US'): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(locale, {
       timeZone: 'Africa/Cairo',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     }).format(d);
   } catch {
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false });
+    return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false });
   }
 }

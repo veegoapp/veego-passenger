@@ -27,7 +27,6 @@ import { ServiceControlProvider } from '@/context/ServiceControlContext';
 import { HomeServiceProvider } from '@/context/HomeServiceContext';
 import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
 import { TripSheet } from '@/components/shuttle/TripSheet';
-import { ConfirmSheet } from '@/components/shuttle/ConfirmSheet';
 import { AppAlertHost } from '@/components/shared/AppAlertHost';
 import { ActiveRideBanner } from '@/components/shared/ActiveRideBanner';
 import { usePushToken } from '@/src/hooks/shared/usePushToken';
@@ -296,7 +295,6 @@ function AppShell() {
         <Stack.Screen name="verify-phone"  options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
       </Stack>
       <TripSheet />
-      <ConfirmSheet />
       <AppAlertHost />
       <ActiveRideBanner />
     </View>

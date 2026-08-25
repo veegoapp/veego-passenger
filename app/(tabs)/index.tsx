@@ -198,13 +198,13 @@ export default function HomeScreen() {
   ));
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openRoute } = useBooking();
+  const { colors: c, t, isRTL, language } = useTheme();
+  const isAr = language === 'ar';
   const { session: activeSession } = useActiveSession();
   const shuttleHeroSession = activeSession?.kind === 'shuttle' ? activeSession : null;
   const { time: heroTime } = shuttleHeroSession
-    ? formatCairoDateTime(shuttleHeroSession.trip.departureTime)
+    ? formatCairoDateTime(shuttleHeroSession.trip.departureTime, isRTL ? 'ar-EG' : 'en-US')
     : { time: '' };
-  const { colors: c, t, isRTL, language } = useTheme();
-  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes, refresh: refreshRoutes } = useRoutes();
   const { setVisible: setTabBarVisible, tabBarHeight } = useTabBar();
