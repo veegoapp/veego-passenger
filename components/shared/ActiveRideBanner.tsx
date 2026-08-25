@@ -201,11 +201,10 @@ const styles = StyleSheet.create({
     width:  BUBBLE_SIZE,
     height: BUBBLE_SIZE,
     // Higher than any sibling overlay in app/_layout.tsx — TripSheet (9999)
-    // and ConfirmSheet (9998) are plain absolutely-positioned views, so
-    // among siblings the highest zIndex wins regardless of JSX declaration
-    // order. (AppAlertHost uses a native Modal, which always renders above
-    // the entire JS tree regardless of zIndex — this bubble is expected to
-    // sit below an actual alert dialog.)
+    // is a plain absolutely-positioned view, so among siblings the highest
+    // zIndex wins regardless of JSX declaration order. (AppAlertHost uses a
+    // native Modal, which always renders above the entire JS tree regardless
+    // of zIndex — this bubble is expected to sit below an actual alert dialog.)
     zIndex: 99999,
     alignItems: 'center',
     justifyContent: 'center',

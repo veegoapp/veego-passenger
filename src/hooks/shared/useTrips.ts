@@ -24,8 +24,14 @@ interface UseTripsResult {
 
 const PAGE_LIMIT = 10;
 
-/** Statuses a shuttle booking can still be self-cancelled from, used only when the backend omits `canCancel`. */
-const FALLBACK_CANCELLABLE_STATUSES: ShuttleTripStatus[] = ['scheduled', 'waiting_driver', 'driver_assigned', 'upcoming'];
+/**
+ * Statuses a shuttle booking can still be self-cancelled from, used only
+ * when the backend omits `canCancel`. Deliberately excludes 'upcoming' —
+ * mapBackendStatus's default case, i.e. a genuinely unrecognized backend
+ * status. An unknown status should default to NOT cancellable, not the
+ * other way around.
+ */
+const FALLBACK_CANCELLABLE_STATUSES: ShuttleTripStatus[] = ['scheduled', 'waiting_driver', 'driver_assigned'];
 
 function mapBackendStatus(raw: string): ShuttleTripStatus {
   switch (raw.toLowerCase()) {
@@ -107,6 +113,9 @@ function mapShuttleTrip(b: any): Trip {
     availableSeats: undefined,
     direction,
     canCancel,
+    driverName:      b.driverName ?? null,
+    driverRating:    typeof b.driverRating === 'number' ? b.driverRating : null,
+    passengerRating: typeof b.passengerRating === 'number' ? b.passengerRating : null,
   };
 }
 
@@ -158,6 +167,12 @@ function byNewestFirst(a: Trip, b: Trip): number {
   return (isNaN(bt) ? 0 : bt) - (isNaN(at) ? 0 : at);
 }
 
+function bySoonestFirst(a: Trip, b: Trip): number {
+  const at = new Date(a.departureIso).getTime();
+  const bt = new Date(b.departureIso).getTime();
+  return (isNaN(at) ? 0 : at) - (isNaN(bt) ? 0 : bt);
+}
+
 async function fetchShuttlePage(page: number) {
   const res = await getMyTrips(page, PAGE_LIMIT);
   if (__DEV__ && res.data.length > 0) checkContract('Shuttle my-trips item', res.data[0], BookingItemSchema);
@@ -184,7 +199,7 @@ export function useTrips(): UseTripsResult {
   const ride    = usePaginatedList(fetchRidePage, 'Failed to load ride trips');
 
   const upcomingTrips = useMemo(
-    () => shuttle.items.map(mapShuttleTrip).filter((t) => isShuttleTripUpcoming(t.status)),
+    () => shuttle.items.map(mapShuttleTrip).filter((t) => isShuttleTripUpcoming(t.status)).sort(bySoonestFirst),
     [shuttle.items],
   );
 

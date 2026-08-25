@@ -16,7 +16,7 @@ import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
 import { Animation } from '@/constants/animations';
-import { calcSegmentPrice, DATES, formatCairoTime } from '@/constants/data';
+import { calcSegmentPrice, getDates, formatCairoTime } from '@/constants/data';
 import type { ShuttleDirection } from '@/constants/data';
 import { RequestTripSheet } from '@/components/shuttle/RequestTripSheet';
 import { useEnabledTripRequestRoutes } from '@/src/hooks/shuttle/useEnabledTripRequestRoutes';
@@ -315,7 +315,7 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
 
 export function TripSheet() {
   const {
-    tripSheetOpen, closeTripSheet, selectedRoute, handleBook, prepareBooking,
+    tripSheetOpen, closeTripSheet, selectedRoute, prepareBooking,
     routeLoading, tripsLoading, scheduledTrips,
     openRoute, seatCount, setSeatCount,
   } = useBooking();
@@ -336,11 +336,21 @@ export function TripSheet() {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [visible, setVisible] = useState(false);
+  // Synchronous re-entrancy guard for the Book button — `valid` alone
+  // doesn't change until React re-renders, so two rapid taps in the same
+  // frame both fired, stacking two review-confirm screens. Reset whenever
+  // the sheet opens fresh.
+  const bookSubmittedRef = useRef(false);
+  useEffect(() => { if (visible) bookSubmittedRef.current = false; }, [visible]);
   const [fromIdx, setFromIdx] = useState(0);
   const [toIdx, setToIdx] = useState(1);
   const [timeIdx, setTimeIdx] = useState(0);
   const [pick, setPick] = useState<'from' | 'to'>('from');
   const [selectedDateIdx, setSelectedDateIdx] = useState(0);
+  // Recomputed each time the sheet opens — a getDates() called once at
+  // module-load could still call yesterday "Today" for a passenger who left
+  // the app open (or backgrounded) across midnight.
+  const DATES = useMemo(() => getDates(), [visible]);
   const [requestSheetOpen, setRequestSheetOpen] = useState(false);
   const { enabledIds: tripRequestEnabledIds } = useEnabledTripRequestRoutes();
 
@@ -552,6 +562,7 @@ export function TripSheet() {
           {/* ── Date selector strip ── */}
           <DateSelector
             styles={styles}
+            dates={DATES}
             selectedDateIdx={selectedDateIdx}
             onSelectDate={(i) => {
               setSelectedDateIdx(i);
@@ -651,10 +662,12 @@ export function TripSheet() {
             activeOpacity={0.88}
             onPress={() => {
               if (!valid) return;
+              if (bookSubmittedRef.current) return;
               // Last-line guard: don't let a stale render through to booking
               // if the boarding/drop-off stations don't match the trip's
               // direction (the picker above should already prevent this).
               if (!stationsMatchTripDirection) return;
+              bookSubmittedRef.current = true;
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               const trip = visibleTrips[safeTimeIdx];
               const tripDate = formatTripDateUTC(trip?.departureTime ?? '');

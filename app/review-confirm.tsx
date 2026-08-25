@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   Platform, TextInput,
@@ -73,6 +73,11 @@ export default function ReviewConfirmScreen() {
   const [promoDiscount, setPromoDiscount] = useState('');
   const [promoError, setPromoError]   = useState('');
   const [appliedCode, setAppliedCode] = useState('');
+  // The baseTotal a promo was last validated against — the live per-seat
+  // fare preview can still be loading when the passenger applies a promo,
+  // so the server-side validation (min-order thresholds, discount caps) may
+  // have run against an estimate. Re-validate once the real fare lands.
+  const validatedAgainstRef = useRef<number | null>(null);
   const [inputFocused, setInputFocused] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'wallet'>('cash');
 
@@ -165,6 +170,7 @@ export default function ReviewConfirmScreen() {
     setPromoStatus('loading');
     setPromoError('');
 
+    validatedAgainstRef.current = baseTotal;
     const result = await validateCode(code, baseTotal);
     if (result.valid) {
       setPromoStatus('valid');
@@ -177,6 +183,24 @@ export default function ReviewConfirmScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }, [promoInput, promoStatus, baseTotal, validateCode, t]);
+
+  // Re-validate once the live per-seat fare lands, if a promo was already
+  // applied against the (possibly different) estimated total.
+  useEffect(() => {
+    if (promoStatus !== 'valid' || !appliedCode) return;
+    if (validatedAgainstRef.current === baseTotal) return;
+    validatedAgainstRef.current = baseTotal;
+    validateCode(appliedCode, baseTotal).then((result) => {
+      if (result.valid) {
+        setPromoDiscount(result.discount ?? '');
+      } else {
+        setPromoStatus('invalid');
+        setPromoDiscount('');
+        setAppliedCode('');
+        setPromoError(result.message ?? t('promo_invalid'));
+      }
+    }).catch(() => {});
+  }, [baseTotal, promoStatus, appliedCode, validateCode, t]);
 
   const clearPromo = useCallback(() => {
     setPromoInput(''); setPromoStatus('idle');

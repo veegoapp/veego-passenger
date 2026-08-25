@@ -175,9 +175,14 @@ export type Trip = {
   direction?: ShuttleDirection;
   /** Whether this booking can be self-cancelled — from backend `canCancel`, with a status-based fallback when absent. */
   canCancel?: boolean;
+  /** Driver's name and rating, sent by GET /shuttle/my-trips. */
+  driverName?: string | null;
+  driverRating?: number | null;
+  /** The passenger's own rating already given for this trip, if any (used to show "already rated"). */
+  passengerRating?: number | null;
 };
 
-/** Pending booking held in BookingContext while user reviews in ConfirmSheet */
+/** Pending booking held in BookingContext while user reviews on /review-confirm */
 export type Booking = {
   route: Route;
   fromIdx: number;
@@ -214,22 +219,50 @@ export type Notification = {
 
 // ── Date helpers ─────────────────────────────────────────────────
 
-/** 7-day date selector used in booking UI */
-export const DATES = (() => {
-  const result: { id: string; label: string; day: string; date: string }[] = [];
-  const now = new Date();
+/**
+ * "Today" in Africa/Cairo as { y, m, d } — trips are filtered against this
+ * timezone (see tripSheetHelpers.ts::formatTripDateUTC), so the date picker
+ * must be anchored the same way. Using device-local time here made booking
+ * compare mismatched calendar dates on any device not already set to Cairo.
+ */
+function getCairoYMD(date: Date): { y: number; m: number; d: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  return {
+    y: Number(parts.find((p) => p.type === 'year')?.value),
+    m: Number(parts.find((p) => p.type === 'month')?.value),
+    d: Number(parts.find((p) => p.type === 'day')?.value),
+  };
+}
+
+export type DateOption = { id: string; label: string; day: string; date: string };
+
+/**
+ * 7-day date selector used in booking UI. A function, not a frozen constant —
+ * computed once at module-import time, "today" could still read "Today" a
+ * day (or more, across an app left backgrounded) after midnight, and picking
+ * it would return zero trips. Call this fresh wherever the picker is shown.
+ */
+export function getDates(): DateOption[] {
+  const result: DateOption[] = [];
+  const { y, m, d } = getCairoYMD(new Date());
   for (let i = 0; i < 7; i++) {
-    const d = new Date(now);
-    d.setDate(now.getDate() + i);
+    // Once anchored to Cairo's current calendar date, walk forward with pure
+    // UTC-midnight arithmetic and format with timeZone: 'UTC' — the
+    // calendar date this represents never shifts regardless of the device's
+    // own timezone, and matches formatTripDateUTC's output format exactly.
+    const anchor = new Date(Date.UTC(y, m - 1, d + i));
+    const weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'short' }).format(anchor);
     result.push({
       id: `d${i}`,
-      label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' }),
-      day: d.getDate().toString().padStart(2, '0'),
-      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : weekday,
+      day: String(anchor.getUTCDate()).padStart(2, '0'),
+      date: new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }).format(anchor),
     });
   }
   return result;
-})();
+}
 
 // ── Capacity constants (§4) ───────────────────────────────────────
 
@@ -302,27 +335,30 @@ export function parseNotificationBody(body: string, lang: 'ar' | 'en'): string {
  * Format a UTC ISO 8601 date string for display in Africa/Cairo timezone (§21.9).
  * Falls back to UTC if Intl timezone support is not available.
  */
-export function formatCairoDateTime(raw: string): { date: string; time: string } {
+export function formatCairoDateTime(raw: string, locale: string = 'en-US'): { date: string; time: string } {
   if (!raw) return { date: '—', time: '—' };
   const d = new Date(raw);
   if (isNaN(d.getTime())) return { date: raw, time: '—' };
   try {
-    const time = new Intl.DateTimeFormat('en-US', {
+    const time = new Intl.DateTimeFormat(locale, {
       timeZone: 'Africa/Cairo',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     }).format(d);
-    const date = new Intl.DateTimeFormat('en-US', {
+    // year included — a trip from a different year used to be
+    // indistinguishable from one this year (e.g. "12 June" either way).
+    const date = new Intl.DateTimeFormat(locale, {
       timeZone: 'Africa/Cairo',
       month: 'long',
       day: 'numeric',
+      year: 'numeric',
     }).format(d);
     return { date, time };
   } catch {
     return {
-      date: d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' }),
-      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }),
+      date: d.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }),
+      time: d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false }),
     };
   }
 }
@@ -330,18 +366,18 @@ export function formatCairoDateTime(raw: string): { date: string; time: string }
 /**
  * Format time-only from UTC ISO to Africa/Cairo display string.
  */
-export function formatCairoTime(raw: string): string {
+export function formatCairoTime(raw: string, locale: string = 'en-US'): string {
   if (!raw) return '';
   const d = new Date(raw);
   if (isNaN(d.getTime())) return raw;
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(locale, {
       timeZone: 'Africa/Cairo',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     }).format(d);
   } catch {
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false });
+    return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hour12: false });
   }
 }

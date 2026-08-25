@@ -17,6 +17,8 @@ export interface CancelBookingResult {
   bookingId: number;
   refunded: boolean;      // true only when a wallet credit was actually issued
   refundAmount: number;   // 0 when refunded is false (e.g. cash booking, or within 12h)
+  lateCancellation: boolean; // true when cancelled <12h before departure
+  debtCreated: number;    // > 0 when a repeat late cancellation added a cash debt
 }
 
 // ── Authenticated passenger endpoints ────────────────────────────

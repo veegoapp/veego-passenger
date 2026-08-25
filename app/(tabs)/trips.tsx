@@ -72,11 +72,12 @@ export default function TripsScreen() {
   const top = insets.top;
   const { tabBarHeight } = useTabBar();
   const { session } = useActiveSession();
+  const { colors: c, t, language } = useTheme();
+  const dateLocale = language === 'ar' ? 'ar-EG' : 'en-US';
   const shuttleSession = session?.kind === 'shuttle' ? session : null;
   const { date: sessionDate, time: sessionTime } = shuttleSession
-    ? formatCairoDateTime(shuttleSession.trip.departureTime)
+    ? formatCairoDateTime(shuttleSession.trip.departureTime, dateLocale)
     : { date: '', time: '' };
-  const { colors: c, t } = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const routeColors = c.isDark ? ROUTE_COLORS_DARK : ROUTE_COLORS_LIGHT;
 
@@ -205,6 +206,11 @@ export default function TripsScreen() {
       const result = await cancelBooking(bookingId);
       if (result?.refunded && result.refundAmount > 0) {
         showAppAlert(t('booking_cancelled_title'), t('ride_refund_msg').replace('{amount}', String(result.refundAmount)));
+      } else if (result?.debtCreated && result.debtCreated > 0) {
+        // A repeat late cancellation (<12h before departure) creates a real
+        // cash debt — this used to reach the passenger only later, as a
+        // blocked future booking, with no explanation at cancel time.
+        showAppAlert(t('late_cancellation_debt_title'), t('late_cancellation_debt_msg').replace('{amount}', String(result.debtCreated)));
       }
       Animated.timing(anim, {
         toValue: 0,
@@ -330,18 +336,25 @@ export default function TripsScreen() {
         ) : (
           <>
             {upcoming.map((trip) => {
-              // ── Strict ghost-trip guard ───────────────────────────────────
+              // ── Ghost-trip guard ────────────────────────────────────────────
+              // Route name is a genuine invalid-data signal. A missing boarding
+              // station is not — a paid booking made without picking a station
+              // is a real, valid trip and used to vanish from this list entirely.
               const hasValidRoute =
                 (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
-              const hasValidStations =
-                (trip.from && trip.from !== '—') || !!trip.fromAr;
-              if (!trip || !hasValidRoute || !hasValidStations) return null;
+              if (!trip || !hasValidRoute) return null;
 
               const patch = trip.tripId ? (liveUpdates[String(trip.tripId)] ?? {}) : {};
               const effectiveStatus   = (patch.status ?? trip.status) as typeof trip.status | 'pending';
               const effectivePassCount =
                 patch.passengerCount !== undefined ? patch.passengerCount : trip.passengerCount;
               const isLive = !!patch.status || patch.passengerCount !== undefined;
+
+              // A live cancellation used to only patch the status badge — the
+              // card stayed in Upcoming with an active Cancel button that then
+              // failed with "already cancelled." A full refetch will drop it
+              // from this list properly; until then, stop rendering it here.
+              if (effectiveStatus === 'cancelled') return null;
 
               const isUpcoming =
                 trip.id !== 'live' &&
@@ -412,12 +425,13 @@ export default function TripsScreen() {
         ) : (
           <>
             {pastTrips.map((trip) => {
-              // ── Strict ghost-trip guard ───────────────────────────────────
+              // ── Ghost-trip guard ────────────────────────────────────────────
+              // Route name is a genuine invalid-data signal. A missing boarding
+              // station is not — a paid booking made without picking a station
+              // is a real, valid trip and used to vanish from this list entirely.
               const hasValidRoute =
                 (trip.routeName && trip.routeName !== '—') || !!trip.routeNameAr;
-              const hasValidStations =
-                (trip.from && trip.from !== '—') || !!trip.fromAr;
-              if (!trip || !hasValidRoute || !hasValidStations) return null;
+              if (!trip || !hasValidRoute) return null;
 
               const fadeAnim = getFadeAnim(trip.bookingId || trip.id);
 

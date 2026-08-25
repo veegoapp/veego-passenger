@@ -13,7 +13,6 @@ import { useTheme } from '@/context/ThemeContext';
 type BookingContextType = {
   selectedRoute: Route | null;
   tripSheetOpen: boolean;
-  confirmSheetOpen: boolean;
   pendingBooking: Booking | null;
   confirmedBookingId: string | null;
   confirmedTripId: number | null;
@@ -26,9 +25,7 @@ type BookingContextType = {
   setSeatCount: (n: number) => void;
   openRoute: (route: Route) => void;
   closeTripSheet: () => void;
-  handleBook: (booking: Booking) => void;
   handleConfirm: (promoCode?: string, paymentMethod?: 'cash' | 'wallet') => void;
-  closeConfirmSheet: () => void;
   clearBookingError: () => void;
   refreshLineTrips: (routeId: string) => Promise<void>;
   prepareBooking: (booking: Booking) => void;
@@ -37,7 +34,6 @@ type BookingContextType = {
 const BookingContext = createContext<BookingContextType>({
   selectedRoute: null,
   tripSheetOpen: false,
-  confirmSheetOpen: false,
   pendingBooking: null,
   confirmedBookingId: null,
   confirmedTripId: null,
@@ -50,9 +46,7 @@ const BookingContext = createContext<BookingContextType>({
   setSeatCount: () => {},
   openRoute: () => {},
   closeTripSheet: () => {},
-  handleBook: () => {},
   handleConfirm: (_promoCode?: string, _paymentMethod?: 'cash' | 'wallet') => {},
-  closeConfirmSheet: () => {},
   clearBookingError: () => {},
   refreshLineTrips: async () => {},
   prepareBooking: () => {},
@@ -95,10 +89,15 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const getServiceRef = useRef(getService);
   getServiceRef.current = getService;
   const confirmingRef = useRef(false);
+  // One idempotency key per pending booking attempt — reused across retries
+  // of the SAME attempt (e.g. after a timeout) so a duplicate POST /bookings
+  // never double-charges. Regenerated only when a genuinely new booking is
+  // prepared (prepareBooking below).
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const newIdempotencyKey = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [tripSheetOpen, setTripSheetOpen] = useState(false);
-  const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
   const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
   const [confirmedTripId, setConfirmedTripId] = useState<number | null>(null);
@@ -189,19 +188,13 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const prepareBooking = useCallback((booking: Booking) => {
+    idempotencyKeyRef.current = newIdempotencyKey();
     setPendingBooking(booking);
-  }, []);
-
-  const handleBook = useCallback((booking: Booking) => {
-    setTripSheetOpen(false);
-    setPendingBooking(booking);
-    setTimeout(() => setConfirmSheetOpen(true), 280);
   }, []);
 
   const handleConfirm = useCallback(async (promoCode?: string, paymentMethod?: 'cash' | 'wallet') => {
     if (confirmingRef.current) return;
     confirmingRef.current = true;
-    setConfirmSheetOpen(false);
     if (!pendingBooking) { confirmingRef.current = false; return; }
 
     // ── Service-control gate: re-check at confirmation time ──────────────────
@@ -210,6 +203,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     if (svc && (!svc.isEnabled || svc.displayMode !== 'live')) {
       const msg = svc.unavailableMessage ?? t('service_unavailable');
       showAppAlert(t('service_unavailable'), msg);
+      confirmingRef.current = false;
       return;
     }
 
@@ -219,6 +213,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     if (!tripId) {
       setBookingError(t('no_trip_selected'));
+      confirmingRef.current = false;
       return;
     }
 
@@ -272,7 +267,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       if (pendingBooking.boardingStationId) body.boardingStationId = Number(pendingBooking.boardingStationId);
       if (pendingBooking.alightingStationId) body.alightingStationId = Number(pendingBooking.alightingStationId);
 
-      const { data } = await api.post('/bookings', body);
+      const { data } = await api.post('/bookings', body, {
+        headers: { 'Idempotency-Key': idempotencyKeyRef.current ?? newIdempotencyKey() },
+      });
       const bookingId = data?.id ?? data?.booking?.id ?? null;
 
       if (bookingId) {
@@ -292,6 +289,14 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
         } catch (socketErr) {
           console.warn('[BookingContext] Socket join failed:', socketErr);
         }
+      } else {
+        // A 2xx response with no recognizable booking id — the request
+        // reached the server (it may well have succeeded and charged the
+        // wallet) but this screen had no way to tell. Previously this fell
+        // through silently: no success, no error, no navigation.
+        console.warn('[BookingContext] Unexpected booking response shape:', data);
+        setBookingError(t('booking_unclear_msg'));
+        showAppAlert(t('booking_unclear_title'), t('booking_unclear_msg'));
       }
     } catch (e: any) {
       const status = e?.response?.status;
@@ -299,7 +304,15 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       const msg: string =
         respData?.error ?? respData?.message ?? e?.message ?? t('booking_failed_title');
 
-      if (status === 402) {
+      // A timeout/network failure is not a genuine rejection — the request may
+      // well have reached the server and succeeded. Previously this fell
+      // through to the same "Booking Failed, try again" message as a real
+      // rejection. Retrying is now safe either way (same idempotency key),
+      // but the message shouldn't claim certainty it doesn't have.
+      if (!e?.response) {
+        setBookingError(t('booking_timeout_msg'));
+        showAppAlert(t('booking_unclear_title'), t('booking_timeout_msg'));
+      } else if (status === 402) {
         // Insufficient wallet balance — backend is the source of truth on the
         // amounts; the client only formats them, it never re-derives them.
         const required = typeof respData?.required === 'number' ? respData.required : undefined;
@@ -335,10 +348,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pendingBooking, refreshLineTrips, t]);
 
-  const closeConfirmSheet = useCallback(() => {
-    setConfirmSheetOpen(false);
-  }, []);
-
   // Track passenger location for the duration of a confirmed shuttle trip
   usePassengerTracking({
     isActive: confirmedTripId !== null,
@@ -355,7 +364,6 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     () => ({
       selectedRoute,
       tripSheetOpen,
-      confirmSheetOpen,
       pendingBooking,
       confirmedBookingId,
       confirmedTripId,
@@ -368,19 +376,17 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       setSeatCount,
       openRoute,
       closeTripSheet,
-      handleBook,
       handleConfirm,
-      closeConfirmSheet,
       clearBookingError,
       refreshLineTrips,
       prepareBooking,
     }),
     [
-      selectedRoute, tripSheetOpen, confirmSheetOpen, pendingBooking,
+      selectedRoute, tripSheetOpen, pendingBooking,
       confirmedBookingId, confirmedTripId, routeLoading, tripsLoading,
       scheduledTrips, tripsTotal, bookingError, seatCount,
-      setSeatCount, openRoute, closeTripSheet, handleBook, handleConfirm,
-      closeConfirmSheet, clearBookingError,
+      setSeatCount, openRoute, closeTripSheet, handleConfirm,
+      clearBookingError,
       refreshLineTrips, prepareBooking,
     ],
   );

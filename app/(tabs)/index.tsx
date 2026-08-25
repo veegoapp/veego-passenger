@@ -21,6 +21,7 @@ import { CarServiceScreen, CarServiceScreenHandle } from '@/components/car/CarSe
 import { CarMap } from '@/components/car/CarMap';
 import { useServiceControl, ServiceType } from '@/context/ServiceControlContext';
 import { useHomeService } from '@/context/HomeServiceContext';
+import { useNotificationsBadge } from '@/context/NotificationsBadgeContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
 import api from '@/src/api/client';
@@ -197,13 +198,13 @@ export default function HomeScreen() {
   ));
   const soonTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { openRoute } = useBooking();
+  const { colors: c, t, isRTL, language } = useTheme();
+  const isAr = language === 'ar';
   const { session: activeSession } = useActiveSession();
   const shuttleHeroSession = activeSession?.kind === 'shuttle' ? activeSession : null;
   const { time: heroTime } = shuttleHeroSession
-    ? formatCairoDateTime(shuttleHeroSession.trip.departureTime)
+    ? formatCairoDateTime(shuttleHeroSession.trip.departureTime, isRTL ? 'ar-EG' : 'en-US')
     : { time: '' };
-  const { colors: c, t, isRTL, language } = useTheme();
-  const isAr = language === 'ar';
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes, refresh: refreshRoutes } = useRoutes();
   const { setVisible: setTabBarVisible, tabBarHeight } = useTabBar();
@@ -223,7 +224,7 @@ export default function HomeScreen() {
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [placesResults, setPlacesResults] = useState<SavedLocation[]>([]);
   const [placesSessionToken, setPlacesSessionToken] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount, refresh: refreshUnreadCount } = useNotificationsBadge();
   const [refreshing, setRefreshing] = useState(false);
   const [searchScreenOpen, setSearchScreenOpen] = useState(false);
   const carServiceRef = useRef<CarServiceScreenHandle>(null);
@@ -267,17 +268,6 @@ export default function HomeScreen() {
       });
   }, []);
 
-  const fetchUnreadCount = useCallback(() => {
-    return api.get('/notifications?limit=20')
-      .then(({ data }) => {
-        const list: any[] = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
-        setUnreadCount(list.filter((n) => n.isRead === false).length);
-      })
-      .catch((err) => {
-        if (__DEV__) console.warn('[Home] failed to load notification count:', err?.message);
-      });
-  }, []);
-
   // Fetch saved locations on mount
   useEffect(() => {
     fetchSavedLocations();
@@ -292,17 +282,12 @@ export default function HomeScreen() {
     });
   }, [fetchSavedLocations]);
 
-  // Fetch unread notification count
-  useEffect(() => {
-    fetchUnreadCount();
-  }, [fetchUnreadCount]);
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.selectionAsync();
-    await Promise.allSettled([refreshRoutes(), fetchSavedLocations(), fetchUnreadCount()]);
+    await Promise.allSettled([refreshRoutes(), fetchSavedLocations(), Promise.resolve(refreshUnreadCount())]);
     setRefreshing(false);
-  }, [refreshRoutes, fetchSavedLocations, fetchUnreadCount]);
+  }, [refreshRoutes, fetchSavedLocations, refreshUnreadCount]);
 
   // تحديث لـ 5 خطوط في الـ Most Booked
   const mostBookedRoutes = useMemo(() => {

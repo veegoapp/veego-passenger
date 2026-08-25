@@ -19,6 +19,7 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { BookingProvider } from '@/context/BookingContext';
+import { NotificationsBadgeProvider } from '@/context/NotificationsBadgeContext';
 import { ActiveSessionProvider, useActiveSession } from '@/context/ActiveSessionContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { TabBarProvider } from '@/context/TabBarContext';
@@ -26,7 +27,6 @@ import { ServiceControlProvider } from '@/context/ServiceControlContext';
 import { HomeServiceProvider } from '@/context/HomeServiceContext';
 import { PaymentConfigProvider } from '@/context/PaymentConfigContext';
 import { TripSheet } from '@/components/shuttle/TripSheet';
-import { ConfirmSheet } from '@/components/shuttle/ConfirmSheet';
 import { AppAlertHost } from '@/components/shared/AppAlertHost';
 import { ActiveRideBanner } from '@/components/shared/ActiveRideBanner';
 import { usePushToken } from '@/src/hooks/shared/usePushToken';
@@ -295,7 +295,6 @@ function AppShell() {
         <Stack.Screen name="verify-phone"  options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
       </Stack>
       <TripSheet />
-      <ConfirmSheet />
       <AppAlertHost />
       <ActiveRideBanner />
     </View>
@@ -344,9 +343,11 @@ export default function RootLayout() {
                 <ActiveSessionProvider>
                   <BookingProvider>
                     <HomeServiceProvider>
-                      <AppErrorBoundary>
-                        <AppShell />
-                      </AppErrorBoundary>
+                      <NotificationsBadgeProvider>
+                        <AppErrorBoundary>
+                          <AppShell />
+                        </AppErrorBoundary>
+                      </NotificationsBadgeProvider>
                     </HomeServiceProvider>
                   </BookingProvider>
                 </ActiveSessionProvider>

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap, AlertTriangle } from 'lucide-react-native';
 import { Animation } from '@/constants/animations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -199,6 +199,30 @@ function makeStyles(c: ThemeColors) {
       fontSize: Typography.size.xs, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 17, opacity: 0.85,
     },
 
+    /* Cancelled banner */
+    cancelledBanner: {
+      borderRadius: 18, overflow: 'hidden',
+      marginBottom: Spacing.xs,
+    },
+    cancelledBannerInner: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      paddingHorizontal: Spacing.lg, paddingVertical: 14,
+      borderRadius: 18,
+      borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
+      backgroundColor: 'rgba(239,68,68,0.09)',
+    },
+    cancelledBannerIcon: {
+      width: 34, height: 34, borderRadius: 10,
+      backgroundColor: 'rgba(239,68,68,0.18)',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    cancelledBannerTitle: {
+      fontSize: 13, fontWeight: Typography.weight.bold, color: c.isDark ? '#fca5a5' : '#991b1b', marginBottom: 2,
+    },
+    cancelledBannerBody: {
+      fontSize: Typography.size.xs, color: c.isDark ? '#fca5a5' : '#991b1b', lineHeight: 17, opacity: 0.85,
+    },
+
     /* Boarded banner */
     boardedBanner: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
@@ -234,7 +258,7 @@ function makeStyles(c: ThemeColors) {
 export default function TicketScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { session } = useActiveSession();
+  const { session, refreshActiveSession } = useActiveSession();
   const { confirmedBookingId: bookingContextId, confirmedTripId: bookingContextTripId } = useBooking();
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
@@ -258,7 +282,7 @@ export default function TicketScreen() {
 
   // All display values come from ActiveSession — no synthetic fallbacks.
   const { date: sessionDate, time: sessionTime } = shuttleSession
-    ? formatCairoDateTime(shuttleSession.trip.departureTime)
+    ? formatCairoDateTime(shuttleSession.trip.departureTime, isRTL ? 'ar-EG' : 'en-US')
     : { date: '', time: '' };
   const displayRouteName   = shuttleSession?.trip.route.name   ?? '';
   const displayRouteNameAr = shuttleSession?.trip.route.nameAr ?? null;
@@ -277,6 +301,12 @@ export default function TicketScreen() {
   const bookingId = resolvedBookingId;
 
   const [boarded, setBoarded] = useState(false);
+  // The shuttle session only ever arrived over socket (session:snapshot) —
+  // a passenger who just paid with a dropped socket connection was stuck on
+  // "Loading…" indefinitely with no timeout, retry, or way back. After a
+  // grace period, fall back to a REST refresh, then a manual retry/exit UI.
+  const [sessionWaitTimedOut, setSessionWaitTimedOut] = useState(false);
+  const [sessionRetrying, setSessionRetrying] = useState(false);
   const [shuttleDriverLocation, setShuttleDriverLocation] = useState<{ lat: number; lng: number; heading?: number } | null>(null);
   // Local trip status — updated in real-time via socket events
   const [liveStatus, setLiveStatus] = useState<string | undefined>(initialStatus);
@@ -386,6 +416,29 @@ export default function TicketScreen() {
     };
   }, []);
 
+  // 6s: try a REST refresh in case the socket snapshot was dropped.
+  // 15s total: give up waiting and show a retry/exit UI instead of an
+  // indefinite spinner.
+  useEffect(() => {
+    if (shuttleSession || !bookingId) return;
+    const refreshTimer = setTimeout(() => {
+      refreshActiveSession().catch(() => {});
+    }, 6000);
+    const giveUpTimer = setTimeout(() => setSessionWaitTimedOut(true), 15000);
+    return () => {
+      clearTimeout(refreshTimer);
+      clearTimeout(giveUpTimer);
+    };
+  }, [shuttleSession, bookingId, refreshActiveSession]);
+
+  const handleRetrySession = () => {
+    setSessionRetrying(true);
+    setSessionWaitTimedOut(false);
+    refreshActiveSession()
+      .catch(() => {})
+      .finally(() => setSessionRetrying(false));
+  };
+
   const rotateDeg = checkRotate.interpolate({ inputRange: [-20, 0], outputRange: ['-20deg', '0deg'] });
 
   if (!bookingId) {
@@ -405,7 +458,26 @@ export default function TicketScreen() {
 
   // bookingId is set (via confirmedBookingId transition window) but session not yet
   // delivered by the socket — show a brief loading state rather than an error screen.
+  // After 15s with no session (dropped socket connection), offer a retry and
+  // an escape hatch instead of spinning forever.
   if (!shuttleSession) {
+    if (sessionWaitTimedOut) {
+      return (
+        <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
+          <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center', marginBottom: Spacing.sm }}>
+            {t('ticket_session_slow')}
+          </Text>
+          <TouchableOpacity onPress={handleRetrySession} style={styles.goHomeBtn} disabled={sessionRetrying}>
+            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goHomeBtnGradient}>
+              <Text style={styles.goHomeBtnText}>{sessionRetrying ? t('loading') : t('retry')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: Spacing.md }}>
+            <Text style={{ fontSize: Typography.size.sm, color: c.inkSoft }}>{t('go_home')}</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      );
+    }
     return (
       <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ fontSize: Typography.size.md, color: c.inkSoft }}>{t('loading')}</Text>
@@ -471,6 +543,22 @@ export default function TicketScreen() {
           </View>
         )}
 
+        {/* Cancelled notice — a system-cancelled trip's boarding pass used to
+            keep looking valid with no indication anything had changed. */}
+        {liveStatus === 'cancelled' && (
+          <View style={styles.cancelledBanner}>
+            <View style={styles.cancelledBannerInner}>
+              <View style={styles.cancelledBannerIcon}>
+                <AlertTriangle size={16} color="#ef4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cancelledBannerTitle}>{t('status_cancelled_trip')}</Text>
+                <Text style={styles.cancelledBannerBody}>{t('trip_cancelled_notice')}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Boarded banner */}
         {boarded && (
           <Animated.View style={[styles.boardedBanner, { transform: [{ scale: boardedAnim }] }]}>
@@ -513,6 +601,11 @@ export default function TicketScreen() {
               <View style={[styles.statusBadge, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
                 <View style={[styles.statusBadgeDot, { backgroundColor: '#f59e0b' }]} />
                 <Text style={[styles.statusBadgeText, { color: '#f59e0b' }]}>{t('trip_status_pending')}</Text>
+              </View>
+            ) : liveStatus === 'cancelled' ? (
+              <View style={[styles.statusBadge, { backgroundColor: 'rgba(239,68,68,0.2)' }]}>
+                <View style={[styles.statusBadgeDot, { backgroundColor: '#ef4444' }]} />
+                <Text style={[styles.statusBadgeText, { color: '#ef4444' }]}>{t('status_cancelled_trip')}</Text>
               </View>
             ) : null}
 

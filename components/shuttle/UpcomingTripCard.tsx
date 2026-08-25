@@ -70,10 +70,8 @@ export function UpcomingTripCard({
 
   const bookingLabel = trip.bookingStatus ? BOOKING_STATUS_LABEL[trip.bookingStatus]?.[isAr ? 'ar' : 'en'] : null;
 
-  // Not yet populated by the My Trips data layer — hidden until the backend
-  // contract for /shuttle/my-trips exposes driver info on upcoming bookings.
-  const driverName   = (trip as { driverName?: string | null }).driverName;
-  const driverRating = (trip as { driverRating?: number | null }).driverRating;
+  const driverName   = trip.driverName;
+  const driverRating = trip.driverRating;
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
