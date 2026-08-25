@@ -49,12 +49,16 @@ function mapApiRoute(r: any, idx: number): Route {
       ? `${r.estimatedDuration} min`
       : r.duration ?? '—',
 
-    seatsLeft:    r.availableSeats ?? (hasActiveTrips ? totalSeats : hasOpenTrips ? totalSeats : 0),
+    // r.availableSeats and r.nextDeparture are never sent by GET /shuttle/lines
+    // at the route level — the real per-departure data is in `timeslots`
+    // (already parsed above), sorted soonest-first by the backend. Derive
+    // both summary fields from its earliest entry instead of guessing.
+    seatsLeft:    timeslots[0]?.availableSeats ?? (hasActiveTrips ? totalSeats : hasOpenTrips ? totalSeats : 0),
     totalSeats,
     price:        r.basePrice ?? r.price ?? 0,
     pricingModel: r.pricingModel === 'tiered' || r.pricingModel === 'flat' ? r.pricingModel : undefined,
     startingPrice: typeof r.startingPrice === 'number' ? r.startingPrice : undefined,
-    nextDeparture: r.nextDeparture ?? '—',
+    nextDeparture: timeslots[0]?.departureTime ?? r.nextDeparture ?? '—',
     color:        r.color ?? ROUTE_COLORS[idx % ROUTE_COLORS.length],
 
     // Shuttle line computed fields (§2.9)

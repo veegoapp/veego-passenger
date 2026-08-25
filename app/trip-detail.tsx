@@ -873,7 +873,16 @@ export default function TripDetailScreen() {
       // §11.4, §21.3: DELETE /shuttle/bookings/:id — preferred self-cancel with 12h refund policy
       // Replaces deprecated PATCH /bookings/:id/cancel
       const result = await cancelBooking(targetBookingId);
-      if (result?.refunded === false) {
+      if (result?.debtCreated && result.debtCreated > 0) {
+        // A repeat late cancellation (<12h before departure) creates a real
+        // cash debt — this used to reach the passenger only later, as a
+        // blocked future booking, with no explanation at cancel time.
+        showAppAlert(
+          t('late_cancellation_debt_title'),
+          t('late_cancellation_debt_msg').replace('{amount}', String(result.debtCreated)),
+          [{ text: t('confirm'), onPress: () => router.back() }],
+        );
+      } else if (result?.refunded === false) {
         showAppAlert(
           t('booking_cancelled_title'),
           t('cancel_no_refund'),

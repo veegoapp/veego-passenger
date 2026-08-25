@@ -205,6 +205,11 @@ export default function TripsScreen() {
       const result = await cancelBooking(bookingId);
       if (result?.refunded && result.refundAmount > 0) {
         showAppAlert(t('booking_cancelled_title'), t('ride_refund_msg').replace('{amount}', String(result.refundAmount)));
+      } else if (result?.debtCreated && result.debtCreated > 0) {
+        // A repeat late cancellation (<12h before departure) creates a real
+        // cash debt — this used to reach the passenger only later, as a
+        // blocked future booking, with no explanation at cancel time.
+        showAppAlert(t('late_cancellation_debt_title'), t('late_cancellation_debt_msg').replace('{amount}', String(result.debtCreated)));
       }
       Animated.timing(anim, {
         toValue: 0,

@@ -500,6 +500,8 @@ export const en = {
   back_label: 'Back',
   cash_debt: 'Cash Debt',
   debt_owe_msg: 'You owe {amount} EGP — pay the driver on your next trip.',
+  late_cancellation_debt_title: 'Late Cancellation — Debt Added',
+  late_cancellation_debt_msg: "Cancelling less than 12 hours before departure added {amount} EGP to your balance, due on your next trip — this wasn't your first late cancellation.",
   no_show_offences: 'You have {count} no-show offences.',
   load_more: 'Load more',
   search_no_match: 'No lines or stations match your search query.',

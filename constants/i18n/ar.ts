@@ -501,6 +501,8 @@ export const ar: typeof en = {
   back_label: 'رجوع',
   cash_debt: 'دين نقدي',
   debt_owe_msg: 'عليك مبلغ {amount} جنيه، ادفعه للسائق في رحلتك القادمة.',
+  late_cancellation_debt_title: 'إلغاء متأخر — تمت إضافة دين',
+  late_cancellation_debt_msg: 'الإلغاء قبل الموعد بأقل من ١٢ ساعة أضاف {amount} جنيه لرصيدك، مستحق في رحلتك القادمة — دي مش أول مرة تلغي متأخر.',
   no_show_offences: 'لديك {count} مخالفات غياب.',
   load_more: 'تحميل المزيد',
   search_no_match: 'لا توجد خطوط أو محطات تطابق بحثك.',
