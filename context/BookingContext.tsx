@@ -210,6 +210,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     if (svc && (!svc.isEnabled || svc.displayMode !== 'live')) {
       const msg = svc.unavailableMessage ?? t('service_unavailable');
       showAppAlert(t('service_unavailable'), msg);
+      confirmingRef.current = false;
       return;
     }
 
@@ -219,6 +220,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     if (!tripId) {
       setBookingError(t('no_trip_selected'));
+      confirmingRef.current = false;
       return;
     }
 

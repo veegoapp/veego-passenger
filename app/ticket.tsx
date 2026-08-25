@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap, AlertTriangle } from 'lucide-react-native';
 import { Animation } from '@/constants/animations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -197,6 +197,30 @@ function makeStyles(c: ThemeColors) {
     },
     pendingBannerBody: {
       fontSize: Typography.size.xs, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 17, opacity: 0.85,
+    },
+
+    /* Cancelled banner */
+    cancelledBanner: {
+      borderRadius: 18, overflow: 'hidden',
+      marginBottom: Spacing.xs,
+    },
+    cancelledBannerInner: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+      paddingHorizontal: Spacing.lg, paddingVertical: 14,
+      borderRadius: 18,
+      borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
+      backgroundColor: 'rgba(239,68,68,0.09)',
+    },
+    cancelledBannerIcon: {
+      width: 34, height: 34, borderRadius: 10,
+      backgroundColor: 'rgba(239,68,68,0.18)',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    cancelledBannerTitle: {
+      fontSize: 13, fontWeight: Typography.weight.bold, color: c.isDark ? '#fca5a5' : '#991b1b', marginBottom: 2,
+    },
+    cancelledBannerBody: {
+      fontSize: Typography.size.xs, color: c.isDark ? '#fca5a5' : '#991b1b', lineHeight: 17, opacity: 0.85,
     },
 
     /* Boarded banner */
@@ -471,6 +495,22 @@ export default function TicketScreen() {
           </View>
         )}
 
+        {/* Cancelled notice — a system-cancelled trip's boarding pass used to
+            keep looking valid with no indication anything had changed. */}
+        {liveStatus === 'cancelled' && (
+          <View style={styles.cancelledBanner}>
+            <View style={styles.cancelledBannerInner}>
+              <View style={styles.cancelledBannerIcon}>
+                <AlertTriangle size={16} color="#ef4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cancelledBannerTitle}>{t('status_cancelled_trip')}</Text>
+                <Text style={styles.cancelledBannerBody}>{t('trip_cancelled_notice')}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Boarded banner */}
         {boarded && (
           <Animated.View style={[styles.boardedBanner, { transform: [{ scale: boardedAnim }] }]}>
@@ -513,6 +553,11 @@ export default function TicketScreen() {
               <View style={[styles.statusBadge, { backgroundColor: 'rgba(245,158,11,0.2)' }]}>
                 <View style={[styles.statusBadgeDot, { backgroundColor: '#f59e0b' }]} />
                 <Text style={[styles.statusBadgeText, { color: '#f59e0b' }]}>{t('trip_status_pending')}</Text>
+              </View>
+            ) : liveStatus === 'cancelled' ? (
+              <View style={[styles.statusBadge, { backgroundColor: 'rgba(239,68,68,0.2)' }]}>
+                <View style={[styles.statusBadgeDot, { backgroundColor: '#ef4444' }]} />
+                <Text style={[styles.statusBadgeText, { color: '#ef4444' }]}>{t('status_cancelled_trip')}</Text>
               </View>
             ) : null}
 

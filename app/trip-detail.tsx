@@ -189,44 +189,57 @@ function mapRideToDetail(r: any): RideDetail {
 }
 
 function mapApiToDetail(b: any): TripDetail {
+  // GET /bookings/:id (the primary source for this screen) returns a FLAT
+  // shape — trip/route fields spread directly onto the booking row, not
+  // nested under `b.trip`/`b.route`. That nested shape doesn't exist there
+  // at all, so reading it first silently produced an all-'—' detail screen.
+  // GET /users/me/bookings (the fallback path below) may still nest under
+  // `b.trip` — kept as a secondary source so both are supported.
   const trip = b.trip ?? {};
   const route = trip.route ?? trip.shuttleLine ?? trip.line ?? {};
-  const departureIso =
-    trip.departureTime ?? b.scheduledAt ?? '';
+  const fromStation = b.fromStation ?? trip.pickupStation ?? b.pickupStation ?? null;
+  const toStation = b.toStation ?? null;
+  const departureIso = b.departureTime ?? trip.departureTime ?? b.scheduledAt ?? '';
   // §21.9: display in Africa/Cairo, not UTC
   const { date, time } = formatCairoDateTime(departureIso);
-  // GET /bookings/:id returns the boarding station as `fromStation` (not
-  // `pickupStation`) — kept as a fallback in case another response shape
-  // (e.g. the GET /users/me/bookings list fallback) still uses the older name.
-  const pickupStation = b.fromStation ?? trip.pickupStation ?? b.pickupStation ?? null;
   return {
-    id: trip.id ?? b.id ?? '',
+    // The real trip id — GET /bookings/:id returns it flat as `tripId`
+    // (there is no `trip.id`). Previously this fell through to `b.id`
+    // (the booking id), which is what fed the trip id into the rating and
+    // SOS endpoints and the live-tracking socket room further down.
+    id: b.tripId ?? trip.id ?? b.id ?? '',
     // Distinct from `id` above (which resolves to the trip id when available) —
     // cancellation must target the booking's own id, not the trip's.
     bookingId: b.id ?? null,
-    routeId: trip.routeId ?? route.id ?? null,
-    status: (b.status ?? trip.shuttleStatus ?? trip.status ?? '').toLowerCase(),
+    routeId: b.routeId ?? trip.routeId ?? route.id ?? null,
+    // The trip's own lifecycle status (scheduled/active/boarding/completed/
+    // cancelled) — not the booking's status (confirmed/pending/cancelled),
+    // which is a different, coarser field. Every check below (map
+    // visibility, rating gate, "Confirmed" badge) is written for the trip's
+    // states, so reading the booking's status here made a system-cancelled
+    // trip still display "Confirmed."
+    status: (b.tripStatus ?? trip.status ?? trip.shuttleStatus ?? b.status ?? '').toLowerCase(),
     departureIso,
-    routeName:   route.name   ?? trip.name  ?? '—',
-    routeNameAr: route.nameAr ?? null,
-    from:   route.fromLocation   ?? route.from  ?? b.pickupName     ?? b.origin      ?? '—',
-    fromAr: route.fromLocationAr ?? null,
-    to:   route.toLocation   ?? route.to  ?? b.destinationName ?? b.destination ?? '—',
+    routeName:   b.routeName   ?? route.name   ?? trip.name  ?? '—',
+    routeNameAr: b.routeNameAr ?? route.nameAr ?? null,
+    from:   fromStation?.name ?? route.fromLocation   ?? route.from  ?? b.pickupName     ?? b.origin      ?? '—',
+    fromAr: fromStation?.nameAr ?? route.fromLocationAr ?? null,
+    to:   b.toLocation ?? route.toLocation   ?? route.to  ?? toStation?.name ?? b.destinationName ?? b.destination ?? '—',
     toAr: route.toLocationAr ?? null,
     date,
     time,
     seat: b.seatNumber ?? b.seat ?? '—',
     price: b.totalPrice ?? trip.price ?? b.price ?? 0,
-    passengerCount: trip.passengerCount ?? null,
+    passengerCount: b.seatCount ?? trip.passengerCount ?? null,
     minPassengers: trip.minPassengers ?? null,
-    pickupLat: pickupStation?.latitude ?? null,
-    pickupLng: pickupStation?.longitude ?? null,
-    pickupStationId: pickupStation?.id ?? null,
+    pickupLat: fromStation?.latitude ?? null,
+    pickupLng: fromStation?.longitude ?? null,
+    pickupStationId: fromStation?.id ?? null,
     boardingScheduledTime: b.boardingScheduledTime ?? null,
     alightingScheduledTime: b.alightingScheduledTime ?? null,
-    driverName: trip.driver?.name ?? b.driver?.name ?? null,
-    driverUserId: trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
-    direction: trip.direction ?? b.direction ?? undefined,
+    driverName: b.driverName ?? trip.driver?.name ?? b.driver?.name ?? null,
+    driverUserId: b.driverUserId ?? trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
+    direction: b.direction ?? trip.direction ?? undefined,
   };
 }
 
@@ -668,8 +681,15 @@ export default function TripDetailScreen() {
 
   // Socket: join/leave trip room + listen for driver location + live status updates.
   // Shuttle-only — ride details don't use the shuttle trip-room protocol.
+  //
+  // Keyed on trip.id (the real trip id, resolved from the fetched detail),
+  // NOT the raw `id` route param — on the primary entry path (Upcoming list)
+  // that param is the booking id, not the trip id. Joining/comparing against
+  // the booking id joined the wrong live-tracking socket room and silently
+  // dropped every status/station event (their tripId never matched).
+  const realTripId = trip?.id;
   useEffect(() => {
-    if (!id || rideDetail) return;
+    if (!realTripId || rideDetail) return;
 
     let cleanedUp = false;
     const handlers: Array<() => void> = [];
@@ -677,7 +697,7 @@ export default function TripDetailScreen() {
     getSocket().then((socket) => {
       if (cleanedUp) return;
 
-      socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(id) });
+      socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(realTripId) });
 
       // Driver location — moves the map marker in real time
       const locationHandler = (payload: {
@@ -687,7 +707,7 @@ export default function TripDetailScreen() {
         lng: number;
         heading?: number;
       }) => {
-        if (String(payload.tripId) !== String(id)) return;
+        if (String(payload.tripId) !== String(realTripId)) return;
         // D6-7: guard against a malformed/out-of-range payload reaching the
         // map — a NaN or bogus lat/lng would otherwise crash the marker or
         // silently render it in the wrong place.
@@ -706,7 +726,7 @@ export default function TripDetailScreen() {
         status: string;
         passengerCount?: number;
       }) => {
-        if (String(payload.tripId) === String(id)) {
+        if (String(payload.tripId) === String(realTripId)) {
           const normalized = payload.status?.toLowerCase() ?? '';
           liveStatusRef.current = normalized;
           setLiveStatus(normalized);
@@ -720,8 +740,8 @@ export default function TripDetailScreen() {
       };
 
       // Boarding confirmation — fired on passenger:{userId} room, but also arrives on trip room.
-      // The event carries the booking's own id, not the trip id in `id` — compare
-      // against the booking id captured when this screen loaded the trip.
+      // The event carries the booking's own id — compare against the booking
+      // id captured when this screen loaded the trip.
       const boardedHandler = (data: { bookingId?: string | number }) => {
         if (!data.bookingId || bookingIdRef.current == null) return;
         if (String(data.bookingId) !== String(bookingIdRef.current)) return;
@@ -730,18 +750,18 @@ export default function TripDetailScreen() {
 
       // Re-join trip room after socket reconnects (network recovery)
       const reconnectHandler = () => {
-        socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(id) });
+        socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(realTripId) });
       };
 
       // Station arrival/completion — refresh the station list immediately instead
       // of waiting for the next 30s poll tick (fetchStations is a stable callback).
       const stationArrivedHandler = (payload: { tripId?: string | number; stationId?: number }) => {
-        if (payload.tripId == null || String(payload.tripId) !== String(id)) return;
+        if (payload.tripId == null || String(payload.tripId) !== String(realTripId)) return;
         const meta = tripStationsMetaRef.current;
         if (meta) fetchStations(meta.routeId, meta.direction);
       };
       const stationCompletedHandler = (payload: { tripId?: string | number; stationId?: number }) => {
-        if (payload.tripId == null || String(payload.tripId) !== String(id)) return;
+        if (payload.tripId == null || String(payload.tripId) !== String(realTripId)) return;
         const meta = tripStationsMetaRef.current;
         if (meta) fetchStations(meta.routeId, meta.direction);
       };
@@ -767,12 +787,10 @@ export default function TripDetailScreen() {
       cleanedUp = true;
       handlers.forEach((off) => off());
       getSocket().then((socket) => {
-        // D5-2: backend requires a numeric tripId (matches the JOIN_TRIP emit
-        // at connect/reconnect below) — `id` is the route param, a string.
-        socket.emit(SOCKET_EVENTS.LEAVE_TRIP, { tripId: Number(id) });
+        socket.emit(SOCKET_EVENTS.LEAVE_TRIP, { tripId: Number(realTripId) });
       }).catch(() => {});
     };
-  }, [id, fetchStations, rideDetail, applyDriverLocation]);
+  }, [realTripId, fetchStations, rideDetail, applyDriverLocation]);
 
   // ETA is now computed inside PassengerTrackingMap (single source of truth)
   // and reported back via onEtaChange below — no local calculation here.
