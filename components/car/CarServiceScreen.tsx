@@ -341,6 +341,9 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
   const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
+  // Live ETA (minutes) from CarMap while a driver is en route — surfaced in
+  // the driver card's dark ETA panel.
+  const [driverEta, setDriverEta] = useState<number | null>(null);
   const [estimateLoading, setEstLoading]= useState(false);
   const [recipientName, setRecipientName]   = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
@@ -884,6 +887,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         driverColorHex={rideState.driver?.vehicleColorHex}
         searching={phase === 'in_ride' && rideState.status === 'searching'}
         hideOwnLocationDot={rideState.status === 'started'}
+        onEtaChange={setDriverEta}
       />
 
       {/* ── Close-to-Home affordance ──────────────────────────────────────
@@ -1375,6 +1379,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         driver={rideState.driver}
         rideId={rideState.rideId}
         rideStatus={rideState.status}
+        etaMinutes={driverEta}
         waitingCharge={rideState.waitingCharge}
         waitingChargeStatus={rideState.waitingChargeStatus}
         onCancel={handleAssignedCancelPress}
