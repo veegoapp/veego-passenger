@@ -6,7 +6,7 @@ import {
 import {
   Car, Bike as ScooterIcon, Package,
   Banknote, Wallet, CreditCard, Check,
-  Clock, ChevronDown, ArrowRight,
+  Clock, ChevronDown,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,29 +51,16 @@ const CATEGORY_IMAGES: Record<string, ReturnType<typeof require>> = {
   comfort: require('../../assets/images/vehicles/category/comfort.png'),
 };
 
-/* ─── Shared primitives ──────────────────────────────────────────────────── */
-function PrimaryButton({
-  onPress, disabled, children,
-}: { onPress?: () => void; disabled?: boolean; children: React.ReactNode }) {
-  const { colors: c } = useTheme();
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.88}
-      style={[
-        styles.primaryBtn,
-        disabled
-          ? { backgroundColor: c.surfaceMuted, borderColor: c.border }
-          // Matches VeeGoButton's primary variant so the sheet's main CTA
-          // reads as the same button as everywhere else in the app.
-          : { backgroundColor: c.primary, borderColor: c.primary },
-      ]}
-    >
-      {children}
-    </TouchableOpacity>
-  );
-}
+// ── "C · Split Panel" fixed palette (matches the approved design) ────────────
+const C_PANEL = '#14151A';
+const C_CARD = '#FFFFFF';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_SURF = '#F6F7F8';
+const C_TEAL = '#0E9F8E';
+const C_MINT = '#3DDC97';
 
 /* ─── Main component ─────────────────────────────────────────────────────── */
 function RideOptionsSheetBase({
@@ -83,21 +70,11 @@ function RideOptionsSheetBase({
   recipientName, recipientPhone, onRecipientNameChange, onRecipientPhoneChange,
   paymentMethod = 'cash', onPaymentMethodChange, walletAvailable, walletBalance,
 }: RideOptionsSheetProps) {
-  const { colors: c, t, isRTL } = useTheme();
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const carCategories = estimate?.categories ?? [];
   const isDelivery = serviceType === 'delivery';
-
-  const isDark = c.isDark;
-  const cardBg    = c.white;
-  const surfaceBg = c.surfaceMuted;
-  const borderCol = c.border;
-  const mutedCol  = c.inkSoft;
-  const primaryCol = c.primary;
-  // Readable text/icon color on top of primaryCol, matching VeeGoButton's
-  // primary variant so the CTA reads the same across light and dark mode.
-  const onPrimaryCol = isDark ? c.background : c.white;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -115,20 +92,14 @@ function RideOptionsSheetBase({
     : undefined;
   const selectedPrice = (() => {
     if (!selected) return null;
-    if (selected === 'standard') return singleEstimate?.price;
+    if (selected === 'standard') return singleEstimate?.price ?? null;
     return selectedCategory?.price ?? null;
-  })();
-  const selectedLabel = (() => {
-    if (!selected) return t('confirm');
-    if (selected === 'standard') return serviceType === 'scooter' ? t('scooter') : t('delivery');
-    return selectedCategory?.name ?? t('confirm');
   })();
 
   const recipientReady = !isDelivery || (!!recipientName?.trim() && !!recipientPhone?.trim());
   const canConfirm = !!selected && recipientReady && !confirming;
   const walletHasFunds = (walletBalance ?? 0) > 0;
 
-  /* ── Option icon ── */
   const OptionIcon = serviceType === 'scooter' ? ScooterIcon : serviceType === 'delivery' ? Package : Car;
 
   return (
@@ -136,42 +107,35 @@ function RideOptionsSheetBase({
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: cardBg, paddingBottom: insets.bottom + 20 }]}>
-        {/* Drag handle */}
-        <View style={[styles.handle, { backgroundColor: borderCol }]} />
+      <View style={styles.sheetSurface}>
+        {/* ── Dark header (trip row) ── */}
+        <View style={styles.header}>
+          <View style={styles.handle} />
+          <View style={styles.tripRow}>
+            <View style={styles.tripDots}>
+              <View style={styles.tripDotRound} />
+              <View style={styles.tripDotLine} />
+              <View style={styles.tripDotSquare} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.tripCap}>{t('your_location')}</Text>
+              <Text style={styles.tripDest} numberOfLines={1}>{destination ?? ''}</Text>
+            </View>
+            <TouchableOpacity onPress={onDismiss} style={styles.dismissBtn} activeOpacity={0.75}>
+              <ChevronDown size={16} color="#B7BBC2" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
+        {/* ── White body ── */}
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
+          style={styles.body}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: insets.bottom + 18 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Trip row ── */}
-          {destination ? (
-            <View style={[styles.tripRow, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-              <View style={styles.tripDots}>
-                <View style={[styles.tripDotRound, { backgroundColor: mutedCol }]} />
-                <View style={[styles.tripDotLine, { backgroundColor: borderCol }]} />
-                <View style={[styles.tripDotSquare, { backgroundColor: primaryCol }]} />
-              </View>
-              <View style={{ flex: 1, gap: 8 }}>
-                <Text style={[styles.tripAddr, { color: mutedCol }]} numberOfLines={1}>{t('your_location')}</Text>
-                <Text style={[styles.tripDest, { color: c.ink }]} numberOfLines={1}>{destination}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={onDismiss}
-                style={[styles.dismissBtn, { backgroundColor: surfaceBg, borderColor: borderCol }]}
-                activeOpacity={0.75}
-              >
-                <ChevronDown size={16} color={mutedCol} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
-          {/* ── Ride option cards ── */}
+          {/* ── Category selector ── */}
           {serviceType === 'car' ? (
-            // Horizontal selector strip — compact cards side-by-side instead
-            // of a tall vertical stack, so the sheet stays short even with
-            // several categories.
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -184,44 +148,28 @@ function RideOptionsSheetBase({
                   <TouchableOpacity
                     key={cat.slug}
                     onPress={() => { Haptics.selectionAsync(); onSelect(cat.slug); }}
-                    activeOpacity={0.82}
-                    style={[
-                      styles.optionCardH,
-                      {
-                        backgroundColor: active
-                          ? (isDark ? 'rgba(30,30,40,0.18)' : 'rgba(30,30,40,0.04)')
-                          : cardBg,
-                        borderColor: active ? primaryCol : borderCol,
-                        borderWidth: active ? 1.5 : 1,
-                      },
-                    ]}
+                    activeOpacity={0.85}
+                    style={[styles.tile, active ? styles.tileActive : null]}
                   >
                     {active && (
-                      <View style={[styles.checkBadge, { backgroundColor: primaryCol }]}>
+                      <View style={styles.tileCheck}>
                         <Check size={10} color="#ffffff" strokeWidth={3} />
                       </View>
                     )}
                     {CATEGORY_IMAGES[cat.slug] ? (
-                      <Image
-                        source={CATEGORY_IMAGES[cat.slug]}
-                        style={styles.optionImageH}
-                        resizeMode="contain"
-                      />
+                      <Image source={CATEGORY_IMAGES[cat.slug]} style={styles.tileImg} resizeMode="contain" />
                     ) : (
-                      <View style={[
-                        styles.optionIconH,
-                        { backgroundColor: active ? (isDark ? 'rgba(30,30,40,0.25)' : 'rgba(30,30,40,0.08)') : surfaceBg },
-                      ]}>
-                        <Car size={20} color={active ? primaryCol : mutedCol} strokeWidth={1.8} />
+                      <View style={styles.tileIcon}>
+                        <Car size={20} color={active ? C_TEAL : C_INK_SOFT} strokeWidth={1.8} />
                       </View>
                     )}
-                    <Text style={[styles.optionNameH, { color: c.ink }]} numberOfLines={1}>{cat.name}</Text>
+                    <Text style={[styles.tileName, { color: active ? C_TEAL : C_INK }]} numberOfLines={1}>{cat.name}</Text>
                     {estimateLoading ? (
-                      <ActivityIndicator size="small" color={primaryCol} />
+                      <ActivityIndicator size="small" color={C_TEAL} />
                     ) : (
-                      <Text style={[styles.priceValueH, { color: c.ink }]} numberOfLines={1}>
+                      <Text style={[styles.tilePrice, { color: active ? C_TEAL : C_INK }]} numberOfLines={1}>
                         {cat.price != null ? cat.price.toFixed(2) : '—'}
-                        <Text style={[styles.priceCurrencyH, { color: mutedCol }]}> {t('egp')}</Text>
+                        <Text style={styles.tileCur}> {t('egp')}</Text>
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -229,47 +177,33 @@ function RideOptionsSheetBase({
               })}
             </ScrollView>
           ) : (
-            <View style={{ gap: 8, marginBottom: 16 }}>
+            <View style={{ marginBottom: 16 }}>
               <TouchableOpacity
                 onPress={() => { Haptics.selectionAsync(); onSelect('standard'); }}
-                activeOpacity={0.82}
-                style={[
-                  styles.optionCard,
-                  {
-                    backgroundColor: selected === 'standard'
-                      ? (isDark ? 'rgba(30,30,40,0.18)' : 'rgba(30,30,40,0.04)')
-                      : cardBg,
-                    borderColor: selected === 'standard' ? primaryCol : borderCol,
-                    borderWidth: selected === 'standard' ? 1.5 : 1,
-                  },
-                ]}
+                activeOpacity={0.85}
+                style={[styles.singleRow, selected === 'standard' ? styles.singleRowActive : null]}
               >
-                <View style={[
-                  styles.optionIcon,
-                  { backgroundColor: selected === 'standard' ? (isDark ? 'rgba(30,30,40,0.25)' : 'rgba(30,30,40,0.08)') : surfaceBg },
-                ]}>
-                  <OptionIcon size={20} color={selected === 'standard' ? primaryCol : mutedCol} strokeWidth={1.8} />
+                <View style={[styles.singleIcon, { backgroundColor: selected === 'standard' ? 'rgba(14,159,142,0.12)' : C_SURF }]}>
+                  <OptionIcon size={20} color={selected === 'standard' ? C_TEAL : C_INK_SOFT} strokeWidth={1.8} />
                 </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[styles.optionName, { color: c.ink }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.singleName}>
                     {serviceType === 'scooter' ? t('scooter') : t('delivery')}
                   </Text>
                   {singleEstimate?.eta != null && !estimateLoading ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Clock size={11} color={mutedCol} strokeWidth={2} />
-                      <Text style={[styles.etaText, { color: mutedCol }]}>{singleEstimate.eta} {t('min')}</Text>
+                    <View style={styles.etaRow}>
+                      <Clock size={11} color={C_INK_SOFT} strokeWidth={2} />
+                      <Text style={styles.etaTxt}>{singleEstimate.eta} {t('min')}</Text>
                     </View>
                   ) : null}
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   {estimateLoading ? (
-                    <ActivityIndicator size="small" color={primaryCol} />
+                    <ActivityIndicator size="small" color={C_TEAL} />
                   ) : (
                     <>
-                      <Text style={[styles.priceValue, { color: c.ink }]}>
-                        {singleEstimate?.price != null ? singleEstimate.price.toFixed(2) : '—'}
-                      </Text>
-                      <Text style={[styles.priceCurrency, { color: mutedCol }]}>{t('egp')}</Text>
+                      <Text style={styles.singlePrice}>{singleEstimate?.price != null ? singleEstimate.price.toFixed(2) : '—'}</Text>
+                      <Text style={styles.singleCur}>{t('egp')}</Text>
                     </>
                   )}
                 </View>
@@ -281,18 +215,18 @@ function RideOptionsSheetBase({
           {isDelivery && (
             <View style={{ gap: 8, marginBottom: 16 }}>
               <TextInput
-                style={[styles.recipientInput, { borderColor: borderCol, backgroundColor: surfaceBg, color: c.ink }]}
+                style={styles.recipientInput}
                 value={recipientName}
                 onChangeText={onRecipientNameChange}
                 placeholder={t('recipient_name')}
-                placeholderTextColor={mutedCol}
+                placeholderTextColor={C_CAP}
               />
               <TextInput
-                style={[styles.recipientInput, { borderColor: borderCol, backgroundColor: surfaceBg, color: c.ink }]}
+                style={styles.recipientInput}
                 value={recipientPhone}
                 onChangeText={onRecipientPhoneChange}
                 placeholder={t('recipient_phone')}
-                placeholderTextColor={mutedCol}
+                placeholderTextColor={C_CAP}
                 keyboardType="phone-pad"
               />
             </View>
@@ -301,61 +235,39 @@ function RideOptionsSheetBase({
           {/* ── Payment section ── */}
           {onPaymentMethodChange && (
             <View style={{ marginBottom: 16 }}>
-              <Text style={[styles.sectionLabel, { color: mutedCol }]}>{t('payment_method_label')}</Text>
-
-              {/* Cash / Card — compact segmented pill instead of two big
-                  bordered cards, so it reads as one cohesive control.
-                  Card has no payment gateway wired into ride requests yet,
-                  so it stays a muted, disabled segment with a "coming
-                  soon" badge rather than implying it's payable today. */}
-              <View style={[styles.payPill, { backgroundColor: surfaceBg }]}>
+              <Text style={styles.sectionLabel}>{t('payment_method_label')}</Text>
+              <View style={styles.payTabs}>
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
-                  activeOpacity={0.82}
-                  style={[
-                    styles.payPillOption,
-                    paymentMethod === 'cash' ? { backgroundColor: primaryCol } : null,
-                  ]}
+                  activeOpacity={0.8}
+                  style={[styles.payTab, paymentMethod === 'cash' ? styles.payTabActive : null]}
                 >
-                  <Banknote size={15} color={paymentMethod === 'cash' ? onPrimaryCol : mutedCol} strokeWidth={1.8} />
-                  <Text style={[styles.payPillLabel, { color: paymentMethod === 'cash' ? onPrimaryCol : mutedCol }]}>
+                  <Banknote size={15} color={paymentMethod === 'cash' ? C_INK : C_CAP} strokeWidth={1.8} />
+                  <Text style={[styles.payTabTxt, { color: paymentMethod === 'cash' ? C_INK : C_CAP }]}>
                     {t('payment_methods_cash')}
                   </Text>
                 </TouchableOpacity>
-
-                <View style={[styles.payPillOption, { opacity: 0.55 }]}>
-                  <CreditCard size={15} color={mutedCol} strokeWidth={1.8} />
-                  <Text style={[styles.payPillLabel, { color: mutedCol }]}>{t('payment_methods_card')}</Text>
-                  <View style={[styles.soonBadge, { backgroundColor: cardBg }]}>
-                    <Text style={[styles.soonBadgeText, { color: mutedCol }]}>{t('soon')}</Text>
-                  </View>
+                <View style={[styles.payTab, { opacity: 0.55 }]}>
+                  <CreditCard size={15} color={C_CAP} strokeWidth={1.8} />
+                  <Text style={[styles.payTabTxt, { color: C_CAP }]}>{t('payment_methods_card')}</Text>
+                  <View style={styles.soonBadge}><Text style={styles.soonTxt}>{t('soon')}</Text></View>
                 </View>
               </View>
 
-              {/* Wallet balance toggle — compact inline row. Applies wallet
-                  funds alongside the primary method above instead of
-                  competing with it as a third selectable chip; maps onto
-                  the same 'cash' | 'wallet' paymentMethod state/callback
-                  the backend already expects. Switch is gated on the live
-                  balance from GET /wallet, not just the feature flag. */}
               {walletAvailable && (
                 <View
                   style={[
                     styles.walletRow,
                     {
-                      backgroundColor: surfaceBg,
-                      borderColor: paymentMethod === 'wallet' ? primaryCol : borderCol,
+                      borderColor: paymentMethod === 'wallet' ? C_TEAL : C_HAIR,
                       borderWidth: paymentMethod === 'wallet' ? 1.5 : 1,
-                      marginTop: 8,
                       opacity: walletHasFunds ? 1 : 0.5,
                     },
                   ]}
                 >
-                  <Wallet size={15} color={walletHasFunds ? primaryCol : mutedCol} strokeWidth={1.8} />
-                  <Text style={[styles.payPillLabel, { color: c.ink, flex: 1 }]}>{t('payment_methods_wallet')}</Text>
-                  <Text style={[styles.walletBalanceText, { color: mutedCol }]} numberOfLines={1}>
-                    {'Balance: '}{walletBalance ?? 0} {t('egp')}
-                  </Text>
+                  <Wallet size={15} color={walletHasFunds ? C_TEAL : C_CAP} strokeWidth={1.8} />
+                  <Text style={styles.walletLabel}>{t('payment_methods_wallet')}</Text>
+                  <Text style={styles.walletBal} numberOfLines={1}>{'Balance: '}{walletBalance ?? 0} {t('egp')}</Text>
                   <Switch
                     value={paymentMethod === 'wallet'}
                     disabled={!walletHasFunds}
@@ -364,7 +276,7 @@ function RideOptionsSheetBase({
                       Haptics.selectionAsync();
                       onPaymentMethodChange(val ? 'wallet' : 'cash');
                     }}
-                    trackColor={{ false: c.silver, true: primaryCol }}
+                    trackColor={{ false: '#DDE0E3', true: C_TEAL }}
                     thumbColor="#ffffff"
                   />
                 </View>
@@ -372,25 +284,24 @@ function RideOptionsSheetBase({
             </View>
           )}
 
-          {/* ── Confirm button ── */}
-          <PrimaryButton onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }} disabled={!canConfirm}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {confirming ? (
-                <ActivityIndicator size="small" color={canConfirm ? onPrimaryCol : mutedCol} />
-              ) : (
-                <>
-                  <Text style={[styles.primaryBtnText, { color: canConfirm ? onPrimaryCol : mutedCol }]}>
-                    {'Find Driver'}
-                  </Text>
-                  {selectedPrice != null ? (
-                    <Text style={[styles.primaryBtnText, { color: canConfirm ? onPrimaryCol : mutedCol, opacity: 0.7 }]}>
-                      · {selectedPrice.toFixed(2)} {t('egp')}
-                    </Text>
-                  ) : null}
-                </>
-              )}
-            </View>
-          </PrimaryButton>
+          {/* ── Confirm ── */}
+          <TouchableOpacity
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
+            disabled={!canConfirm}
+            activeOpacity={0.9}
+            style={[styles.confirmBtn, { opacity: canConfirm ? 1 : 0.5 }]}
+          >
+            {confirming ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={styles.confirmTxt}>{'Find Driver'}</Text>
+                {selectedPrice != null ? (
+                  <Text style={styles.confirmPrice}>· {selectedPrice.toFixed(2)} {t('egp')}</Text>
+                ) : null}
+              </View>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </View>
     </Animated.View>
@@ -401,146 +312,103 @@ export const RideOptionsSheet = memo(RideOptionsSheetBase);
 
 const styles = StyleSheet.create({
   sheet: {
-    position: 'absolute', bottom: 16, left: 16, right: 16,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.16,
     shadowRadius: 24,
     elevation: 28,
     zIndex: 999,
   },
   sheetSurface: {
-    borderRadius: 28,
-    paddingTop: 10,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
     overflow: 'hidden',
+    backgroundColor: C_CARD,
+  },
+
+  /* ── Dark header ── */
+  header: {
+    backgroundColor: C_PANEL,
+    paddingTop: 10, paddingBottom: 18, paddingHorizontal: 20,
   },
   handle: {
     width: 40, height: 5, borderRadius: 3,
-    alignSelf: 'center', marginBottom: 20,
+    alignSelf: 'center', marginBottom: 16, backgroundColor: '#3A3B40',
   },
-
-  tripRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderRadius: 16, borderWidth: 1,
-    paddingHorizontal: 14, paddingVertical: 14,
-    marginBottom: 16,
-  },
-  tripDots: { alignItems: 'center', gap: 2, paddingTop: 2 },
-  tripDotRound: { width: 8, height: 8, borderRadius: 4 },
-  tripDotLine: { width: 1, height: 20, marginVertical: 2 },
-  tripDotSquare: { width: 8, height: 8, borderRadius: 2 },
-  tripAddr: { fontSize: 13, fontWeight: '500' },
-  tripDest: { fontSize: 13, fontWeight: '600' },
+  tripRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  tripDots: { alignItems: 'center', paddingTop: 2 },
+  tripDotRound: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: C_MINT },
+  tripDotLine: { width: 1.5, height: 18, backgroundColor: '#333640', marginVertical: 3 },
+  tripDotSquare: { width: 8, height: 8, borderRadius: 2, backgroundColor: C_MINT },
+  tripCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP },
+  tripDest: { fontSize: 16, fontWeight: '800', color: '#ffffff', marginTop: 6 },
   dismissBtn: {
-    width: 32, height: 32, borderRadius: 16, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)',
   },
 
-  optionCard: {
+  body: { backgroundColor: C_CARD },
+
+  /* ── Category tiles ── */
+  optionScrollContent: { gap: 10, paddingRight: 4 },
+  tile: {
+    width: 132, borderRadius: 16,
+    paddingHorizontal: 8, paddingVertical: 12,
+    alignItems: 'center', gap: 4,
+    backgroundColor: C_SURF, borderWidth: 1, borderColor: 'transparent',
+  },
+  tileActive: { borderColor: C_TEAL, backgroundColor: '#ffffff' },
+  tileCheck: {
+    position: 'absolute', top: 8, right: 8,
+    width: 16, height: 16, borderRadius: 8, backgroundColor: C_TEAL,
+    alignItems: 'center', justifyContent: 'center', zIndex: 2,
+  },
+  tileImg: { width: 108, height: 52, marginBottom: 2 },
+  tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+  tileName: { fontSize: 13, fontWeight: '800', textAlign: 'center' },
+  tilePrice: { fontSize: 14, fontWeight: '800', marginTop: 2 },
+  tileCur: { fontSize: 10, fontWeight: '700', color: C_CAP },
+
+  /* ── Single option (scooter / delivery) ── */
+  singleRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
+    backgroundColor: C_SURF, borderWidth: 1, borderColor: 'transparent',
   },
-  optionIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  optionName: {
-    fontSize: 15, fontWeight: '600', letterSpacing: -0.15,
-  },
-  seatBadge: {
-    borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
-  },
-  seatText: { fontSize: 11, fontWeight: '500' },
-  etaText: { fontSize: 12, fontWeight: '500' },
-  priceValue: {
-    fontSize: 15, fontWeight: '700', letterSpacing: -0.2,
-  },
-  priceCurrency: { fontSize: 11, fontWeight: '600', marginTop: 1 },
-
-  /* ── Horizontal category selector cards (Task 1) ──
-     Sized so a third card always peeks in at the sheet's edge — the
-     visual cue that the strip scrolls, instead of two cards landing
-     flush with nothing hinting there's more. */
-  optionScrollContent: {
-    gap: 8, paddingRight: 4,
-  },
-  optionCardH: {
-    width: 132, borderRadius: 16,
-    paddingHorizontal: 8, paddingVertical: 10,
-    alignItems: 'center', gap: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 6, elevation: 0,
-  },
-  optionIconH: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  optionImageH: {
-    width: 108, height: 56, marginBottom: 2,
-  },
-  optionNameH: {
-    fontSize: 13, fontWeight: '600', letterSpacing: -0.1,
-    textAlign: 'center',
-  },
-  etaTextH: { fontSize: 11, fontWeight: '500' },
-  priceValueH: {
-    fontSize: 14, fontWeight: '700', letterSpacing: -0.1, marginTop: 2,
-  },
-  priceCurrencyH: { fontSize: 10, fontWeight: '600' },
-  checkBadge: {
-    position: 'absolute', top: 8, right: 8,
-    width: 16, height: 16, borderRadius: 8,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  singleRowActive: { borderColor: C_TEAL, backgroundColor: '#ffffff' },
+  singleIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  singleName: { fontSize: 15, fontWeight: '800', color: C_INK, letterSpacing: -0.15 },
+  etaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  etaTxt: { fontSize: 12, fontWeight: '600', color: C_INK_SOFT },
+  singlePrice: { fontSize: 15, fontWeight: '800', color: C_INK },
+  singleCur: { fontSize: 11, fontWeight: '700', color: C_CAP },
 
   recipientInput: {
-    height: 48, borderRadius: 12, borderWidth: 1,
-    paddingHorizontal: 14, fontSize: 14,
+    height: 48, borderRadius: 12, borderWidth: 1, borderColor: C_HAIR,
+    backgroundColor: C_SURF, paddingHorizontal: 14, fontSize: 14, color: C_INK,
   },
 
-  sectionLabel: {
-    fontSize: 11, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase', marginBottom: 8,
-  },
-  /* Compact Cash/Card segmented control — one pill-shaped track holding
-     two options, instead of two separate bordered cards. */
-  payPill: {
-    flexDirection: 'row', gap: 6,
-    borderRadius: 999, padding: 4,
-  },
-  payPillOption: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, borderRadius: 999,
-    paddingHorizontal: 10, paddingVertical: 9,
-  },
-  payPillLabel: { fontSize: 13, fontWeight: '700' },
-  soonBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 6, paddingVertical: 2,
-  },
-  soonBadgeText: { fontSize: 9.5, fontWeight: '600' },
-
+  /* ── Payment ── */
+  sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP, marginBottom: 12 },
+  payTabs: { flexDirection: 'row', gap: 24 },
+  payTab: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingBottom: 8 },
+  payTabActive: { borderBottomWidth: 2, borderBottomColor: C_INK },
+  payTabTxt: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  soonBadge: { borderRadius: 4, borderWidth: 1, borderColor: C_HAIR, paddingHorizontal: 5, paddingVertical: 2 },
+  soonTxt: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, color: C_CAP },
   walletRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderRadius: 12,
-    paddingHorizontal: 12, paddingVertical: 9,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+    backgroundColor: C_SURF, marginTop: 14,
   },
-  walletBalanceText: {
-    fontSize: 12, fontWeight: '600', marginRight: 4,
-  },
+  walletLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: C_INK },
+  walletBal: { fontSize: 13, fontWeight: '700', color: C_CAP, marginRight: 4 },
 
-  primaryBtn: {
-    height: 56, borderRadius: 16, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 6,
+  /* ── Confirm ── */
+  confirmBtn: {
+    height: 54, borderRadius: 15, backgroundColor: C_INK,
+    alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
-  primaryBtnText: {
-    fontSize: 15.5, fontWeight: '700', letterSpacing: -0.15,
-  },
+  confirmTxt: { color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
+  confirmPrice: { color: C_MINT, fontSize: 15, fontWeight: '800' },
 });
