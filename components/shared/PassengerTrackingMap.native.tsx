@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, MarkerAnimated, PROVIDER_GOOGLE } from 'reac
 import { Navigation } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/constants/mapStyles';
-import { estimateEtaMinutes, haversineMeters, trimRouteToPosition } from '@/src/utils/geoHelpers';
+import { estimateEtaMinutes, haversineMeters, trimRouteToPosition, snapPointToRoute } from '@/src/utils/geoHelpers';
 import { useAnimatedDriverMarker } from '@/hooks/map/useAnimatedDriverMarker';
 import { useMapCamera } from '@/hooks/map/useMapCamera';
 import { useCameraController } from '@/hooks/map/useCameraController';
@@ -85,6 +85,11 @@ const OVERVIEW_HOLD_MS = 1500;
 // Google route hasn't loaded (or failed), independent of GPS tick rate.
 const ETA_FALLBACK_THROTTLE_MS = 3000;
 const ETA_FALLBACK_MOVE_METERS = 50;
+// Max sideways distance (metres) the driver's fix may be from the drawn car
+// route before the marker stops snapping onto it — see displayDriverLocation.
+// Only the car/scooter/delivery marker is snapped; the shuttle bus rides its
+// raw fix along the multi-station path.
+const DRIVER_SNAP_TO_ROUTE_MAX_M = 30;
 
 function stationFill(status: Station['status']): string {
   if (status === 'completed') return '#22c55e';
@@ -140,12 +145,46 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
   // `rotation` drives the MarkerAnimated's heading directly — DriverMarker
   // now renders a top-down car image (front pointing up at 0deg) instead of
   // a symmetrical dot.
+  // ── Google Directions — car/scooter/delivery path (no stations) ──────────────
+  // Route target is phase-aware:
+  //   driver_arriving → driverLocation → pickup
+  //   trip_started    → driverLocation → dropoff
+  //   null / no phase → disabled (hook clears routeCoords immediately)
+  //
+  // Hoisted above the marker hook so the car marker can be snapped onto this
+  // route. Phase changes automatically change carRouteTarget, which changes the
+  // hook's targetsKey, forcing an immediate refetch — equivalent to the
+  // prevTripPhaseRef force-refetch that lived in the old car-route effect.
+  const carRouteTarget: LatLng | null =
+    tripPhase === 'driver_arriving' ? (pickup  ?? null) :
+    tripPhase === 'trip_started'    ? (dropoff ?? null) :
+    null;
+
+  const { routeCoords: carRouteCoords, durationSeconds: carDuration } = useGoogleRoute({
+    origin:  driverLocation,
+    targets: carRouteTarget ? [carRouteTarget] : [],
+    enabled: sorted.length === 0 && !!tripPhase && !!carRouteTarget,
+  });
+
+  // Snap the car/scooter/delivery marker onto its road route so the vehicle
+  // icon rides ON the line instead of beside it (raw urban GPS drifts
+  // sideways). The shuttle bus marker (sorted.length > 0) is left on its raw
+  // fix — its multi-station path isn't a single clean road to project onto.
+  // Feeds the marker + follow camera; the raw driverLocation still drives ETA,
+  // route fetching, and camera fits.
+  const displayDriverLocation = useMemo(() => {
+    if (!driverLocation) return driverLocation ?? null;
+    if (sorted.length > 0 || carRouteCoords.length < 2) return driverLocation;
+    const snapped = snapPointToRoute(carRouteCoords, driverLocation, DRIVER_SNAP_TO_ROUTE_MAX_M);
+    return snapped === driverLocation ? driverLocation : { ...driverLocation, ...snapped };
+  }, [driverLocation, sorted.length, carRouteCoords]);
+
   const {
     animatedCoord,
     rotation: driverRotation,
     headingRef: driverHeadingRef,
     positionRef: driverPositionRef,
-  } = useAnimatedDriverMarker({ driverLocation, initialCoords: pickup });
+  } = useAnimatedDriverMarker({ driverLocation: displayDriverLocation, initialCoords: pickup });
 
   // ── Camera follow ────────────────────────────────────────────────────────────
   // mapRef, mapReadyRef, pendingCameraRef, and runOrQueueCamera are all
@@ -281,26 +320,6 @@ export const PassengerTrackingMap = React.memo(function PassengerTrackingMap({
     origin:  driverLocation,
     targets: waypointsToTarget,
     enabled: sorted.length > 0 && waypointsToTarget.length > 0,
-  });
-
-  // ── Google Directions — car/scooter/delivery path (no stations) ──────────────
-  // Route target is phase-aware:
-  //   driver_arriving → driverLocation → pickup
-  //   trip_started    → driverLocation → dropoff
-  //   null / no phase → disabled (hook clears routeCoords immediately)
-  //
-  // Phase changes automatically change carRouteTarget, which changes the
-  // hook's targetsKey, forcing an immediate refetch — equivalent to the
-  // prevTripPhaseRef force-refetch that lived in the old car-route effect.
-  const carRouteTarget: LatLng | null =
-    tripPhase === 'driver_arriving' ? (pickup  ?? null) :
-    tripPhase === 'trip_started'    ? (dropoff ?? null) :
-    null;
-
-  const { routeCoords: carRouteCoords, durationSeconds: carDuration } = useGoogleRoute({
-    origin:  driverLocation,
-    targets: carRouteTarget ? [carRouteTarget] : [],
-    enabled: sorted.length === 0 && !!tripPhase && !!carRouteTarget,
   });
 
   // ── Stale-route guard (car/scooter/delivery only) ────────────────────────────

@@ -76,3 +76,48 @@ export function trimRouteToPosition(route: LatLng[], position: LatLng): LatLng[]
 
   return [projected, ...route.slice(bestSegIdx + 1)];
 }
+
+// Map-matching for the driver marker: returns `position` projected onto the
+// nearest point of the road-snapped `route`, but only when that projection is
+// within `maxSnapM` metres — otherwise the raw `position` is returned unchanged
+// (same reference, so callers can cheaply detect "no snap" by identity).
+//
+// The drawn route line already starts at this projection (trimRouteToPosition),
+// so snapping the marker here makes the vehicle icon ride ON the line instead
+// of beside it: ordinary urban GPS drift (multipath off buildings) offsets a
+// fix 10-30 m sideways, which otherwise reads as the car driving next to the
+// route. The threshold guard keeps a genuinely off-route driver (who diverged
+// onto a different road) on their true position rather than yanking the marker
+// onto a road they are not on. Uses the same local planar projection as
+// trimRouteToPosition.
+export function snapPointToRoute(route: LatLng[], position: LatLng, maxSnapM: number): LatLng {
+  if (route.length < 2) return position;
+
+  let bestDist = Infinity;
+  let best: LatLng = position;
+
+  for (let i = 0; i < route.length - 1; i++) {
+    const a = route[i];
+    const b = route[i + 1];
+    const cosLat = Math.cos((a.latitude * Math.PI) / 180);
+    const ax = a.longitude * cosLat, ay = a.latitude;
+    const bx = b.longitude * cosLat, by = b.latitude;
+    const px = position.longitude * cosLat, py = position.latitude;
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+
+    const projected: LatLng = {
+      latitude: a.latitude + (b.latitude - a.latitude) * t,
+      longitude: a.longitude + (b.longitude - a.longitude) * t,
+    };
+    const dist = haversineMeters(position, projected);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = projected;
+    }
+  }
+
+  return bestDist <= maxSnapM ? best : position;
+}

@@ -13,7 +13,7 @@ import { useCameraController } from '@/hooks/map/useCameraController';
 import { useGoogleRoute } from '@/hooks/map/useGoogleRoute';
 import { useDriverLocationSocket } from '@/hooks/map/useDriverLocationSocket';
 import { DriverMarker } from '@/components/shared/DriverMarker';
-import { trimRouteToPosition, haversineMeters, estimateEtaMinutes } from '@/src/utils/geoHelpers';
+import { trimRouteToPosition, haversineMeters, estimateEtaMinutes, snapPointToRoute } from '@/src/utils/geoHelpers';
 
 interface Coords { latitude: number; longitude: number }
 
@@ -29,6 +29,12 @@ const GOOD_ENOUGH_ACCURACY_M = 15;
 // Max distance (metres) between the raw GPS fix and the drawn route before
 // the rendered dot stops snapping to it — see displayUserLocation below.
 const SNAP_TO_ROUTE_MAX_M = 15;
+
+// Same idea for the driver's vehicle marker, but a wider tolerance: a moving
+// car's fix drifts more than a standing passenger's, and the route it rides is
+// a real road, so we allow a larger sideways correction before giving up and
+// showing the raw fix — see displayDriverLocation below.
+const DRIVER_SNAP_TO_ROUTE_MAX_M = 30;
 
 // Throttle for the Haversine ETA fallback — mirrors PassengerTrackingMap's
 // same constant so the two ETA implementations behave identically.
@@ -110,12 +116,35 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
   // showDriverMarker && driverLocation in JSX). `rotation` drives the
   // MarkerAnimated's heading directly — DriverMarker now renders a top-down
   // car image (front pointing up at 0deg) instead of a symmetrical dot.
+  // Active-ride route (driverLocation → destCoords), hoisted above the marker
+  // hook so the marker can be snapped onto it. The hook applies the 75 s /
+  // 300 m throttle and detects destination changes via targetsKey — equivalent
+  // to the original activeDestinationKeyRef + elapsed + movedSignificantly
+  // guards. Also consumed by the ETA / route-drawing logic further down.
+  const { routeCoords: activeRideRouteCoords, durationSeconds: activeRideDurationSeconds } = useGoogleRoute({
+    origin:  driverLocation,
+    targets: destCoords ? [destCoords] : [],
+    enabled: !!showDriverMarker && !!driverLocation && !!destCoords && isFocused,
+  });
+
+  // Snap the driver's live fix onto the road-snapped route so the vehicle icon
+  // rides ON the line instead of beside it (raw urban GPS drifts sideways).
+  // Falls back to the raw fix when off-route or before a route exists. This
+  // feeds the marker + follow camera; the raw driverLocation still drives ETA,
+  // route fetching, and camera fits below.
+  const displayDriverLocation = useMemo(() => {
+    if (!driverLocation) return driverLocation ?? null;
+    if (!showDriverMarker || activeRideRouteCoords.length < 2) return driverLocation;
+    const snapped = snapPointToRoute(activeRideRouteCoords, driverLocation, DRIVER_SNAP_TO_ROUTE_MAX_M);
+    return snapped === driverLocation ? driverLocation : { ...driverLocation, ...snapped };
+  }, [driverLocation, showDriverMarker, activeRideRouteCoords]);
+
   const {
     animatedCoord: animatedDriverCoord,
     rotation: driverRotation,
     headingRef: driverHeadingRef,
     positionRef: driverPositionRef,
-  } = useAnimatedDriverMarker({ driverLocation });
+  } = useAnimatedDriverMarker({ driverLocation: displayDriverLocation });
 
   // Phase 3C camera controller — follows the interpolated position + smoothed
   // heading via setCamera (course-up, tilted, fixed zoom). Follow is active
@@ -297,16 +326,6 @@ export const CarMap = React.memo(function CarMap({ driverLocation: driverLocatio
     origin:  userLocation,
     targets: destCoords ? [destCoords] : [],
     enabled: !showDriverMarker && !!userLocation && !!destCoords && isFocused,
-  });
-
-  // B) Active ride: driverLocation → destCoords.
-  //    The hook applies the 75 s / 300 m throttle and detects destination
-  //    changes via targetsKey — equivalent to the original
-  //    activeDestinationKeyRef + elapsed + movedSignificantly guards.
-  const { routeCoords: activeRideRouteCoords, durationSeconds: activeRideDurationSeconds } = useGoogleRoute({
-    origin:  driverLocation,
-    targets: destCoords ? [destCoords] : [],
-    enabled: !!showDriverMarker && !!driverLocation && !!destCoords && isFocused,
   });
 
   // ── ETA ─────────────────────────────────────────────────────────────────────
