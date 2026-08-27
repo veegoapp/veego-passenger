@@ -175,9 +175,10 @@ export type Trip = {
   direction?: ShuttleDirection;
   /** Whether this booking can be self-cancelled — from backend `canCancel`, with a status-based fallback when absent. */
   canCancel?: boolean;
-  /** Driver's name and rating, sent by GET /shuttle/my-trips. */
+  /** Driver's name, rating, and photo, sent by GET /shuttle/my-trips. */
   driverName?: string | null;
   driverRating?: number | null;
+  driverAvatar?: string | null;
   /** The passenger's own rating already given for this trip, if any (used to show "already rated"). */
   passengerRating?: number | null;
 };
