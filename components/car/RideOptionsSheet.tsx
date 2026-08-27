@@ -1,11 +1,11 @@
 import { memo, useRef, useEffect } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, Animated,
+  View, Text, TouchableOpacity, StyleSheet, Animated,
   ActivityIndicator, TextInput, ScrollView, Switch,
 } from 'react-native';
 import {
   Car, Bike as ScooterIcon, Package,
-  Banknote, Wallet, CreditCard, Check,
+  Banknote, Wallet, CreditCard,
   Clock, ChevronDown,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -41,15 +41,6 @@ interface RideOptionsSheetProps {
   walletAvailable?: boolean;
   walletBalance?: number;
 }
-
-// Real car photos per catalog category (economy / economy_plus / comfort),
-// shown large and frameless in the ride option cards below — falls back to
-// the generic Car icon for any slug the backend adds later without a photo.
-const CATEGORY_IMAGES: Record<string, ReturnType<typeof require>> = {
-  economy: require('../../assets/images/vehicles/category/economy.png'),
-  economy_plus: require('../../assets/images/vehicles/category/economy-plus.png'),
-  comfort: require('../../assets/images/vehicles/category/comfort.png'),
-};
 
 // ── "C · Split Panel" fixed palette (matches the approved design) ────────────
 const C_PANEL = '#14151A';
@@ -136,12 +127,7 @@ function RideOptionsSheetBase({
         >
           {/* ── Category selector ── */}
           {serviceType === 'car' ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.optionScrollContent}
-              style={{ marginBottom: 16 }}
-            >
+            <View style={styles.tileRow}>
               {carCategories.map((cat) => {
                 const active = selected === cat.slug;
                 return (
@@ -151,31 +137,19 @@ function RideOptionsSheetBase({
                     activeOpacity={0.85}
                     style={[styles.tile, active ? styles.tileActive : null]}
                   >
-                    {active && (
-                      <View style={styles.tileCheck}>
-                        <Check size={10} color="#ffffff" strokeWidth={3} />
-                      </View>
-                    )}
-                    {CATEGORY_IMAGES[cat.slug] ? (
-                      <Image source={CATEGORY_IMAGES[cat.slug]} style={styles.tileImg} resizeMode="contain" />
-                    ) : (
-                      <View style={styles.tileIcon}>
-                        <Car size={20} color={active ? C_TEAL : C_INK_SOFT} strokeWidth={1.8} />
-                      </View>
-                    )}
-                    <Text style={[styles.tileName, { color: active ? C_TEAL : C_INK }]} numberOfLines={1}>{cat.name}</Text>
+                    <Text style={[styles.tileName, { color: active ? '#ffffff' : C_INK }]} numberOfLines={1}>{cat.name}</Text>
                     {estimateLoading ? (
-                      <ActivityIndicator size="small" color={C_TEAL} />
+                      <ActivityIndicator size="small" color={active ? '#ffffff' : C_TEAL} />
                     ) : (
-                      <Text style={[styles.tilePrice, { color: active ? C_TEAL : C_INK }]} numberOfLines={1}>
-                        {cat.price != null ? cat.price.toFixed(2) : '—'}
-                        <Text style={styles.tileCur}> {t('egp')}</Text>
+                      <Text style={[styles.tilePrice, { color: active ? '#ffffff' : C_INK }]} numberOfLines={1}>
+                        {cat.price != null ? Math.round(cat.price) : '—'}
+                        <Text style={[styles.tileCur, active ? { color: 'rgba(255,255,255,0.8)' } : null]}> {t('egp')}</Text>
                       </Text>
                     )}
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </View>
           ) : (
             <View style={{ marginBottom: 16 }}>
               <TouchableOpacity
@@ -235,7 +209,6 @@ function RideOptionsSheetBase({
           {/* ── Payment section ── */}
           {onPaymentMethodChange && (
             <View style={{ marginBottom: 16 }}>
-              <Text style={styles.sectionLabel}>{t('payment_method_label')}</Text>
               <View style={styles.payTabs}>
                 <TouchableOpacity
                   onPress={() => { Haptics.selectionAsync(); onPaymentMethodChange('cash'); }}
@@ -350,23 +323,15 @@ const styles = StyleSheet.create({
   body: { backgroundColor: C_CARD },
 
   /* ── Category tiles ── */
-  optionScrollContent: { gap: 10, paddingRight: 4 },
+  tileRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   tile: {
-    width: 132, borderRadius: 16,
-    paddingHorizontal: 8, paddingVertical: 12,
-    alignItems: 'center', gap: 4,
-    backgroundColor: C_SURF, borderWidth: 1, borderColor: 'transparent',
+    flex: 1, borderRadius: 16,
+    paddingHorizontal: 6, paddingVertical: 14,
+    alignItems: 'center', backgroundColor: C_SURF,
   },
-  tileActive: { borderColor: C_TEAL, backgroundColor: '#ffffff' },
-  tileCheck: {
-    position: 'absolute', top: 8, right: 8,
-    width: 16, height: 16, borderRadius: 8, backgroundColor: C_TEAL,
-    alignItems: 'center', justifyContent: 'center', zIndex: 2,
-  },
-  tileImg: { width: 108, height: 52, marginBottom: 2 },
-  tileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+  tileActive: { backgroundColor: C_TEAL },
   tileName: { fontSize: 13, fontWeight: '800', textAlign: 'center' },
-  tilePrice: { fontSize: 14, fontWeight: '800', marginTop: 2 },
+  tilePrice: { fontSize: 18, fontWeight: '800', marginTop: 4 },
   tileCur: { fontSize: 10, fontWeight: '700', color: C_CAP },
 
   /* ── Single option (scooter / delivery) ── */
@@ -389,7 +354,6 @@ const styles = StyleSheet.create({
   },
 
   /* ── Payment ── */
-  sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP, marginBottom: 12 },
   payTabs: { flexDirection: 'row', gap: 24 },
   payTab: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingBottom: 8 },
   payTabActive: { borderBottomWidth: 2, borderBottomColor: C_INK },
