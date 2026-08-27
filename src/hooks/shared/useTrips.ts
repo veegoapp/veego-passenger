@@ -115,6 +115,7 @@ function mapShuttleTrip(b: any): Trip {
     canCancel,
     driverName:      b.driverName ?? null,
     driverRating:    typeof b.driverRating === 'number' ? b.driverRating : null,
+    driverAvatar:    b.driverAvatar ?? null,
     passengerRating: typeof b.passengerRating === 'number' ? b.passengerRating : null,
   };
 }

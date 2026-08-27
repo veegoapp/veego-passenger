@@ -15,8 +15,8 @@ import { Animation } from '@/constants/animations';
 
 /* ─── Types (unchanged) ──────────────────────────────────────────────────── */
 interface RideCategoryOption { slug: string; name: string; price: number }
-interface RideEstimate { categories: RideCategoryOption[]; eta: number }
-interface SingleEstimate { price: number; eta: number }
+interface RideEstimate { categories: RideCategoryOption[] }
+interface SingleEstimate { price: number; eta: number | null }
 
 type RideOptionId = string;
 

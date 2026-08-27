@@ -45,7 +45,6 @@ interface RideEstimate {
    *  comfort, ...) — was previously collapsed to just the cheapest/priciest
    *  entries, which silently dropped any category in between. */
   categories: CarCategoryOption[];
-  eta: number;
 }
 
 type CarPhase = 'idle' | 'ride_options' | 'in_ride' | 'completed' | 'cancelled';
@@ -340,7 +339,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [searchCancelSheetOpen, setSearchCancelSheetOpen] = useState(false);
   const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
-  const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number } | null>(null);
+  const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number | null } | null>(null);
   // Live ETA (minutes) from CarMap while a driver is en route — surfaced in
   // the driver card's dark ETA panel.
   const [driverEta, setDriverEta] = useState<number | null>(null);
@@ -556,12 +555,13 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         const categories: Array<{ slug: string; name: string; estimatedPrice: number }> = data.categories ?? [];
         setEstimate({
           categories: categories.map((cat) => ({ slug: cat.slug, name: cat.name, price: cat.estimatedPrice })),
-          eta: data.durationMinutes ?? 5,
         });
       } else {
         // Scooter/delivery pricing is single-rate on the backend — no
-        // economy/premium split, just one estimatedPrice.
-        setSingleEstimate({ price: data.estimatedPrice ?? 0, eta: data.durationMinutes ?? 5 });
+        // economy/premium split, just one estimatedPrice. eta stays null
+        // (never a fabricated fallback) when the backend omits it — the
+        // card hides the ETA row entirely rather than show a fake minute count.
+        setSingleEstimate({ price: data.estimatedPrice ?? 0, eta: data.durationMinutes ?? null });
       }
     } catch {
       if (seq !== estimateRequestSeqRef.current) return; // superseded — discard

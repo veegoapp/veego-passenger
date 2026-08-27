@@ -79,6 +79,7 @@ interface TripDetail {
   alightingScheduledTime?: string | null;
   driverName?: string | null;
   driverUserId?: number | null;
+  driverAvatar?: string | null;
   /** This trip's physical direction, when the backend provides it — never fabricated. */
   direction?: ShuttleDirection;
 }
@@ -248,6 +249,7 @@ function mapApiToDetail(b: any): TripDetail {
     alightingScheduledTime: b.alightingScheduledTime ?? null,
     driverName: b.driverName ?? trip.driver?.name ?? b.driver?.name ?? null,
     driverUserId: b.driverUserId ?? trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
+    driverAvatar: b.driverAvatar ?? trip.driver?.avatar ?? b.driver?.avatar ?? null,
     direction: b.direction ?? trip.direction ?? undefined,
   };
 }
@@ -468,6 +470,7 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     rDivider: { height: 1, backgroundColor: '#EEF0F1', marginVertical: 14 },
     driverRowC: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     driverAvatarC: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#F0F2F3', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    driverAvatarImgC: { width: 46, height: 46, borderRadius: 23, flexShrink: 0 },
     driverInitialsC: { fontWeight: '800', fontSize: 15, color: '#14151A' },
     driverNameC: { fontSize: 14.5, fontWeight: '800', color: '#14151A' },
     driverCapC: { fontSize: 11.5, fontWeight: '600', color: '#9AA0A6', marginTop: 2 },
@@ -1331,9 +1334,13 @@ export default function TripDetailScreen() {
             {!!trip.driverName && (
               <>
                 <View style={styles.driverRowC}>
-                  <View style={styles.driverAvatarC}>
-                    <Text style={styles.driverInitialsC}>{trip.driverName.charAt(0).toUpperCase()}</Text>
-                  </View>
+                  {trip.driverAvatar ? (
+                    <Image source={{ uri: trip.driverAvatar }} style={styles.driverAvatarImgC} />
+                  ) : (
+                    <View style={styles.driverAvatarC}>
+                      <Text style={styles.driverInitialsC}>{trip.driverName.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.driverNameC} numberOfLines={1}>{trip.driverName}</Text>
                     <Text style={styles.driverCapC}>{t('driver_label')}</Text>

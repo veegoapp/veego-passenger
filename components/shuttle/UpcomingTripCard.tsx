@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
@@ -84,6 +84,7 @@ export function UpcomingTripCard({
 
   const driverName   = trip.driverName;
   const driverRating = trip.driverRating;
+  const driverAvatar = trip.driverAvatar;
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.card}>
@@ -143,12 +144,21 @@ export function UpcomingTripCard({
         )}
 
         {!!driverName && (
-          <Text style={styles.driverRow} numberOfLines={1}>
-            {driverName}
-            {typeof driverRating === 'number' && (
-              <Text style={styles.ratingText}>  ★ {driverRating.toFixed(1)}</Text>
+          <View style={styles.driverInfoRow}>
+            {driverAvatar ? (
+              <Image source={{ uri: driverAvatar }} style={styles.driverAvatarImg} />
+            ) : (
+              <View style={styles.driverAvatarFallback}>
+                <Text style={styles.driverAvatarFallbackText}>{driverName.charAt(0).toUpperCase()}</Text>
+              </View>
             )}
-          </Text>
+            <Text style={styles.driverRow} numberOfLines={1}>
+              {driverName}
+              {typeof driverRating === 'number' && (
+                <Text style={styles.ratingText}>  ★ {driverRating.toFixed(1)}</Text>
+              )}
+            </Text>
+          </View>
         )}
 
         <View style={styles.bottom}>
@@ -207,7 +217,11 @@ function makeStyles(c: ThemeColors) {
     capacityTrack: { height: 6, borderRadius: 3, backgroundColor: C_MIST, overflow: 'hidden' },
     capacityFill: { height: 6, borderRadius: 3 },
 
-    driverRow: { fontSize: 12, fontWeight: '600', color: C_INK_SOFT },
+    driverInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    driverAvatarImg: { width: 20, height: 20, borderRadius: 10 },
+    driverAvatarFallback: { width: 20, height: 20, borderRadius: 10, backgroundColor: C_MIST, alignItems: 'center', justifyContent: 'center' },
+    driverAvatarFallbackText: { fontSize: 9.5, fontWeight: '800', color: C_INK },
+    driverRow: { fontSize: 12, fontWeight: '600', color: C_INK_SOFT, flexShrink: 1 },
     ratingText: { fontSize: 12, fontWeight: '700', color: C_INK },
 
     bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
