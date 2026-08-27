@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, Platform, ActivityIndicator, Alert, BackHandler,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {
@@ -11,7 +10,6 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import { GlassView } from '@/components/ui/GlassView';
 import { ThemeColors, S } from '@/constants/colors';
 import { useBooking } from '@/context/BookingContext';
 import { useServiceControl } from '@/context/ServiceControlContext';
@@ -24,27 +22,24 @@ import { useShuttleSeatAvailability } from '@/src/hooks/shuttle/useShuttleSeatAv
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
-import { Shadows } from '@/constants/shadows';
 
 import { BOOKABLE_STATUSES, formatTripDateUTC } from './tripSheetHelpers';
 import {
   RouteHero, StatsRow, DateSelector, TripCard, StationPicker, PriceSummary,
 } from './TripSheetSections';
 
-// routeHero's background is c.ink — deliberately dark in light mode (so the
-// hardcoded white text below reads fine there), but c.ink flips to near-white
-// in dark mode, which made that same white text invisible against its own
-// card. Text inside the hero card uses this instead: white on light mode's
-// dark card, and the app's dark-mode background color (a fixed dark navy,
-// unaffected by the card-background flip) on dark mode's light card.
-function hexToRgba(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
+// ── C · Split Panel — fixed palette, independent of the app's light/dark
+// theme (matches the ride-flow cards already rebuilt in this direction).
+const C_PANEL = '#14151A';
+const C_TEAL = '#0E9F8E';
+const C_MINT = '#3DDC97';
+const C_CAP = '#9AA0A6';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_HAIR = '#EEF0F1';
+const C_MIST = '#F0F2F3';
 
 function makeStyles(c: ThemeColors, insetsBottom: number) {
-  const heroInk = (alpha: number) => c.isDark ? hexToRgba(c.background, alpha) : `rgba(255,255,255,${alpha})`;
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 9999, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -53,32 +48,31 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       ...S.float,
     },
     sheetGlass: {
-      flex: 1,
-      borderTopLeftRadius: 36, borderTopRightRadius: 36,
+      flex: 1, backgroundColor: '#fff',
+      borderTopLeftRadius: 30, borderTopRightRadius: 30,
       borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
     },
     handle: {
-      width: 44, height: 5, borderRadius: 2.5,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
-      alignSelf: 'center', marginTop: 14,
+      width: 40, height: 5, borderRadius: 2.5,
+      backgroundColor: 'rgba(0,0,0,0.14)',
+      alignSelf: 'center', marginTop: 12,
     },
     closeBtn: {
       position: 'absolute', top: 10, right: Spacing.md,
       width: 32, height: 32, borderRadius: 16,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)',
+      backgroundColor: 'rgba(0,0,0,0.06)',
       alignItems: 'center', justifyContent: 'center',
       zIndex: 10,
     },
     scroll: { flex: 1 },
     scrollContent: { paddingBottom: Spacing.sm },
 
-    /* ── Route hero ─────────────────────────────────────── */
+    /* ── Route hero — dark panel ─────────────────────────── */
     routeHero: {
-      backgroundColor: c.ink,
-      paddingHorizontal: Spacing.xl, paddingTop: 22, paddingBottom: 0,
-      borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      backgroundColor: C_PANEL,
+      paddingHorizontal: Spacing.xl, paddingTop: 20, paddingBottom: 0,
       marginHorizontal: Spacing.md, marginTop: Spacing.lg,
-      borderRadius: 28, overflow: 'hidden',
+      borderRadius: 24, overflow: 'hidden',
     },
     heroGlow: {
       position: 'absolute', top: -60, right: -60,
@@ -87,56 +81,42 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     },
     heroTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.lg },
     heroCodeBox: {
-      width: 42, height: 42, borderRadius: 14,
+      width: 38, height: 38, borderRadius: 12,
       backgroundColor: 'rgba(255,255,255,0.12)',
       alignItems: 'center', justifyContent: 'center',
     },
-    heroCodeText: { color: heroInk(1), fontSize: 11, fontWeight: Typography.weight.bold, letterSpacing: 0.5 },
+    heroCodeText: { color: '#fff', fontSize: 10, fontWeight: Typography.weight.bold, letterSpacing: 0.5 },
     heroFavBtn: {
-      width: 38, height: 38, borderRadius: 19,
+      width: 34, height: 34, borderRadius: 17,
       backgroundColor: 'rgba(255,255,255,0.1)',
       alignItems: 'center', justifyContent: 'center',
     },
     heroRouteName: {
-      fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: heroInk(1),
-      letterSpacing: -0.5, marginBottom: Spacing.xs,
+      fontSize: 20, fontWeight: Typography.weight.bold, color: '#fff',
+      letterSpacing: -0.4, marginBottom: Spacing.xs,
     },
-    heroRoutePath: { fontSize: 13, color: heroInk(0.6), marginBottom: 20 },
+    heroRoutePath: { fontSize: 12.5, color: 'rgba(255,255,255,0.6)', marginBottom: 18 },
 
     /* Journey track — pin-marker style */
-    journeyWrap: { paddingBottom: 20 },
+    journeyWrap: { paddingBottom: 18 },
     journeyScroll: { paddingRight: Spacing.xl },
     journeyRow: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: Spacing.sm },
-    journeyStop: { alignItems: 'center', width: 70 },
-    journeyPin: { height: 28, alignItems: 'center', justifyContent: 'center' },
+    journeyStop: { alignItems: 'center', width: 56 },
+    journeyPin: { height: 26, alignItems: 'center', justifyContent: 'center' },
     journeyLabel: {
-      fontSize: 10, color: heroInk(0.55),
+      fontSize: 10, color: 'rgba(255,255,255,0.5)',
       textAlign: 'center', marginTop: 5, lineHeight: 13,
     },
-    journeyLabelActive: { color: heroInk(1), fontWeight: Typography.weight.semibold },
-    journeyConnector: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.2)', marginTop: Spacing.md },
+    journeyLabelActive: { color: '#fff', fontWeight: Typography.weight.semibold },
+    journeyConnector: { flex: 1, height: 2.5, backgroundColor: 'rgba(255,255,255,0.18)', marginTop: 9 },
     journeyConnectorActive: { backgroundColor: 'rgba(255,255,255,0.65)' },
 
-    /* Stat cards row — compact horizontal.
-     * Shadow lives on statCardWrap (no overflow:'hidden' — that would clip it
-     * on iOS); statCard (the LinearGradient itself) clips its own corners. */
-    statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md, marginTop: 10, marginBottom: Spacing.xs },
-    statCardWrap: {
-      flex: 1, borderRadius: 14,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: c.isDark ? 0.25 : 0.06, shadowRadius: 8, elevation: 3,
-    },
-    statCard: {
-      borderRadius: 14, overflow: 'hidden', paddingHorizontal: 10, paddingVertical: Spacing.sm,
-      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    },
-    statIconBox: {
-      width: 26, height: 26, borderRadius: Radius.sm,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    statValue: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
-    statLabel: { fontSize: 9, color: c.inkSoft, lineHeight: 12, letterSpacing: 0.1 },
+    /* Stat cards row — flat, no gradient */
+    statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md, marginTop: 14, marginBottom: Spacing.xs },
+    statCardWrap: { flex: 1, borderRadius: 14 },
+    statCard: { borderRadius: 14, backgroundColor: C_MIST, paddingHorizontal: 10, paddingVertical: 10 },
+    statValue: { fontSize: 13, fontWeight: '800', color: C_INK, letterSpacing: -0.2 },
+    statLabel: { fontSize: 9.5, fontWeight: '700', color: C_CAP, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 3 },
 
     /* Date selector strip */
     dateSelectorWrap: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
@@ -144,121 +124,115 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       alignItems: 'center', paddingHorizontal: 11, paddingVertical: 7,
       borderRadius: 14, marginEnd: 8, borderWidth: 1.5, minWidth: 60,
     },
-    dateItemActive: { backgroundColor: c.ink, borderColor: c.ink },
-    dateItemInactive: { backgroundColor: c.white, borderColor: c.border },
+    dateItemActive: { backgroundColor: C_PANEL, borderColor: C_PANEL },
+    dateItemInactive: { backgroundColor: c.white, borderColor: '#E2E5E8' },
     dateDayLabel: { fontSize: 9, fontWeight: Typography.weight.semibold, textTransform: 'uppercase' as any, letterSpacing: 0.4, marginBottom: 1 },
-    dateDayLabelActive: { color: c.isDark ? c.background : '#ffffff' },
-    dateDayLabelInactive: { color: c.inkSoft },
+    dateDayLabelActive: { color: '#ffffff' },
+    dateDayLabelInactive: { color: C_CAP },
     dateDayNum: { fontSize: 17, fontWeight: '800', letterSpacing: -0.5 },
-    dateDayNumActive: { color: c.isDark ? c.background : '#ffffff' },
-    dateDayNumInactive: { color: c.ink },
+    dateDayNumActive: { color: '#ffffff' },
+    dateDayNumInactive: { color: C_INK },
 
     /* Section wrapper */
     sectionWrap: { paddingHorizontal: Spacing.md, marginTop: 18 },
     sectionTitle: {
-      fontSize: 11, fontWeight: Typography.weight.semibold, color: c.inkSoft,
+      fontSize: 11, fontWeight: Typography.weight.semibold, color: C_CAP,
       textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: Spacing.md,
     },
 
-    /* Trip cards — vertical full-width.
-     * Non-active card bg is always c.white (light) regardless of dark mode.
-     * All non-active text colours are hard-coded dark so they are always
-     * legible on that white surface. Active overrides then flip to white. */
+    /* Trip cards — vertical full-width. Non-active is white/outlined; active
+     * flips to the fixed dark panel — always, regardless of app theme. */
     tripCard: {
-      borderRadius: 20, borderWidth: 1.5, borderColor: c.border,
-      // Intentionally a literal (not c.white, which itself darkens in dark mode) —
-      // this card is always light-surfaced so the hardcoded dark text below stays legible.
+      borderRadius: 20, borderWidth: 1.5, borderColor: '#E2E5E8',
       padding: Spacing.lg, backgroundColor: '#ffffff', marginBottom: 10,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: c.isDark ? 0.18 : 0.04, shadowRadius: 6, elevation: Shadows.small.elevation,
     },
     tripCardActive: {
-      backgroundColor: c.ink, borderColor: c.ink,
-      shadowOpacity: 0.22, shadowRadius: 14, elevation: Shadows.large.elevation,
+      backgroundColor: C_PANEL, borderColor: C_PANEL,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 22, elevation: 6,
     },
     tripCardDisabled: { opacity: 0.4 },
     tripCardTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-    tripTime: { fontSize: Typography.size.xxl, fontWeight: '800', color: '#0F172A', letterSpacing: -1 },
-    tripTimeActive: { color: c.isDark ? c.background : '#ffffff' },
+    tripTime: { fontSize: 23, fontWeight: '800', color: C_INK, letterSpacing: -0.5 },
+    tripTimeActive: { color: '#ffffff' },
     tripNumberBox: {
       borderRadius: 10, paddingHorizontal: 10, paddingVertical: Spacing.xs,
       backgroundColor: 'rgba(0,0,0,0.06)',
       flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
     },
     tripNumberBoxActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
-    tripNumberText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: '#475569' },
+    tripNumberText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: C_INK_SOFT },
     tripNumberTextActive: { color: 'rgba(255,255,255,0.8)' },
-    tripDateText: { fontSize: 11, color: '#475569', marginTop: 2 },
+    tripDateText: { fontSize: 11, color: C_INK_SOFT, marginTop: 2 },
     tripDateTextActive: { color: 'rgba(255,255,255,0.55)' },
     tripStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
     tripStatusDot: { width: 7, height: 7, borderRadius: 4 },
     tripStatusText: { fontSize: 11, fontWeight: Typography.weight.semibold },
     tripSeatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-    tripSeatsFraction: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: '#475569' },
+    tripSeatsFraction: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: C_INK_SOFT },
     tripSeatsFractionActive: { color: 'rgba(255,255,255,0.65)' },
-    tripSeatsLabel: { fontSize: 11, color: '#475569' },
+    tripSeatsLabel: { fontSize: 11, color: C_INK_SOFT },
     tripSeatsLabelActive: { color: 'rgba(255,255,255,0.5)' },
     progressBarWrap: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.08)', overflow: 'hidden' },
     progressBarFill: { height: '100%' as any, borderRadius: 3 },
     tripAvailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.sm },
     tripAvailDot: { width: 6, height: 6, borderRadius: 3 },
     tripAvailText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
-    tripMessage: { fontSize: 11, color: '#475569', marginTop: 6, lineHeight: 15 },
+    tripMessage: { fontSize: 11, color: C_INK_SOFT, marginTop: 6, lineHeight: 15 },
     tripMessageActive: { color: 'rgba(255,255,255,0.6)' },
 
     /* No trips */
-    noTripsWrap: { paddingVertical: 28, alignItems: 'center', gap: Spacing.sm, borderRadius: 20, backgroundColor: c.white, borderWidth: 1, borderColor: c.border },
-    noTripsText: { fontSize: 13, color: c.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xl },
+    noTripsWrap: { paddingVertical: 28, alignItems: 'center', gap: Spacing.sm, borderRadius: 20, backgroundColor: c.white, borderWidth: 1, borderColor: '#E2E5E8' },
+    noTripsText: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center', paddingHorizontal: Spacing.xl },
 
     /* Station picker */
-    pickTabWrap: { flexDirection: 'row', padding: Spacing.xs, gap: 2, backgroundColor: c.mist },
+    pickTabWrap: { flexDirection: 'row', padding: Spacing.xs, gap: 2, backgroundColor: C_MIST, borderRadius: 18 },
     pickTab: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.sm },
-    pickTabActive: { backgroundColor: c.ink, shadowColor: c.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: Shadows.medium.elevation },
+    pickTabActive: { backgroundColor: C_PANEL },
     pickTabText: { fontSize: 12.5, fontFamily: 'Inter_600SemiBold' },
 
-    timeline: { marginTop: Spacing.md, backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, gap: 0, borderWidth: 1, borderColor: c.border },
+    timeline: { marginTop: Spacing.md, backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, gap: 0, borderWidth: 1, borderColor: '#E2E5E8' },
     timelineRow: { flexDirection: 'row', gap: Spacing.md, paddingBottom: Spacing.md },
     timelineLeft: { alignItems: 'center', width: 16 },
     tlDot: { width: 16, height: 16, borderRadius: Radius.sm, borderWidth: 2 },
-    tlDotActive: { borderColor: c.ink, backgroundColor: c.ink },
-    tlDotSeg: { borderColor: c.ink, backgroundColor: c.white },
-    tlDotInactive: { borderColor: c.silver, backgroundColor: c.white },
+    tlDotActive: { borderColor: C_PANEL, backgroundColor: C_PANEL },
+    tlDotSeg: { borderColor: C_PANEL, backgroundColor: c.white },
+    tlDotInactive: { borderColor: '#C7CBCF', backgroundColor: c.white },
     tlLine: { width: 2, flex: 1, marginTop: 2, minHeight: 16 },
-    tlLineActive: { backgroundColor: c.ink },
-    tlLineInactive: { backgroundColor: 'rgba(195,195,204,0.4)' },
+    tlLineActive: { backgroundColor: C_PANEL },
+    tlLineInactive: { backgroundColor: '#E2E5E8' },
     timelineRight: { flex: 1, paddingBottom: Spacing.xs },
     timelineTextRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
     tlName: { fontSize: 13.5, fontFamily: 'Inter_600SemiBold' },
-    tlBadge: { backgroundColor: c.ink, borderRadius: 99, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
-    tlBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.isDark ? c.background : c.white, textTransform: 'uppercase', letterSpacing: 0.8 },
-    tlArea: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
+    tlBadge: { backgroundColor: C_PANEL, borderRadius: 99, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+    tlBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.8 },
+    tlArea: { fontSize: 11, color: C_CAP, marginTop: 2 },
 
     /* Seat selector */
     seatRow: {
       flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: Spacing.lg, marginTop: Spacing.md,
-      backgroundColor: c.white, borderWidth: 1, borderColor: c.border,
+      backgroundColor: c.white, borderWidth: 1, borderColor: '#E2E5E8',
     },
     seatBtn: {
-      width: 44, height: 44, borderRadius: 14, backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : c.mist,
-      alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border,
+      width: 44, height: 44, borderRadius: 14, backgroundColor: C_MIST,
+      alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E5E8',
     },
     seatBtnDisabled: { opacity: 0.3 },
-    seatCountText: { fontSize: 24, fontWeight: '800', color: c.ink, minWidth: 42, textAlign: 'center' },
+    seatCountText: { fontSize: 24, fontWeight: '800', color: C_INK, minWidth: 42, textAlign: 'center' },
     seatLabelWrap: { flex: 1, paddingStart: 12 },
-    seatLabel: { fontSize: 13, color: c.ink, fontWeight: Typography.weight.semibold },
-    seatMax: { fontSize: 11, color: c.inkSoft, marginTop: 2 },
+    seatLabel: { fontSize: 13, color: C_INK, fontWeight: Typography.weight.semibold },
+    seatMax: { fontSize: 11, color: C_CAP, marginTop: 2 },
 
     /* Price card */
     priceSummary: {
       flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: Spacing.lg, marginTop: Spacing.md,
-      backgroundColor: c.white, borderWidth: 1, borderColor: c.border, gap: Spacing.lg,
+      backgroundColor: c.white, borderWidth: 1, borderColor: '#E2E5E8', gap: Spacing.lg,
     },
     priceIcon: {
-      width: 52, height: 52, borderRadius: Radius.lg, backgroundColor: c.ink,
+      width: 48, height: 48, borderRadius: Radius.lg, backgroundColor: C_PANEL,
       alignItems: 'center', justifyContent: 'center',
     },
-    priceSegLabel: { fontSize: Typography.size.xs, color: c.inkSoft, lineHeight: 17 },
-    priceTotal: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, marginTop: 2 },
+    priceSegLabel: { fontSize: Typography.size.xs, color: C_CAP, lineHeight: 17 },
+    priceTotal: { fontSize: 19, fontWeight: Typography.weight.bold, color: C_INK, letterSpacing: -0.5, marginTop: 2 },
 
     /* Service banner */
     serviceBanner: {
@@ -269,47 +243,34 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     },
     serviceBannerText: { flex: 1, fontSize: 12.5, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 18 },
 
-    /* CTA.
-     * Shadow lives on ctaBtn (no overflow:'hidden' — that would clip it on
-     * iOS); ctaBtnGradient clips the gradient itself to the rounded corners. */
+    /* CTA — flat teal, no gradient */
     cta: {
       padding: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.lg + insetsBottom,
-      borderTopWidth: 1, borderTopColor: c.border,
+      borderTopWidth: 1, borderTopColor: C_HAIR,
     },
-    ctaBtn: {
-      height: 58, borderRadius: 22,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
-    },
+    ctaBtn: { height: 56, borderRadius: 20 },
     ctaBtnGradient: {
-      flex: 1, borderRadius: 22, overflow: 'hidden',
+      flex: 1, borderRadius: 20, backgroundColor: C_TEAL,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     },
-    ctaBtnText: { color: '#ffffff', fontSize: 15.5, fontFamily: 'Inter_700Bold', letterSpacing: -0.2 },
+    ctaBtnText: { color: '#ffffff', fontSize: 15, fontFamily: 'Inter_700Bold', letterSpacing: -0.2 },
 
-    /* Request a Trip.
-     * No overflow:'hidden' here — requestTripBtnInner already clips its own
-     * corners (it has no decorative content that bleeds past its bounds), so
-     * this only needed the flag to stop the shadow below from rendering. */
-    requestTripBtn: {
-      marginHorizontal: Spacing.lg, marginTop: 14, marginBottom: 2,
-      borderRadius: Radius.lg,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
-    },
+    /* Request a Trip — teal outline pill */
+    requestTripBtn: { marginHorizontal: Spacing.lg, marginTop: 14, marginBottom: 2, borderRadius: 999 },
     requestTripBtnInner: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: Spacing.sm, paddingVertical: 14, paddingHorizontal: 20, borderRadius: Radius.lg,
-      backgroundColor: c.isDark ? 'rgba(85,196,154,0.16)' : 'rgba(85,196,154,0.12)',
-      borderWidth: 1, borderColor: c.isDark ? 'rgba(85,196,154,0.4)' : 'rgba(85,196,154,0.32)',
+      gap: Spacing.sm, paddingVertical: 13, paddingHorizontal: 20, borderRadius: 999,
+      backgroundColor: 'rgba(14,159,142,0.08)',
+      borderWidth: 1, borderColor: 'rgba(14,159,142,0.32)',
     },
-    requestTripBtnText: { fontSize: 15, fontFamily: 'Inter_700Bold', color: c.accent, letterSpacing: -0.2 },
+    requestTripBtnText: { fontSize: 14.5, fontFamily: 'Inter_700Bold', color: C_TEAL, letterSpacing: -0.2 },
 
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
-    loadingText: { fontSize: 13, color: c.inkSoft },
-    errorText: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
-    retryBtn: { marginTop: Spacing.xs, paddingHorizontal: 20, paddingVertical: Spacing.sm, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border },
-    retryBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: c.ink },
+    loadingText: { fontSize: 13, color: C_INK_SOFT },
+    errorText: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center' },
+    retryBtn: { marginTop: Spacing.xs, paddingHorizontal: 20, paddingVertical: Spacing.sm, borderRadius: Radius.md, borderWidth: 1, borderColor: '#E2E5E8' },
+    retryBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: C_INK },
   });
 }
 
@@ -507,7 +468,7 @@ export function TripSheet() {
       </Animated.View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
-        <GlassView strong borderRadius={36} style={styles.sheetGlass}>
+        <View style={styles.sheetGlass}>
         <View style={styles.handle} />
 
         {/* Close — the drag handle above is decorative (no pan gesture wired
@@ -712,7 +673,7 @@ export function TripSheet() {
               } as any);
             }}
           >
-            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaBtnGradient}>
+            <View style={styles.ctaBtnGradient}>
               <Text style={styles.ctaBtnText}>
                 {!shuttleServiceEnabled
                   ? 'Service Unavailable'
@@ -721,10 +682,10 @@ export function TripSheet() {
                   : t('continue_btn')}
               </Text>
               {valid && shuttleServiceEnabled && (isRTL ? <ArrowLeft size={18} color="#ffffff" /> : <ArrowRight size={18} color="#ffffff" />)}
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
-        </GlassView>
+        </View>
       </Animated.View>
 
       <RequestTripSheet

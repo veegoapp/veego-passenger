@@ -8,10 +8,9 @@
  */
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Heart, Clock, MapPin, AlertCircle, Ticket,
-  ChevronRight, ChevronLeft, Bus,
+  Heart, MapPin, AlertCircle, Ticket,
+  ChevronRight, ChevronLeft,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import type { ThemeColors } from '@/constants/colors';
@@ -19,7 +18,6 @@ import type { Route } from '@/constants/data';
 import type { DateOption } from '@/constants/data';
 import { formatCairoTime, shuttleStatusLabel } from '@/constants/data';
 import { Spacing } from '@/constants/spacing';
-import { GlassView } from '@/components/ui/GlassView';
 import {
   ACTIVE_STATUSES, isTripBookable, shuttleStatusColor, formatTripDateUTC,
 } from './tripSheetHelpers';
@@ -110,53 +108,26 @@ export function StatsRow({ styles, c, t, route, visibleTripsCount }: {
   return (
     <View style={styles.statsRow}>
       <View style={styles.statCardWrap}>
-        <LinearGradient
-          colors={c.cardGrad}
-          style={styles.statCard}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.statIconBox}>
-            <Bus size={13} color={c.ink} />
-          </View>
-          <View>
-            <Text style={styles.statValue}>{(route.departureCount ?? visibleTripsCount) || route.stations}</Text>
-            <Text style={styles.statLabel}>{t('departure')}</Text>
-          </View>
-        </LinearGradient>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{(route.departureCount ?? visibleTripsCount) || route.stations}</Text>
+          <Text style={styles.statLabel}>{t('departure')}</Text>
+        </View>
       </View>
       <View style={styles.statCardWrap}>
-        <LinearGradient
-          colors={c.cardGrad}
-          style={styles.statCard}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.statIconBox}>
-            <Clock size={13} color={c.ink} />
-          </View>
-          <View>
-            <Text style={styles.statValue}>{route.duration ?? '—'}</Text>
-            <Text style={styles.statLabel}>{t('trip_duration')}</Text>
-          </View>
-        </LinearGradient>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{route.duration ?? '—'}</Text>
+          <Text style={styles.statLabel}>{t('trip_duration')}</Text>
+        </View>
       </View>
       <View style={styles.statCardWrap}>
-        <LinearGradient
-          colors={c.cardGrad}
-          style={styles.statCard}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.statIconBox}>
-            <Ticket size={13} color={c.ink} />
-          </View>
-          <View>
-            <Text style={styles.statValue}>
-              {route.pricingModel === 'tiered' && route.startingPrice != null ? route.startingPrice : route.price}
-            </Text>
-            <Text style={styles.statLabel}>
-              {route.pricingModel === 'tiered' && route.startingPrice != null ? `${t('starting_from')} ${t('egp')}` : t('egp')}
-            </Text>
-          </View>
-        </LinearGradient>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>
+            {route.pricingModel === 'tiered' && route.startingPrice != null ? route.startingPrice : route.price}
+          </Text>
+          <Text style={styles.statLabel}>
+            {route.pricingModel === 'tiered' && route.startingPrice != null ? `${t('starting_from')} ${t('egp')}` : t('egp')}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -335,7 +306,7 @@ export function StationPicker({
         </View>
       ) : (
         <>
-          <GlassView style={styles.pickTabWrap} borderRadius={18}>
+          <View style={styles.pickTabWrap}>
             {(['from', 'to'] as const).map((p) => {
               const active = pick === p;
               const stationName = p === 'from'
@@ -347,13 +318,13 @@ export function StationPicker({
                     : (route.path[safeTo]?.name ?? route.to));
               return (
                 <TouchableOpacity key={p} style={[styles.pickTab, active && styles.pickTabActive]} onPress={() => setPick(p)} activeOpacity={0.8}>
-                  <Text style={[styles.pickTabText, { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft }]} numberOfLines={1}>
+                  <Text style={[styles.pickTabText, { color: active ? '#fff' : '#6B7178' }]} numberOfLines={1}>
                     {p === 'from' ? t('from') : t('to')} · {stationName}
                   </Text>
                 </TouchableOpacity>
               );
             })}
-          </GlassView>
+          </View>
 
           <View style={styles.timeline}>
             {visibleStationIndices.map((i, pos) => {

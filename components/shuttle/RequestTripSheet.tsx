@@ -3,13 +3,11 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Animated, ScrollView, BackHandler,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
-import { GlassView } from '@/components/ui/GlassView';
 import * as Haptics from 'expo-haptics';
-import { CheckCircle, X, ArrowRight, ArrowLeft, Clock, RotateCcw } from 'lucide-react-native';
+import { CheckCircle, X, ArrowRight, ArrowLeft, RotateCcw } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors, S } from '@/constants/colors';
 import { Animation } from '@/constants/animations';
@@ -17,10 +15,17 @@ import { submitTripRequest, TripRequestDirection } from '@/src/api/shuttleServic
 import type { Route } from '@/constants/data';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
 
 const OUTBOUND_SLOTS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00'];
 const RETURN_SLOTS   = ['15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00'];
+
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_PANEL = '#14151A';
+const C_TEAL = '#0E9F8E';
+const C_CAP = '#9AA0A6';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_MIST = '#F0F2F3';
 
 function makeStyles(c: ThemeColors, insetsBottom: number) {
   return StyleSheet.create({
@@ -32,70 +37,63 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       maxHeight: '88%',
     },
     sheetGlass: {
-      borderTopLeftRadius: 32, borderTopRightRadius: 32,
+      backgroundColor: '#fff',
+      borderTopLeftRadius: 30, borderTopRightRadius: 30,
       borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
       paddingBottom: Spacing.xxl,
     },
     handle: {
-      width: 44, height: 5, borderRadius: 2.5,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)',
-      alignSelf: 'center', marginTop: 14, marginBottom: Spacing.xs,
+      width: 40, height: 5, borderRadius: 2.5,
+      backgroundColor: 'rgba(0,0,0,0.14)',
+      alignSelf: 'center', marginTop: 12, marginBottom: Spacing.xs,
     },
 
     header: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 20, paddingVertical: 14,
-      borderBottomWidth: 1, borderBottomColor: c.border,
+      marginHorizontal: 16, marginTop: 4, marginBottom: 4,
+      backgroundColor: C_PANEL, borderRadius: 22, padding: 18,
     },
-    headerTitle: { fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink },
+    headerTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+    headerCap: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: C_CAP },
     closeBtn: {
-      width: 32, height: 32, borderRadius: Radius.lg,
-      backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center',
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center',
     },
-    routeTag: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-    },
-    routeTagText: { fontSize: Typography.size.xs, color: c.inkSoft, fontWeight: Typography.weight.medium },
+    headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginTop: 3 },
 
     scroll: { flexGrow: 0 },
     scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: Spacing.sm },
 
     sectionLabel: {
-      fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, color: c.inkSoft,
-      textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 10,
+      fontSize: 11, fontWeight: '700', color: C_CAP,
+      textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10,
     },
 
-    directionRow: { flexDirection: 'row', gap: 10, marginBottom: Spacing.xl },
+    directionRow: { flexDirection: 'row', padding: 4, gap: 2, backgroundColor: C_MIST, borderRadius: 16, marginBottom: Spacing.xl },
     dirBtn: {
-      flex: 1, paddingVertical: 11, borderRadius: 14,
+      flex: 1, height: 42, borderRadius: 12,
       alignItems: 'center', justifyContent: 'center',
-      borderWidth: 1.5, borderColor: c.border,
-      backgroundColor: c.white,
       flexDirection: 'row', gap: 6,
     },
-    dirBtnActive: { borderColor: c.ink, backgroundColor: c.ink },
-    dirBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.inkSoft },
-    dirBtnTextActive: { color: c.isDark ? c.background : '#ffffff' },
+    dirBtnActive: { backgroundColor: C_PANEL },
+    dirBtnText: { fontSize: 12.5, fontWeight: '700', color: C_INK_SOFT },
+    dirBtnTextActive: { color: '#ffffff' },
 
     slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.xl },
     slotBtn: {
-      paddingHorizontal: 14, paddingVertical: 9, borderRadius: Radius.md,
-      borderWidth: 1.5, borderColor: c.border,
-      backgroundColor: c.white,
+      paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+      borderWidth: 1.5, borderColor: '#E2E5E8',
+      backgroundColor: '#fff',
       minWidth: 68, alignItems: 'center',
     },
-    slotBtnActive: { borderColor: c.ink, backgroundColor: c.ink },
-    slotText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink },
-    slotTextActive: { color: c.isDark ? c.background : '#ffffff' },
+    slotBtnActive: { borderColor: C_PANEL, backgroundColor: C_PANEL },
+    slotText: { fontSize: 12.5, fontWeight: '700', color: C_INK },
+    slotTextActive: { color: '#ffffff' },
 
     ctaWrap: { paddingHorizontal: 20, paddingTop: Spacing.lg, paddingBottom: Spacing.lg + insetsBottom },
-    ctaBtn: {
-      borderRadius: 20, overflow: 'hidden',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 16, elevation: 8,
-    },
+    ctaBtn: { borderRadius: 20, overflow: 'hidden' },
     ctaBtnGradient: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: Spacing.sm, paddingVertical: Spacing.lg,
+      gap: Spacing.sm, paddingVertical: Spacing.lg, backgroundColor: C_TEAL,
     },
     ctaBtnDisabled: { opacity: 0.35 },
     ctaBtnText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: '#ffffff' },
@@ -106,17 +104,14 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     },
     successIcon: {
       width: 72, height: 72, borderRadius: 36,
-      backgroundColor: c.isDark ? 'rgba(60,201,122,0.16)' : 'rgba(60,201,122,0.12)',
+      backgroundColor: 'rgba(14,159,142,0.1)',
       alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs,
     },
-    successTitle: { fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center' },
-    successMsg: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
-    doneBtn: {
-      marginTop: Spacing.sm, borderRadius: 18, overflow: 'hidden',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.24, shadowRadius: 12, elevation: 6,
-    },
-    doneBtnGradient: { paddingVertical: 14, paddingHorizontal: 40 },
-    doneBtnText: { fontSize: 15, fontWeight: Typography.weight.bold, color: '#ffffff' },
+    successTitle: { fontSize: 20, fontWeight: '800', color: C_INK, textAlign: 'center' },
+    successMsg: { fontSize: Typography.size.sm, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
+    doneBtn: { marginTop: Spacing.sm, borderRadius: 999, overflow: 'hidden' },
+    doneBtnGradient: { paddingVertical: 14, paddingHorizontal: 40, backgroundColor: C_TEAL },
+    doneBtnText: { fontSize: 15, fontWeight: '800', color: '#ffffff' },
   });
 }
 
@@ -210,17 +205,17 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
       </Animated.View>
 
       <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-        <GlassView strong borderRadius={32} style={styles.sheetGlass}>
+        <View style={styles.sheetGlass}>
         <View style={styles.handle} />
 
         <View style={styles.header}>
-          <View style={styles.routeTag}>
-            <Text style={styles.headerTitle}>{t('request_a_trip')}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={styles.routeTagText} numberOfLines={1}>{routeName}</Text>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-              <X size={15} color={c.ink} />
+          <View style={styles.headerTopRow}>
+            <View>
+              <Text style={styles.headerCap}>{t('request_a_trip')}</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>{routeName}</Text>
+            </View>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.75}>
+              <X size={15} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -228,14 +223,14 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
         {success ? (
           <View style={styles.successWrap}>
             <View style={styles.successIcon}>
-              <CheckCircle size={38} color={c.success} />
+              <CheckCircle size={38} color={C_TEAL} />
             </View>
             <Text style={styles.successTitle}>{t('trip_request_sent')}</Text>
             <Text style={styles.successMsg}>{t('trip_request_msg')}</Text>
             <TouchableOpacity style={styles.doneBtn} onPress={onClose} activeOpacity={0.85}>
-              <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.doneBtnGradient}>
+              <View style={styles.doneBtnGradient}>
                 <Text style={styles.doneBtnText}>{t('confirm')}</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         ) : (
@@ -260,7 +255,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
                       activeOpacity={0.8}
                     >
                       {d === 'round_trip' && (
-                        <RotateCcw size={14} color={active ? (c.isDark ? c.background : '#fff') : c.inkSoft} />
+                        <RotateCcw size={14} color={active ? '#fff' : C_INK_SOFT} />
                       )}
                       <Text style={[styles.dirBtnText, active && styles.dirBtnTextActive]}>
                         {t(d === 'one_way' ? 'one_way' : 'round_trip')}
@@ -271,10 +266,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
               </View>
 
               {/* Outbound time */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                <Clock size={13} color={c.inkSoft} />
-                <Text style={styles.sectionLabel}>{t('outbound_time')}</Text>
-              </View>
+              <Text style={styles.sectionLabel}>{t('outbound_time')}</Text>
               <View style={styles.slotsGrid}>
                 {OUTBOUND_SLOTS.map((slot) => {
                   const active = outboundTime === slot;
@@ -294,10 +286,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
               {/* Return time — only if round_trip */}
               {direction === 'round_trip' && (
                 <>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                    <Clock size={13} color={c.inkSoft} />
-                    <Text style={styles.sectionLabel}>{t('return_time')}</Text>
-                  </View>
+                  <Text style={styles.sectionLabel}>{t('return_time')}</Text>
                   <View style={styles.slotsGrid}>
                     {RETURN_SLOTS.map((slot) => {
                       const active = returnTime === slot;
@@ -324,7 +313,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
                 onPress={handleSubmit}
                 activeOpacity={0.85}
               >
-                <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaBtnGradient}>
+                <View style={styles.ctaBtnGradient}>
                   {loading ? (
                     <AppLoader size={24} />
                   ) : (
@@ -336,12 +325,12 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
                       }
                     </>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </>
         )}
-        </GlassView>
+        </View>
       </Animated.View>
     </View>
   );
