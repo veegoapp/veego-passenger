@@ -164,7 +164,15 @@ function mapDriverFromRide(
   return {
     name: rideDriver.name ?? fallback?.name ?? 'Driver',
     phone: rideDriver.phone ?? fallback?.phone ?? '',
-    avatar: rideDriver.avatar ?? fallback?.avatar ?? null,
+    // Prefer the URL already on screen over the poll's fresh one: the
+    // backend re-signs the storage URL on every single GET /rides/:id call
+    // (POLL_INTERVAL_MS = 5000), so a same-photo poll still returns a
+    // different signature/token each time. Replacing `avatar` with that new
+    // string every 5s made <Image> treat it as a different source and
+    // reload — a visible flicker with no actual change. Once a working URL
+    // is on screen, keep it; only fall back to the poll's value when we
+    // don't have one yet (e.g. this is the first snapshot after recovery).
+    avatar: fallback?.avatar ?? rideDriver.avatar ?? null,
     vehicle: rideDriver.vehicle ?? fallback?.vehicle ?? '',
     vehicleColor: rideDriver.vehicleColor ?? rideDriver.vehicle_color ?? fallback?.vehicleColor,
     vehicleColorHex: rideDriver.vehicleColorHex ?? rideDriver.vehicle_color_hex ?? fallback?.vehicleColorHex,
@@ -836,8 +844,11 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         // field-by-field (not a whole-object replace) so a snapshot that
         // hasn't got a signed avatar URL back yet never blanks out one a
         // ride:driver_assigned event already set.
+        // Same re-signed-URL flicker guard as mapDriverFromRide below: once a
+        // working avatar URL is on screen, a fresh snapshot's newly-signed
+        // (but same-photo) URL shouldn't replace it and force <Image> to reload.
         driver: activeRideSnapshot.driver
-          ? { ...activeRideSnapshot.driver, avatar: activeRideSnapshot.driver.avatar ?? prev.driver?.avatar ?? null }
+          ? { ...activeRideSnapshot.driver, avatar: prev.driver?.avatar ?? activeRideSnapshot.driver.avatar ?? null }
           : prev.driver,
         // Prefer most-recent location; socket ride:driver_location events are
         // more frequent than snapshots, so only update when snapshot has data.
