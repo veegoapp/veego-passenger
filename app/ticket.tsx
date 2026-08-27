@@ -4,8 +4,7 @@ import {
   Animated, Easing,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, MapPin, Calendar, User, Tag, Zap, AlertTriangle } from 'lucide-react-native';
+import { X, Share2, Check, CheckCircle, ArrowLeft, ArrowRight, Ticket, Calendar, User, Tag, Zap, AlertTriangle } from 'lucide-react-native';
 import { Animation } from '@/constants/animations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -13,12 +12,20 @@ import { useActiveSession } from '@/context/ActiveSessionContext';
 import { formatCairoDateTime } from '@/constants/data';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ThemeColors, S } from '@/constants/colors';
 import { getSocket } from '@/src/api/socket';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
+
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_BG = '#EEF0F2';
+const C_PANEL = '#14151A';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_TEAL = '#0E9F8E';
+const C_MINT = '#3DDC97';
 
 
 function SparkleParticle({ deg, delay, color, size = 8 }: { deg: number; delay: number; color: string; size?: number }) {
@@ -72,16 +79,16 @@ const SPARKLE_CONFIG = [
 const SPARKLE_COLORS = ['#fbbf24', '#f59e0b', '#34d399', '#6ee7b7', '#93c5fd', '#fff'];
 
 
-function makeStyles(c: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: Spacing.md },
     headerBtn: {
       width: 42, height: 42, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
+      backgroundColor: '#fff',
       borderRadius: 21, borderWidth: 1,
-      borderColor: c.isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.35)',
+      borderColor: C_HAIR,
     },
-    headerTitle: { fontSize: 15, fontWeight: Typography.weight.semibold, color: c.ink, letterSpacing: -0.2 },
+    headerTitle: { fontSize: 15, fontWeight: '700', color: C_INK, letterSpacing: -0.2 },
     scrollContent: { paddingHorizontal: 20, gap: 20, paddingTop: Spacing.xs },
 
     /* ── Celebration block ── */
@@ -89,82 +96,76 @@ function makeStyles(c: ThemeColors) {
     sparkleHost: { width: 112, height: 112, alignItems: 'center', justifyContent: 'center', position: 'relative' },
     checkRing: {
       width: 96, height: 96, borderRadius: 48,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: 'rgba(14,159,142,0.1)',
       alignItems: 'center', justifyContent: 'center',
     },
     checkCircle: {
       width: 80, height: 80, borderRadius: 40,
-      backgroundColor: '#22c55e',
+      backgroundColor: C_TEAL,
       alignItems: 'center', justifyContent: 'center',
-      shadowColor: '#22c55e', shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.5, shadowRadius: 24, elevation: 14,
+      shadowColor: C_TEAL, shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.4, shadowRadius: 24, elevation: 14,
     },
-    confirmedLabel: { fontSize: 24, fontWeight: '800', color: c.ink, letterSpacing: -0.6, textAlign: 'center' },
-    bookingId: { fontSize: 13, color: c.inkSoft, textAlign: 'center' },
+    confirmedLabel: { fontSize: 24, fontWeight: '800', color: C_INK, letterSpacing: -0.6, textAlign: 'center' },
+    bookingId: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center' },
 
     /* ── Ticket card ── */
     ticketCard: {
-      borderRadius: 28, overflow: 'hidden', backgroundColor: c.white,
+      borderRadius: 28, overflow: 'hidden', backgroundColor: '#fff',
       shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: c.isDark ? 0.35 : 0.10, shadowRadius: 24, elevation: 10,
+      shadowOpacity: 0.1, shadowRadius: 24, elevation: 10,
     },
     ticketHeader: {
+      backgroundColor: C_PANEL,
       paddingHorizontal: 22, paddingTop: 22, paddingBottom: 18,
       borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden',
     },
     ticketHeaderGlow: {
       position: 'absolute', top: -50, right: -50,
       width: 180, height: 180, borderRadius: 90,
-      backgroundColor: 'rgba(255,255,255,0.07)',
-    },
-    ticketHeaderGlow2: {
-      position: 'absolute', bottom: -30, left: -30,
-      width: 120, height: 120, borderRadius: 60,
-      backgroundColor: 'rgba(255,255,255,0.04)',
+      backgroundColor: 'rgba(255,255,255,0.05)',
     },
     ticketTripBadge: {
       alignSelf: 'flex-end', marginBottom: 14,
       borderRadius: 99, paddingHorizontal: Spacing.md, paddingVertical: 5,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+      backgroundColor: 'rgba(255,255,255,0.12)',
     },
-    ticketTripBadgeText: { fontSize: 11, fontWeight: Typography.weight.semibold, color: 'rgba(255,255,255,0.9)' },
+    ticketTripBadgeText: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
     ticketRouteName: {
-      fontSize: Typography.size.xl, fontWeight: '800', color: '#ffffff',
-      letterSpacing: -0.5, marginBottom: Spacing.sm, textAlign: 'center',
+      fontSize: 20, fontWeight: '800', color: '#ffffff',
+      letterSpacing: -0.4, marginBottom: Spacing.sm, textAlign: 'center',
     },
     ticketRouteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
     ticketStation: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     ticketStationDot: { width: 8, height: 8, borderRadius: 4 },
-    ticketStationText: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.75)', fontWeight: Typography.weight.medium },
+    ticketStationText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
     ticketTimeRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.md },
-    ticketTime: { fontSize: 36, fontWeight: '800', color: '#ffffff', letterSpacing: -1 },
+    ticketTime: { fontSize: 34, fontWeight: '800', color: '#ffffff', letterSpacing: -1 },
     ticketTimeTz: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
 
     /* Perforation */
     perforationRow: { flexDirection: 'row', alignItems: 'center', height: 32, position: 'relative' },
-    punchLeft: { width: 32, height: 32, borderRadius: Radius.lg, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginStart: -16 },
+    punchLeft: { width: 32, height: 32, borderRadius: 16, backgroundColor: C_BG, marginStart: -16 },
     perforationLine: {
       flex: 1, height: 0,
-      borderTopWidth: 2, borderColor: c.isDark ? 'rgba(255,255,255,0.08)' : '#e2e2ea',
+      borderTopWidth: 2, borderColor: '#e2e2ea',
       borderStyle: 'dashed',
     },
-    punchRight: { width: 32, height: 32, borderRadius: Radius.lg, backgroundColor: c.isDark ? c.background : '#f0f0f5', marginEnd: -16 },
+    punchRight: { width: 32, height: 32, borderRadius: 16, backgroundColor: C_BG, marginEnd: -16 },
 
     /* Ticket body */
-    ticketBody: { paddingHorizontal: 22, paddingBottom: Spacing.xl, paddingTop: Spacing.sm, backgroundColor: c.white, gap: 0 },
-    infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0, marginBottom: 20 },
+    ticketBody: { paddingHorizontal: 22, paddingBottom: Spacing.xl, paddingTop: Spacing.sm, backgroundColor: '#fff', gap: 0 },
     infoRow: {
       flexDirection: 'row', alignItems: 'center', gap: 14,
-      paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5',
+      paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: C_HAIR,
     },
     infoIcon: {
-      width: 36, height: 36, borderRadius: Radius.md,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f5f5fa',
+      width: 36, height: 36, borderRadius: 12,
+      backgroundColor: '#F5F5FA',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
-    infoLabel: { fontSize: 10, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 0.8 },
-    infoValue: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.ink, marginTop: 1 },
+    infoLabel: { fontSize: 10, color: C_CAP, textTransform: 'uppercase', letterSpacing: 0.8 },
+    infoValue: { fontSize: 14, fontWeight: '700', color: C_INK, marginTop: 1 },
 
     /* Status badge in ticket header */
     statusBadge: {
@@ -173,85 +174,54 @@ function makeStyles(c: ThemeColors) {
       borderRadius: 99, paddingHorizontal: 14, paddingVertical: 6,
     },
     statusBadgeDot: { width: 7, height: 7, borderRadius: 3.5 },
-    statusBadgeText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.bold, letterSpacing: 0.3 },
+    statusBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
 
-    /* Pending notice banner — modern minimal */
-    pendingBanner: {
-      borderRadius: 18, overflow: 'hidden',
-      marginBottom: Spacing.xs,
-    },
+    /* Pending notice banner */
+    pendingBanner: { borderRadius: 18, overflow: 'hidden', marginBottom: Spacing.xs },
     pendingBannerInner: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-      paddingHorizontal: Spacing.lg, paddingVertical: 14,
-      borderRadius: 18,
-      borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
-      backgroundColor: 'rgba(245,158,11,0.09)',
+      paddingHorizontal: Spacing.lg, paddingVertical: 14, borderRadius: 18,
+      borderWidth: 1, borderColor: '#FDE7C0', backgroundColor: '#FFF8EC',
     },
     pendingBannerIcon: {
       width: 34, height: 34, borderRadius: 10,
-      backgroundColor: 'rgba(245,158,11,0.18)',
+      backgroundColor: '#FDE7C0',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
-    pendingBannerTitle: {
-      fontSize: 13, fontWeight: Typography.weight.bold, color: c.isDark ? '#fbbf24' : '#92400e', marginBottom: 2,
-    },
-    pendingBannerBody: {
-      fontSize: Typography.size.xs, color: c.isDark ? '#fbbf24' : '#92400e', lineHeight: 17, opacity: 0.85,
-    },
+    pendingBannerTitle: { fontSize: 13, fontWeight: '700', color: '#92400e', marginBottom: 2 },
+    pendingBannerBody: { fontSize: 12, color: '#92400e', lineHeight: 17, opacity: 0.85 },
 
     /* Cancelled banner */
-    cancelledBanner: {
-      borderRadius: 18, overflow: 'hidden',
-      marginBottom: Spacing.xs,
-    },
+    cancelledBanner: { borderRadius: 18, overflow: 'hidden', marginBottom: Spacing.xs },
     cancelledBannerInner: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-      paddingHorizontal: Spacing.lg, paddingVertical: 14,
-      borderRadius: 18,
-      borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
-      backgroundColor: 'rgba(239,68,68,0.09)',
+      paddingHorizontal: Spacing.lg, paddingVertical: 14, borderRadius: 18,
+      borderWidth: 1, borderColor: '#F3C6C2', backgroundColor: '#FEF2F1',
     },
     cancelledBannerIcon: {
       width: 34, height: 34, borderRadius: 10,
-      backgroundColor: 'rgba(239,68,68,0.18)',
+      backgroundColor: '#F3C6C2',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
-    cancelledBannerTitle: {
-      fontSize: 13, fontWeight: Typography.weight.bold, color: c.isDark ? '#fca5a5' : '#991b1b', marginBottom: 2,
-    },
-    cancelledBannerBody: {
-      fontSize: Typography.size.xs, color: c.isDark ? '#fca5a5' : '#991b1b', lineHeight: 17, opacity: 0.85,
-    },
+    cancelledBannerTitle: { fontSize: 13, fontWeight: '700', color: '#991b1b', marginBottom: 2 },
+    cancelledBannerBody: { fontSize: 12, color: '#991b1b', lineHeight: 17, opacity: 0.85 },
 
     /* Boarded banner */
     boardedBanner: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-      backgroundColor: '#22c55e', borderRadius: 20, padding: Spacing.lg,
+      backgroundColor: C_TEAL, borderRadius: 20, padding: Spacing.lg,
     },
-    boardedBannerText: { flex: 1, fontSize: Typography.size.sm, fontWeight: Typography.weight.bold, color: '#ffffff' },
-
-    /* Tracking card */
-    trackingCard: { borderRadius: 20, backgroundColor: c.mist, padding: 14, gap: Spacing.sm },
-    trackingHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-    trackingTitle: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.ink },
-    trackingStation: { fontSize: 13, color: c.ink, fontWeight: Typography.weight.medium },
-    trackingSub: { fontSize: 11, color: c.inkSoft },
+    boardedBannerText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#ffffff' },
 
     /* Actions */
     actions: { gap: 10 },
-    primaryBtn: {
-      height: 58, borderRadius: 22, overflow: 'hidden',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.28, shadowRadius: 20, elevation: 10,
-    },
-    primaryBtnGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-    primaryBtnText: { color: '#ffffff', fontSize: 15.5, fontWeight: Typography.weight.bold },
+    primaryBtn: { height: 56, borderRadius: 20, backgroundColor: C_TEAL, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    primaryBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
     secondaryBtn: { height: 48, alignItems: 'center', justifyContent: 'center' },
-    secondaryBtnText: { fontSize: Typography.size.sm, color: c.inkSoft },
-    goHomeBtn: {
-      marginTop: 20, borderRadius: 18, overflow: 'hidden',
-    },
-    goHomeBtnGradient: { height: 52, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center' },
-    goHomeBtnText: { color: '#ffffff', fontSize: 15, fontWeight: Typography.weight.semibold },
+    secondaryBtnText: { fontSize: 13.5, color: C_INK_SOFT, fontWeight: '600' },
+    goHomeBtn: { marginTop: 20, borderRadius: 999, overflow: 'hidden' },
+    goHomeBtnGradient: { height: 52, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: C_TEAL },
+    goHomeBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   });
 }
 
@@ -260,9 +230,9 @@ export default function TicketScreen() {
   const top = insets.top;
   const { session, refreshActiveSession } = useActiveSession();
   const { confirmedBookingId: bookingContextId, confirmedTripId: bookingContextTripId } = useBooking();
-  const { colors: c, t, language, isRTL } = useTheme();
+  const { t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const shuttleSession = session?.kind === 'shuttle' ? session : null;
 
@@ -443,16 +413,16 @@ export default function TicketScreen() {
 
   if (!bookingId) {
     return (
-      <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
-        <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center', marginBottom: Spacing.sm }}>
+      <View style={{ flex: 1, backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
+        <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: C_INK, textAlign: 'center', marginBottom: Spacing.sm }}>
           {t('ticket_load_error')}
         </Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.goHomeBtn}>
-          <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goHomeBtnGradient}>
+          <View style={styles.goHomeBtnGradient}>
             <Text style={styles.goHomeBtnText}>{t('go_back')}</Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -463,37 +433,37 @@ export default function TicketScreen() {
   if (!shuttleSession) {
     if (sessionWaitTimedOut) {
       return (
-        <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
-          <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center', marginBottom: Spacing.sm }}>
+        <View style={{ flex: 1, backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
+          <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: C_INK, textAlign: 'center', marginBottom: Spacing.sm }}>
             {t('ticket_session_slow')}
           </Text>
           <TouchableOpacity onPress={handleRetrySession} style={styles.goHomeBtn} disabled={sessionRetrying}>
-            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goHomeBtnGradient}>
+            <View style={styles.goHomeBtnGradient}>
               <Text style={styles.goHomeBtnText}>{sessionRetrying ? t('loading') : t('retry')}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: Spacing.md }}>
-            <Text style={{ fontSize: Typography.size.sm, color: c.inkSoft }}>{t('go_home')}</Text>
+            <Text style={{ fontSize: Typography.size.sm, color: C_INK_SOFT }}>{t('go_home')}</Text>
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
       );
     }
     return (
-      <LinearGradient colors={c.luxeGrad} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: Typography.size.md, color: c.inkSoft }}>{t('loading')}</Text>
-      </LinearGradient>
+      <View style={{ flex: 1, backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: Typography.size.md, color: C_INK_SOFT }}>{t('loading')}</Text>
+      </View>
     );
   }
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: C_BG }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => router.replace('/(tabs)')} activeOpacity={0.8}>
-          <X size={18} color={c.ink} />
+          <X size={18} color={C_INK} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('boarding_pass')}</Text>
         <TouchableOpacity style={styles.headerBtn} activeOpacity={0.8} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
-          <Share2 size={16} color={c.ink} />
+          <Share2 size={16} color={C_INK} />
         </TouchableOpacity>
       </View>
 
@@ -570,14 +540,9 @@ export default function TicketScreen() {
         {/* ── Ticket card ── */}
         <Animated.View style={[styles.ticketCard, { opacity: cardOpacity, transform: [{ translateY: cardY }] }]}>
 
-          {/* Header — dark gradient with route info */}
-          <LinearGradient
-            colors={c.gradientPrimary}
-            style={styles.ticketHeader}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          >
+          {/* Header — dark panel with route info */}
+          <View style={styles.ticketHeader}>
             <View style={styles.ticketHeaderGlow} />
-            <View style={styles.ticketHeaderGlow2} />
 
             {/* route.code is not in the ActiveSession contract — badge omitted */}
 
@@ -626,7 +591,7 @@ export default function TicketScreen() {
                 ? <ArrowLeft size={12} color="rgba(255,255,255,0.45)" />
                 : <ArrowRight size={12} color="rgba(255,255,255,0.45)" />}
               <View style={styles.ticketStation}>
-                <View style={[styles.ticketStationDot, { backgroundColor: c.accentMint }]} />
+                <View style={[styles.ticketStationDot, { backgroundColor: C_MINT }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>
                   {displayToName}
                 </Text>
@@ -644,7 +609,7 @@ export default function TicketScreen() {
               <Text style={styles.ticketTime}>{displayTime}</Text>
               <Text style={styles.ticketTimeTz}>{t('cairo_tz')}</Text>
             </View>
-          </LinearGradient>
+          </View>
 
           {/* Perforated divider */}
           <View style={styles.perforationRow}>
@@ -660,7 +625,7 @@ export default function TicketScreen() {
             <View style={{ gap: 0 }}>
               <View style={styles.infoRow}>
                 <View style={styles.infoIcon}>
-                  <Calendar size={16} color={c.ink} />
+                  <Calendar size={16} color={C_INK} />
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('date')}</Text>
@@ -669,7 +634,7 @@ export default function TicketScreen() {
               </View>
               <View style={styles.infoRow}>
                 <View style={styles.infoIcon}>
-                  <User size={16} color={c.ink} />
+                  <User size={16} color={C_INK} />
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('passengers')}</Text>
@@ -678,7 +643,7 @@ export default function TicketScreen() {
               </View>
               <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
                 <View style={styles.infoIcon}>
-                  <Tag size={16} color={c.ink} />
+                  <Tag size={16} color={C_INK} />
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('total')}</Text>
@@ -696,10 +661,8 @@ export default function TicketScreen() {
         {/* ── Action buttons ── */}
         <View style={styles.actions}>
           <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.9} onPress={() => router.replace('/(tabs)/trips')}>
-            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtnGradient}>
-              <Text style={styles.primaryBtnText}>{t('view_all_trips')}</Text>
-              <Ticket size={18} color="#ffffff" />
-            </LinearGradient>
+            <Text style={styles.primaryBtnText}>{t('view_all_trips')}</Text>
+            <Ticket size={18} color="#ffffff" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8} onPress={() => router.replace('/(tabs)')}>
@@ -707,6 +670,6 @@ export default function TicketScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
