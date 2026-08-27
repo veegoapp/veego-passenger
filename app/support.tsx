@@ -6,18 +6,13 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ArrowRight, Check, MessageCircle, Phone } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import { ThemeColors } from '@/constants/colors';
 import api from '@/src/api/client';
 import { getErrorMessage } from '@/src/utils/errorMessages';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
-import { GlassView } from '@/components/ui/GlassView';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 
@@ -29,72 +24,77 @@ const ISSUE_MAP: Record<string, { subject: string; category: string }> = {
   issue_other:   { subject: 'Other',             category: 'other'   },
 };
 
-function makeStyles(c: ThemeColors) {
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_BG = '#EEF0F2';
+const C_PANEL = '#14151A';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_TEAL = '#0E9F8E';
+
+function makeStyles() {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md },
-    backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR },
     headerText: { flex: 1 },
-    headerTitle: {
-      fontSize: 20, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
-    },
-    headerSub: { fontSize: 12.5, color: c.inkSoft, marginTop: 1 },
+    headerTitle: { fontSize: 19, fontWeight: '800', color: C_INK, letterSpacing: -0.4 },
+    headerSub: { fontSize: 12.5, color: C_INK_SOFT, marginTop: 1, fontWeight: '600' },
 
     scroll: { paddingHorizontal: 20, gap: 20 },
-    inputLabel: { fontSize: 11.5, fontWeight: Typography.weight.bold, color: c.inkSoft, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
+    inputLabel: { fontSize: 11, fontWeight: '700', color: C_CAP, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
 
     issueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-    issueChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1 },
-    issueChipActive: { backgroundColor: c.ink, borderColor: c.ink },
-    issueChipInactive: { backgroundColor: c.white, borderColor: c.border },
-    issueChipText: { fontSize: 12.5, fontWeight: Typography.weight.semibold },
+    issueChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1.5 },
+    issueChipActive: { backgroundColor: C_PANEL, borderColor: C_PANEL },
+    issueChipInactive: { backgroundColor: '#fff', borderColor: C_HAIR },
+    issueChipText: { fontSize: 12.5, fontWeight: '700' },
 
     textArea: {
-      borderRadius: 18, borderWidth: 1, borderColor: c.border,
-      backgroundColor: c.white, paddingHorizontal: Spacing.lg, paddingVertical: 14,
-      fontSize: Typography.size.sm, color: c.ink, minHeight: 120, textAlignVertical: 'top',
+      borderRadius: 18, borderWidth: 1, borderColor: C_HAIR,
+      backgroundColor: '#fff', paddingHorizontal: Spacing.lg, paddingVertical: 14,
+      fontSize: 14, color: C_INK, minHeight: 120, textAlignVertical: 'top',
     },
     primaryBtn: {
-      height: 56, borderRadius: 20, backgroundColor: c.ink,
+      height: 56, borderRadius: 20, backgroundColor: C_PANEL,
       alignItems: 'center', justifyContent: 'center',
-      shadowColor: c.ink, shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.25, shadowRadius: 14, elevation: 6,
     },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontFamily: 'Inter_700Bold' },
+    primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
     successWrap: {
       flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.lg,
     },
     successCircle: {
       width: 90, height: 90, borderRadius: 45,
-      backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: C_TEAL, alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: Typography.size.xl, color: c.ink, letterSpacing: -0.4, textAlign: 'center', fontFamily: 'Inter_700Bold' },
-    successSub: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: 20, color: C_INK, letterSpacing: -0.3, textAlign: 'center', fontWeight: '800' },
+    successSub: { fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
     successBtn: {
-      marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 18,
-      backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
+      marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 999,
+      backgroundColor: C_PANEL, alignItems: 'center', justifyContent: 'center',
     },
-    successBtnText: { fontSize: 15, color: c.isDark ? c.background : c.white, fontFamily: 'Inter_700Bold' },
+    successBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
 
     contactRow: { flexDirection: 'row', gap: 10 },
-    // GlassView owns background/border — this only needs inner layout.
     contactCard: {
       flex: 1, padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm,
+      backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: C_HAIR,
     },
     contactIcon: {
-      width: 48, height: 48, borderRadius: Radius.lg,
+      width: 48, height: 48, borderRadius: 16,
       alignItems: 'center', justifyContent: 'center',
     },
-    contactLabel: { fontSize: Typography.size.xs, fontFamily: 'Inter_600SemiBold', color: c.ink },
-    contactSub: { fontSize: 11, color: c.inkSoft, textAlign: 'center' },
+    contactLabel: { fontSize: 12.5, fontWeight: '700', color: C_INK },
+    contactSub: { fontSize: 11, color: C_INK_SOFT, textAlign: 'center' },
   });
 }
 
 export default function SupportScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { colors: c, t, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const { t, isRTL } = useTheme();
+  const styles = useMemo(() => makeStyles(), []);
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -131,12 +131,10 @@ export default function SupportScreen() {
   };
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: C_BG }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
-          <GlassView style={styles.backBtn} borderRadius={20}>
-            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
-          </GlassView>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+          {isRTL ? <ArrowRight size={18} color={C_INK} /> : <ArrowLeft size={18} color={C_INK} />}
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('contact_title')}</Text>
@@ -177,13 +175,13 @@ export default function SupportScreen() {
                     showAppAlert(item.label, item.sub);
                   }}
                 >
-                  <GlassView style={styles.contactCard} borderRadius={20}>
+                  <View style={styles.contactCard}>
                     <View style={[styles.contactIcon, { backgroundColor: item.bg }]}>
                       <item.icon size={22} color={item.color} />
                     </View>
                     <Text style={styles.contactLabel}>{item.label}</Text>
                     <Text style={styles.contactSub}>{item.sub}</Text>
-                  </GlassView>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -205,7 +203,7 @@ export default function SupportScreen() {
                     >
                       <Text style={[
                         styles.issueChipText,
-                        { color: active ? (c.isDark ? c.background : c.white) : c.inkSoft },
+                        { color: active ? '#fff' : C_INK_SOFT },
                       ]}>
                         {t(key)}
                       </Text>
@@ -222,7 +220,7 @@ export default function SupportScreen() {
                 value={message}
                 onChangeText={setMessage}
                 placeholder={t('issue_placeholder')}
-                placeholderTextColor={c.silver}
+                placeholderTextColor={C_CAP}
                 textAlign={isRTL ? 'right' : 'left'}
                 multiline
               />
@@ -242,6 +240,6 @@ export default function SupportScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
-    </LinearGradient>
+    </View>
   );
 }
