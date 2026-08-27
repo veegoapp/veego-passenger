@@ -157,10 +157,9 @@ function DriverAssignedCardBase({
   const isStarted = rideStatus === 'started';
   const isArrived = rideStatus === 'arrived';
 
-  // Active-ride card lowers to a peek so the map is unobstructed; auto-lower
-  // when the trip goes active, and let the rider tap the handle to raise it
-  // back up for the full controls. Only the 'started' phase is collapsible.
-  useEffect(() => { setCollapsed(isStarted); }, [isStarted]);
+  // Active-ride card starts fully expanded, same as every other phase — the
+  // rider taps the handle (fStrip, below) to lower it to a peek themselves
+  // when they want more map room. Never auto-collapsed on their behalf.
   useEffect(() => {
     Animated.spring(collapseAnim, {
       toValue: collapsed ? 1 : 0,
