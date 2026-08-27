@@ -3,12 +3,10 @@ import { ArrowLeft, ArrowRight, Star } from 'lucide-react-native';
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Animated, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GlassView } from '@/components/ui/GlassView';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useTheme } from '@/context/ThemeContext';
 import { getPassengerRating } from '@/src/api/userService';
 import { Animation } from '@/constants/animations';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
 type RatingEntry = {
@@ -31,6 +29,16 @@ type RatingsResponse = {
 
 type BreakdownItem = { stars: number; count: number; pct: number };
 
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_BG = '#EEF0F2';
+const C_PANEL = '#14151A';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_TEAL = '#0E9F8E';
+const C_STAR = '#F5A623';
+
 function buildBreakdown(ratings: RatingEntry[]): BreakdownItem[] {
   const counts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   for (const r of ratings) {
@@ -52,7 +60,7 @@ function buildBreakdown(ratings: RatingEntry[]): BreakdownItem[] {
  * rated this passenger instead of how riders have rated a driver.
  */
 export default function RatingsScreen() {
-  const { colors: c, t, isRTL } = useTheme();
+  const { t, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
   const topPad = insets.top;
   const TA = isRTL ? ('right' as const) : ('left' as const);
@@ -101,7 +109,7 @@ export default function RatingsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: c.background, alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[styles.container, { backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center' }]}>
         <AppLoader />
       </View>
     );
@@ -109,8 +117,8 @@ export default function RatingsScreen() {
 
   if (isError) {
     return (
-      <View style={[styles.container, { backgroundColor: c.background, alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={{ color: c.inkSoft, fontSize: Typography.size.sm, fontFamily: 'Inter_400Regular' }}>{t('ratings_load_error')}</Text>
+      <View style={[styles.container, { backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: C_INK_SOFT, fontSize: 13.5 }}>{t('ratings_load_error')}</Text>
       </View>
     );
   }
@@ -120,84 +128,80 @@ export default function RatingsScreen() {
   const tripCount = data?.tripCount ?? 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: c.background }]}>
+    <View style={[styles.container, { backgroundColor: C_BG }]}>
       <ScrollView
         contentContainerStyle={{ paddingTop: topPad + 8, paddingBottom: 40, paddingHorizontal: 20 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
-        <Pressable onPress={() => router.back()}>
-          <GlassView style={styles.backBtn} borderRadius={20}>
-            {isRTL ? <ArrowRight size={20} color={c.ink} strokeWidth={2} /> : <ArrowLeft size={20} color={c.ink} strokeWidth={2} />}
-          </GlassView>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          {isRTL ? <ArrowRight size={20} color={C_INK} strokeWidth={2} /> : <ArrowLeft size={20} color={C_INK} strokeWidth={2} />}
         </Pressable>
 
-        {/* Average rating hero */}
-        <View style={{ alignItems: 'center', marginTop: Spacing.xl }}>
-          <Text style={[styles.bigRating, { color: c.ink, fontFamily: 'Inter_700Bold' }]}>
-            {avgRating ? avgRating.toFixed(2) : '—'}
-          </Text>
+        {/* Average rating hero — dark panel */}
+        <View style={styles.heroCard}>
+          <Text style={styles.bigRating}>{avgRating ? avgRating.toFixed(2) : '—'}</Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((n) => (
               <Star key={n} size={20}
-                color={c.accent}
-                fill={n <= Math.round(avgRating) ? c.accent : 'transparent'}
+                color={C_STAR}
+                fill={n <= Math.round(avgRating) ? C_STAR : 'transparent'}
                 strokeWidth={2}
               />
             ))}
           </View>
-          <Text style={[styles.tripCount, { color: c.inkSoft, fontFamily: 'Inter_600SemiBold' }]}>
+          <Text style={styles.tripCount}>
             {t('ratings_trips_summary').replace('{ratings}', String(ratingsCount)).replace('{trips}', String(tripCount))}
           </Text>
         </View>
 
         {/* Breakdown bars */}
-        <GlassView style={styles.breakdownCard} borderRadius={20}>
+        <View style={styles.breakdownCard}>
           {breakdown.map((r, i) => (
             <View key={r.stars} style={styles.breakdownRow}>
-              <Text style={[styles.starNum, { color: c.ink, fontFamily: 'Inter_700Bold' }]}>{r.stars}</Text>
-              <Star size={12} color={c.accent} fill={c.accent} strokeWidth={2} />
-              <View style={[styles.barTrack, { backgroundColor: c.mist, flex: 1 }]}>
+              <Text style={styles.starNum}>{r.stars}</Text>
+              <Star size={12} color={C_STAR} fill={C_STAR} strokeWidth={2} />
+              <View style={styles.barTrack}>
                 <Animated.View style={[styles.barFill, {
-                  backgroundColor: c.primary,
+                  backgroundColor: C_TEAL,
                   width: barAnims[i].interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
                 }]} />
               </View>
-              <Text style={[styles.countText, { color: c.inkSoft, fontFamily: 'Inter_600SemiBold' }]}>{r.count}</Text>
+              <Text style={styles.countText}>{r.count}</Text>
             </View>
           ))}
-        </GlassView>
+        </View>
 
         {/* Reviews list */}
         {ratings.length > 0 && (
           <>
-            <Text style={[styles.sectionTitle, { color: c.inkSoft, fontFamily: 'Inter_700Bold' }]}>{t('recent_reviews')}</Text>
+            <Text style={styles.sectionTitle}>{t('recent_reviews')}</Text>
             <View style={{ gap: Spacing.sm }}>
               {ratings.slice(0, 20).map((r) => (
-                <GlassView key={r.id} style={styles.reviewCard} borderRadius={20}>
+                <View key={r.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeader}>
                     <View style={styles.reviewStars}>
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star key={i} size={12}
-                          color={i < r.score ? c.accent : `${c.inkSoft}4D`}
-                          fill={i < r.score ? c.accent : 'transparent'}
+                          color={i < r.score ? C_STAR : '#D3D6DA'}
+                          fill={i < r.score ? C_STAR : 'transparent'}
                           strokeWidth={2}
                         />
                       ))}
                     </View>
-                    <Text style={[styles.reviewContext, { color: c.inkSoft, textAlign: TA, fontFamily: 'Inter_600SemiBold' }]}>
+                    <Text style={[styles.reviewContext, { textAlign: TA }]}>
                       {r.context === 'ride' ? t('car') : t('shuttle')}
                     </Text>
                   </View>
                   {r.comment ? (
-                    <Text style={[styles.reviewText, { color: c.inkSoft, textAlign: TA, fontFamily: 'Inter_400Regular' }]}>
+                    <Text style={[styles.reviewText, { textAlign: TA }]}>
                       "{r.comment}"
                     </Text>
                   ) : null}
-                  <Text style={[styles.reviewDate, { color: `${c.inkSoft}B3`, textAlign: TA, fontFamily: 'Inter_700Bold' }]}>
+                  <Text style={[styles.reviewDate, { textAlign: TA }]}>
                     {new Date(r.createdAt).toLocaleDateString()}
                   </Text>
-                </GlassView>
+                </View>
               ))}
             </View>
           </>
@@ -205,7 +209,7 @@ export default function RatingsScreen() {
 
         {ratings.length === 0 && (
           <View style={{ alignItems: 'center', marginTop: 40 }}>
-            <Text style={{ color: c.inkSoft, fontSize: Typography.size.sm, fontFamily: 'Inter_400Regular' }}>{t('no_ratings_yet')}</Text>
+            <Text style={{ color: C_INK_SOFT, fontSize: 13.5 }}>{t('no_ratings_yet')}</Text>
           </View>
         )}
       </ScrollView>
@@ -215,21 +219,28 @@ export default function RatingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  bigRating: { fontSize: 64, lineHeight: 68 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR,
+  },
+  heroCard: {
+    alignItems: 'center', marginTop: Spacing.xl,
+    backgroundColor: C_PANEL, borderRadius: 24, paddingVertical: 28, paddingHorizontal: 20,
+  },
+  bigRating: { fontSize: 56, lineHeight: 60, fontWeight: '800', color: '#fff', letterSpacing: -1 },
   starsRow: { flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.sm },
-  tripCount: { fontSize: Typography.size.xs, marginTop: Spacing.xs },
-  breakdownCard: { padding: Spacing.lg, marginTop: Spacing.xxl, gap: 10 },
+  tripCount: { fontSize: 12.5, marginTop: Spacing.sm, color: 'rgba(255,255,255,0.55)', fontWeight: '600' },
+  breakdownCard: { padding: Spacing.lg, marginTop: Spacing.lg, gap: 10, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: C_HAIR },
   breakdownRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  starNum: { width: 12, fontSize: Typography.size.xs },
-  barTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  starNum: { width: 12, fontSize: 12.5, fontWeight: '800', color: C_INK },
+  barTrack: { height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: '#F0F2F3', flex: 1 },
   barFill: { height: '100%', borderRadius: 4 },
-  countText: { width: 48, textAlign: 'right', fontSize: Typography.size.xs },
-  sectionTitle: { fontSize: Typography.size.xs, letterSpacing: 2, textTransform: 'uppercase', marginTop: Spacing.xxl, marginBottom: Spacing.md },
-  reviewCard: { padding: Spacing.lg, gap: 6 },
+  countText: { width: 48, textAlign: 'right', fontSize: 12.5, color: C_INK_SOFT, fontWeight: '600' },
+  sectionTitle: { fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', marginTop: Spacing.xxl, marginBottom: Spacing.md, color: C_CAP, fontWeight: '700' },
+  reviewCard: { padding: Spacing.lg, gap: 6, backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: C_HAIR },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   reviewStars: { flexDirection: 'row', gap: 2 },
-  reviewContext: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },
-  reviewText: { fontSize: Typography.size.sm, lineHeight: 22 },
-  reviewDate: { fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
+  reviewContext: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: C_INK_SOFT, fontWeight: '600' },
+  reviewText: { fontSize: 13.5, lineHeight: 20, color: C_INK_SOFT },
+  reviewDate: { fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', color: C_CAP, fontWeight: '700' },
 });
