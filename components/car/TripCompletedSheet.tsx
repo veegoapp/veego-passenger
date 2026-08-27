@@ -4,9 +4,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Check, Star } from 'lucide-react-native';
+import { Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { FareBreakdownModal } from '@/components/shared/FareBreakdownModal';
 
 interface TripCompletedSheetProps {
   visible: boolean;
@@ -21,8 +20,6 @@ interface TripCompletedSheetProps {
   walletDeduction?: number | null;
   paymentMethodLabel: string;
   driverName?: string | null;
-  /** Driver's existing rating (e.g. 4.8) shown on the rating card. */
-  driverRating?: number | null;
   /** Pickup address — omitted/empty hides the route section. */
   pickup?: string | null;
   /** Dropoff address — omitted/empty hides the route section. */
@@ -31,12 +28,13 @@ interface TripCompletedSheetProps {
   onDone: (stars: number, comment: string) => void;
 }
 
-// ── "C" fixed palette ────────────────────────────────────────────────────────
+// ── "C · Split Panel" fixed palette (matches the approved design) ────────────
 const C_BG = '#EEF0F2';
 const C_SURF = '#FFFFFF';
 const C_INK = '#14151A';
 const C_INK_SOFT = '#6B7178';
 const C_CAP = '#9AA0A6';
+const C_CAP_ON_DARK = '#8A9096';
 const C_HAIR = '#EEF0F1';
 const C_TEAL = '#0E9F8E';
 const C_STAR = '#F5A623';
@@ -44,23 +42,21 @@ const C_GREEN = '#12B76A';
 const C_PANEL = '#14151A';
 
 /**
- * Post-trip flow, split into two steps (approved design):
- *   1. a full-screen Fare Details page (C) — complete breakdown, big amount;
- *   2. a Rating card (C) shown after the rider taps Continue.
+ * Post-trip flow, split into two steps (approved "C" design):
+ *   1. a Fare Details page — dark hero band (amount) + white breakdown body;
+ *   2. a Rating card shown after the rider taps Done.
  * The public API (onDone) is unchanged — it fires once from the rating step.
  */
 export function TripCompletedSheet({
   visible, fare, grossFare, promoDiscount, walletDeduction, paymentMethodLabel,
-  driverName, driverRating, pickup, dropoff, onDone,
+  driverName, pickup, dropoff, onDone,
 }: TripCompletedSheetProps) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const overlayAnim = useRef(new Animated.Value(0)).current;
-  const checkScale = useRef(new Animated.Value(0.5)).current;
   const [step, setStep] = useState<'fare' | 'rating'>('fare');
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState('');
-  const [detailsVisible, setDetailsVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const driverInitials = (driverName ?? '')
@@ -76,13 +72,9 @@ export function TripCompletedSheet({
 
   useEffect(() => {
     if (visible) {
-      Animated.parallel([
-        Animated.timing(overlayAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(checkScale, { toValue: 1, stiffness: 250, useNativeDriver: true }),
-      ]).start();
+      Animated.timing(overlayAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     } else {
       overlayAnim.setValue(0);
-      checkScale.setValue(0.5);
       setStep('fare');
       setStars(0);
       setComment('');
@@ -106,21 +98,15 @@ export function TripCompletedSheet({
 
   return (
     <Animated.View
-      style={[styles.overlay, { opacity: overlayAnim, paddingTop: insets.top }]}
+      style={[styles.overlay, { opacity: overlayAnim }]}
       pointerEvents={visible ? 'auto' : 'none'}
     >
       {step === 'fare' ? (
-        /* ═══════════ STEP 1 · FARE DETAILS (full-screen page) ═══════════ */
+        /* ═══════════ STEP 1 · FARE DETAILS ═══════════ */
         <View style={styles.page}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 40, paddingBottom: 24 }}
-          >
-            <Animated.View style={[styles.checkCircle, { transform: [{ scale: checkScale }] }]}>
-              <Check size={40} color="#ffffff" strokeWidth={3} />
-            </Animated.View>
-            <Text style={styles.pageTitle}>{t('trip_complete')}</Text>
-
+          {/* dark hero */}
+          <View style={[styles.hero, { paddingTop: insets.top + 24 }]}>
+            <Text style={styles.heroTopCap}>{t('trip_complete')}</Text>
             {amountToPay != null && (
               <>
                 <Text style={styles.heroCap}>{t('cash_to_pay')}</Text>
@@ -129,40 +115,54 @@ export function TripCompletedSheet({
                   <Text style={styles.heroCur}>{t('egp')}</Text>
                 </View>
                 <Text style={styles.heroNote}>{paymentMethodLabel}</Text>
-                <Pressable onPress={() => setDetailsVisible(true)} style={styles.viewDetailsBtn}>
-                  <Text style={styles.viewDetailsTxt}>{t('view_details')}</Text>
-                </Pressable>
               </>
             )}
+          </View>
 
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 22, paddingBottom: 24 }}
+          >
             {/* breakdown */}
             {(grossFare != null || promoDiscount != null || walletDeduction != null) && (
-              <View style={styles.breakdown}>
-                {grossFare != null && (
-                  <View style={styles.bRow}>
-                    <Text style={styles.bLabel}>{t('gross_fare')}</Text>
-                    <Text style={styles.bVal}>{grossFare.toFixed(2)}</Text>
-                  </View>
-                )}
-                {promoDiscount != null && promoDiscount > 0 && (
-                  <>
-                    <View style={styles.bHair} />
+              <>
+                <Text style={styles.sectionCap}>{t('fare_breakdown_title')}</Text>
+                <View style={{ marginTop: 2 }}>
+                  {grossFare != null && (
                     <View style={styles.bRow}>
-                      <Text style={styles.bLabel}>{t('promo_discount_line')}</Text>
-                      <Text style={[styles.bVal, { color: C_GREEN }]}>-{promoDiscount.toFixed(2)}</Text>
+                      <Text style={styles.bLabel}>{t('gross_fare')}</Text>
+                      <Text style={styles.bVal}>{grossFare.toFixed(2)}</Text>
                     </View>
-                  </>
-                )}
-                {walletDeduction != null && walletDeduction > 0 && (
-                  <>
-                    <View style={styles.bHair} />
-                    <View style={styles.bRow}>
-                      <Text style={styles.bLabel}>{t('wallet_deduction_line')}</Text>
-                      <Text style={styles.bVal}>-{walletDeduction.toFixed(2)}</Text>
-                    </View>
-                  </>
-                )}
-              </View>
+                  )}
+                  {promoDiscount != null && promoDiscount > 0 && (
+                    <>
+                      <View style={styles.bHair} />
+                      <View style={styles.bRow}>
+                        <Text style={styles.bLabel}>{t('promo_discount_line')}</Text>
+                        <Text style={[styles.bVal, { color: C_GREEN }]}>-{promoDiscount.toFixed(2)}</Text>
+                      </View>
+                    </>
+                  )}
+                  {walletDeduction != null && walletDeduction > 0 && (
+                    <>
+                      <View style={styles.bHair} />
+                      <View style={styles.bRow}>
+                        <Text style={styles.bLabel}>{t('wallet_deduction_line')}</Text>
+                        <Text style={styles.bVal}>-{walletDeduction.toFixed(2)}</Text>
+                      </View>
+                    </>
+                  )}
+                  {amountToPay != null && (
+                    <>
+                      <View style={[styles.bHair, styles.bHairThick]} />
+                      <View style={[styles.bRow, { paddingTop: 15 }]}>
+                        <Text style={styles.bTotalLabel}>{t('net_cash_payable')}</Text>
+                        <Text style={styles.bTotalVal}>{amountToPay.toFixed(2)} {t('egp')}</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </>
             )}
 
             {/* route */}
@@ -193,7 +193,7 @@ export function TripCompletedSheet({
 
           <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
             <Pressable onPress={() => { Haptics.selectionAsync(); setStep('rating'); }} style={styles.primaryBtn}>
-              <Text style={styles.primaryBtnTxt}>{'Continue'}</Text>
+              <Text style={styles.primaryBtnTxt}>{'Done'}</Text>
             </Pressable>
           </View>
         </View>
@@ -201,61 +201,56 @@ export function TripCompletedSheet({
         /* ═══════════ STEP 2 · RATING CARD ═══════════ */
         <View style={styles.ratingWrap}>
           <View style={styles.ratingCard}>
-            <View style={styles.ratingAvatar}>
-              <Text style={styles.ratingAvatarTxt}>{driverInitials}</Text>
-            </View>
-            <Text style={styles.ratingCap}>{t('trip_complete')}</Text>
-            <Text style={styles.ratingTitle}>{t('rate_your_ride')}</Text>
-            {driverName ? <Text style={styles.ratingSub}>{driverName}</Text> : null}
-            {driverRating != null && driverRating > 0 && (
-              <View style={styles.driverRatingRow}>
-                <Star size={11} color={C_STAR} fill={C_STAR} strokeWidth={0} />
-                <Text style={styles.driverRatingTxt}>{driverRating.toFixed(1)}</Text>
+            {/* dark header row */}
+            <View style={styles.ratingHeader}>
+              <View style={styles.ratingAvatar}>
+                <Text style={styles.ratingAvatarTxt}>{driverInitials}</Text>
               </View>
-            )}
-
-            <View style={styles.starsRow}>
-              {[1, 2, 3, 4, 5].map((n) => (
-                <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
-                  <Star size={38} color={n <= stars ? C_STAR : '#D3D6DA'} fill={n <= stars ? C_STAR : 'transparent'} strokeWidth={n <= stars ? 0 : 1.4} />
-                </Pressable>
-              ))}
+              <View>
+                <Text style={styles.ratingCap}>{t('trip_complete')}</Text>
+                <Text style={styles.ratingTitle}>{t('rate_your_ride')}</Text>
+                {driverName ? <Text style={styles.ratingSub}>{driverName}</Text> : null}
+              </View>
             </View>
 
-            {stars > 0 && (
-              <TextInput
-                style={styles.commentInput}
-                placeholder={t('leave_comment')}
-                placeholderTextColor={C_CAP}
-                value={comment}
-                onChangeText={setComment}
-                maxLength={200}
-                multiline
-              />
-            )}
+            {/* white body */}
+            <View style={styles.ratingBody}>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Pressable key={n} onPress={() => setStars(n)} hitSlop={6}>
+                    <Star size={40} color={n <= stars ? C_STAR : '#D3D6DA'} fill={n <= stars ? C_STAR : 'transparent'} strokeWidth={n <= stars ? 0 : 1.4} />
+                  </Pressable>
+                ))}
+              </View>
 
-            <Pressable
-              onPress={handleSubmit}
-              disabled={stars === 0 || submitting}
-              style={[styles.primaryBtn, { marginTop: 20, opacity: stars === 0 || submitting ? 0.5 : 1 }]}
-            >
-              {submitting ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.primaryBtnTxt}>{t('submit_rating')}</Text>}
-            </Pressable>
-            <Pressable onPress={handleSkip} disabled={submitting} style={styles.skipBtn}>
-              <Text style={styles.skipTxt}>{t('skip')}</Text>
-            </Pressable>
+              {stars > 0 ? (
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder={t('leave_comment')}
+                  placeholderTextColor={C_CAP}
+                  value={comment}
+                  onChangeText={setComment}
+                  maxLength={200}
+                  multiline
+                />
+              ) : (
+                <Text style={styles.commentPlaceholder}>{t('leave_comment')}</Text>
+              )}
+
+              <Pressable
+                onPress={handleSubmit}
+                disabled={stars === 0 || submitting}
+                style={[styles.primaryBtn, { marginTop: 20, opacity: stars === 0 || submitting ? 0.5 : 1 }]}
+              >
+                {submitting ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.primaryBtnTxt}>{t('submit_rating')}</Text>}
+              </Pressable>
+              <Pressable onPress={handleSkip} disabled={submitting} style={styles.skipBtn}>
+                <Text style={styles.skipTxt}>{t('skip')}</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       )}
-
-      <FareBreakdownModal
-        visible={detailsVisible}
-        onClose={() => setDetailsVisible(false)}
-        grossFare={grossFare ?? null}
-        promoDiscount={promoDiscount ?? null}
-        walletDeduction={walletDeduction ?? null}
-        netCashPayable={fare}
-      />
     </Animated.View>
   );
 }
@@ -268,27 +263,30 @@ const styles = StyleSheet.create({
   },
   page: { flex: 1 },
 
-  checkCircle: {
-    width: 68, height: 68, borderRadius: 34, backgroundColor: C_PANEL,
-    alignItems: 'center', justifyContent: 'center', alignSelf: 'center',
+  /* ── Fare: dark hero ── */
+  hero: {
+    backgroundColor: C_PANEL,
+    paddingHorizontal: 26, paddingBottom: 22,
+    borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
   },
-  pageTitle: { fontSize: 24, fontWeight: '800', color: C_INK, textAlign: 'center', marginTop: 18, letterSpacing: -0.3 },
+  heroTopCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP_ON_DARK },
+  heroCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP_ON_DARK, marginTop: 22 },
+  heroAmountRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6 },
+  heroAmount: { fontSize: 52, fontWeight: '800', color: '#ffffff', letterSpacing: -1, lineHeight: 54 },
+  heroCur: { fontSize: 18, fontWeight: '700', color: C_CAP_ON_DARK },
+  heroNote: { fontSize: 13, color: '#B7BBC2', marginTop: 10, fontWeight: '600' },
 
-  heroCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP, textAlign: 'center', marginTop: 26 },
-  heroAmountRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8, marginTop: 6 },
-  heroAmount: { fontSize: 52, fontWeight: '800', color: C_TEAL, letterSpacing: -1, lineHeight: 54 },
-  heroCur: { fontSize: 19, fontWeight: '700', color: C_TEAL },
-  heroNote: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center', marginTop: 8, fontWeight: '600' },
-  viewDetailsBtn: { alignSelf: 'center', marginTop: 6, paddingVertical: 4, paddingHorizontal: 8 },
-  viewDetailsTxt: { fontSize: 13, fontWeight: '700', color: C_TEAL, textDecorationLine: 'underline' },
-
-  breakdown: { backgroundColor: C_SURF, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 4, marginTop: 28 },
+  /* ── Fare: white body ── */
+  sectionCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP, marginBottom: 2 },
   bRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 13 },
   bLabel: { fontSize: 14, color: C_INK_SOFT, fontWeight: '600' },
   bVal: { fontSize: 16, fontWeight: '800', color: C_INK },
   bHair: { height: 1, backgroundColor: C_HAIR },
+  bHairThick: { height: 2, backgroundColor: C_PANEL },
+  bTotalLabel: { fontSize: 16, fontWeight: '800', color: C_INK },
+  bTotalVal: { fontSize: 22, fontWeight: '800', color: C_TEAL },
 
-  routeRowWrap: { flexDirection: 'row', gap: 14, marginTop: 24, paddingHorizontal: 4 },
+  routeRowWrap: { flexDirection: 'row', gap: 14, marginTop: 20, paddingHorizontal: 4 },
   routeRail: { alignItems: 'center', paddingTop: 4 },
   routeDotO: { width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5, borderColor: C_INK },
   routeRailLine: { width: 1.5, flex: 1, backgroundColor: '#DDE0E3', marginVertical: 4 },
@@ -301,20 +299,27 @@ const styles = StyleSheet.create({
   primaryBtnTxt: { color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
 
   /* ── Rating step ── */
-  ratingWrap: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 20, paddingBottom: 34 },
-  ratingCard: { backgroundColor: C_SURF, borderRadius: 28, padding: 24, alignItems: 'center' },
-  ratingAvatar: { width: 66, height: 66, borderRadius: 33, backgroundColor: '#EEEADF', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  ratingAvatarTxt: { fontSize: 22, fontWeight: '800', color: '#4A463D' },
-  ratingCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP, marginTop: 14 },
-  ratingTitle: { fontSize: 24, fontWeight: '800', color: C_INK, marginTop: 6, letterSpacing: -0.3 },
-  ratingSub: { fontSize: 14, color: C_INK_SOFT, fontWeight: '600', marginTop: 4 },
-  driverRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
-  driverRatingTxt: { fontSize: 12, fontWeight: '700', color: C_INK_SOFT },
-  starsRow: { flexDirection: 'row', gap: 14, marginTop: 22 },
-  commentInput: {
-    alignSelf: 'stretch', borderWidth: 1, borderColor: C_HAIR, borderRadius: 14, backgroundColor: '#F6F7F8',
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginTop: 18, minHeight: 60, textAlignVertical: 'top', color: C_INK,
+  ratingWrap: { flex: 1, justifyContent: 'flex-end' },
+  ratingCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  ratingHeader: {
+    backgroundColor: C_PANEL, flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 24, paddingVertical: 24,
   },
-  skipBtn: { marginTop: 14, paddingVertical: 6 },
+  ratingAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#26272E', alignItems: 'center', justifyContent: 'center' },
+  ratingAvatarTxt: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
+  ratingCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP_ON_DARK },
+  ratingTitle: { fontSize: 20, fontWeight: '800', color: '#ffffff', marginTop: 4 },
+  ratingSub: { fontSize: 13, fontWeight: '600', color: '#B7BBC2', marginTop: 2 },
+  ratingBody: { backgroundColor: C_SURF, padding: 24 },
+  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
+  commentPlaceholder: {
+    marginTop: 22, backgroundColor: '#F6F7F8', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: C_CAP,
+  },
+  commentInput: {
+    borderWidth: 1, borderColor: C_HAIR, borderRadius: 14, backgroundColor: '#F6F7F8',
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginTop: 22, minHeight: 60, textAlignVertical: 'top', color: C_INK,
+  },
+  skipBtn: { alignSelf: 'center', marginTop: 14, paddingVertical: 6 },
   skipTxt: { fontSize: 13, fontWeight: '700', color: C_CAP },
 });

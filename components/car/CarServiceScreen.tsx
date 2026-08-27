@@ -1413,7 +1413,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         walletDeduction={rideState.walletDeduction ?? null}
         paymentMethodLabel={paymentMethod === 'wallet' ? t('payment_methods_wallet') : t('payment_methods_cash')}
         driverName={rideState.driver?.name ?? null}
-        driverRating={rideState.driver?.rating ?? null}
         pickup={pickupAddress || null}
         dropoff={destination}
         onDone={handleCompletedDone}
