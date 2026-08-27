@@ -2,12 +2,7 @@ import { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Bus, Car, Bike as ScooterIcon, Package } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { ThemeColors } from '@/constants/colors';
-import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
-import { Typography } from '@/constants/typography';
 import { shuttleStatusLabel, type Trip, type TripType } from '@/constants/data';
-import { GlassView } from '@/components/ui/GlassView';
 
 const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {
   shuttle: Bus,
@@ -16,11 +11,22 @@ const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: 
   delivery: Package,
 };
 
+const C_PANEL = '#14151A';
+const C_CAP = '#9AA0A6';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_MIST = '#F0F2F3';
+
 function isActiveTripStatus(status: string): boolean {
   return status === 'active' || status === 'boarding';
 }
 function isPendingTripStatus(status: string): boolean {
   return ['scheduled', 'upcoming', 'waiting_driver', 'driver_assigned', 'pending'].includes(status);
+}
+function statusColor(status: string): string {
+  if (isActiveTripStatus(status)) return '#3DDC97';
+  if (isPendingTripStatus(status)) return '#f59e0b';
+  return '#9AA0A6';
 }
 
 interface HistoryTripCardProps {
@@ -35,116 +41,99 @@ interface HistoryTripCardProps {
  * Past/completed trip card for the My Trips History tab. Presentational only —
  * reads the already-normalized `Trip` model; no API calls, no cancel action.
  */
-export function HistoryTripCard({ trip, accentColor, onPress }: HistoryTripCardProps) {
-  const { colors: c, t, language } = useTheme();
+export function HistoryTripCard({ trip, onPress }: HistoryTripCardProps) {
+  const { t, language } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const routeName = (isAr ? trip.routeNameAr ?? trip.routeName : trip.routeName) || '—';
   const from      = (isAr ? trip.fromAr ?? trip.from : trip.from) || '—';
   const to        = (isAr ? trip.toAr ?? trip.to : trip.to) || '—';
   const TripTypeIcon = TYPE_ICONS[trip.type];
+  const statusLabel = isActiveTripStatus(trip.status)
+    ? t('trip_status_active')
+    : isPendingTripStatus(trip.status)
+    ? t('trip_status_pending')
+    : shuttleStatusLabel(trip.status, isAr ? 'ar' : 'en');
 
   return (
-    <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.9}>
-      <GlassView style={styles.card} borderRadius={Radius.xl}>
-        <View style={[styles.accent, { backgroundColor: accentColor }]} />
+    <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.9} style={styles.card}>
+      <View style={styles.leftPanel}>
+        <View style={styles.typeIconBox}>
+          <TripTypeIcon size={17} color="#fff" />
+        </View>
+        <View style={{ marginTop: 12 }}>
+          <Text style={styles.cap}>{t('date_label')}</Text>
+          <Text style={styles.dateVal}>{trip.date}</Text>
+        </View>
+        <View style={{ marginTop: 8 }}>
+          <Text style={styles.cap}>{t('time_label')}</Text>
+          <Text style={styles.dateVal}>{trip.time}</Text>
+        </View>
+      </View>
 
-        <View style={styles.top}>
-          <View style={styles.iconBox}>
-            <TripTypeIcon size={18} color={c.isDark ? c.background : c.white} />
+      <View style={styles.rightPanel}>
+        <View style={styles.titleRow}>
+          <Text style={styles.routeName} numberOfLines={1}>{routeName}</Text>
+          <View style={styles.statusRow}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor(trip.status) }]} />
+            <Text style={styles.statusText} numberOfLines={1}>{statusLabel}</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.routeName} numberOfLines={1}>{routeName}</Text>
-            <Text style={styles.dateText}>{trip.date} · {trip.time}</Text>
-          </View>
-          <TripStatusBadge status={trip.status} c={c} t={t} isAr={isAr} />
         </View>
 
         <View style={styles.route}>
-          <View style={styles.station}>
-            <View style={[styles.dot, { backgroundColor: c.ink }]} />
-            <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
+          <View style={styles.stationLine}>
+            <View style={[styles.dot, { backgroundColor: C_INK }]} />
+            <View style={styles.line} />
+            <View style={[styles.dot, styles.dotOutline]} />
           </View>
-          <View style={styles.line} />
-          <View style={styles.station}>
-            <View style={[styles.dot, { backgroundColor: c.accentMint }]} />
-            <Text style={styles.stationText} numberOfLines={1}>{to}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
+            <View style={{ height: 10 }} />
+            <Text style={[styles.stationText, { color: C_INK_SOFT }]} numberOfLines={1}>{to}</Text>
           </View>
         </View>
 
         <View style={styles.bottom}>
           <View style={styles.typeBadge}>
-            <TripTypeIcon size={10} color={c.inkSoft} />
+            <TripTypeIcon size={10} color={C_INK_SOFT} />
             <Text style={styles.typeBadgeText}>{t(`trip_type_${trip.type}` as any)}</Text>
           </View>
           <Text style={styles.price}>{trip.price} {t('egp')}</Text>
         </View>
-      </GlassView>
+      </View>
     </TouchableOpacity>
   );
 }
 
-function TripStatusBadge({ status, c, t, isAr }: {
-  status: string;
-  c: ThemeColors;
-  t: (key: any) => string;
-  isAr: boolean;
-}) {
-  if (isActiveTripStatus(status)) {
-    return (
-      <View style={[badgeStyles.badge, { backgroundColor: '#DCFCE7', borderColor: '#86EFAC', borderWidth: 1 }]}>
-        <View style={[badgeStyles.dot, { backgroundColor: '#55c49a' }]} />
-        <Text style={[badgeStyles.text, { color: '#2d9e72' }]}>{t('trip_status_active')}</Text>
-      </View>
-    );
-  }
-  if (isPendingTripStatus(status)) {
-    return (
-      <View style={[badgeStyles.badge, { backgroundColor: '#FEF3C7', borderColor: '#FCD34D', borderWidth: 1 }]}>
-        <View style={[badgeStyles.dot, { backgroundColor: '#f59e0b' }]} />
-        <Text style={[badgeStyles.text, { color: '#b97b10' }]}>{t('trip_status_pending')}</Text>
-      </View>
-    );
-  }
-  return (
-    <View style={[badgeStyles.badge, { backgroundColor: c.mist }]}>
-      <View style={[badgeStyles.dot, { backgroundColor: c.silver }]} />
-      <Text style={[badgeStyles.text, { color: c.inkSoft }]}>{shuttleStatusLabel(status, isAr ? 'ar' : 'en')}</Text>
-    </View>
-  );
-}
-
-const badgeStyles = StyleSheet.create({
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99 },
-  dot:   { width: 6, height: 6, borderRadius: 3 },
-  text:  { fontSize: 11, fontWeight: Typography.weight.semibold },
-});
-
-function makeStyles(c: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
-    // GlassView (same primitive the Driver app's trips.tsx card uses) now owns
-    // the background/border — this only needs inner layout.
     card: {
-      padding: Spacing.lg,
-      overflow: 'hidden',
-      gap: Spacing.md,
+      borderRadius: 24, overflow: 'hidden', flexDirection: 'row',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4,
     },
-    // 4px left-edge accent stripe (mirrors Driver's tripCardAccent) instead of
-    // the old soft corner blob — a clearer status/route-color indicator.
-    accent: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 4, borderRadius: 2 },
-    top: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-    iconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    routeName: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: c.ink },
-    dateText: { fontSize: 11.5, color: c.inkSoft, marginTop: 1, fontFamily: 'Inter_600SemiBold' },
-    route: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-    station: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    dot: { width: 8, height: 8, borderRadius: 4 },
-    stationText: { fontSize: Typography.size.xs, fontFamily: 'Inter_600SemiBold', color: c.ink },
-    line: { flex: 1, height: 1, backgroundColor: c.silver, opacity: 0.7 },
+    leftPanel: { width: 92, flexShrink: 0, backgroundColor: C_PANEL, padding: 14, paddingVertical: 16 },
+    typeIconBox: { width: 34, height: 34, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+    cap: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: C_CAP },
+    dateVal: { fontSize: 12.5, fontWeight: '800', color: '#fff', marginTop: 1 },
+
+    rightPanel: { flex: 1, backgroundColor: '#fff', padding: 16, paddingVertical: 14, gap: 10 },
+    titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
+    routeName: { flex: 1, fontSize: 14.5, fontWeight: '800', color: C_INK, letterSpacing: -0.2 },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 0 },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    statusText: { fontSize: 10.5, fontWeight: '700', color: C_INK_SOFT },
+
+    route: { flexDirection: 'row', alignItems: 'stretch', gap: 8 },
+    stationLine: { alignItems: 'center', width: 8, paddingTop: 3 },
+    dot: { width: 7, height: 7, borderRadius: 3.5 },
+    dotOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#C7CBCF' },
+    line: { width: 2, flex: 1, minHeight: 14, backgroundColor: '#EEF0F1', marginVertical: 2 },
+    stationText: { fontSize: 12, fontWeight: '700', color: C_INK },
+
     bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    typeBadge: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 3, backgroundColor: 'rgba(0,0,0,0.06)' },
-    typeBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: c.inkSoft },
-    price: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: c.ink },
+    typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: C_MIST },
+    typeBadgeText: { fontSize: 10, fontWeight: '700', color: C_INK_SOFT },
+    price: { fontSize: 14.5, fontWeight: '800', color: C_INK },
   });
 }
