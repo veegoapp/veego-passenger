@@ -6,71 +6,70 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ArrowLeft, ArrowRight, Check, Tag, XCircle, Clock, Inbox } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import { ThemeColors } from '@/constants/colors';
 import { usePromos } from '@/src/hooks/shared/usePromos';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
-import { Shadows } from '@/constants/shadows';
-import { GlassView } from '@/components/ui/GlassView';
 
-function makeStyles(c: ThemeColors) {
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_BG = '#EEF0F2';
+const C_PANEL = '#14151A';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_TEAL = '#0E9F8E';
+const C_MIST = '#F0F2F3';
+
+function makeStyles() {
   return StyleSheet.create({
     header: {
       flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md,
     },
     backBtn: {
-      width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
+      width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR,
     },
     headerText: { flex: 1 },
-    headerTitle: {
-      fontSize: 20, color: c.ink, letterSpacing: -0.5, fontFamily: 'Inter_700Bold',
-    },
-    headerSub: { fontSize: 12.5, color: c.inkSoft, marginTop: 1 },
+    headerTitle: { fontSize: 19, color: C_INK, letterSpacing: -0.4, fontWeight: '800' },
+    headerSub: { fontSize: 12.5, color: C_INK_SOFT, marginTop: 1, fontWeight: '600' },
 
     inputSection: { paddingHorizontal: 20, marginBottom: Spacing.xl },
     inputRow: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
     },
     inputWrap: {
-      flex: 1, height: 52,
+      flex: 1, height: 52, backgroundColor: '#fff', borderRadius: 18, borderWidth: 1.5, borderColor: C_HAIR,
       flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, gap: 10,
     },
-    inputField: { flex: 1, fontSize: 14.5, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.5 },
+    inputField: { flex: 1, fontSize: 14.5, fontWeight: '600', letterSpacing: 0.5 },
     applyBtn: {
       height: 52, paddingHorizontal: 22, borderRadius: 18,
       alignItems: 'center', justifyContent: 'center',
     },
-    applyBtnText: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: '#ffffff' },
+    applyBtnText: { fontSize: 13.5, fontWeight: '700', color: '#ffffff' },
 
     sectionLabel: {
-      fontSize: 11, fontWeight: Typography.weight.bold, color: c.inkSoft,
+      fontSize: 11, fontWeight: '700', color: C_CAP,
       textTransform: 'uppercase', letterSpacing: 1.2,
       paddingHorizontal: 20, marginBottom: Spacing.md,
     },
     promoList: { paddingHorizontal: 20, gap: Spacing.md },
-    // Shadow lives here (no overflow:'hidden' — that would clip it on iOS);
-    // promoGrad (below) has its own overflow:'hidden' + matching borderRadius
-    // to clip the gradient content to the rounded corners instead.
     promoCard: {
-      borderRadius: 22,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1, shadowRadius: 12, elevation: Shadows.medium.elevation,
+      borderRadius: 22, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4,
     },
-    promoGrad: { padding: 18, borderRadius: 22, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 14 },
+    promoInner: { padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
     promoIconWrap: {
       width: 52, height: 52, borderRadius: 18,
       backgroundColor: 'rgba(255,255,255,0.2)',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
     promoMeta: { flex: 1 },
-    promoTitle: { fontSize: Typography.size.sm, fontFamily: 'Inter_700Bold', color: '#ffffff', letterSpacing: -0.2 },
+    promoTitle: { fontSize: 14, fontWeight: '700', color: '#ffffff', letterSpacing: -0.2 },
     promoSub: { fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
     promoExpiry: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: 6 },
     promoExpiryText: { fontSize: 10.5, color: 'rgba(255,255,255,0.6)' },
@@ -79,11 +78,11 @@ function makeStyles(c: ThemeColors) {
       fontSize: 20, fontWeight: '800', color: '#ffffff', letterSpacing: -0.5,
     },
     promoCodeBadge: {
-      backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: Radius.sm,
+      backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8,
       paddingHorizontal: 10, paddingVertical: Spacing.xs,
     },
     promoCodeText: {
-      fontSize: 11, fontFamily: 'Inter_700Bold', color: '#ffffff', letterSpacing: 1,
+      fontSize: 11, fontWeight: '700', color: '#ffffff', letterSpacing: 1,
     },
 
     successWrap: {
@@ -91,24 +90,24 @@ function makeStyles(c: ThemeColors) {
     },
     successCircle: {
       width: 90, height: 90, borderRadius: 45,
-      backgroundColor: '#55c49a', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: C_TEAL, alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: Typography.size.xl, color: c.ink, letterSpacing: -0.4, textAlign: 'center', fontFamily: 'Inter_700Bold' },
-    successSub: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: 20, color: C_INK, letterSpacing: -0.3, textAlign: 'center', fontWeight: '800' },
+    successSub: { fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
     successBtn: {
-      marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 18,
-      backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center',
+      marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 999,
+      backgroundColor: C_PANEL, alignItems: 'center', justifyContent: 'center',
     },
-    successBtnText: { fontSize: 15, color: c.isDark ? c.background : c.white, fontFamily: 'Inter_700Bold' },
+    successBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
 
     emptyState: {
       alignItems: 'center', gap: Spacing.md, paddingVertical: 40, paddingHorizontal: Spacing.xxl,
     },
     emptyIcon: {
-      width: 64, height: 64, borderRadius: 20, backgroundColor: c.mist,
+      width: 64, height: 64, borderRadius: 20, backgroundColor: C_MIST,
       alignItems: 'center', justifyContent: 'center',
     },
-    emptyText: { fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 21 },
+    emptyText: { fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
   });
 }
 
@@ -133,8 +132,8 @@ function normalizeDiscount(discount: string, egpLabel: string): string {
 export default function PromoScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { colors: c, t, language, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const { t, language, isRTL } = useTheme();
+  const styles = useMemo(() => makeStyles(), []);
   const isAr = language === 'ar';
 
   // Deep-link pre-fill: /promo?code=XXXX
@@ -192,12 +191,10 @@ export default function PromoScreen() {
   };
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: C_BG }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
-          <GlassView style={styles.backBtn} borderRadius={20}>
-            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
-          </GlassView>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+          {isRTL ? <ArrowRight size={18} color={C_INK} /> : <ArrowLeft size={18} color={C_INK} />}
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('promo_title')}</Text>
@@ -212,7 +209,7 @@ export default function PromoScreen() {
           </Animated.View>
           <Text style={styles.successTitle}>{t('promo_code_applied')}</Text>
           <Text style={styles.successSub}>
-            <Text style={{ fontFamily: 'Inter_700Bold', color: '#55c49a' }}>{appliedCode}</Text>
+            <Text style={{ fontWeight: '800', color: C_TEAL }}>{appliedCode}</Text>
             {'\n'}{t('promo_code_applied_msg')}
           </Text>
           <TouchableOpacity style={styles.successBtn} onPress={() => router.back()} activeOpacity={0.9}>
@@ -223,12 +220,12 @@ export default function PromoScreen() {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           <View style={styles.inputSection}>
             <View style={styles.inputRow}>
-              <GlassView style={styles.inputWrap} borderRadius={18}>
-                <Tag size={16} color={c.inkSoft} />
+              <View style={styles.inputWrap}>
+                <Tag size={16} color={C_INK_SOFT} />
                 <TextInput
-                  style={[styles.inputField, { color: c.ink }]}
+                  style={[styles.inputField, { color: C_INK }]}
                   placeholder={t('promo_input_placeholder')}
-                  placeholderTextColor={c.inkSoft}
+                  placeholderTextColor={C_CAP}
                   value={code}
                   onChangeText={setCode}
                   autoCapitalize="characters"
@@ -238,19 +235,19 @@ export default function PromoScreen() {
                 />
                 {code.length > 0 && (
                   <TouchableOpacity onPress={() => setCode('')}>
-                    <XCircle size={16} color={c.silver} />
+                    <XCircle size={16} color={C_CAP} />
                   </TouchableOpacity>
                 )}
-              </GlassView>
+              </View>
               <TouchableOpacity
-                style={[styles.applyBtn, { backgroundColor: code.trim() && !validating ? c.ink : c.mist }]}
+                style={[styles.applyBtn, { backgroundColor: code.trim() && !validating ? C_PANEL : C_MIST }]}
                 onPress={() => handleApply(code)}
                 activeOpacity={0.85}
                 disabled={validating}
               >
                 {validating
                   ? <AppLoader size={24} />
-                  : <Text style={[styles.applyBtnText, { color: code.trim() ? (c.isDark ? c.background : '#ffffff') : c.inkSoft }]}>
+                  : <Text style={[styles.applyBtnText, { color: code.trim() ? '#ffffff' : C_INK_SOFT }]}>
                       {t('promo_apply')}
                     </Text>
                 }
@@ -263,7 +260,7 @@ export default function PromoScreen() {
             {promos.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIcon}>
-                  <Inbox size={28} color={c.inkSoft} />
+                  <Inbox size={28} color={C_INK_SOFT} />
                 </View>
                 <Text style={styles.emptyText}>{t('promo_no_featured')}</Text>
               </View>
@@ -275,12 +272,7 @@ export default function PromoScreen() {
                   onPress={() => handleCardPress(promo.code)}
                   activeOpacity={0.88}
                 >
-                  <LinearGradient
-                    colors={[promo.color, `${promo.color}cc`]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.promoGrad}
-                  >
+                  <View style={[styles.promoInner, { backgroundColor: promo.color }]}>
                     <View style={styles.promoIconWrap}>
                       {React.createElement(promo.icon as React.ComponentType<{size?:number;color?:string}>, { size: 24, color: '#ffffff' })}
                     </View>
@@ -300,13 +292,13 @@ export default function PromoScreen() {
                         <Text style={styles.promoCodeText}>{promo.code}</Text>
                       </View>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               ))
             )}
           </View>
         </ScrollView>
       )}
-    </LinearGradient>
+    </View>
   );
 }
