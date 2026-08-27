@@ -1,42 +1,45 @@
 import { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteCard } from '@/components/shuttle/RouteCard';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ThemeColors } from '@/constants/colors';
 import { useRoutes } from '@/src/hooks/shuttle/useRoutes';
 import { useTabBar } from '@/context/TabBarContext';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { GlassView } from '@/components/ui/GlassView';
 
-function makeStyles(c: ThemeColors) {
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_BG = '#EEF0F2';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_MIST = '#F0F2F3';
+
+function makeStyles() {
   return StyleSheet.create({
-    header: {
-      paddingHorizontal: 20, paddingBottom: Spacing.md,
-    },
+    header: { paddingHorizontal: 20, paddingBottom: Spacing.md },
     headerTopRow: {
-      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md
+      flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: Spacing.md,
     },
-    headerTitle: { fontSize: 26, color: c.ink, letterSpacing: -0.8, fontFamily: 'Inter_700Bold' },
-    headerSub: { fontSize: Typography.size.xs, color: c.inkSoft, marginTop: 2 },
-    iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    headerTitle: { fontSize: 24, color: C_INK, letterSpacing: -0.6, fontWeight: '800' },
+    headerSub: { fontSize: 12, color: C_INK_SOFT, marginTop: 2, fontWeight: '600' },
+    iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR },
 
     searchContainer: {
       flexDirection: 'row', alignItems: 'center', height: 46, borderRadius: 23,
-      paddingHorizontal: Spacing.lg, marginBottom: 0, borderWidth: 1
+      paddingHorizontal: Spacing.lg, marginBottom: 0, borderWidth: 1.5,
+      backgroundColor: '#fff', borderColor: C_HAIR,
     },
-    searchInput: { flex: 1, fontSize: Typography.size.sm, fontWeight: Typography.weight.medium, paddingVertical: 0, marginStart: 8 },
+    searchInput: { flex: 1, fontSize: 13.5, fontWeight: '600', paddingVertical: 0, marginStart: 8, color: C_INK },
     list: { paddingHorizontal: 20, paddingTop: Spacing.lg, gap: Spacing.md },
     loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl, gap: Spacing.md, paddingTop: 40 },
-    emptyIcon: { width: 72, height: 72, borderRadius: 28, backgroundColor: c.mist, alignItems: 'center', justifyContent: 'center' },
-    emptyTitle: { fontSize: Typography.size.md, fontFamily: 'Inter_600SemiBold', color: c.ink },
-    emptySub: { fontSize: 13, color: c.inkSoft, textAlign: 'center', lineHeight: 20 },
+    emptyIcon: { width: 72, height: 72, borderRadius: 28, backgroundColor: C_MIST, alignItems: 'center', justifyContent: 'center' },
+    emptyTitle: { fontSize: 15, fontWeight: '700', color: C_INK },
+    emptySub: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center', lineHeight: 20 },
   });
 }
 
@@ -46,9 +49,9 @@ export default function RoutesScreen() {
   const { tabBarHeight } = useTabBar();
   const [searchQuery, setSearchQuery] = useState('');
   const { openRoute } = useBooking();
-  const { colors: c, t, language, isRTL } = useTheme();
+  const { t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const styles = useMemo(() => makeStyles(), []);
 
   const { routes, loading, error, refresh } = useRoutes();
 
@@ -72,27 +75,24 @@ export default function RoutesScreen() {
   }, [routes, searchQuery, isAr]);
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: C_BG }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <View style={styles.headerTopRow}>
           <View>
             <Text style={styles.headerTitle}>{t('routes_title')}</Text>
             <Text style={styles.headerSub}>{routes.length} {t('lines_available')}</Text>
           </View>
-          <TouchableOpacity onPress={refresh} activeOpacity={0.8}>
-            <GlassView style={styles.iconBtn} borderRadius={20}>
-              <RefreshCw size={16} color={c.ink} />
-            </GlassView>
+          <TouchableOpacity style={styles.iconBtn} onPress={refresh} activeOpacity={0.8}>
+            <RefreshCw size={16} color={C_INK} />
           </TouchableOpacity>
         </View>
 
-        {/* 🔍 بار البحث الذكي والجديد كلياً */}
-        <View style={[styles.searchContainer, { backgroundColor: c.white, borderColor: c.border }]}>
-          <Search size={18} color={c.inkSoft} />
+        <View style={styles.searchContainer}>
+          <Search size={18} color={C_INK_SOFT} />
           <TextInput
-            style={[styles.searchInput, { color: c.ink }]}
+            style={styles.searchInput}
             placeholder={t('search_route_station')}
-            placeholderTextColor={c.inkSoft}
+            placeholderTextColor={C_CAP}
             value={searchQuery}
             onChangeText={setSearchQuery}
             textAlign={isRTL ? 'right' : 'left'}
@@ -100,7 +100,7 @@ export default function RoutesScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <X size={16} color={c.inkSoft} />
+              <X size={16} color={C_INK_SOFT} />
             </TouchableOpacity>
           )}
         </View>
@@ -113,12 +113,12 @@ export default function RoutesScreen() {
       ) : error || filtered.length === 0 ? (
         <View style={styles.emptyWrap}>
           <View style={styles.emptyIcon}>
-            <Bus size={30} color={c.silver} />
+            <Bus size={30} color={C_CAP} />
           </View>
           <Text style={styles.emptyTitle}>{error ? t('error') : t('no_routes')}</Text>
           <Text style={styles.emptySub}>{error ?? (searchQuery ? t('search_no_match') : t('routes_empty_msg'))}</Text>
           <TouchableOpacity onPress={refresh} activeOpacity={0.85}>
-            <Text style={{ color: c.ink, fontFamily: 'Inter_600SemiBold', fontSize: Typography.size.sm }}>{t('retry')}</Text>
+            <Text style={{ color: C_INK, fontWeight: '700', fontSize: 13.5 }}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -128,6 +128,6 @@ export default function RoutesScreen() {
           ))}
         </ScrollView>
       )}
-    </LinearGradient>
+    </View>
   );
 }
