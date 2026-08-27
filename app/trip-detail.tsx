@@ -7,7 +7,7 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Users, Car, HelpCircle, Timer, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Car, HelpCircle, Timer, CheckCircle2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -404,6 +404,47 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     },
     priceLabel: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.inkSoft },
     priceValue: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4 },
+
+    // ── Shuttle live-tracking card — C · Split Panel ────────────────────────
+    splitCard: {
+      marginHorizontal: 20, borderRadius: 28, overflow: 'hidden', flexDirection: 'row',
+      marginBottom: Spacing.lg,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.14, shadowRadius: 20, elevation: 6,
+    },
+    leftPanel: { width: 116, flexShrink: 0, backgroundColor: '#14151A', padding: 16, paddingVertical: 20 },
+    panelCap: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: '#9AA0A6' },
+    panelStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+    panelStatusDot: { width: 7, height: 7, borderRadius: 3.5, flexShrink: 0 },
+    panelStatusText: { fontSize: 12.5, fontWeight: '700', color: '#fff', flexShrink: 1 },
+    panelBig: { fontSize: 26, fontWeight: '800', color: '#3DDC97', marginTop: 2, letterSpacing: -0.5 },
+    panelBigUnit: { fontSize: 12, fontWeight: '700', color: '#9AA0A6' },
+    miniRouteWrap: { marginTop: 16, alignItems: 'center', flex: 1, minHeight: 56 },
+    miniDotO: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: '#6B7178' },
+    miniLine: { width: 2, flex: 1, backgroundColor: '#3A3C42', marginVertical: 3, minHeight: 18 },
+    miniDotSq: { width: 11, height: 11, borderRadius: 3, backgroundColor: '#3DDC97' },
+    panelSeat: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 2 },
+
+    rightPanel: { flex: 1, backgroundColor: '#fff', padding: 18, paddingVertical: 20 },
+    rTitle: { fontSize: 16, fontWeight: '800', color: '#14151A', letterSpacing: -0.2 },
+    rSub: { fontSize: 12.5, fontWeight: '600', color: '#9AA0A6', marginTop: 2 },
+    rNextStop: { fontSize: 12, fontWeight: '700', color: '#0E9F8E', marginTop: 6 },
+    rDivider: { height: 1, backgroundColor: '#EEF0F1', marginVertical: 14 },
+    driverRowC: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    driverAvatarC: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#F0F2F3', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    driverInitialsC: { fontWeight: '800', fontSize: 15, color: '#14151A' },
+    driverNameC: { fontSize: 14.5, fontWeight: '800', color: '#14151A' },
+    driverCapC: { fontSize: 11.5, fontWeight: '600', color: '#9AA0A6', marginTop: 2 },
+    statsRowC: { flexDirection: 'row', gap: 8 },
+    statBoxC: { flex: 1, backgroundColor: '#F7F8F8', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
+    statValC: { fontSize: 13, fontWeight: '800', color: '#14151A' },
+    statLabC: { fontSize: 9.5, fontWeight: '700', color: '#9AA0A6', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 },
+    buttonsRowC: { flexDirection: 'row', gap: 10, marginTop: 14 },
+    pillSOS: { flex: 1, height: 44, borderRadius: 999, borderWidth: 1.5, borderColor: '#F3C6C2', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    pillSOSText: { fontSize: 12.5, fontWeight: '700', color: '#D92D20' },
+    pillGhost: { flex: 1, height: 44, borderRadius: 999, borderWidth: 1.5, borderColor: '#E2E5E8', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    pillGhostText: { fontSize: 12.5, fontWeight: '700' },
+    pillRate: { marginTop: 14, height: 46, borderRadius: 999, backgroundColor: '#0E9F8E', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    pillRateText: { fontSize: 14, fontWeight: '800', color: '#fff' },
   });
 }
 
@@ -1150,9 +1191,12 @@ export default function TripDetailScreen() {
   // gave 'active' and 'boarding' the same color; the shared one distinguishes
   // them). Consolidated onto the shared implementation.
   const resolvedStatusColor = shuttleStatusColor({ status: effectiveStatus }) ?? c.silver;
+  const showSOS = boarded || effectiveStatus === 'active';
+  const showCancel = !['completed', 'cancelled', 'boarding', 'active'].includes(effectiveStatus);
+  const showRate = effectiveStatus === 'completed' && !shuttleAlreadyRated && !!trip.driverUserId;
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#EBEDEE' }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
           {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
@@ -1164,63 +1208,140 @@ export default function TripDetailScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
-        {/* Trip info card */}
-        <LinearGradient
-          colors={c.cardGrad}
-          style={styles.card}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.sectionLabel}>{t('route_label')}</Text>
-          <Text style={styles.routeTitle}>{isAr ? (trip.routeNameAr ?? trip.routeName) : trip.routeName}</Text>
-          <Text style={styles.routeSub}>
-            {isAr ? (trip.fromAr ?? trip.from) : trip.from}
-            {isRTL ? ' ← ' : ' → '}
-            {isAr ? (trip.toAr ?? trip.to) : trip.to}
-          </Text>
+        {/* Trip summary — C · Split Panel */}
+        <View style={[styles.splitCard, { marginTop: Spacing.lg }]}>
+          <View style={styles.leftPanel}>
+            <View style={styles.panelStatusRow}>
+              <View style={[styles.panelStatusDot, { backgroundColor: resolvedStatusColor }]} />
+              <Text style={styles.panelStatusText} numberOfLines={2}>
+                {shuttleStatusLabel(effectiveStatus, isAr ? 'ar' : 'en')}
+              </Text>
+            </View>
+            {liveStatus !== null && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#3DDC97' }} />
+                <Text style={{ fontSize: 9.5, color: '#3DDC97', fontWeight: '700' }}>{t('live_badge')}</Text>
+              </View>
+            )}
 
-          <View style={styles.statusRow}>
-            <View style={[styles.statusDot, { backgroundColor: resolvedStatusColor }]} />
-            <Text style={[styles.statusText, { color: resolvedStatusColor }]}>
-              {shuttleStatusLabel(effectiveStatus, isAr ? 'ar' : 'en')}
+            {boarded ? (
+              <View style={{ marginTop: 14 }}>
+                <Text style={styles.panelCap}>{t('on_board_label')}</Text>
+                <Text style={styles.panelBig}>✓</Text>
+              </View>
+            ) : etaMinutes != null && showMap ? (
+              <View style={{ marginTop: 14 }}>
+                <Text style={styles.panelCap}>{t('eta_to_station_label')}</Text>
+                <Text style={styles.panelBig}>{etaMinutes}<Text style={styles.panelBigUnit}> {t('min')}</Text></Text>
+              </View>
+            ) : (
+              <View style={{ marginTop: 14 }}>
+                <Text style={styles.panelCap}>{t('time_label')}</Text>
+                <Text style={styles.panelBig}>{trip.time}</Text>
+              </View>
+            )}
+
+            <View style={styles.miniRouteWrap}>
+              <View style={styles.miniDotO} />
+              <View style={[styles.miniLine, boarded && { backgroundColor: '#3DDC97' }]} />
+              <View style={styles.miniDotSq} />
+              <View style={styles.miniLine} />
+              <View style={styles.miniDotO} />
+            </View>
+
+            <View>
+              <Text style={styles.panelCap}>{t('seat_label')}</Text>
+              <Text style={styles.panelSeat}>{trip.seat}</Text>
+            </View>
+          </View>
+
+          <View style={styles.rightPanel}>
+            <Text style={styles.rTitle} numberOfLines={1}>{isAr ? (trip.routeNameAr ?? trip.routeName) : trip.routeName}</Text>
+            <Text style={styles.rSub} numberOfLines={1}>
+              {isAr ? (trip.fromAr ?? trip.from) : trip.from}
+              {isRTL ? ' ← ' : ' → '}
+              {isAr ? (trip.toAr ?? trip.to) : trip.to}
+              {!!trip.direction && ` · ${trip.direction === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}`}
             </Text>
-            {!!trip.direction && (
-              <Text style={{ fontSize: 13, color: c.inkSoft, marginStart: 6 }}>
-                · {trip.direction === 'outbound' ? t('shuttle_direction_outbound') : t('shuttle_direction_return')}
+            {showMap && nextStation != null && (
+              <Text style={styles.rNextStop} numberOfLines={1}>
+                {(boarded ? t('next_station_label') : t('boarding_station_label'))} · {nextStation.name}
               </Text>
             )}
-            {liveStatus !== null && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginStart: 6 }}>
-                <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#55c49a' }} />
-                <Text style={{ fontSize: 10, color: '#55c49a', fontWeight: Typography.weight.semibold }}>
-                  {t('live_badge')}
-                </Text>
+            {(trip.boardingScheduledTime || trip.alightingScheduledTime) && (
+              <Text style={styles.rNextStop} numberOfLines={1}>
+                {trip.boardingScheduledTime ? `${t('boarding_time_label')} ${formatCairoTime(trip.boardingScheduledTime)}` : ''}
+                {trip.boardingScheduledTime && trip.alightingScheduledTime ? '  ·  ' : ''}
+                {trip.alightingScheduledTime ? `${t('alighting_time_label')} ${formatCairoTime(trip.alightingScheduledTime)}` : ''}
+              </Text>
+            )}
+
+            <View style={styles.rDivider} />
+
+            {!!trip.driverName && (
+              <>
+                <View style={styles.driverRowC}>
+                  <View style={styles.driverAvatarC}>
+                    <Text style={styles.driverInitialsC}>{trip.driverName.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.driverNameC} numberOfLines={1}>{trip.driverName}</Text>
+                    <Text style={styles.driverCapC}>{t('driver_label')}</Text>
+                  </View>
+                </View>
+                <View style={styles.rDivider} />
+              </>
+            )}
+
+            <View style={styles.statsRowC}>
+              {trip.passengerCount != null && (
+                <View style={styles.statBoxC}>
+                  <Text style={styles.statValC}>{trip.passengerCount}</Text>
+                  <Text style={styles.statLabC}>{t('current_passengers_label')}</Text>
+                </View>
+              )}
+              <View style={styles.statBoxC}>
+                <Text style={styles.statValC}>{trip.price} {t('egp')}</Text>
+                <Text style={styles.statLabC}>{t('price_label')}</Text>
+              </View>
+              <View style={styles.statBoxC}>
+                <Text style={styles.statValC}>{trip.date}</Text>
+                <Text style={styles.statLabC}>{t('date_label')}</Text>
+              </View>
+            </View>
+
+            {(showSOS || showCancel) && (
+              <View style={styles.buttonsRowC}>
+                {showSOS && (
+                  <TouchableOpacity style={styles.pillSOS} onPress={handleSOS} activeOpacity={0.85}>
+                    <ShieldAlert size={14} color="#D92D20" />
+                    <Text style={styles.pillSOSText}>{t('sos_label')}</Text>
+                  </TouchableOpacity>
+                )}
+                {showCancel && (
+                  <TouchableOpacity
+                    style={[styles.pillGhost, { opacity: cancellingId ? 0.5 : 1 }]}
+                    disabled={!!cancellingId}
+                    onPress={handleCancelPress}
+                    activeOpacity={0.85}
+                  >
+                    <X size={14} color={c.badge} strokeWidth={2.5} />
+                    <Text style={[styles.pillGhostText, { color: c.badge }]}>
+                      {cancellingId ? `${t('cancel_trip')}…` : t('cancel_trip')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
-          </View>
 
-          <View style={styles.gridRow}>
-            {[
-              { label: t('date_label'), value: trip.date },
-              { label: t('time_label'), value: trip.time },
-              { label: t('seat_label'), value: trip.seat },
-              { label: t('price_label'), value: `${trip.price} ${t('egp')}` },
-              // Only shown when this booking has its own boarding/alighting
-              // station — falls back to nothing (not the trip-wide `time`
-              // above) rather than imply a time that isn't this passenger's.
-              ...(trip.boardingScheduledTime
-                ? [{ label: t('boarding_time_label'), value: formatCairoTime(trip.boardingScheduledTime) }]
-                : []),
-              ...(trip.alightingScheduledTime
-                ? [{ label: t('alighting_time_label'), value: formatCairoTime(trip.alightingScheduledTime) }]
-                : []),
-            ].map((item) => (
-              <View key={item.label} style={styles.gridItem}>
-                <Text style={styles.gridLabel}>{item.label}</Text>
-                <Text style={styles.gridValue}>{item.value}</Text>
-              </View>
-            ))}
+            {showRate && (
+              <TouchableOpacity style={styles.pillRate} onPress={() => setShuttleRatingVisible(true)} activeOpacity={0.85}>
+                <Star size={16} color="#ffffff" fill="#ffffff" />
+                <Text style={styles.pillRateText}>{t('rate_driver')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Live tracking map */}
         {showMap && (
@@ -1248,14 +1369,6 @@ export default function TripDetailScreen() {
               onTargetStationChange={setNextStation}
             />
 
-            {/* SOS floating button — only once the trip is underway */}
-            {(boarded || effectiveStatus === 'active') && (
-              <TouchableOpacity style={styles.sosBtn} onPress={handleSOS} activeOpacity={0.85}>
-                <ShieldAlert size={14} color="#fff" />
-                <Text style={styles.sosBtnText}>{t('sos_label')}</Text>
-              </TouchableOpacity>
-            )}
-
             {/* Realtime connection indicator */}
             <ConnectionBanner style={{ position: 'absolute', bottom: 12, alignSelf: 'center' }} />
 
@@ -1270,19 +1383,6 @@ export default function TripDetailScreen() {
           </View>
         )}
 
-        {/* Next stop card — shown whenever there is a target station ahead */}
-        {showMap && nextStation != null && (
-          <View style={styles.nextStopCard}>
-            <MapPin size={14} color={c.ink} />
-            <Text style={styles.nextStopLabel}>
-              {boarded ? t('next_station_label') : t('boarding_station_label')}
-            </Text>
-            <Text style={styles.nextStopName} numberOfLines={1}>
-              {nextStation.name}
-            </Text>
-          </View>
-        )}
-
         {/* Boarded confirmation banner */}
         {boarded && (
           <View style={styles.boardedBanner}>
@@ -1292,56 +1392,6 @@ export default function TripDetailScreen() {
               <Text style={styles.boardedSub}>{t('on_board_sub')}</Text>
             </View>
           </View>
-        )}
-
-        {/* ETA card — shown when driver location known + passenger not yet boarded */}
-        {showMap && !boarded && etaMinutes != null && driverLocation && (
-          <View style={styles.etaCard}>
-            <View style={styles.etaRow}>
-              <Clock size={14} color={c.ink} />
-              <Text style={styles.etaLabel}>{t('eta_to_station_label')}</Text>
-              <Text style={styles.etaValue}>~{etaMinutes} {t('min')}</Text>
-            </View>
-            {trip.passengerCount != null && (
-              <View style={styles.etaDivider} />
-            )}
-            {trip.passengerCount != null && (
-              <View style={styles.etaRow}>
-                <Users size={14} color="#64748b" />
-                <Text style={styles.etaLabel}>{t('current_passengers_label')}</Text>
-                <Text style={[styles.etaValue, { color: '#64748b' }]}>{trip.passengerCount}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Rate driver — only for completed trips with known driver */}
-        {effectiveStatus === 'completed' && !shuttleAlreadyRated && !!trip.driverUserId && (
-          <TouchableOpacity
-            style={styles.rateBtn}
-            onPress={() => setShuttleRatingVisible(true)}
-            activeOpacity={0.85}
-          >
-            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.rateBtnGradient}>
-              <Star size={16} color="#ffffff" fill="#ffffff" />
-              <Text style={styles.rateBtnText}>{t('rate_driver')}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
-        {/* Cancel booking — only for cancellable statuses */}
-        {!['completed', 'cancelled', 'boarding', 'active'].includes(effectiveStatus) && (
-          <TouchableOpacity
-            style={[styles.cancelBtn, { opacity: cancellingId ? 0.5 : 1 }]}
-            disabled={!!cancellingId}
-            onPress={handleCancelPress}
-            activeOpacity={0.8}
-          >
-            <X size={14} color={c.badge} strokeWidth={2.5} />
-            <Text style={styles.cancelBtnText}>
-              {cancellingId ? `${t('cancel_trip')}…` : t('cancel_trip')}
-            </Text>
-          </TouchableOpacity>
         )}
 
         {/* Share invite when trip is under minimum passenger count */}
@@ -1402,6 +1452,6 @@ export default function TripDetailScreen() {
         bookingId={trip?.bookingId ?? id}
       />
 
-    </LinearGradient>
+    </View>
   );
 }
