@@ -1191,7 +1191,11 @@ export default function TripDetailScreen() {
   // gave 'active' and 'boarding' the same color; the shared one distinguishes
   // them). Consolidated onto the shared implementation.
   const resolvedStatusColor = shuttleStatusColor({ status: effectiveStatus }) ?? c.silver;
-  const showSOS = boarded || effectiveStatus === 'active';
+  // Mirrors the old floating map SOS button's effective visibility: that button
+  // lived inside the map card, so it vanished automatically once showMap went
+  // false (trip completed/cancelled) even though `boarded` itself never resets.
+  // Gating on showMap here keeps that same behavior now that SOS lives in the card.
+  const showSOS = showMap && (boarded || effectiveStatus === 'active');
   const showCancel = !['completed', 'cancelled', 'boarding', 'active'].includes(effectiveStatus);
   const showRate = effectiveStatus === 'completed' && !shuttleAlreadyRated && !!trip.driverUserId;
 
