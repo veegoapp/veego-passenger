@@ -3,14 +3,11 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Animated, Keyboard,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Check } from 'lucide-react-native';
+import { Check, Star } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
-import { GlassView } from '@/components/ui/GlassView';
-import { Stars } from '@/components/ui/Stars';
 
 interface RatingSheetProps {
   visible: boolean;
@@ -21,8 +18,19 @@ interface RatingSheetProps {
   onSkip: () => void;
 }
 
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme
+// (matches TripCompletedSheet's rating step, which this mirrors).
+const C_PANEL = '#14151A';
+const C_SURF = '#FFFFFF';
+const C_INK = '#14151A';
+const C_CAP = '#9AA0A6';
+const C_CAP_ON_DARK = '#8A9096';
+const C_HAIR = '#EEF0F1';
+const C_TEAL = '#0E9F8E';
+const C_STAR = '#F5A623';
+
 export function RatingSheet({ visible, driverName, driverInitials, driverColor, onSubmit, onSkip }: RatingSheetProps) {
-  const { colors: c, t } = useTheme();
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim   = useRef(new Animated.Value(0)).current;
   const checkScale  = useRef(new Animated.Value(0)).current;
@@ -64,87 +72,78 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
 
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] });
 
-  const cardBg    = c.white;
-  const surfaceBg = c.surfaceMuted;
-  const borderCol = c.border;
-
   return (
     <Animated.View
       style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <GlassView strong borderRadius={0} style={[styles.sheetSurface, { paddingBottom: insets.bottom + 32 }]}>
-        <View style={[styles.handle, { backgroundColor: borderCol }]} />
+      <View style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.handle} />
 
         {submitted ? (
-          /* ── Success state — driver-app parity gradient checkmark ── */
+          /* ── Success state ── */
           <View style={styles.successWrap}>
             <Animated.View style={[styles.successCircle, { transform: [{ scale: checkScale }] }]}>
-              <LinearGradient colors={['#2d2d42', '#1e1e28']} style={styles.successCircleGrad}>
-                <Check size={38} color="#ffffff" strokeWidth={2.5} />
-              </LinearGradient>
+              <Check size={34} color={C_TEAL} strokeWidth={2.5} />
             </Animated.View>
-            <Text style={[styles.successTitle, { color: c.ink }]}>{t('thanks_rating')}</Text>
-            <Text style={[styles.successSub, { color: c.inkSoft }]}>{t('ride_confirmed')}</Text>
+            <Text style={styles.successTitle}>{t('thanks_rating')}</Text>
+            <Text style={styles.successSub}>{t('ride_confirmed')}</Text>
           </View>
         ) : (
-          /* ── Rating form ── */
-          <View style={styles.inner}>
-            {/* "Trip completed" label */}
-            <Text style={[styles.completedLabel, { color: c.inkSoft }]}>
-              {t('trip_complete') ?? 'Trip completed'}
-            </Text>
-
-            {/* Driver avatar */}
-            <View style={[styles.avatar, { backgroundColor: driverColor }]}>
-              <Text style={styles.avatarText}>{driverInitials}</Text>
+          <>
+            {/* dark header row */}
+            <View style={styles.header}>
+              <View style={[styles.avatar, { backgroundColor: driverColor }]}>
+                <Text style={styles.avatarText}>{driverInitials}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.headerCap}>{t('trip_complete') ?? 'Trip completed'}</Text>
+                <Text style={styles.headerTitle}>{t('rate_your_ride')}</Text>
+                <Text style={styles.headerSub} numberOfLines={1}>{driverName}</Text>
+              </View>
             </View>
 
-            <Text style={[styles.title, { color: c.ink }]}>{t('rate_your_ride')}</Text>
-            <Text style={[styles.driverName, { color: c.inkSoft }]}>{driverName}</Text>
+            {/* white body */}
+            <View style={styles.body}>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <TouchableOpacity key={n} onPress={() => setStars(n)} hitSlop={6} activeOpacity={0.75}>
+                    <Star size={38} color={n <= stars ? C_STAR : '#D3D6DA'} fill={n <= stars ? C_STAR : 'transparent'} strokeWidth={n <= stars ? 0 : 1.4} />
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            {/* Star rating section */}
-            <View style={[styles.ratingSection, { backgroundColor: surfaceBg, borderColor: borderCol }]}>
-              <Text style={[styles.ratingPrompt, { color: c.ink }]}>
-                {t('rate_ride_with_driver').replace('{driver}', driverName)}
-              </Text>
-              <Stars value={stars} size={34} gap={10} onRate={setStars} />
+              {stars > 0 ? (
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder={t('leave_comment')}
+                  placeholderTextColor={C_CAP}
+                  multiline
+                  maxLength={200}
+                  value={comment}
+                  onChangeText={setComment}
+                  numberOfLines={2}
+                />
+              ) : (
+                <Text style={styles.commentPlaceholder}>{t('leave_comment')}</Text>
+              )}
 
-              {/* Comment input */}
-              <TextInput
-                style={[
-                  styles.commentInput,
-                  { borderColor: borderCol, backgroundColor: cardBg, color: c.ink },
-                ]}
-                placeholder={t('leave_comment')}
-                placeholderTextColor={c.inkSoft}
-                multiline
-                maxLength={200}
-                value={comment}
-                onChangeText={setComment}
-                numberOfLines={2}
-              />
-            </View>
-
-            {/* Submit button — driver-app parity gradient */}
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={stars === 0}
-              activeOpacity={0.88}
-              style={[styles.submitBtnWrap, { opacity: stars > 0 ? 1 : 0.5 }]}
-            >
-              <LinearGradient colors={['#2d2d42', '#1e1e28']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.submitBtn}>
+              <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={stars === 0}
+                activeOpacity={0.88}
+                style={[styles.submitBtn, { opacity: stars > 0 ? 1 : 0.5 }]}
+              >
                 <Text style={styles.submitBtnText}>{t('submit_rating')}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            {/* Skip */}
-            <TouchableOpacity onPress={handleSkip} activeOpacity={0.7} style={styles.skipBtn}>
-              <Text style={[styles.skipText, { color: c.inkSoft }]}>{t('skip')}</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity onPress={handleSkip} activeOpacity={0.7} style={styles.skipBtn}>
+                <Text style={styles.skipText}>{t('skip')}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
-      </GlassView>
+      </View>
     </Animated.View>
   );
 }
@@ -154,77 +153,59 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 0, left: 0, right: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.16,
     shadowRadius: 24,
     elevation: 28,
     zIndex: 1000,
   },
-  sheetSurface: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 10,
+  card: {
+    backgroundColor: C_SURF,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    overflow: 'hidden',
   },
   handle: {
     width: 40, height: 5, borderRadius: 3,
-    alignSelf: 'center', marginBottom: 24,
+    backgroundColor: 'rgba(0,0,0,0.14)',
+    alignSelf: 'center', marginTop: 10, marginBottom: 4,
   },
 
-  /* ── Success ── */
-  successWrap: {
-    paddingHorizontal: 24, paddingBottom: 8,
-    alignItems: 'center', gap: 14,
+  /* ── Header (dark) ── */
+  header: {
+    backgroundColor: C_PANEL, flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 22, paddingVertical: 20,
   },
-  successCircle: {
-    width: 80, height: 80, borderRadius: 40, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.22, shadowRadius: 16, elevation: 6,
-  },
-  successCircleGrad: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-  },
-  successTitle: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
-  successSub: { fontSize: 14, marginTop: -6 },
+  avatar: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#ffffff', fontSize: 17, fontWeight: '800' },
+  headerCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: C_CAP_ON_DARK },
+  headerTitle: { fontSize: 19, fontWeight: '800', color: '#ffffff', marginTop: 3 },
+  headerSub: { fontSize: 12.5, fontWeight: '600', color: '#B7BBC2', marginTop: 2 },
 
-  /* ── Rating form ── */
-  inner: {
-    paddingHorizontal: 20, alignItems: 'center', gap: 14,
+  /* ── Body (white) ── */
+  body: { padding: 22 },
+  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
+  commentPlaceholder: {
+    marginTop: 20, backgroundColor: '#F6F7F8', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: C_CAP,
   },
-  completedLabel: {
-    fontSize: 11, fontWeight: '600', letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  avatar: {
-    width: 64, height: 64, borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { color: '#ffffff', fontSize: 22, fontWeight: '700' },
-  title: { fontSize: 20, fontWeight: '700', letterSpacing: -0.4, marginTop: 2 },
-  driverName: { fontSize: 14, marginTop: -8 },
-
-  ratingSection: {
-    width: '100%', borderRadius: 16, borderWidth: 1,
-    padding: 16, alignItems: 'center', gap: 12,
-  },
-  ratingPrompt: { fontSize: 15, fontWeight: '600' },
-
   commentInput: {
-    width: '100%', borderRadius: 12, borderWidth: 1,
-    paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, lineHeight: 20, minHeight: 68,
-    textAlignVertical: 'top',
-  },
-
-  submitBtnWrap: {
-    width: '100%', borderRadius: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18, shadowRadius: 20, elevation: 6,
+    width: '100%', borderWidth: 1, borderColor: C_HAIR, borderRadius: 14, backgroundColor: '#F6F7F8',
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, lineHeight: 20, marginTop: 20,
+    minHeight: 60, textAlignVertical: 'top', color: C_INK,
   },
   submitBtn: {
-    height: 56, borderRadius: 16, overflow: 'hidden',
-    alignItems: 'center', justifyContent: 'center',
+    height: 54, borderRadius: 15, backgroundColor: C_PANEL,
+    alignItems: 'center', justifyContent: 'center', marginTop: 20,
   },
-  submitBtnText: { fontSize: 15.5, fontWeight: '600', color: '#ffffff', letterSpacing: -0.15 },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff', letterSpacing: 0.2 },
+  skipBtn: { alignSelf: 'center', paddingVertical: 12 },
+  skipText: { fontSize: 13, fontWeight: '700', color: C_CAP },
 
-  skipBtn: { paddingVertical: 8, alignItems: 'center' },
-  skipText: { fontSize: 14 },
+  /* ── Success ── */
+  successWrap: { paddingHorizontal: 24, paddingTop: 6, paddingBottom: 30, alignItems: 'center', gap: 12 },
+  successCircle: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(14,159,142,0.1)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 2,
+  },
+  successTitle: { fontSize: 19, fontWeight: '800', color: C_INK, letterSpacing: -0.3 },
+  successSub: { fontSize: 13, fontWeight: '600', color: C_CAP, marginTop: -6 },
 });

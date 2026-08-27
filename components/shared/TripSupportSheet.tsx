@@ -8,7 +8,7 @@
  * Pattern mirrors SafetySheet (transparent modal, bottom-sheet layout).
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   TextInput, ScrollView, Platform, KeyboardAvoidingView, I18nManager,
@@ -17,12 +17,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import { HelpCircle, X, Check } from 'lucide-react-native';
-import { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import { createTripSupportTicket } from '@/src/api/userService';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
+
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_PANEL = '#14151A';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_TEAL = '#0E9F8E';
+const C_RED = '#D92D20';
 
 const ISSUE_TYPES = [
   'issue_booking',
@@ -50,10 +56,10 @@ export function TripSupportSheet({
   bookingId,
   rideId,
 }: TripSupportSheetProps) {
-  const { colors: c, t } = useTheme();
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
-  const styles = useMemo(() => makeStyles(c, isRTL), [c, isRTL]);
+  const styles = makeStyles(isRTL);
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -119,9 +125,9 @@ export function TripSupportSheet({
           <View style={styles.handle} />
 
           {/* Header */}
-          <View style={[styles.header, isRTL && styles.rowRTL]}>
+          <View style={styles.header}>
             <View style={styles.iconWrap}>
-              <HelpCircle size={20} color="#4d9ef6" />
+              <HelpCircle size={19} color="#fff" />
             </View>
             <Text style={styles.title}>{t('need_help')}</Text>
             <TouchableOpacity
@@ -129,7 +135,7 @@ export function TripSupportSheet({
               onPress={handleClose}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <X size={18} color={c.inkSoft} />
+              <X size={16} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -137,7 +143,7 @@ export function TripSupportSheet({
             /* ── Success state ── */
             <View style={styles.successWrap}>
               <View style={styles.successCircle}>
-                <Check size={32} color="#ffffff" />
+                <Check size={30} color={C_TEAL} strokeWidth={2.5} />
               </View>
               <Text style={styles.successTitle}>{t('message_sent_title')}</Text>
               <Text style={styles.successSub}>{t('message_sent_body')}</Text>
@@ -168,12 +174,7 @@ export function TripSupportSheet({
                       }}
                       activeOpacity={0.8}
                     >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: active ? (c.isDark ? c.background : '#ffffff') : c.inkSoft },
-                        ]}
-                      >
+                      <Text style={[styles.chipText, { color: active ? '#fff' : C_INK_SOFT }]}>
                         {t(key)}
                       </Text>
                     </TouchableOpacity>
@@ -184,11 +185,11 @@ export function TripSupportSheet({
               {/* Message input */}
               <Text style={[styles.label, { marginTop: Spacing.lg }]}>{t('describe_issue')}</Text>
               <TextInput
-                style={[styles.textArea, { textAlign: isRTL ? 'right' : 'left' }]}
+                style={styles.textArea}
                 value={message}
                 onChangeText={(v) => { setMessage(v); setError(null); }}
                 placeholder={t('issue_placeholder')}
-                placeholderTextColor={c.silver}
+                placeholderTextColor={C_CAP}
                 multiline
                 editable={!sending}
               />
@@ -218,7 +219,7 @@ export function TripSupportSheet({
   );
 }
 
-function makeStyles(c: ThemeColors, isRTL: boolean) {
+function makeStyles(isRTL: boolean) {
   return StyleSheet.create({
     keyboardWrap: {
       flex: 1,
@@ -229,59 +230,62 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
       backgroundColor: 'rgba(0,0,0,0.5)',
     },
     sheet: {
-      backgroundColor: c.white,
+      backgroundColor: '#fff',
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
-      paddingHorizontal: 20,
-      paddingTop: Spacing.md,
+      overflow: 'hidden',
       maxHeight: '90%',
     },
     handle: {
       alignSelf: 'center',
-      width: 36,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : '#e0e0e0',
-      marginBottom: 18,
+      width: 40,
+      height: 5,
+      borderRadius: 2.5,
+      backgroundColor: 'rgba(0,0,0,0.14)',
+      marginTop: 10,
+      marginBottom: 16,
     },
     header: {
+      backgroundColor: C_PANEL,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.md,
-      marginBottom: 18,
+      gap: 12,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      marginBottom: 20,
     },
-    rowRTL: { flexDirection: 'row-reverse' },
     iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'rgba(77,158,246,0.12)',
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: 'rgba(255,255,255,0.12)',
       alignItems: 'center',
       justifyContent: 'center',
     },
     title: {
       flex: 1,
-      fontSize: Typography.size.lg,
-      fontWeight: Typography.weight.bold,
-      color: c.ink,
+      fontSize: 17,
+      fontWeight: '800',
+      color: '#fff',
     },
     closeBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: c.mist,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: 'rgba(255,255,255,0.1)',
       alignItems: 'center',
       justifyContent: 'center',
     },
 
     /* Form */
     formScroll: {
-      paddingBottom: Spacing.md,
+      paddingHorizontal: 20,
+      paddingBottom: Spacing.lg,
     },
     label: {
-      fontSize: 11,
-      fontWeight: Typography.weight.semibold,
-      color: c.inkSoft,
+      fontSize: 10.5,
+      fontWeight: '700',
+      color: C_CAP,
       textTransform: 'uppercase',
       letterSpacing: 0.8,
       marginBottom: Spacing.sm,
@@ -296,92 +300,94 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
       paddingHorizontal: 14,
       paddingVertical: 9,
       borderRadius: 99,
-      borderWidth: 1,
+      borderWidth: 1.5,
     },
     chipActive: {
-      backgroundColor: c.ink,
-      borderColor: c.ink,
+      backgroundColor: C_PANEL,
+      borderColor: C_PANEL,
     },
     chipInactive: {
-      backgroundColor: c.white,
-      borderColor: c.border,
+      backgroundColor: '#fff',
+      borderColor: C_HAIR,
     },
     chipText: {
       fontSize: 12.5,
-      fontWeight: Typography.weight.semibold,
+      fontWeight: '700',
     },
     textArea: {
-      borderRadius: Radius.lg,
+      borderRadius: 16,
       borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.isDark ? c.mist : c.white,
+      borderColor: C_HAIR,
+      backgroundColor: '#F7F8F8',
       paddingHorizontal: Spacing.lg,
       paddingVertical: 12,
-      fontSize: Typography.size.sm,
-      color: c.ink,
+      fontSize: 14,
+      color: C_INK,
       minHeight: 100,
       textAlignVertical: 'top',
+      textAlign: isRTL ? 'right' : 'left',
     },
     errorText: {
-      fontSize: Typography.size.xs,
-      color: '#dc2626',
+      fontSize: 12,
+      color: C_RED,
       marginTop: Spacing.sm,
       textAlign: isRTL ? 'right' : 'left',
     },
     submitBtn: {
       marginTop: Spacing.lg,
       height: 52,
-      borderRadius: Radius.lg,
-      backgroundColor: c.ink,
+      borderRadius: 16,
+      backgroundColor: C_PANEL,
       alignItems: 'center',
       justifyContent: 'center',
     },
     submitBtnText: {
       fontSize: 15,
-      fontWeight: Typography.weight.bold,
-      color: c.isDark ? c.background : '#ffffff',
+      fontWeight: '700',
+      color: '#ffffff',
     },
 
     /* Success */
     successWrap: {
       alignItems: 'center',
       paddingVertical: Spacing.xxl,
+      paddingHorizontal: 20,
       gap: Spacing.md,
     },
     successCircle: {
       width: 72,
       height: 72,
       borderRadius: 36,
-      backgroundColor: '#55c49a',
+      backgroundColor: 'rgba(14,159,142,0.1)',
       alignItems: 'center',
       justifyContent: 'center',
     },
     successTitle: {
-      fontSize: Typography.size.lg,
-      fontWeight: Typography.weight.bold,
-      color: c.ink,
+      fontSize: 18,
+      fontWeight: '800',
+      color: C_INK,
       textAlign: 'center',
     },
     successSub: {
-      fontSize: Typography.size.sm,
-      color: c.inkSoft,
+      fontSize: 13,
+      color: C_INK_SOFT,
       textAlign: 'center',
-      lineHeight: 20,
+      lineHeight: 19,
       paddingHorizontal: Spacing.lg,
     },
     doneBtn: {
       marginTop: Spacing.sm,
       height: 48,
       paddingHorizontal: 36,
-      borderRadius: Radius.lg,
-      backgroundColor: c.ink,
+      borderRadius: 16,
+      backgroundColor: C_PANEL,
       alignItems: 'center',
       justifyContent: 'center',
     },
     doneBtnText: {
-      fontSize: Typography.size.sm,
-      fontWeight: Typography.weight.bold,
-      color: c.isDark ? c.background : '#ffffff',
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#ffffff',
     },
   });
 }

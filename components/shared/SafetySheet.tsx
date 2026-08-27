@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   Linking, I18nManager,
@@ -8,14 +8,20 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { ShieldAlert, Phone, Cross, MessageCircle, X, CheckCircle } from 'lucide-react-native';
-import { C, ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import { sendRideSos } from '@/src/api/rideService';
 import { sendTripSos } from '@/src/api/shuttleService';
 import { getEmergencyContact } from '@/src/api/userService';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
+
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_PANEL = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_CAP = '#9AA0A6';
+const C_HAIR = '#EEF0F1';
+const C_RED = '#D92D20';
+const C_ORANGE = '#EA580C';
+const C_WHATSAPP = '#25D366';
 
 // Backend SOS action taxonomy — any of the three sheet actions raises the
 // same durable admin alert (one open sos_event per ride/trip; later actions
@@ -47,10 +53,9 @@ interface EmergencyContact { name?: string | null; phone?: string | null; }
 export function SafetySheet({
   visible, onClose, rideId, tripId, driverName, vehicle, plate, routeName, fallbackCoords,
 }: SafetySheetProps) {
-  const { t, colors: c } = useTheme();
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
-  const styles = useMemo(() => makeSheetStyles(c), [c]);
 
   const [alertState, setAlertState] = useState<AlertState>('idle');
   const [contact, setContact] = useState<EmergencyContact | null>(null);
@@ -173,41 +178,41 @@ export function SafetySheet({
 
           <View style={[styles.header, isRTL && styles.rowRTL]}>
             <View style={styles.shieldIcon}>
-              <ShieldAlert size={22} color="#dc2626" />
+              <ShieldAlert size={20} color="#fff" />
             </View>
             <Text style={styles.title}>{t('safety_title')}</Text>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <X size={18} color={C.inkSoft} />
+              <X size={16} color="#fff" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.options}>
-            <TouchableOpacity style={[styles.optionBtn, styles.optionCall]} onPress={handleCallPolice} activeOpacity={0.85}>
-              <View style={[styles.optionIcon, { backgroundColor: 'rgba(220,38,38,0.12)' }]}>
-                <Phone size={20} color="#dc2626" />
+            <TouchableOpacity style={styles.optionBtn} onPress={handleCallPolice} activeOpacity={0.85}>
+              <View style={[styles.optionIcon, { backgroundColor: 'rgba(217,45,32,0.1)' }]}>
+                <Phone size={19} color={C_RED} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.optionLabel, { color: '#dc2626' }]}>{t('call_122')}</Text>
+                <Text style={[styles.optionLabel, { color: C_RED }]}>{t('call_122')}</Text>
                 <Text style={styles.optionSub}>{t('call_122_sub')}</Text>
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.optionBtn, styles.optionCall]} onPress={handleCallAmbulance} activeOpacity={0.85}>
-              <View style={[styles.optionIcon, { backgroundColor: 'rgba(234,88,12,0.12)' }]}>
-                <Cross size={20} color="#ea580c" />
+            <TouchableOpacity style={styles.optionBtn} onPress={handleCallAmbulance} activeOpacity={0.85}>
+              <View style={[styles.optionIcon, { backgroundColor: 'rgba(234,88,12,0.1)' }]}>
+                <Cross size={19} color={C_ORANGE} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.optionLabel, { color: '#ea580c' }]}>{t('call_123')}</Text>
+                <Text style={[styles.optionLabel, { color: C_ORANGE }]}>{t('call_123')}</Text>
                 <Text style={styles.optionSub}>{t('call_123_sub')}</Text>
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.optionBtn, styles.optionWhatsApp]} onPress={handleShareTrip} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.optionBtn} onPress={handleShareTrip} activeOpacity={0.85}>
               <View style={[styles.optionIcon, { backgroundColor: 'rgba(37,211,102,0.12)' }]}>
-                <MessageCircle size={20} color="#25d366" />
+                <MessageCircle size={19} color={C_WHATSAPP} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.optionLabel, { color: '#25d366' }]}>{t('share_trip')}</Text>
+                <Text style={[styles.optionLabel, { color: '#1CA855' }]}>{t('share_trip')}</Text>
                 <Text style={styles.optionSub}>{t('share_trip_sub')}</Text>
               </View>
             </TouchableOpacity>
@@ -220,7 +225,7 @@ export function SafetySheet({
             )}
             {alertState === 'sent' && (
               <View style={[styles.statusRow, isRTL && styles.rowRTL]}>
-                <CheckCircle size={18} color="#22a06b" />
+                <CheckCircle size={18} color="#0E9F8E" />
                 <Text style={styles.statusSent}>{t('emergency_notified')}</Text>
               </View>
             )}
@@ -234,7 +239,7 @@ export function SafetySheet({
   );
 }
 
-function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
+const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -244,66 +249,63 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
-    backgroundColor: c.white,
+    backgroundColor: '#fff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingHorizontal: 20,
+    overflow: 'hidden',
     paddingBottom: 16,
-    paddingTop: Spacing.md,
   },
   handle: {
     alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: c.isDark ? 'rgba(255,255,255,0.18)' : '#e0e0e0',
-    marginBottom: 18,
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(0,0,0,0.14)',
+    marginTop: 10,
+    marginBottom: 16,
   },
   header: {
+    backgroundColor: C_PANEL,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     marginBottom: 18,
   },
   rowRTL: { flexDirection: 'row-reverse' },
   shieldIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(220,38,38,0.1)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(217,45,32,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     flex: 1,
-    fontSize: Typography.size.lg,
-    fontWeight: Typography.weight.bold,
-    color: c.ink,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#fff',
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: c.mist,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  options: { gap: Spacing.md },
+  options: { paddingHorizontal: 20, gap: 10 },
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1.5,
-  },
-  optionCall: {
-    backgroundColor: c.isDark ? 'rgba(220,38,38,0.08)' : 'rgba(220,38,38,0.04)',
-    borderColor: 'rgba(220,38,38,0.35)',
-  },
-  optionWhatsApp: {
-    backgroundColor: c.isDark ? 'rgba(37,211,102,0.08)' : 'rgba(37,211,102,0.05)',
-    borderColor: 'rgba(37,211,102,0.4)',
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C_HAIR,
+    backgroundColor: '#fff',
   },
   optionIcon: {
     width: 40,
@@ -313,13 +315,14 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     justifyContent: 'center',
   },
   optionLabel: {
-    fontSize: Typography.size.md,
-    fontWeight: Typography.weight.bold,
+    fontSize: 14.5,
+    fontWeight: '800',
   },
   optionSub: {
-    fontSize: Typography.size.xs,
-    color: C.inkSoft,
+    fontSize: 11.5,
+    color: C_CAP,
     marginTop: 2,
+    fontWeight: '600',
   },
   statusRow: {
     flexDirection: 'row',
@@ -329,20 +332,20 @@ function makeSheetStyles(c: ThemeColors) { return StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   statusSending: {
-    fontSize: Typography.size.sm,
-    color: C.inkSoft,
-    fontWeight: Typography.weight.semibold,
+    fontSize: 13,
+    color: C_INK_SOFT,
+    fontWeight: '700',
   },
   statusSent: {
-    fontSize: Typography.size.sm,
-    color: '#22a06b',
-    fontWeight: Typography.weight.bold,
+    fontSize: 13,
+    color: '#0E9F8E',
+    fontWeight: '800',
   },
   errorText: {
     textAlign: 'center',
-    fontSize: Typography.size.sm,
-    color: '#dc2626',
-    fontWeight: Typography.weight.semibold,
+    fontSize: 13,
+    color: C_RED,
+    fontWeight: '700',
     paddingTop: Spacing.sm,
   },
-}); }
+});
