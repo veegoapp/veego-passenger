@@ -1,38 +1,41 @@
 import { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet,  Linking } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldOff, MessageCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import { ThemeColors, S } from '@/constants/colors';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 
-function makeStyles(c: ThemeColors) {
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_BG = '#EEF0F2';
+const C_PANEL = '#14151A';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+
+function makeStyles() {
   return StyleSheet.create({
     container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl },
     iconCircle: {
       width: 96, height: 96, borderRadius: 32,
-      backgroundColor: 'rgba(239,68,68,0.12)', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: 'rgba(217,45,32,0.1)', alignItems: 'center', justifyContent: 'center',
       marginBottom: Spacing.xl,
     },
     title: {
-      fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, textAlign: 'center',
-      letterSpacing: -0.5, fontFamily: 'Inter_700Bold', marginBottom: 14, lineHeight: 30,
+      fontSize: 20, fontWeight: '800', color: C_INK, textAlign: 'center',
+      letterSpacing: -0.4, marginBottom: 14, lineHeight: 28,
     },
     body: {
-      fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center', lineHeight: 22, marginBottom: Spacing.xxl,
+      fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21, marginBottom: Spacing.xxl,
     },
     primaryBtn: {
-      width: '100%', height: 56, borderRadius: 20, backgroundColor: c.ink,
+      width: '100%', height: 56, borderRadius: 20, backgroundColor: C_PANEL,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-      marginBottom: Spacing.md, ...S.float,
+      marginBottom: Spacing.md,
     },
-    primaryBtnText: { color: c.isDark ? c.background : c.white, fontSize: 15, fontWeight: Typography.weight.bold },
+    primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     secondaryBtn: { paddingVertical: Spacing.md },
-    secondaryBtnText: { fontSize: Typography.size.sm, color: c.inkSoft },
+    secondaryBtnText: { fontSize: 13.5, color: C_INK_SOFT },
   });
 }
 
@@ -41,8 +44,8 @@ const SUPPORT_URL = 'https://wa.me/201000000000';
 export default function SuspendedScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
-  const { colors: c, t } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const { t } = useTheme();
+  const styles = useMemo(() => makeStyles(), []);
 
   const handleContactSupport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -52,10 +55,10 @@ export default function SuspendedScreen() {
   };
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={{ flex: 1, paddingTop: top }}>
+    <View style={{ flex: 1, backgroundColor: C_BG, paddingTop: top }}>
       <View style={styles.container}>
         <View style={styles.iconCircle}>
-          <ShieldOff size={44} color="#ef4444" strokeWidth={1.8} />
+          <ShieldOff size={44} color="#D92D20" strokeWidth={1.8} />
         </View>
 
         <Text style={styles.title}>
@@ -71,10 +74,10 @@ export default function SuspendedScreen() {
           onPress={handleContactSupport}
           activeOpacity={0.88}
         >
-          <MessageCircle size={20} color={c.isDark ? c.background : c.white} />
+          <MessageCircle size={20} color="#fff" />
           <Text style={styles.primaryBtnText}>{t('contact_support')}</Text>
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </View>
   );
 }

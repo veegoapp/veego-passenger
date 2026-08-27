@@ -5,30 +5,34 @@ import {
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { router, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Shield, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { S } from '@/constants/colors';
-import type { ThemeColors } from '@/constants/colors';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
 import { persistTokens, saveSession } from '@/src/api/session';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { acceptTerms } from '@/components/shared/TermsModal';
-import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
-import { Radius } from '@/constants/radius';
 
 const OTP_LENGTH = 6;
+
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
+const C_BG = '#EEF0F2';
+const C_PANEL = '#14151A';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_HAIR = '#EEF0F1';
+const C_TEAL = '#0E9F8E';
+const C_RED = '#D92D20';
 
 type OtpChannel = 'whatsapp' | 'sms';
 interface OtpChannelsResponse { whatsappEnabled: boolean; smsEnabled: boolean; defaultChannel: OtpChannel; }
 
 export default function VerifyPhoneScreen() {
   const { phone, maskedPhone, termsVersion } = useLocalSearchParams<{ phone: string; maskedPhone?: string; termsVersion?: string }>();
-  const { colors: c, t, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const { t, isRTL } = useTheme();
+  const styles = useMemo(() => makeStyles(), []);
   const insets = useSafeAreaInsets();
 
   const [otp, setOtp] = useState('');
@@ -154,7 +158,7 @@ export default function VerifyPhoneScreen() {
   const displayPhone = maskedPhone || phone || '';
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={styles.root}>
+    <View style={styles.root}>
       {/* Explicit back button — this screen is pushed with gestureEnabled:
           false (app/_layout.tsx), so a mistyped phone number (reached from
           sign-up/sign-in) previously had no way back short of force-quitting
@@ -173,13 +177,13 @@ export default function VerifyPhoneScreen() {
         accessibilityLabel={t('back')}
         accessibilityRole="button"
       >
-        {isRTL ? <ArrowRight size={20} color={c.ink} /> : <ArrowLeft size={20} color={c.ink} />}
+        {isRTL ? <ArrowRight size={20} color={C_INK} /> : <ArrowLeft size={20} color={C_INK} />}
       </TouchableOpacity>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.container}>
           <View style={styles.iconWrap}>
-            <Shield size={32} color={c.white} />
+            <Shield size={32} color="#fff" />
           </View>
 
           <Text style={styles.title}>{t('otp_title')}</Text>
@@ -259,7 +263,7 @@ export default function VerifyPhoneScreen() {
             ) : (
               <>
                 <Text style={styles.primaryBtnText}>{t('verify')}</Text>
-                {isRTL ? <ArrowLeft size={16} color={c.white} /> : <ArrowRight size={16} color={c.white} />}
+                {isRTL ? <ArrowLeft size={16} color="#fff" /> : <ArrowRight size={16} color="#fff" />}
               </>
             )}
           </TouchableOpacity>
@@ -284,17 +288,17 @@ export default function VerifyPhoneScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
-function makeStyles(c: ThemeColors) {
+function makeStyles() {
   return StyleSheet.create({
-    root: { flex: 1 },
+    root: { flex: 1, backgroundColor: C_BG },
     backBtn: {
       position: 'absolute', zIndex: 10,
       width: 40, height: 40, borderRadius: 20,
-      backgroundColor: 'rgba(255,255,255,0.55)',
+      backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR,
       alignItems: 'center', justifyContent: 'center',
     },
     container: {
@@ -305,72 +309,70 @@ function makeStyles(c: ThemeColors) {
       gap: Spacing.md,
     },
     iconWrap: {
-      width: 72, height: 72, borderRadius: Radius.xl,
-      backgroundColor: c.ink,
+      width: 72, height: 72, borderRadius: 24,
+      backgroundColor: C_PANEL,
       alignItems: 'center', justifyContent: 'center',
       marginBottom: Spacing.xs,
-      ...(S.luxe as any),
     },
     title: {
-      fontSize: 26, fontWeight: Typography.weight.bold, color: c.ink,
-      letterSpacing: -0.8, textAlign: 'center',
+      fontSize: 24, fontWeight: '800', color: C_INK,
+      letterSpacing: -0.6, textAlign: 'center',
     },
     subtitle: {
-      fontSize: Typography.size.sm, color: c.inkSoft, textAlign: 'center',
+      fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center',
     },
     phone: {
-      fontSize: Typography.size.lg, fontWeight: Typography.weight.bold, color: c.ink,
+      fontSize: 17, fontWeight: '800', color: C_INK,
       letterSpacing: 1.5, textAlign: 'center',
       marginBottom: Spacing.xs,
     },
     hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
     otpRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.sm },
     otpBox: {
-      width: 48, height: 56, borderRadius: Radius.lg,
-      borderWidth: 1.5, borderColor: c.border,
-      backgroundColor: 'rgba(255,255,255,0.75)',
+      width: 48, height: 56, borderRadius: 16,
+      borderWidth: 1.5, borderColor: C_HAIR,
+      backgroundColor: '#fff',
       alignItems: 'center', justifyContent: 'center',
     },
     otpBoxActive: {
-      borderColor: c.ink,
-      backgroundColor: 'rgba(255,255,255,0.95)',
+      borderColor: C_PANEL,
+      backgroundColor: '#fff',
     },
     otpBoxFilled: {
-      borderColor: c.accentMint,
-      backgroundColor: 'rgba(85,196,154,0.1)',
+      borderColor: C_TEAL,
+      backgroundColor: 'rgba(14,159,142,0.06)',
     },
-    otpBoxError: { borderColor: c.error },
-    otpDigit: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink },
+    otpBoxError: { borderColor: C_RED },
+    otpDigit: { fontSize: 20, fontWeight: '800', color: C_INK },
     errorText: {
-      fontSize: 13, color: c.error, textAlign: 'center', marginTop: -4,
+      fontSize: 13, color: C_RED, textAlign: 'center', marginTop: -4,
     },
     successText: {
-      fontSize: 13, color: c.accentMint, fontWeight: Typography.weight.semibold,
+      fontSize: 13, color: C_TEAL, fontWeight: '700',
       textAlign: 'center', marginTop: -4,
     },
     channelRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
     channelChip: {
       paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
-      borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.border,
-      backgroundColor: 'rgba(255,255,255,0.75)',
+      borderRadius: 14, borderWidth: 1.5, borderColor: C_HAIR,
+      backgroundColor: '#fff',
     },
-    channelChipActive: { borderColor: c.ink, backgroundColor: c.ink },
-    channelChipText: { fontSize: 13, fontWeight: Typography.weight.medium, color: c.inkSoft },
-    channelChipTextActive: { color: c.white, fontWeight: Typography.weight.semibold },
+    channelChipActive: { borderColor: C_PANEL, backgroundColor: C_PANEL },
+    channelChipText: { fontSize: 13, fontWeight: '600', color: C_INK_SOFT },
+    channelChipTextActive: { color: '#fff', fontWeight: '700' },
     primaryBtn: {
       width: '100%', height: 56, borderRadius: 20,
-      backgroundColor: c.ink,
+      backgroundColor: C_PANEL,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: Spacing.sm, marginTop: Spacing.sm,
-      ...(S.luxe as any),
     },
-    primaryBtnText: { color: c.white, fontSize: 15, fontWeight: Typography.weight.semibold },
+    primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     resendBtn: { paddingVertical: Spacing.md, paddingHorizontal: 20 },
     resendBtnEmphasized: {
-      backgroundColor: 'rgba(85,196,154,0.12)',
+      backgroundColor: 'rgba(14,159,142,0.1)',
       borderRadius: 14,
     },
-    resendText: { fontSize: 13, fontWeight: Typography.weight.medium, color: c.inkSoft, textAlign: 'center' },
-    resendTextEmphasized: { color: c.accentMint, fontWeight: Typography.weight.bold },
+    resendText: { fontSize: 13, fontWeight: '600', color: C_INK_SOFT, textAlign: 'center' },
+    resendTextEmphasized: { color: C_TEAL, fontWeight: '800' },
   });
 }

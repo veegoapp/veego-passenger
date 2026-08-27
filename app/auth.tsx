@@ -4,7 +4,6 @@ import {
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -32,7 +31,7 @@ export default function AuthPage() {
   };
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={styles.root}>
+    <View style={styles.root}>
       <View style={styles.langBar}>
         <TouchableOpacity
           style={[styles.langChip, language === 'ar' && styles.langChipActive]}
@@ -59,7 +58,7 @@ export default function AuthPage() {
         >
           <View style={styles.logoBlock}>
             <View style={styles.logoIcon}>
-              <Navigation size={24} color={c.white} />
+              <Navigation size={24} color="#fff" />
             </View>
             <Text style={styles.wordmark}>Vee<Text style={{ color: '#507BE9' }}>Go</Text></Text>
           </View>
@@ -93,6 +92,6 @@ export default function AuthPage() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
