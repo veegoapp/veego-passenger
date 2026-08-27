@@ -6,8 +6,7 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Car, HelpCircle, Timer, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Car, HelpCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -39,6 +38,16 @@ import { Shadows } from '@/constants/shadows';
 const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled', 'active', 'boarding'];
 const HIDE_MAP_STATUSES = ['completed', 'cancelled'];
 const MINUTES_BEFORE_DEPARTURE = 20;
+
+// ── C · Split Panel — fixed palette, independent of the app's light/dark theme
+// (shared by both the shuttle live-tracking card below and the on-demand
+// ride's trip-detail summary).
+const C_BG_FIXED = '#EBEDEE';
+const C_PANEL_FIXED = '#14151A';
+const C_INK_FIXED = '#14151A';
+const C_INK_SOFT_FIXED = '#6B7178';
+const C_CAP_FIXED = '#9AA0A6';
+const C_TEAL_FIXED = '#0E9F8E';
 
 interface TripDetail {
   id: string | number;
@@ -284,8 +293,8 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
     loadingText: { fontSize: Typography.size.sm, color: c.inkSoft },
     errorText: { fontSize: Typography.size.sm, color: c.badge, textAlign: 'center', marginHorizontal: Spacing.xxl },
-    goBack: { marginTop: Spacing.md, borderRadius: 14, overflow: 'hidden' },
-    goBackGradient: { paddingHorizontal: Spacing.xl, paddingVertical: 11 },
+    goBack: { marginTop: Spacing.md, borderRadius: 999, overflow: 'hidden' },
+    goBackGradient: { paddingHorizontal: Spacing.xl, paddingVertical: 12, backgroundColor: C_TEAL_FIXED },
     goBackText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: '#ffffff' },
     cancelBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.badge, backgroundColor: `${c.badge}0D`, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
     cancelBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.badge },
@@ -358,24 +367,24 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     divider: { height: 1, backgroundColor: c.border },
 
     driverRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-    avatarImg: { width: 56, height: 56, borderRadius: Radius.lg, backgroundColor: c.mist },
+    avatarImg: { width: 56, height: 56, borderRadius: Radius.lg, backgroundColor: '#F0F2F3' },
     avatarFallback: {
       width: 56, height: 56, borderRadius: Radius.lg,
-      backgroundColor: c.mist, borderWidth: 1, borderColor: c.border,
+      backgroundColor: '#F0F2F3', borderWidth: 1, borderColor: '#EEF0F1',
       alignItems: 'center', justifyContent: 'center',
     },
-    avatarInitials: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink },
+    avatarInitials: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: C_INK_FIXED },
     driverInfo: { flex: 1, gap: 4 },
-    driverNameText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.2 },
+    driverNameText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: C_INK_FIXED, letterSpacing: -0.2 },
     ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    ratingText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: c.inkSoft },
+    ratingText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: C_INK_SOFT_FIXED },
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: 2 },
     tag: {
       flexDirection: 'row', alignItems: 'center', gap: 4,
-      backgroundColor: c.mist, borderRadius: Radius.full,
+      backgroundColor: '#F0F2F3', borderRadius: Radius.full,
       paddingHorizontal: 10, paddingVertical: 4,
     },
-    tagText: { fontSize: 11.5, fontWeight: Typography.weight.semibold, color: c.inkSoft },
+    tagText: { fontSize: 11.5, fontWeight: Typography.weight.semibold, color: C_INK_SOFT_FIXED },
 
     timeline: { gap: 0 },
     timelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, minHeight: 34 },
@@ -404,6 +413,34 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     },
     priceLabel: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.inkSoft },
     priceValue: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold, color: c.ink, letterSpacing: -0.4 },
+
+    // ── On-demand ride summary — C · Split Panel ────────────────────────────
+    splitCardRide: {
+      marginHorizontal: 20, borderRadius: 24, overflow: 'hidden', flexDirection: 'row',
+      marginBottom: Spacing.lg,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 6,
+    },
+    leftPanelRide: { width: 116, flexShrink: 0, backgroundColor: C_PANEL_FIXED, padding: 16, paddingVertical: 20 },
+    panelStatusRowRide: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    panelStatusDotRide: { width: 7, height: 7, borderRadius: 3.5, flexShrink: 0 },
+    panelStatusTextRide: { fontSize: 12.5, fontWeight: '700', color: '#fff', flexShrink: 1 },
+    panelCapRide: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: C_CAP_FIXED },
+    panelBigRide: { fontSize: 24, fontWeight: '800', color: '#3DDC97', marginTop: 2, letterSpacing: -0.5 },
+    panelBigUnitRide: { fontSize: 12, fontWeight: '700', color: C_CAP_FIXED },
+    miniRouteWrapRide: { marginTop: 16, alignItems: 'center', flex: 1, minHeight: 40 },
+    miniDotORide: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: '#6B7178' },
+    miniLineRide: { width: 2, flex: 1, backgroundColor: '#3A3C42', marginVertical: 3, minHeight: 20 },
+    miniDotSqRide: { width: 11, height: 11, borderRadius: 3, backgroundColor: '#3DDC97' },
+    panelSeatRide: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 2 },
+
+    rightPanelRide: { flex: 1, backgroundColor: '#fff', padding: 18, paddingVertical: 20 },
+    dividerRide: { height: 1, backgroundColor: '#EEF0F1', marginVertical: 14 },
+    timelineLineBarRide: { width: 2, flex: 1, minHeight: 18, backgroundColor: '#EEF0F1', marginVertical: 2 },
+    timelineTextRide: { flex: 1, fontSize: 13, color: C_INK_FIXED, lineHeight: 19 },
+    statsRowRide: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    statBoxRide: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F7F8F8', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
+    statValRide: { fontSize: 13, fontWeight: '800', color: C_INK_FIXED },
+    statLabRide: { fontSize: 9.5, fontWeight: '700', color: C_CAP_FIXED, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 },
 
     // ── Shuttle live-tracking card — C · Split Panel ────────────────────────
     splitCard: {
@@ -992,10 +1029,10 @@ export default function TripDetailScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: C_BG_FIXED }}>
         <View style={[styles.header, { paddingTop: top + 12 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+            {isRTL ? <ArrowRight size={18} color={C_INK_FIXED} /> : <ArrowLeft size={18} color={C_INK_FIXED} />}
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
           <View style={styles.shareBtn} />
@@ -1004,16 +1041,16 @@ export default function TripDetailScreen() {
           <AppLoader />
           <Text style={styles.loadingText}>{t('loading')}</Text>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
   if (error || (!trip && !rideDetail)) {
     return (
-      <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: C_BG_FIXED }}>
         <View style={[styles.header, { paddingTop: top + 12 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+            {isRTL ? <ArrowRight size={18} color={C_INK_FIXED} /> : <ArrowLeft size={18} color={C_INK_FIXED} />}
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
           <View style={styles.shareBtn} />
@@ -1021,12 +1058,12 @@ export default function TripDetailScreen() {
         <View style={[styles.loadingBox]}>
           <Text style={styles.errorText}>{error ?? t('trip_not_found')}</Text>
           <TouchableOpacity style={styles.goBack} onPress={() => router.back()}>
-            <LinearGradient colors={c.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.goBackGradient}>
+            <View style={styles.goBackGradient}>
               <Text style={styles.goBackText}>{t('go_back')}</Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -1036,24 +1073,24 @@ export default function TripDetailScreen() {
     const hasMapCoords = (rd.pickupLat != null && rd.pickupLng != null) || (rd.dropoffLat != null && rd.dropoffLng != null);
     const ridePickup = rd.pickupLat != null && rd.pickupLng != null ? { latitude: rd.pickupLat, longitude: rd.pickupLng } : undefined;
     const rideDropoff = rd.dropoffLat != null && rd.dropoffLng != null ? { latitude: rd.dropoffLat, longitude: rd.dropoffLng } : undefined;
-    const rideStatusColor = RIDE_STATUS_COLOR[rd.status] ?? c.silver;
+    const rideStatusColor = RIDE_STATUS_COLOR[rd.status] ?? '#9AA0A6';
     const vehicleLabel = rd.vehicleMake || rd.vehicleModel ? `${rd.vehicleMake ?? ''} ${rd.vehicleModel ?? ''}`.trim() : null;
     const driverInitials = rd.driverName
       ? rd.driverName.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
       : '?';
 
     const statTiles = [
-      { icon: Clock, label: RIDE_LABEL.startedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.startedAt) },
-      { icon: CheckCircle2, label: RIDE_LABEL.completedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.completedAt) },
-      { icon: Navigation, label: RIDE_LABEL.distance[isAr ? 'ar' : 'en'], value: rd.distanceKm != null ? `${rd.distanceKm} km` : '—' },
-      { icon: Timer, label: RIDE_LABEL.duration[isAr ? 'ar' : 'en'], value: rd.actualDurationMinutes != null ? `${rd.actualDurationMinutes} ${t('min')}` : '—' },
+      { label: RIDE_LABEL.startedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.startedAt) },
+      { label: RIDE_LABEL.completedAt[isAr ? 'ar' : 'en'], value: formatRideTimestamp(rd.completedAt) },
+      { label: RIDE_LABEL.distance[isAr ? 'ar' : 'en'], value: rd.distanceKm != null ? `${rd.distanceKm} km` : '—' },
+      { label: RIDE_LABEL.duration[isAr ? 'ar' : 'en'], value: rd.actualDurationMinutes != null ? `${rd.actualDurationMinutes} ${t('min')}` : '—' },
     ];
 
     return (
-      <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: C_BG_FIXED }}>
         <View style={[styles.header, { paddingTop: top + 12, paddingBottom: 0, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}
+            {isRTL ? <ArrowRight size={18} color={C_INK_FIXED} /> : <ArrowLeft size={18} color={C_INK_FIXED} />}
           </TouchableOpacity>
         </View>
 
@@ -1069,94 +1106,103 @@ export default function TripDetailScreen() {
         )}
 
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: hasMapCoords ? Spacing.lg : top + 12 + 40 + Spacing.lg }}>
-          <View style={styles.unifiedCard}>
-            {!hasMapCoords && (
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: rideStatusColor }]} />
-                <Text style={[styles.statusText, { color: rideStatusColor }]}>{rideStatusLabel(rd.status, isAr)}</Text>
+          {/* Trip summary — C · Split Panel */}
+          <View style={styles.splitCardRide}>
+            <View style={styles.leftPanelRide}>
+              <View style={styles.panelStatusRowRide}>
+                <View style={[styles.panelStatusDotRide, { backgroundColor: rideStatusColor }]} />
+                <Text style={styles.panelStatusTextRide} numberOfLines={2}>{rideStatusLabel(rd.status, isAr)}</Text>
               </View>
-            )}
 
-            {/* Driver section */}
-            {hasDriverInfo && (
-              <>
-                <View style={styles.driverRow}>
-                  {rd.driverAvatarUrl ? (
-                    <Image source={{ uri: rd.driverAvatarUrl }} style={styles.avatarImg} />
-                  ) : (
-                    <View style={styles.avatarFallback}>
-                      <Text style={styles.avatarInitials}>{driverInitials}</Text>
+              <View style={{ marginTop: 14 }}>
+                <Text style={styles.panelCapRide}>{RIDE_LABEL.price[isAr ? 'ar' : 'en']}</Text>
+                <Text style={styles.panelBigRide}>
+                  {rd.finalPrice != null ? rd.finalPrice : '—'}
+                  {rd.finalPrice != null && <Text style={styles.panelBigUnitRide}> {t('egp')}</Text>}
+                </Text>
+              </View>
+
+              <View style={styles.miniRouteWrapRide}>
+                <View style={styles.miniDotORide} />
+                <View style={styles.miniLineRide} />
+                <View style={styles.miniDotSqRide} />
+              </View>
+
+              <View>
+                <Text style={styles.panelCapRide}>{RIDE_LABEL.distance[isAr ? 'ar' : 'en']}</Text>
+                <Text style={styles.panelSeatRide}>{rd.distanceKm != null ? `${rd.distanceKm} km` : '—'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.rightPanelRide}>
+              {/* Driver section */}
+              {hasDriverInfo && (
+                <>
+                  <View style={styles.driverRow}>
+                    {rd.driverAvatarUrl ? (
+                      <Image source={{ uri: rd.driverAvatarUrl }} style={styles.avatarImg} />
+                    ) : (
+                      <View style={styles.avatarFallback}>
+                        <Text style={styles.avatarInitials}>{driverInitials}</Text>
+                      </View>
+                    )}
+                    <View style={styles.driverInfo}>
+                      <Text style={styles.driverNameText} numberOfLines={1}>{rd.driverName ?? '—'}</Text>
+                      {rd.driverRating != null && (
+                        <View style={styles.ratingRow}>
+                          <Star size={13} color="#F5A623" fill="#F5A623" strokeWidth={0} />
+                          <Text style={styles.ratingText}>{rd.driverRating.toFixed(1)}</Text>
+                        </View>
+                      )}
+                      {(vehicleLabel || rd.vehiclePlate) && (
+                        <View style={styles.tagsRow}>
+                          {vehicleLabel && (
+                            <View style={styles.tag}>
+                              <Car size={11} color="#6B7178" />
+                              <Text style={styles.tagText}>{vehicleLabel}</Text>
+                            </View>
+                          )}
+                          {rd.vehiclePlate && (
+                            <View style={styles.tag}>
+                              <Text style={styles.tagText}>{rd.vehiclePlate}</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
                     </View>
-                  )}
-                  <View style={styles.driverInfo}>
-                    <Text style={styles.driverNameText} numberOfLines={1}>{rd.driverName ?? '—'}</Text>
-                    {rd.driverRating != null && (
-                      <View style={styles.ratingRow}>
-                        <Star size={13} color={c.gold} fill={c.gold} strokeWidth={0} />
-                        <Text style={styles.ratingText}>{rd.driverRating.toFixed(1)}</Text>
-                      </View>
-                    )}
-                    {(vehicleLabel || rd.vehiclePlate) && (
-                      <View style={styles.tagsRow}>
-                        {vehicleLabel && (
-                          <View style={styles.tag}>
-                            <Car size={11} color={c.inkSoft} />
-                            <Text style={styles.tagText}>{vehicleLabel}</Text>
-                          </View>
-                        )}
-                        {rd.vehiclePlate && (
-                          <View style={styles.tag}>
-                            <Text style={styles.tagText}>{rd.vehiclePlate}</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
                   </View>
-                </View>
-                <View style={styles.divider} />
-              </>
-            )}
+                  <View style={styles.dividerRide} />
+                </>
+              )}
 
-            {/* Pickup → dropoff timeline */}
-            <View style={styles.timeline}>
-              <View style={styles.timelineRow}>
-                <View style={styles.timelineLine}>
-                  <View style={[styles.timelineDot, { backgroundColor: '#22c55e' }]} />
-                  <View style={styles.timelineLineBar} />
+              {/* Pickup → dropoff timeline */}
+              <View style={styles.timeline}>
+                <View style={styles.timelineRow}>
+                  <View style={styles.timelineLine}>
+                    <View style={[styles.timelineDot, { backgroundColor: '#3DDC97' }]} />
+                    <View style={styles.timelineLineBarRide} />
+                  </View>
+                  <Text style={styles.timelineTextRide} numberOfLines={2}>{rd.pickupAddress}</Text>
                 </View>
-                <Text style={styles.timelineText} numberOfLines={2}>{rd.pickupAddress}</Text>
+                <View style={styles.timelineRow}>
+                  <View style={styles.timelineLine}>
+                    <View style={[styles.timelineDot, { backgroundColor: '#D92D20' }]} />
+                  </View>
+                  <Text style={styles.timelineTextRide} numberOfLines={2}>{rd.dropoffAddress}</Text>
+                </View>
               </View>
-              <View style={styles.timelineRow}>
-                <View style={styles.timelineLine}>
-                  <View style={[styles.timelineDot, { backgroundColor: '#ef4444' }]} />
-                </View>
-                <Text style={styles.timelineText} numberOfLines={2}>{rd.dropoffAddress}</Text>
+
+              <View style={styles.dividerRide} />
+
+              {/* Trip stats */}
+              <View style={styles.statsRowRide}>
+                {statTiles.map(({ label, value }) => (
+                  <View key={label} style={styles.statBoxRide}>
+                    <Text style={styles.statValRide}>{value}</Text>
+                    <Text style={styles.statLabRide}>{label}</Text>
+                  </View>
+                ))}
               </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Trip stats */}
-            <View style={styles.statsGrid}>
-              {statTiles.map(({ icon: Icon, label, value }) => (
-                <View key={label} style={styles.statTile}>
-                  <View style={styles.statIconWrap}>
-                    <Icon size={15} color={c.ink} />
-                  </View>
-                  <View>
-                    <Text style={styles.statLabel}>{label}</Text>
-                    <Text style={styles.statValue}>{value}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Price */}
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>{RIDE_LABEL.price[isAr ? 'ar' : 'en']}</Text>
-              <Text style={styles.priceValue}>{rd.finalPrice != null ? `${rd.finalPrice} ${t('egp')}` : '—'}</Text>
             </View>
           </View>
 
@@ -1166,7 +1212,7 @@ export default function TripDetailScreen() {
             onPress={() => setSupportOpen(true)}
             activeOpacity={0.8}
           >
-            <HelpCircle size={14} color={c.ink} />
+            <HelpCircle size={14} color={C_INK_FIXED} />
             <Text style={styles.helpBtnText}>{t('need_help')}</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -1177,7 +1223,7 @@ export default function TripDetailScreen() {
           serviceType={rd.vehicleType ?? 'car'}
           rideId={rd.id}
         />
-      </LinearGradient>
+      </View>
     );
   }
 
