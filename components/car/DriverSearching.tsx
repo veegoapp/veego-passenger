@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
@@ -9,16 +9,27 @@ interface DriverSearchingProps {
   onCancel?: () => void;
 }
 
+const C_STRIP = '#111318';
+const C_CAP = '#B7BBC2';
+const C_INK = '#14151A';
+const C_INK_SOFT = '#9AA0A6';
+const C_MINT = '#3DDC97';
+const C_HAIR = '#E2E5E8';
+
 /**
  * Shown while actively searching for a driver. The car-icon radar animation
  * that used to live here has moved to the map itself — SearchingPulse (see
  * CarMap.tsx) layers a water-drop ripple over the passenger's own location
  * pin instead — so this card is just the status line and a Cancel button.
+ *
+ * F · Minimal Bar — a thin dark status strip over a white row, matching the
+ * in-trip card's language, fixed-palette regardless of the app's theme.
  */
 export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
-  const { colors: c, t } = useTheme();
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const spinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -28,25 +39,36 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
     }).start();
   }, [visible]);
 
+  useEffect(() => {
+    if (!visible) return;
+    spinAnim.setValue(0);
+    const loop = Animated.loop(
+      Animated.timing(spinAnim, { toValue: 1, duration: 900, easing: Easing.linear, useNativeDriver: true }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [visible]);
+
   const translateY = slideAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0] });
+  const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
     <Animated.View
-      style={[styles.sheet, { opacity: slideAnim, transform: [{ translateY }] }]}
+      style={[styles.sheet, { bottom: 16 + insets.bottom, opacity: slideAnim, transform: [{ translateY }] }]}
       pointerEvents={visible ? 'box-none' : 'none'}
     >
-      <View style={[styles.sheetSurface, { backgroundColor: c.white, borderColor: c.border }]}>
-        <View style={[styles.handle, { backgroundColor: c.border }]} />
+      <View style={styles.strip}>
+        <View style={styles.stripDot} />
+        <Text style={styles.stripText} numberOfLines={1}>{t('status_finding_driver')}</Text>
+      </View>
 
-        <Text style={[styles.headline, { color: c.ink }]}>{t('searching_driver')}</Text>
+      <View style={styles.mainBar}>
+        <Animated.View style={[styles.spinner, { transform: [{ rotate: spin }] }]} />
+        <Text style={styles.headline} numberOfLines={1}>{t('searching_driver')}</Text>
 
         {onCancel && (
-          <TouchableOpacity
-            onPress={onCancel}
-            activeOpacity={0.85}
-            style={[styles.cancelBtn, { backgroundColor: c.surfaceMuted, borderColor: c.gold, marginBottom: insets.bottom }]}
-          >
-            <Text style={[styles.cancelText, { color: c.gold }]}>{t('cancel')}</Text>
+          <TouchableOpacity onPress={onCancel} activeOpacity={0.85} style={styles.cancelBtn}>
+            <Text style={styles.cancelText}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -55,37 +77,33 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
 }
 
 const styles = StyleSheet.create({
-  // Floats off the screen edges with rounded corners on all sides, instead
-  // of a full-width, top-only-rounded panel — matches the other redesigned
-  // ride-cycle cards.
   sheet: {
     position: 'absolute', bottom: 16, left: 16, right: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 26,
     zIndex: 999,
   },
-  sheetSurface: {
-    borderRadius: 28, borderWidth: 1,
-    paddingTop: 10, paddingHorizontal: 20, paddingBottom: 20,
-    alignItems: 'center',
+  strip: {
+    backgroundColor: C_STRIP, borderRadius: 18, borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+    paddingHorizontal: 16, paddingVertical: 11,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
-  handle: {
-    width: 40, height: 5, borderRadius: 3,
-    alignSelf: 'center', marginBottom: 20,
-  },
+  stripDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C_MINT },
+  stripText: { flex: 1, fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: C_CAP },
 
-  headline: {
-    fontSize: 18, fontWeight: '700', letterSpacing: -0.3,
-    textAlign: 'center',
-    marginBottom: 20,
+  mainBar: {
+    backgroundColor: '#fff', borderRadius: 20, borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.18, shadowRadius: 56, elevation: 12,
   },
+  spinner: {
+    width: 30, height: 30, borderRadius: 15, borderWidth: 2.5,
+    borderColor: C_HAIR, borderTopColor: C_INK, flexShrink: 0,
+  },
+  headline: { flex: 1, fontSize: 14, fontWeight: '800', color: C_INK },
 
   cancelBtn: {
-    width: '100%', height: 56, borderRadius: 16, borderWidth: 1.5,
-    alignItems: 'center', justifyContent: 'center',
+    height: 36, borderRadius: 999, borderWidth: 1.5, borderColor: C_HAIR,
+    paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
   },
-  cancelText: { fontSize: 15, fontWeight: '700' },
+  cancelText: { fontSize: 12, fontWeight: '700', color: C_INK },
 });
