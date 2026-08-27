@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -25,8 +24,11 @@ import { NotificationsModal } from '@/components/profile/NotificationsModal';
 import { HelpFaqModal } from '@/components/profile/HelpFaqModal';
 import { ContactSupportModal } from '@/components/profile/ContactSupportModal';
 import { makeStyles, useProfileInfo } from '@/components/profile/shared';
-import { GlassView } from '@/components/ui/GlassView';
-import { Radius } from '@/constants/radius';
+
+const C_INK = '#14151A';
+const C_INK_SOFT = '#6B7178';
+const C_HAIR = '#EEF0F1';
+const C_PANEL = '#14151A';
 
 type ProfileScreen =
   | 'personal_info'
@@ -145,7 +147,7 @@ export default function ProfileScreen() {
   const close = () => setActiveModal(null);
 
   return (
-    <LinearGradient colors={c.luxeGrad} style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#EEF0F2' }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Text style={styles.headerTitle}>{t('profile_title')}</Text>
       </View>
@@ -158,13 +160,13 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={c.ink}
-            colors={[c.ink]}
+            tintColor={C_INK_SOFT}
+            colors={[C_PANEL]}
           />
         }
       >
         <View style={styles.heroCard}>
-          <LinearGradient colors={[c.ink, c.isDark ? '#2a2a4a' : '#2a2a3a']} style={styles.heroGrad}>
+          <View style={styles.heroGrad}>
             <View style={styles.heroGlow} />
             <View style={styles.heroContent}>
               <TouchableOpacity style={[styles.avatarLg, { overflow: 'hidden' }]} onPress={handlePickAvatar} activeOpacity={0.85}>
@@ -181,12 +183,12 @@ export default function ProfileScreen() {
                 <Text style={styles.heroEmail}>{profileEmail || ''}</Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('account')}</Text>
-          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
+          <View style={styles.groupCard}>
             {[
               { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileScreen },
@@ -196,47 +198,47 @@ export default function ProfileScreen() {
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open(item.screen)}>
-                  <View style={styles.settingIcon}><item.icon size={16} color={c.ink} /></View>
+                  <View style={styles.settingIcon}><item.icon size={16} color={C_INK} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {item.value && <Text style={styles.settingValue}>{item.value}</Text>}
-                    {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
+                    {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
                   </View>
                 </TouchableOpacity>
               </View>
             ))}
-          </GlassView>
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('preferences')}</Text>
-          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
+          <View style={styles.groupCard}>
             <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open('notifications')}>
-              <View style={styles.settingIcon}><Bell size={16} color={c.ink} /></View>
+              <View style={styles.settingIcon}><Bell size={16} color={C_INK} /></View>
               <Text style={styles.settingLabel}>{t('push_notifs')}</Text>
               <View style={styles.settingRight}>
                 <Text style={styles.settingValue}>{t('notif_on')}</Text>
-                {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
+                {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
               </View>
             </TouchableOpacity>
 
             <View style={styles.itemDivider} />
 
             <TouchableOpacity style={styles.settingItem} activeOpacity={1}>
-              <View style={styles.settingIcon}><Moon size={16} color={c.ink} /></View>
+              <View style={styles.settingIcon}><Moon size={16} color={C_INK} /></View>
               <Text style={styles.settingLabel}>{t('dark_mode')}</Text>
               <Switch
                 value={darkMode}
                 onValueChange={(v) => { Haptics.selectionAsync(); setDarkMode(v); }}
-                trackColor={{ false: c.silver, true: c.ink }}
-                thumbColor={c.isDark ? c.background : c.white}
+                trackColor={{ false: '#C7CBCF', true: C_PANEL }}
+                thumbColor="#ffffff"
               />
             </TouchableOpacity>
 
             <View style={styles.itemDivider} />
 
             <View style={styles.settingItem}>
-              <View style={styles.settingIcon}><Languages size={16} color={c.ink} /></View>
+              <View style={styles.settingIcon}><Languages size={16} color={C_INK} /></View>
               <Text style={styles.settingLabel}>{t('language')}</Text>
               <View style={styles.langRow}>
                 <TouchableOpacity
@@ -244,23 +246,23 @@ export default function ProfileScreen() {
                   onPress={() => { Haptics.selectionAsync(); setLanguage('en'); }}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.langBtnText, { color: language === 'en' ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>EN</Text>
+                  <Text style={[styles.langBtnText, { color: language === 'en' ? '#ffffff' : C_INK_SOFT }]}>EN</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.langBtn, language === 'ar' ? styles.langBtnActive : styles.langBtnInactive]}
                   onPress={() => { Haptics.selectionAsync(); setLanguage('ar'); }}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.langBtnText, { color: language === 'ar' ? (c.isDark ? c.background : c.white) : c.inkSoft }]}>AR</Text>
+                  <Text style={[styles.langBtnText, { color: language === 'ar' ? '#ffffff' : C_INK_SOFT }]}>AR</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </GlassView>
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('support')}</Text>
-          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
+          <View style={styles.groupCard}>
             {[
               { icon: HelpCircle, label: t('help_faq'), screen: 'help_faq' as ProfileScreen },
               { icon: MessageCircle, label: t('contact_support'), screen: 'contact_support' as ProfileScreen },
@@ -268,18 +270,18 @@ export default function ProfileScreen() {
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open(item.screen)}>
-                  <View style={styles.settingIcon}><item.icon size={16} color={c.ink} /></View>
+                  <View style={styles.settingIcon}><item.icon size={16} color={C_INK} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
-                  {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
+                  {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
                 </TouchableOpacity>
               </View>
             ))}
-          </GlassView>
+          </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('app_version_label')}</Text>
-          <GlassView style={styles.groupCard} borderRadius={Radius.xl}>
+          <View style={styles.groupCard}>
             {[
               { icon: FileText, label: t('terms_of_service'), onPress: () => open('terms') },
               { icon: Info, label: t('about_veego'), value: 'v1.0.0', onPress: () => {} },
@@ -287,16 +289,16 @@ export default function ProfileScreen() {
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={item.onPress}>
-                  <View style={styles.settingIcon}><item.icon size={16} color={c.ink} /></View>
+                  <View style={styles.settingIcon}><item.icon size={16} color={C_INK} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {(item as any).value && <Text style={styles.settingValue}>{(item as any).value}</Text>}
-                    {isRTL ? <ChevronLeft size={14} color={c.inkSoft} /> : <ChevronRight size={14} color={c.inkSoft} />}
+                    {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
                   </View>
                 </TouchableOpacity>
               </View>
             ))}
-          </GlassView>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -309,10 +311,10 @@ export default function ProfileScreen() {
             ]);
           }}
         >
-          <GlassView style={styles.logoutBtn} borderRadius={20}>
-            <LogOut size={16} color={c.badge} />
+          <View style={styles.logoutBtn}>
+            <LogOut size={16} color="#D92D20" />
             <Text style={styles.logoutText}>{t('sign_out')}</Text>
-          </GlassView>
+          </View>
         </TouchableOpacity>
 
         <View style={{ height: 120 }} />
@@ -337,6 +339,6 @@ export default function ProfileScreen() {
         checkForUpdates
       />
       <EmergencyContactModal visible={activeModal === 'emergency_contact'} onClose={close} />
-    </LinearGradient>
+    </View>
   );
 }
