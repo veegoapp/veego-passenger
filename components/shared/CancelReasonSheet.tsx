@@ -8,6 +8,7 @@ import { AppLoader } from '@/components/ui/AppLoader';
 import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 interface CancelReasonSheetProps {
   visible: boolean;
@@ -17,7 +18,9 @@ interface CancelReasonSheetProps {
 }
 
 export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }: CancelReasonSheetProps) {
-  const { colors: c, t } = useTheme();
+  const { t } = useTheme();
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
 
@@ -73,14 +76,14 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
     >
       <View style={styles.overlay}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-        <View style={[styles.sheet, { backgroundColor: c.white, borderColor: c.border, paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.sheet, { backgroundColor: S.card, borderColor: S.hair, paddingBottom: insets.bottom + 16 }]}>
           {/* Drag handle */}
-          <View style={[styles.handle, { backgroundColor: c.border }]} />
+          <View style={[styles.handle, { backgroundColor: S.hair }]} />
 
           {/* Title */}
           <View style={{ marginBottom: 4 }}>
-            <Text style={[styles.title, { color: c.ink }]}>{t('cancel_trip')}</Text>
-            <Text style={[styles.subtitle, { color: c.inkSoft }]}>
+            <Text style={[styles.title, { color: S.ink }]}>{t('cancel_trip')}</Text>
+            <Text style={[styles.subtitle, { color: S.inkSoft }]}>
               {mode === 'shuttle' ? t('cancel_trip_q') : (t('select_reason') ?? 'Your feedback helps us improve the service')}
             </Text>
           </View>
@@ -101,8 +104,8 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
                   style={[
                     styles.reasonRow,
                     {
-                      backgroundColor: c.surfaceMuted,
-                      borderColor: active ? c.gold : c.border,
+                      backgroundColor: S.surfaceMuted,
+                      borderColor: active ? S.teal : S.hair,
                       borderWidth: active ? 2 : 1,
                     },
                   ]}
@@ -110,19 +113,19 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
                   {/* Radio circle */}
                   <View style={[
                     styles.radio,
-                    { borderColor: active ? c.gold : c.silver },
-                    active ? { backgroundColor: c.gold } : {},
+                    { borderColor: active ? S.teal : S.cap },
+                    active ? { backgroundColor: S.teal } : {},
                   ]}>
-                    {active ? <Check size={11} color={c.white} strokeWidth={3} /> : null}
+                    {active ? <Check size={11} color="#ffffff" strokeWidth={3} /> : null}
                   </View>
-                  <Text style={[styles.reasonText, { color: c.ink }]}>{reason}</Text>
+                  <Text style={[styles.reasonText, { color: S.ink }]}>{reason}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
           {mode === 'shuttle' && (
-            <Text style={[styles.optionalHint, { color: c.inkSoft }]}>{t('selection_optional')}</Text>
+            <Text style={[styles.optionalHint, { color: S.inkSoft }]}>{t('selection_optional')}</Text>
           )}
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
@@ -133,9 +136,9 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
             <TouchableOpacity
               onPress={handleClose}
               activeOpacity={0.78}
-              style={[styles.ghostBtn, { flex: 1, backgroundColor: c.surfaceMuted, borderColor: c.border }]}
+              style={[styles.ghostBtn, { flex: 1, backgroundColor: S.surfaceMuted, borderColor: S.hair }]}
             >
-              <Text style={[styles.ghostBtnText, { color: c.ink }]}>{t('no_back')}</Text>
+              <Text style={[styles.ghostBtnText, { color: S.ink }]}>{t('no_back')}</Text>
             </TouchableOpacity>
 
             {/* Confirm cancel (destructive) */}
@@ -160,7 +163,8 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(S: SplitColors) {
+  return StyleSheet.create({
   overlay: {
     flex: 1, justifyContent: 'flex-end',
   },
@@ -231,4 +235,5 @@ const styles = StyleSheet.create({
   dangerBtnText: {
     fontSize: 15, fontWeight: '700', color: '#ffffff',
   },
-});
+  });
+}
