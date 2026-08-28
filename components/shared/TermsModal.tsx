@@ -158,7 +158,21 @@ export default function TermsModal({
             contentContainerStyle={[styles.body, { direction: isRTL ? 'rtl' : 'ltr' }]}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.contentText, { color: c.ink, textAlign: isRTL ? 'right' : 'left' }]}>
+            <Text
+              style={[
+                styles.contentText,
+                {
+                  color: c.ink,
+                  textAlign: isRTL ? 'right' : 'left',
+                  // textAlign alone only changes visual alignment — it doesn't
+                  // affect the Unicode bidi algorithm's paragraph direction,
+                  // so mixed content (markdown symbols like #/**/- followed by
+                  // Arabic) can still resolve as an LTR paragraph and read
+                  // left-to-right. writingDirection fixes that at the source.
+                  writingDirection: isRTL ? 'rtl' : 'ltr',
+                },
+              ]}
+            >
               {content ?? ''}
             </Text>
           </ScrollView>

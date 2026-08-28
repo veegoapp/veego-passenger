@@ -100,17 +100,69 @@ function formatDate(raw: string | undefined): { en: string; ar: string } {
   };
 }
 
+// Picks a proper bilingual category label instead of showing the backend's
+// raw (often English-only, internal-sounding) description as the title —
+// that raw text used to leak straight into the Arabic UI whenever a
+// transaction predated the description_ar column, or came from a code path
+// that only ever set the English description. Matched against the raw
+// description text since that's the only signal available for older rows;
+// falls back to the generic kind-based label when nothing matches.
+function classifyTransaction(t: RawTransaction, kind: Transaction['kind']): { en: string; ar: string } {
+  const raw = (t.description ?? t.title ?? '').toLowerCase();
+  const isShuttle = raw.includes('shuttle') || raw.includes('booking #');
+
+  if (raw.includes('top-up') || raw.includes('topup') || raw.includes('recharge')) {
+    return { en: i18nEn.tx_cat_wallet_topup, ar: i18nAr.tx_cat_wallet_topup };
+  }
+  if (raw.includes('debt settlement') || raw.includes('debt collected')) {
+    return { en: i18nEn.tx_cat_shuttle_debt_settlement, ar: i18nAr.tx_cat_shuttle_debt_settlement };
+  }
+  if (raw.includes('referral') || raw.includes('welcome bonus')) {
+    return { en: i18nEn.tx_cat_referral_bonus, ar: i18nAr.tx_cat_referral_bonus };
+  }
+  if (raw.startsWith('bonus:') || kind === 'bonus') {
+    return { en: i18nEn.tx_cat_bonus_target, ar: i18nAr.tx_cat_bonus_target };
+  }
+  if (raw.includes('change from driver')) {
+    return { en: i18nEn.tx_cat_ride_change, ar: i18nAr.tx_cat_ride_change };
+  }
+  if (kind === 'refund') {
+    return isShuttle
+      ? { en: i18nEn.tx_cat_shuttle_refund, ar: i18nAr.tx_cat_shuttle_refund }
+      : { en: i18nEn.tx_cat_ride_refund,    ar: i18nAr.tx_cat_ride_refund };
+  }
+  if (kind === 'payment') {
+    return isShuttle
+      ? { en: i18nEn.tx_cat_shuttle_payment, ar: i18nAr.tx_cat_shuttle_payment }
+      : { en: i18nEn.tx_cat_ride_payment,    ar: i18nAr.tx_cat_ride_payment };
+  }
+  if (kind === 'deposit') {
+    return { en: i18nEn.tx_cat_admin_adjustment, ar: i18nAr.tx_cat_admin_adjustment };
+  }
+  // Generic fallback by credit/debit direction — still fully translated,
+  // just not a specific category.
+  return detectCredit(t)
+    ? { en: i18nEn.tx_cat_generic_topup,   ar: i18nAr.tx_cat_generic_topup }
+    : { en: i18nEn.tx_cat_generic_payment, ar: i18nAr.tx_cat_generic_payment };
+}
+
 function mapTransaction(t: RawTransaction): Transaction {
   const isCredit = detectCredit(t);
+  const kind = detectKind(t);
   const date = formatDate(t.createdAt ?? t.date ?? '');
+  const category = classifyTransaction(t, kind);
+  // The backend's own description is still useful as reference detail (e.g.
+  // which booking/ride it's for) — shown as the subtitle rather than the title.
+  const rawDetailEn = t.description ?? t.title ?? t.titleEn ?? '';
+  const rawDetailAr = t.descriptionAr ?? t.titleAr ?? '';
   return {
     id: String(t.id ?? `${t.createdAt ?? t.date ?? ''}_${t.amount ?? 0}_${t.transactionType ?? t.type ?? ''}`),
     type: isCredit ? 'credit' : 'debit',
-    kind: detectKind(t),
-    titleEn: t.description ?? t.title ?? t.titleEn ?? (isCredit ? i18nEn.tx_wallet_recharge : i18nEn.tx_trip_payment),
-    titleAr: t.descriptionAr ?? t.titleAr ?? t.description ?? (isCredit ? i18nAr.tx_wallet_recharge : i18nAr.tx_trip_payment),
-    subtitleEn: t.subDescription ?? t.subtitleEn ?? t.note ?? '',
-    subtitleAr: t.subDescriptionAr ?? t.subtitleAr ?? t.note ?? '',
+    kind,
+    titleEn: category.en,
+    titleAr: category.ar,
+    subtitleEn: t.subDescription ?? t.subtitleEn ?? t.note ?? rawDetailEn,
+    subtitleAr: t.subDescriptionAr ?? t.subtitleAr ?? t.note ?? rawDetailAr ?? rawDetailEn,
     amount: Math.abs(t.amount ?? 0),
     dateEn: date.en,
     dateAr: date.ar,

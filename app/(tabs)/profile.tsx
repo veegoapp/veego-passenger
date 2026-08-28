@@ -54,9 +54,14 @@ export default function ProfileScreen() {
       setActiveModal('terms');
     }
   }, [openTerms]);
-  const { name: profileName, email: profileEmail, refresh: refreshProfile } = useProfileInfo();
+  const { name: profileName, email: profileEmail, avatar: profileAvatar, refresh: refreshProfile } = useProfileInfo();
   const [displayName, setDisplayName] = useState<string | null>(null);
+  // Starts null (no session upload yet) and falls back to the fetched
+  // profile's avatar — same pattern as heroName/displayName below. Without
+  // the fallback this always showed the initials placeholder on a fresh
+  // screen load, even for a user with an avatar already saved.
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const heroAvatarUri = avatarUri ?? profileAvatar;
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -170,8 +175,8 @@ export default function ProfileScreen() {
             <View style={styles.heroGlow} />
             <View style={styles.heroContent}>
               <TouchableOpacity style={[styles.avatarLg, { overflow: 'hidden' }]} onPress={handlePickAvatar} activeOpacity={0.85}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                {heroAvatarUri ? (
+                  <Image source={{ uri: heroAvatarUri }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
                 ) : avatarUploading ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
@@ -324,7 +329,7 @@ export default function ProfileScreen() {
         visible={activeModal === 'personal_info'}
         onClose={close}
         onSaved={(n) => setDisplayName(n)}
-        avatarUri={avatarUri}
+        avatarUri={heroAvatarUri}
         onPickAvatar={handlePickAvatar}
         avatarUploading={avatarUploading}
         heroInitials={heroInitials}
