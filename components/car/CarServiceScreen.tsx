@@ -74,9 +74,11 @@ function makeStyles(c: ThemeColors, insetTop: number, insetBottom: number, tabBa
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
 
-    // ── Bottom idle panel (glassmorphism) ─────────────────────────────
+    // ── Idle location panel (glassmorphism) ─────────────────────────────
+    // Collapsed rests near the top (below the close button); expanded slides
+    // up from off-screen to the same top offset and grows to fill the sheet.
     bottomContainer: {
-      position: 'absolute', bottom: 16, left: 0, right: 0, zIndex: 30,
+      position: 'absolute', left: 0, right: 0, zIndex: 30,
     },
     // Glassmorphic floating search card — same translucent-panel + hairline
     // border language as the Driver app's GlassView.
@@ -930,37 +932,17 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         <Animated.View
           style={[
             styles.bottomContainer,
-            // Phase 1: when expanded, animate `top` upward so the sheet
-            // slides up over the map. When collapsed top is unset (natural height).
-            isDestExpanded ? { top: destSheetTop } : {},
+            // Collapsed rests at a fixed top offset (below the close button).
+            // Expanded animates `top` up from off-screen to that same offset,
+            // then grows via flex:1 to fill the sheet — bottom stays anchored
+            // throughout so it doesn't need to change between the two states.
+            { bottom: 16 },
+            isDestExpanded ? { top: destSheetTop } : { top: insetTop + 60 },
           ]}
         >
-          {/* ── COLLAPSED STATE: recents above + glassmorphic card ── */}
+          {/* ── COLLAPSED STATE: glassmorphic card + recents below ── */}
           {!isDestExpanded && (
             <>
-              {/* Recents sit directly above the glass card */}
-              {recents.length > 0 && (
-                <View style={styles.recentsWrap}>
-                  <Text style={styles.recentsTitle}>{t('recent_searches')}</Text>
-                  {recents.slice(0, 3).map((loc) => (
-                    <TouchableOpacity
-                      key={loc.address}
-                      style={styles.recentRow}
-                      onPress={() => handleSelectDestination(
-                        loc.address,
-                        loc.latitude != null && loc.longitude != null
-                          ? { latitude: loc.latitude, longitude: loc.longitude }
-                          : undefined,
-                      )}
-                      activeOpacity={0.75}
-                    >
-                      <MapPin size={15} color={c.inkSoft} />
-                      <Text style={styles.recentRowText} numberOfLines={1}>{loc.address}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
               {/* Glassmorphic floating search card */}
               <View style={styles.glassCard}>
                 {/* Drag handle pill */}
@@ -1007,8 +989,28 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
                 </TouchableOpacity>
               </View>
 
-              {/* Bottom safe-area padding */}
-              <View style={{ height: 8, backgroundColor: 'transparent' }} />
+              {/* Recents sit directly below the glass card */}
+              {recents.length > 0 && (
+                <View style={styles.recentsWrap}>
+                  <Text style={styles.recentsTitle}>{t('recent_searches')}</Text>
+                  {recents.slice(0, 3).map((loc) => (
+                    <TouchableOpacity
+                      key={loc.address}
+                      style={styles.recentRow}
+                      onPress={() => handleSelectDestination(
+                        loc.address,
+                        loc.latitude != null && loc.longitude != null
+                          ? { latitude: loc.latitude, longitude: loc.longitude }
+                          : undefined,
+                      )}
+                      activeOpacity={0.75}
+                    >
+                      <MapPin size={15} color={c.inkSoft} />
+                      <Text style={styles.recentRowText} numberOfLines={1}>{loc.address}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </>
           )}
 
