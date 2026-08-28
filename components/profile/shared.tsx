@@ -189,6 +189,7 @@ export function useProfileInfo() {
     email: profile.email || '',
     phone: profile.phone || '',
     gender: profile.gender,
+    avatar: profile.avatar,
     loaded: !loading,
     saveProfile,
     refresh,

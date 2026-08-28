@@ -134,14 +134,15 @@ function mapRideTrip(r: any): Trip {
   const pickup  = r.pickup  ?? {};
   const dropoff = r.dropoff ?? {};
 
-  const label = type === 'scooter' ? 'Scooter Ride' : type === 'delivery' ? 'Delivery' : 'Car Ride';
+  const label   = type === 'scooter' ? 'Scooter Ride' : type === 'delivery' ? 'Delivery' : 'Car Ride';
+  const labelAr = type === 'scooter' ? 'رحلة سكوتر'   : type === 'delivery' ? 'توصيل'     : 'رحلة سيارة';
 
   return {
     id:   String(r.id ?? Math.random()),
     type,
     routeCode: type.toUpperCase(),
     routeName: label,
-    routeNameAr: null,
+    routeNameAr: labelAr,
     from:   pickup.address  ?? r.pickupAddress     ?? '—',
     fromAr: null,
     to:     dropoff.address ?? r.dropoffAddress    ?? '—',
