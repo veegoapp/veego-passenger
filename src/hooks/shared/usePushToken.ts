@@ -43,6 +43,18 @@ async function registerPushToken(): Promise<string | null> {
 export function usePushToken() {
   const registered = useRef(false);
   const { t } = useTheme();
+  // ThemeProvider defaults to English and hydrates the saved language from
+  // AsyncStorage asynchronously (see context/ThemeContext.tsx) — this effect
+  // runs once on mount ([] deps) and its callback only resolves after the
+  // push-token round trip, by which point the app has usually already
+  // re-rendered in the correct language elsewhere. But the callback closed
+  // over `t` from that very first (pre-hydration, English) render, so the
+  // battery-optimization prompt kept showing in English even on an
+  // Arabic-language device. tRef always holds the latest `t` from the most
+  // recent render, so the prompt reads whatever language is current when it
+  // actually fires, not whatever it was at mount.
+  const tRef = useRef(t);
+  tRef.current = t;
 
   useEffect(() => {
     if (registered.current) return;
@@ -55,6 +67,7 @@ export function usePushToken() {
         console.log('[Push] Token registered successfully');
         // Only prompt once we know push actually works for this device —
         // no point asking the user to fix OEM battery settings otherwise.
+        const t = tRef.current;
         maybePromptBatteryOptimization({
           title: t('battery_optimization_title'),
           message: t('battery_optimization_message'),
