@@ -12,6 +12,7 @@ import { updatePassword } from '@/src/api/userService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { makeStyles, ModalHeader, useProfileInfo } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 export function PersonalInfoModal({
   visible, onClose, onSaved,
@@ -26,7 +27,8 @@ export function PersonalInfoModal({
   heroInitials: string;
 }) {
   const { colors: c, t } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const { name: savedName, email: savedEmail, phone: savedPhone, gender: savedGender, saveProfile } = useProfileInfo();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);

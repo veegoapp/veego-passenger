@@ -10,10 +10,12 @@ import api from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import TermsModal, { fetchPassengerTerms, acceptTerms, type TermsData } from '@/components/shared/TermsModal';
 import { makeStyles, saveSession, persistTokens } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const { t, isRTL, colors: c } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');

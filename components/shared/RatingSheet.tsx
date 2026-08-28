@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo} from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Animated, Keyboard,
@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 interface RatingSheetProps {
   visible: boolean;
@@ -20,17 +21,12 @@ interface RatingSheetProps {
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme
 // (matches TripCompletedSheet's rating step, which this mirrors).
-const C_PANEL = '#14151A';
-const C_SURF = '#FFFFFF';
-const C_INK = '#14151A';
-const C_CAP = '#9AA0A6';
-const C_CAP_ON_DARK = '#8A9096';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
 const C_STAR = '#F5A623';
 
 export function RatingSheet({ visible, driverName, driverInitials, driverColor, onSubmit, onSkip }: RatingSheetProps) {
   const { t } = useTheme();
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
   const slideAnim   = useRef(new Animated.Value(0)).current;
   const checkScale  = useRef(new Animated.Value(0)).current;
@@ -84,7 +80,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
           /* ── Success state ── */
           <View style={styles.successWrap}>
             <Animated.View style={[styles.successCircle, { transform: [{ scale: checkScale }] }]}>
-              <Check size={34} color={C_TEAL} strokeWidth={2.5} />
+              <Check size={34} color={S.teal} strokeWidth={2.5} />
             </Animated.View>
             <Text style={styles.successTitle}>{t('thanks_rating')}</Text>
             <Text style={styles.successSub}>{t('ride_confirmed')}</Text>
@@ -117,7 +113,7 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
                 <TextInput
                   style={styles.commentInput}
                   placeholder={t('leave_comment')}
-                  placeholderTextColor={C_CAP}
+                  placeholderTextColor={S.cap}
                   multiline
                   maxLength={200}
                   value={comment}
@@ -148,7 +144,8 @@ export function RatingSheet({ visible, driverName, driverInitials, driverColor, 
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(S: SplitColors) {
+  return StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     shadowColor: '#000',
@@ -159,7 +156,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   card: {
-    backgroundColor: C_SURF,
+    backgroundColor: S.card,
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     overflow: 'hidden',
   },
@@ -171,12 +168,12 @@ const styles = StyleSheet.create({
 
   /* ── Header (dark) ── */
   header: {
-    backgroundColor: C_PANEL, flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: S.panel, flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingHorizontal: 22, paddingVertical: 20,
   },
   avatar: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#ffffff', fontSize: 17, fontWeight: '800' },
-  headerCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: C_CAP_ON_DARK },
+  headerCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: S.capOnDark },
   headerTitle: { fontSize: 19, fontWeight: '800', color: '#ffffff', marginTop: 3 },
   headerSub: { fontSize: 12.5, fontWeight: '600', color: '#B7BBC2', marginTop: 2 },
 
@@ -185,20 +182,20 @@ const styles = StyleSheet.create({
   starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
   commentPlaceholder: {
     marginTop: 20, backgroundColor: '#F6F7F8', borderRadius: 14,
-    paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: C_CAP,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: S.cap,
   },
   commentInput: {
-    width: '100%', borderWidth: 1, borderColor: C_HAIR, borderRadius: 14, backgroundColor: '#F6F7F8',
+    width: '100%', borderWidth: 1, borderColor: S.hair, borderRadius: 14, backgroundColor: '#F6F7F8',
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, lineHeight: 20, marginTop: 20,
-    minHeight: 60, textAlignVertical: 'top', color: C_INK,
+    minHeight: 60, textAlignVertical: 'top', color: S.ink,
   },
   submitBtn: {
-    height: 54, borderRadius: 15, backgroundColor: C_PANEL,
+    height: 54, borderRadius: 15, backgroundColor: S.panel,
     alignItems: 'center', justifyContent: 'center', marginTop: 20,
   },
   submitBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff', letterSpacing: 0.2 },
   skipBtn: { alignSelf: 'center', paddingVertical: 12 },
-  skipText: { fontSize: 13, fontWeight: '700', color: C_CAP },
+  skipText: { fontSize: 13, fontWeight: '700', color: S.cap },
 
   /* ── Success ── */
   successWrap: { paddingHorizontal: 24, paddingTop: 6, paddingBottom: 30, alignItems: 'center', gap: 12 },
@@ -206,6 +203,7 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(14,159,142,0.1)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 2,
   },
-  successTitle: { fontSize: 19, fontWeight: '800', color: C_INK, letterSpacing: -0.3 },
-  successSub: { fontSize: 13, fontWeight: '600', color: C_CAP, marginTop: -6 },
-});
+  successTitle: { fontSize: 19, fontWeight: '800', color: S.ink, letterSpacing: -0.3 },
+  successSub: { fontSize: 13, fontWeight: '600', color: S.cap, marginTop: -6 },
+  });
+}

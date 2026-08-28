@@ -11,6 +11,7 @@ import { SignInForm } from '@/components/auth/SignInForm';
 import { SignUpForm } from '@/components/auth/SignUpForm';
 import { ForgotForm } from '@/components/auth/ForgotForm';
 import { makeStyles } from '@/components/auth/shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 type AuthTab = 'signin' | 'signup' | 'forgot';
 
@@ -18,7 +19,8 @@ export default function AuthPage() {
   const [tab, setTab] = useState<AuthTab>('signin');
   const [prefillCredential, setPrefillCredential] = useState('');
   const { language, setLanguage, t, colors: c } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
 
   const switchTab = (newTab: AuthTab) => {
     Haptics.selectionAsync();

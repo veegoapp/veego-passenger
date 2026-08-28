@@ -5,13 +5,15 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { Typography } from '@/constants/typography';
 import { makeStyles, ModalHeader } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 const FAQ_ITEMS = ['faq_q1', 'faq_q2', 'faq_q3', 'faq_q4', 'faq_q5'] as const;
 const FAQ_ANSWERS = ['faq_a1', 'faq_a2', 'faq_a3', 'faq_a4', 'faq_a5'] as const;
 
 export function HelpFaqModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (

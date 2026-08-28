@@ -21,6 +21,7 @@ import { HistoryTripCard } from '@/components/shared/HistoryTripCard';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { useTabBar } from '@/context/TabBarContext';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 interface LivePatch {
   passengerCount?: number;
@@ -28,21 +29,15 @@ interface LivePatch {
 }
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_BG = '#EEF0F2';
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_MIST = '#F0F2F3';
 
-function makeStyles() {
+function makeStyles(S: SplitColors) {
   return StyleSheet.create({
     header: { paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.md },
-    headerTitle: { fontSize: 24, fontWeight: '800', color: C_INK, letterSpacing: -0.7 },
+    headerTitle: { fontSize: 24, fontWeight: '800', color: S.ink, letterSpacing: -0.7 },
     sectionTitle: {
       fontSize: 11,
       fontWeight: '700',
-      color: C_CAP,
+      color: S.cap,
       textTransform: 'uppercase',
       letterSpacing: 1,
       marginBottom: Spacing.xs,
@@ -50,13 +45,13 @@ function makeStyles() {
     list: { paddingHorizontal: 20, gap: Spacing.md },
     loadingWrap: { alignItems: 'center', paddingTop: 32, paddingBottom: Spacing.md },
     empty: { alignItems: 'center', paddingTop: 32, paddingBottom: Spacing.md, gap: Spacing.md },
-    emptyIcon: { width: 64, height: 64, borderRadius: 24, backgroundColor: C_MIST, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
-    emptyTitle: { fontSize: 15, fontWeight: '700', color: C_INK },
-    emptySub: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center', paddingHorizontal: Spacing.xxl, lineHeight: 20 },
-    emptyBtn: { marginTop: Spacing.xs, paddingHorizontal: 28, paddingVertical: Spacing.md, borderRadius: 16, backgroundColor: C_PANEL },
+    emptyIcon: { width: 64, height: 64, borderRadius: 24, backgroundColor: S.surfaceMuted, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+    emptyTitle: { fontSize: 15, fontWeight: '700', color: S.ink },
+    emptySub: { fontSize: 13, color: S.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xxl, lineHeight: 20 },
+    emptyBtn: { marginTop: Spacing.xs, paddingHorizontal: 28, paddingVertical: Spacing.md, borderRadius: 16, backgroundColor: S.panel },
     emptyBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
     loadMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: Spacing.xs, paddingVertical: Spacing.md },
-    loadMoreText: { fontSize: 13, fontWeight: '700', color: C_INK_SOFT },
+    loadMoreText: { fontSize: 13, fontWeight: '700', color: S.inkSoft },
     sectionDivider: { height: 1, backgroundColor: '#E2E5E8', marginVertical: Spacing.sm },
   });
 }
@@ -72,7 +67,8 @@ export default function TripsScreen() {
   const { date: sessionDate, time: sessionTime } = shuttleSession
     ? formatCairoDateTime(shuttleSession.trip.departureTime, dateLocale)
     : { date: '', time: '' };
-  const styles = useMemo(() => makeStyles(), []);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
 
   const {
     upcomingTrips, pastTrips, loading, error, refresh, hasMore, loadMore, retry,
@@ -275,7 +271,7 @@ export default function TripsScreen() {
   const showPageLoading = showUpcomingLoading && showHistoryLoading;
 
   return (
-    <View style={{ flex: 1, backgroundColor: C_BG }}>
+    <View style={{ flex: 1, backgroundColor: S.bg }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Text style={styles.headerTitle}>{t('my_trips')}</Text>
       </View>
@@ -288,8 +284,8 @@ export default function TripsScreen() {
           <RefreshControl
             refreshing={refreshing || loading}
             onRefresh={onRefresh}
-            tintColor={C_INK}
-            colors={[C_PANEL]}
+            tintColor={S.ink}
+            colors={[S.panel]}
           />
         }
       >
@@ -308,7 +304,7 @@ export default function TripsScreen() {
         ) : !showPageLoading && showUpcomingError ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ticket size={28} color={C_CAP} />
+              <Ticket size={28} color={S.cap} />
             </View>
             <Text style={styles.emptyTitle}>{t('error')}</Text>
             <Text style={styles.emptySub}>{upcomingError}</Text>
@@ -319,7 +315,7 @@ export default function TripsScreen() {
         ) : upcoming.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ticket size={28} color={C_CAP} />
+              <Ticket size={28} color={S.cap} />
             </View>
             <Text style={styles.emptyTitle}>
               {t('no_trips').replace('{tab}', t('upcoming'))}
@@ -368,7 +364,7 @@ export default function TripsScreen() {
                     isLive={isLive}
                     canCancel={isUpcoming}
                     isCancelling={isCancelling}
-                    accentColor={C_MIST}
+                    accentColor={S.surfaceMuted}
                     onPress={() => {
                       if (trip.id === 'live') { router.push('/ticket'); }
                       else if (trip.bookingId) { router.push(`/trip-detail?id=${trip.bookingId}` as any); }
@@ -397,7 +393,7 @@ export default function TripsScreen() {
         ) : showHistoryError ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ticket size={28} color={C_CAP} />
+              <Ticket size={28} color={S.cap} />
             </View>
             <Text style={styles.emptyTitle}>{t('error')}</Text>
             <Text style={styles.emptySub}>{error}</Text>
@@ -408,7 +404,7 @@ export default function TripsScreen() {
         ) : pastTrips.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ticket size={28} color={C_CAP} />
+              <Ticket size={28} color={S.cap} />
             </View>
             <Text style={styles.emptyTitle}>
               {t('no_trips').replace('{tab}', t('past'))}
@@ -436,7 +432,7 @@ export default function TripsScreen() {
                 <Animated.View key={trip.id} style={{ opacity: fadeAnim }}>
                   <HistoryTripCard
                     trip={trip}
-                    accentColor={C_MIST}
+                    accentColor={S.surfaceMuted}
                     onPress={canOpenHistoryDetail ? () => {
                       if (trip.id === 'live') { router.push('/ticket'); }
                       else if (trip.tripId) { router.push(`/trip-detail?id=${trip.tripId}` as any); }
@@ -458,7 +454,7 @@ export default function TripsScreen() {
             disabled={loadingMore}
             activeOpacity={0.7}
           >
-            <ChevronDown size={16} color={C_INK_SOFT} />
+            <ChevronDown size={16} color={S.inkSoft} />
             <Text style={styles.loadMoreText}>
               {loadingMore ? t('loading') : t('load_more')}
             </Text>

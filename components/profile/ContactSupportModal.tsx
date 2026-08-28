@@ -13,6 +13,7 @@ import { createSupportTicket, uploadSupportAttachment } from '@/src/api/userServ
 import { compressImageForUpload } from '@/src/utils/imageCompression';
 import { Spacing } from '@/constants/spacing';
 import { makeStyles, ModalHeader } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 const MAX_ATTACHMENTS = 5;
@@ -26,7 +27,8 @@ interface SupportAttachment {
 
 export function ContactSupportModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<SupportAttachment[]>([]);

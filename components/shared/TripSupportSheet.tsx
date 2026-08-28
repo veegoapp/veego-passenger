@@ -8,7 +8,7 @@
  * Pattern mirrors SafetySheet (transparent modal, bottom-sheet layout).
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo} from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   TextInput, ScrollView, Platform, KeyboardAvoidingView, I18nManager,
@@ -20,14 +20,9 @@ import { HelpCircle, X, Check } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { createTripSupportTicket } from '@/src/api/userService';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
 const C_RED = '#D92D20';
 
 const ISSUE_TYPES = [
@@ -59,7 +54,8 @@ export function TripSupportSheet({
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
-  const styles = makeStyles(isRTL);
+  const S = useSplitColors();
+  const styles = makeStyles(isRTL, S);
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -143,7 +139,7 @@ export function TripSupportSheet({
             /* ── Success state ── */
             <View style={styles.successWrap}>
               <View style={styles.successCircle}>
-                <Check size={30} color={C_TEAL} strokeWidth={2.5} />
+                <Check size={30} color={S.teal} strokeWidth={2.5} />
               </View>
               <Text style={styles.successTitle}>{t('message_sent_title')}</Text>
               <Text style={styles.successSub}>{t('message_sent_body')}</Text>
@@ -174,7 +170,7 @@ export function TripSupportSheet({
                       }}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.chipText, { color: active ? '#fff' : C_INK_SOFT }]}>
+                      <Text style={[styles.chipText, { color: active ? '#fff' : S.inkSoft }]}>
                         {t(key)}
                       </Text>
                     </TouchableOpacity>
@@ -189,7 +185,7 @@ export function TripSupportSheet({
                 value={message}
                 onChangeText={(v) => { setMessage(v); setError(null); }}
                 placeholder={t('issue_placeholder')}
-                placeholderTextColor={C_CAP}
+                placeholderTextColor={S.cap}
                 multiline
                 editable={!sending}
               />
@@ -219,7 +215,7 @@ export function TripSupportSheet({
   );
 }
 
-function makeStyles(isRTL: boolean) {
+function makeStyles(isRTL: boolean, S: SplitColors) {
   return StyleSheet.create({
     keyboardWrap: {
       flex: 1,
@@ -230,7 +226,7 @@ function makeStyles(isRTL: boolean) {
       backgroundColor: 'rgba(0,0,0,0.5)',
     },
     sheet: {
-      backgroundColor: '#fff',
+      backgroundColor: S.card,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       overflow: 'hidden',
@@ -246,7 +242,7 @@ function makeStyles(isRTL: boolean) {
       marginBottom: 16,
     },
     header: {
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
@@ -285,7 +281,7 @@ function makeStyles(isRTL: boolean) {
     label: {
       fontSize: 10.5,
       fontWeight: '700',
-      color: C_CAP,
+      color: S.cap,
       textTransform: 'uppercase',
       letterSpacing: 0.8,
       marginBottom: Spacing.sm,
@@ -303,12 +299,12 @@ function makeStyles(isRTL: boolean) {
       borderWidth: 1.5,
     },
     chipActive: {
-      backgroundColor: C_PANEL,
-      borderColor: C_PANEL,
+      backgroundColor: S.panel,
+      borderColor: S.panel,
     },
     chipInactive: {
-      backgroundColor: '#fff',
-      borderColor: C_HAIR,
+      backgroundColor: S.card,
+      borderColor: S.hair,
     },
     chipText: {
       fontSize: 12.5,
@@ -317,12 +313,12 @@ function makeStyles(isRTL: boolean) {
     textArea: {
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: C_HAIR,
+      borderColor: S.hair,
       backgroundColor: '#F7F8F8',
       paddingHorizontal: Spacing.lg,
       paddingVertical: 12,
       fontSize: 14,
-      color: C_INK,
+      color: S.ink,
       minHeight: 100,
       textAlignVertical: 'top',
       textAlign: isRTL ? 'right' : 'left',
@@ -337,7 +333,7 @@ function makeStyles(isRTL: boolean) {
       marginTop: Spacing.lg,
       height: 52,
       borderRadius: 16,
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -365,12 +361,12 @@ function makeStyles(isRTL: boolean) {
     successTitle: {
       fontSize: 18,
       fontWeight: '800',
-      color: C_INK,
+      color: S.ink,
       textAlign: 'center',
     },
     successSub: {
       fontSize: 13,
-      color: C_INK_SOFT,
+      color: S.inkSoft,
       textAlign: 'center',
       lineHeight: 19,
       paddingHorizontal: Spacing.lg,
@@ -380,7 +376,7 @@ function makeStyles(isRTL: boolean) {
       height: 48,
       paddingHorizontal: 36,
       borderRadius: 16,
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       alignItems: 'center',
       justifyContent: 'center',
     },

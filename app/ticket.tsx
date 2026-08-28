@@ -16,15 +16,9 @@ import { getSocket } from '@/src/api/socket';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_BG = '#EEF0F2';
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
 const C_MINT = '#3DDC97';
 
 
@@ -79,16 +73,16 @@ const SPARKLE_CONFIG = [
 const SPARKLE_COLORS = ['#fbbf24', '#f59e0b', '#34d399', '#6ee7b7', '#93c5fd', '#fff'];
 
 
-function makeStyles() {
+function makeStyles(S: SplitColors) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: Spacing.md },
     headerBtn: {
       width: 42, height: 42, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: '#fff',
+      backgroundColor: S.card,
       borderRadius: 21, borderWidth: 1,
-      borderColor: C_HAIR,
+      borderColor: S.hair,
     },
-    headerTitle: { fontSize: 15, fontWeight: '700', color: C_INK, letterSpacing: -0.2 },
+    headerTitle: { fontSize: 15, fontWeight: '700', color: S.ink, letterSpacing: -0.2 },
     scrollContent: { paddingHorizontal: 20, gap: 20, paddingTop: Spacing.xs },
 
     /* ── Celebration block ── */
@@ -101,22 +95,22 @@ function makeStyles() {
     },
     checkCircle: {
       width: 80, height: 80, borderRadius: 40,
-      backgroundColor: C_TEAL,
+      backgroundColor: S.teal,
       alignItems: 'center', justifyContent: 'center',
-      shadowColor: C_TEAL, shadowOffset: { width: 0, height: 10 },
+      shadowColor: S.teal, shadowOffset: { width: 0, height: 10 },
       shadowOpacity: 0.4, shadowRadius: 24, elevation: 14,
     },
-    confirmedLabel: { fontSize: 24, fontWeight: '800', color: C_INK, letterSpacing: -0.6, textAlign: 'center' },
-    bookingId: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center' },
+    confirmedLabel: { fontSize: 24, fontWeight: '800', color: S.ink, letterSpacing: -0.6, textAlign: 'center' },
+    bookingId: { fontSize: 13, color: S.inkSoft, textAlign: 'center' },
 
     /* ── Ticket card ── */
     ticketCard: {
-      borderRadius: 28, overflow: 'hidden', backgroundColor: '#fff',
+      borderRadius: 28, overflow: 'hidden', backgroundColor: S.card,
       shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.1, shadowRadius: 24, elevation: 10,
     },
     ticketHeader: {
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       paddingHorizontal: 22, paddingTop: 22, paddingBottom: 18,
       borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden',
     },
@@ -145,27 +139,27 @@ function makeStyles() {
 
     /* Perforation */
     perforationRow: { flexDirection: 'row', alignItems: 'center', height: 32, position: 'relative' },
-    punchLeft: { width: 32, height: 32, borderRadius: 16, backgroundColor: C_BG, marginStart: -16 },
+    punchLeft: { width: 32, height: 32, borderRadius: 16, backgroundColor: S.bg, marginStart: -16 },
     perforationLine: {
       flex: 1, height: 0,
       borderTopWidth: 2, borderColor: '#e2e2ea',
       borderStyle: 'dashed',
     },
-    punchRight: { width: 32, height: 32, borderRadius: 16, backgroundColor: C_BG, marginEnd: -16 },
+    punchRight: { width: 32, height: 32, borderRadius: 16, backgroundColor: S.bg, marginEnd: -16 },
 
     /* Ticket body */
-    ticketBody: { paddingHorizontal: 22, paddingBottom: Spacing.xl, paddingTop: Spacing.sm, backgroundColor: '#fff', gap: 0 },
+    ticketBody: { paddingHorizontal: 22, paddingBottom: Spacing.xl, paddingTop: Spacing.sm, backgroundColor: S.card, gap: 0 },
     infoRow: {
       flexDirection: 'row', alignItems: 'center', gap: 14,
-      paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: C_HAIR,
+      paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: S.hair,
     },
     infoIcon: {
       width: 36, height: 36, borderRadius: 12,
       backgroundColor: '#F5F5FA',
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
-    infoLabel: { fontSize: 10, color: C_CAP, textTransform: 'uppercase', letterSpacing: 0.8 },
-    infoValue: { fontSize: 14, fontWeight: '700', color: C_INK, marginTop: 1 },
+    infoLabel: { fontSize: 10, color: S.cap, textTransform: 'uppercase', letterSpacing: 0.8 },
+    infoValue: { fontSize: 14, fontWeight: '700', color: S.ink, marginTop: 1 },
 
     /* Status badge in ticket header */
     statusBadge: {
@@ -209,18 +203,18 @@ function makeStyles() {
     /* Boarded banner */
     boardedBanner: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-      backgroundColor: C_TEAL, borderRadius: 20, padding: Spacing.lg,
+      backgroundColor: S.teal, borderRadius: 20, padding: Spacing.lg,
     },
     boardedBannerText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#ffffff' },
 
     /* Actions */
     actions: { gap: 10 },
-    primaryBtn: { height: 56, borderRadius: 20, backgroundColor: C_TEAL, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    primaryBtn: { height: 56, borderRadius: 20, backgroundColor: S.teal, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
     primaryBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
     secondaryBtn: { height: 48, alignItems: 'center', justifyContent: 'center' },
-    secondaryBtnText: { fontSize: 13.5, color: C_INK_SOFT, fontWeight: '600' },
+    secondaryBtnText: { fontSize: 13.5, color: S.inkSoft, fontWeight: '600' },
     goHomeBtn: { marginTop: 20, borderRadius: 999, overflow: 'hidden' },
-    goHomeBtnGradient: { height: 52, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: C_TEAL },
+    goHomeBtnGradient: { height: 52, paddingHorizontal: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: S.teal },
     goHomeBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
   });
 }
@@ -232,7 +226,8 @@ export default function TicketScreen() {
   const { confirmedBookingId: bookingContextId, confirmedTripId: bookingContextTripId } = useBooking();
   const { t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(), []);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
 
   const shuttleSession = session?.kind === 'shuttle' ? session : null;
 
@@ -413,8 +408,8 @@ export default function TicketScreen() {
 
   if (!bookingId) {
     return (
-      <View style={{ flex: 1, backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
-        <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: C_INK, textAlign: 'center', marginBottom: Spacing.sm }}>
+      <View style={{ flex: 1, backgroundColor: S.bg, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
+        <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: S.ink, textAlign: 'center', marginBottom: Spacing.sm }}>
           {t('ticket_load_error')}
         </Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.goHomeBtn}>
@@ -433,8 +428,8 @@ export default function TicketScreen() {
   if (!shuttleSession) {
     if (sessionWaitTimedOut) {
       return (
-        <View style={{ flex: 1, backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
-          <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: C_INK, textAlign: 'center', marginBottom: Spacing.sm }}>
+        <View style={{ flex: 1, backgroundColor: S.bg, alignItems: 'center', justifyContent: 'center', padding: Spacing.xxl }}>
+          <Text style={{ fontSize: 17, fontWeight: Typography.weight.bold, color: S.ink, textAlign: 'center', marginBottom: Spacing.sm }}>
             {t('ticket_session_slow')}
           </Text>
           <TouchableOpacity onPress={handleRetrySession} style={styles.goHomeBtn} disabled={sessionRetrying}>
@@ -443,27 +438,27 @@ export default function TicketScreen() {
             </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.replace('/(tabs)')} style={{ marginTop: Spacing.md }}>
-            <Text style={{ fontSize: Typography.size.sm, color: C_INK_SOFT }}>{t('go_home')}</Text>
+            <Text style={{ fontSize: Typography.size.sm, color: S.inkSoft }}>{t('go_home')}</Text>
           </TouchableOpacity>
         </View>
       );
     }
     return (
-      <View style={{ flex: 1, backgroundColor: C_BG, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: Typography.size.md, color: C_INK_SOFT }}>{t('loading')}</Text>
+      <View style={{ flex: 1, backgroundColor: S.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: Typography.size.md, color: S.inkSoft }}>{t('loading')}</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: C_BG }}>
+    <View style={{ flex: 1, backgroundColor: S.bg }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => router.replace('/(tabs)')} activeOpacity={0.8}>
-          <X size={18} color={C_INK} />
+          <X size={18} color={S.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('boarding_pass')}</Text>
         <TouchableOpacity style={styles.headerBtn} activeOpacity={0.8} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
-          <Share2 size={16} color={C_INK} />
+          <Share2 size={16} color={S.ink} />
         </TouchableOpacity>
       </View>
 
@@ -582,7 +577,7 @@ export default function TicketScreen() {
             {/* From → To */}
             <View style={styles.ticketRouteRow}>
               <View style={styles.ticketStation}>
-                <View style={[styles.ticketStationDot, { backgroundColor: '#ffffff' }]} />
+                <View style={[styles.ticketStationDot, { backgroundColor: S.card }]} />
                 <Text style={styles.ticketStationText} numberOfLines={1}>
                   {isAr ? (displayFromNameAr ?? displayFromName) : displayFromName}
                 </Text>
@@ -625,7 +620,7 @@ export default function TicketScreen() {
             <View style={{ gap: 0 }}>
               <View style={styles.infoRow}>
                 <View style={styles.infoIcon}>
-                  <Calendar size={16} color={C_INK} />
+                  <Calendar size={16} color={S.ink} />
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('date')}</Text>
@@ -634,7 +629,7 @@ export default function TicketScreen() {
               </View>
               <View style={styles.infoRow}>
                 <View style={styles.infoIcon}>
-                  <User size={16} color={C_INK} />
+                  <User size={16} color={S.ink} />
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('passengers')}</Text>
@@ -643,7 +638,7 @@ export default function TicketScreen() {
               </View>
               <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
                 <View style={styles.infoIcon}>
-                  <Tag size={16} color={C_INK} />
+                  <Tag size={16} color={S.ink} />
                 </View>
                 <View>
                   <Text style={styles.infoLabel}>{t('total')}</Text>

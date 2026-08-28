@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { Spacing } from '@/constants/spacing';
 import { makeStyles, ModalHeader } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 function PaymentMethodIcon({ iconKey, color }: { iconKey?: string | null; color: string }) {
   const size = 20;
@@ -17,7 +18,8 @@ function PaymentMethodIcon({ iconKey, color }: { iconKey?: string | null; color:
 
 export function PaymentMethodsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t, language } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const { paymentMethods } = usePaymentConfig();
   const isAr = language === 'ar';
 

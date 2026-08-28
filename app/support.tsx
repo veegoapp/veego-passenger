@@ -13,6 +13,7 @@ import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
 import { getErrorMessage } from '@/src/utils/errorMessages';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
 
@@ -25,38 +26,31 @@ const ISSUE_MAP: Record<string, { subject: string; category: string }> = {
 };
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_BG = '#EEF0F2';
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
 
-function makeStyles() {
+function makeStyles(S: SplitColors) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md },
-    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR },
+    backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: S.card, borderWidth: 1, borderColor: S.hair },
     headerText: { flex: 1 },
-    headerTitle: { fontSize: 19, fontWeight: '800', color: C_INK, letterSpacing: -0.4 },
-    headerSub: { fontSize: 12.5, color: C_INK_SOFT, marginTop: 1, fontWeight: '600' },
+    headerTitle: { fontSize: 19, fontWeight: '800', color: S.ink, letterSpacing: -0.4 },
+    headerSub: { fontSize: 12.5, color: S.inkSoft, marginTop: 1, fontWeight: '600' },
 
     scroll: { paddingHorizontal: 20, gap: 20 },
-    inputLabel: { fontSize: 11, fontWeight: '700', color: C_CAP, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
+    inputLabel: { fontSize: 11, fontWeight: '700', color: S.cap, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
 
     issueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
     issueChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1.5 },
-    issueChipActive: { backgroundColor: C_PANEL, borderColor: C_PANEL },
-    issueChipInactive: { backgroundColor: '#fff', borderColor: C_HAIR },
+    issueChipActive: { backgroundColor: S.panel, borderColor: S.panel },
+    issueChipInactive: { backgroundColor: S.card, borderColor: S.hair },
     issueChipText: { fontSize: 12.5, fontWeight: '700' },
 
     textArea: {
-      borderRadius: 18, borderWidth: 1, borderColor: C_HAIR,
-      backgroundColor: '#fff', paddingHorizontal: Spacing.lg, paddingVertical: 14,
-      fontSize: 14, color: C_INK, minHeight: 120, textAlignVertical: 'top',
+      borderRadius: 18, borderWidth: 1, borderColor: S.hair,
+      backgroundColor: S.card, paddingHorizontal: Spacing.lg, paddingVertical: 14,
+      fontSize: 14, color: S.ink, minHeight: 120, textAlignVertical: 'top',
     },
     primaryBtn: {
-      height: 56, borderRadius: 20, backgroundColor: C_PANEL,
+      height: 56, borderRadius: 20, backgroundColor: S.panel,
       alignItems: 'center', justifyContent: 'center',
     },
     primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
@@ -66,27 +60,27 @@ function makeStyles() {
     },
     successCircle: {
       width: 90, height: 90, borderRadius: 45,
-      backgroundColor: C_TEAL, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: S.teal, alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: 20, color: C_INK, letterSpacing: -0.3, textAlign: 'center', fontWeight: '800' },
-    successSub: { fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: 20, color: S.ink, letterSpacing: -0.3, textAlign: 'center', fontWeight: '800' },
+    successSub: { fontSize: 13.5, color: S.inkSoft, textAlign: 'center', lineHeight: 21 },
     successBtn: {
       marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 999,
-      backgroundColor: C_PANEL, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: S.panel, alignItems: 'center', justifyContent: 'center',
     },
     successBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
 
     contactRow: { flexDirection: 'row', gap: 10 },
     contactCard: {
       flex: 1, padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm,
-      backgroundColor: '#fff', borderRadius: 20, borderWidth: 1, borderColor: C_HAIR,
+      backgroundColor: S.card, borderRadius: 20, borderWidth: 1, borderColor: S.hair,
     },
     contactIcon: {
       width: 48, height: 48, borderRadius: 16,
       alignItems: 'center', justifyContent: 'center',
     },
-    contactLabel: { fontSize: 12.5, fontWeight: '700', color: C_INK },
-    contactSub: { fontSize: 11, color: C_INK_SOFT, textAlign: 'center' },
+    contactLabel: { fontSize: 12.5, fontWeight: '700', color: S.ink },
+    contactSub: { fontSize: 11, color: S.inkSoft, textAlign: 'center' },
   });
 }
 
@@ -94,7 +88,8 @@ export default function SupportScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { t, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(), []);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -131,10 +126,10 @@ export default function SupportScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C_BG }}>
+    <View style={{ flex: 1, backgroundColor: S.bg }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          {isRTL ? <ArrowRight size={18} color={C_INK} /> : <ArrowLeft size={18} color={C_INK} />}
+          {isRTL ? <ArrowRight size={18} color={S.ink} /> : <ArrowLeft size={18} color={S.ink} />}
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('contact_title')}</Text>
@@ -203,7 +198,7 @@ export default function SupportScreen() {
                     >
                       <Text style={[
                         styles.issueChipText,
-                        { color: active ? '#fff' : C_INK_SOFT },
+                        { color: active ? '#fff' : S.inkSoft },
                       ]}>
                         {t(key)}
                       </Text>
@@ -220,7 +215,7 @@ export default function SupportScreen() {
                 value={message}
                 onChangeText={setMessage}
                 placeholder={t('issue_placeholder')}
-                placeholderTextColor={C_CAP}
+                placeholderTextColor={S.cap}
                 textAlign={isRTL ? 'right' : 'left'}
                 multiline
               />

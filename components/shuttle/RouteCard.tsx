@@ -3,48 +3,44 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import type { Route } from '@/constants/data';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 // RouteCard uses t() from useTheme so it must call hook inside component
 
-const C_PANEL = '#14151A';
-const C_TEAL = '#0E9F8E';
 const C_MINT = '#3DDC97';
-const C_CAP = '#9AA0A6';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_MIST = '#F0F2F3';
 
-function makeStyles(c: ThemeColors) {
+function makeStyles(c: ThemeColors, S: SplitColors) {
   return StyleSheet.create({
     card: {
       borderRadius: 24, overflow: 'hidden', flexDirection: 'row',
       shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: c.isDark ? 0.3 : 0.1, shadowRadius: 20, elevation: 6,
     },
-    leftPanel: { width: 104, flexShrink: 0, backgroundColor: C_PANEL, padding: 16, paddingVertical: 16 },
-    cap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: C_CAP },
+    leftPanel: { width: 104, flexShrink: 0, backgroundColor: S.panel, padding: 16, paddingVertical: 16 },
+    cap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: S.cap },
     codeText: { fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 3 },
-    priceCap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: C_CAP },
+    priceCap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: S.cap },
     priceBig: { fontSize: 22, fontWeight: '800', color: C_MINT, marginTop: 1, lineHeight: 24 },
-    priceUnit: { fontSize: 11, color: C_CAP, fontWeight: '700' },
+    priceUnit: { fontSize: 11, color: S.cap, fontWeight: '700' },
 
     rightPanel: { flex: 1, backgroundColor: c.white, padding: 16, paddingVertical: 14 },
-    routeName: { fontSize: 15, fontWeight: '800', color: C_INK, letterSpacing: -0.2 },
-    routePath: { fontSize: 12, fontWeight: '600', color: C_INK_SOFT, marginTop: 2 },
+    routeName: { fontSize: 15, fontWeight: '800', color: S.ink, letterSpacing: -0.2 },
+    routePath: { fontSize: 12, fontWeight: '600', color: S.inkSoft, marginTop: 2 },
     statsRow: { flexDirection: 'row', gap: 14, marginTop: 12 },
-    statVal: { fontSize: 12.5, fontWeight: '800', color: C_INK },
-    statCap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: C_CAP, marginTop: 1 },
+    statVal: { fontSize: 12.5, fontWeight: '800', color: S.ink },
+    statCap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: S.cap, marginTop: 1 },
     fillRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
-    fillSeats: { fontSize: 11, fontWeight: '700', color: C_INK_SOFT },
-    fillPct: { fontSize: 11, fontWeight: '700', color: C_TEAL },
-    fillBar: { height: 6, borderRadius: 3, backgroundColor: C_MIST, marginTop: 6, overflow: 'hidden' },
-    fillBarFill: { height: '100%' as any, backgroundColor: C_TEAL, borderRadius: 3 },
+    fillSeats: { fontSize: 11, fontWeight: '700', color: S.inkSoft },
+    fillPct: { fontSize: 11, fontWeight: '700', color: S.teal },
+    fillBar: { height: 6, borderRadius: 3, backgroundColor: S.surfaceMuted, marginTop: 6, overflow: 'hidden' },
+    fillBarFill: { height: '100%' as any, backgroundColor: S.teal, borderRadius: 3 },
   });
 }
 
 export function RouteCard({ route, onPress }: { route: Route; onPress: () => void }) {
   const { colors: c, t, language } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const fillPct = Math.round(((route.totalSeats - route.seatsLeft) / route.totalSeats) * 100);
 
   const displayName = isAr ? (route.nameAr ?? route.name) : route.name;

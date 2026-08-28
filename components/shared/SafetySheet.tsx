@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo} from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal,
   Linking, I18nManager,
@@ -13,12 +13,9 @@ import { sendRideSos } from '@/src/api/rideService';
 import { sendTripSos } from '@/src/api/shuttleService';
 import { getEmergencyContact } from '@/src/api/userService';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_PANEL = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_HAIR = '#EEF0F1';
 const C_RED = '#D92D20';
 const C_ORANGE = '#EA580C';
 const C_WHATSAPP = '#25D366';
@@ -54,6 +51,8 @@ export function SafetySheet({
   visible, onClose, rideId, tripId, driverName, vehicle, plate, routeName, fallbackCoords,
 }: SafetySheetProps) {
   const { t } = useTheme();
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
   const isRTL = I18nManager.isRTL;
 
@@ -239,7 +238,8 @@ export function SafetySheet({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(S: SplitColors) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: S.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     overflow: 'hidden',
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   header: {
-    backgroundColor: C_PANEL,
+    backgroundColor: S.panel,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: C_HAIR,
-    backgroundColor: '#fff',
+    borderColor: S.hair,
+    backgroundColor: S.card,
   },
   optionIcon: {
     width: 40,
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   },
   optionSub: {
     fontSize: 11.5,
-    color: C_CAP,
+    color: S.cap,
     marginTop: 2,
     fontWeight: '600',
   },
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   statusSending: {
     fontSize: 13,
-    color: C_INK_SOFT,
+    color: S.inkSoft,
     fontWeight: '700',
   },
   statusSent: {
@@ -348,4 +348,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingTop: Spacing.sm,
   },
-});
+  });
+}
