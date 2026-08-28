@@ -366,7 +366,7 @@ function makeStyles(S: SplitColors) {
 
   /* ── Confirm ── */
   confirmBtn: {
-    height: 54, borderRadius: 15, backgroundColor: S.ink,
+    height: 54, borderRadius: 15, backgroundColor: S.panel,
     alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
   confirmTxt: { color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },

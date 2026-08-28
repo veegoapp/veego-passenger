@@ -314,7 +314,7 @@ function makeStyles(isRTL: boolean, S: SplitColors) {
       borderRadius: 16,
       borderWidth: 1,
       borderColor: S.hair,
-      backgroundColor: '#F7F8F8',
+      backgroundColor: S.surfaceMuted,
       paddingHorizontal: Spacing.lg,
       paddingVertical: 12,
       fontSize: 14,

@@ -155,7 +155,7 @@ function makeStyles(S: SplitColors) {
     },
     infoIcon: {
       width: 36, height: 36, borderRadius: 12,
-      backgroundColor: '#F5F5FA',
+      backgroundColor: S.surfaceMuted,
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     },
     infoLabel: { fontSize: 10, color: S.cap, textTransform: 'uppercase', letterSpacing: 0.8 },

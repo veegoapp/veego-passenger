@@ -304,7 +304,7 @@ export default function ReviewConfirmScreen() {
     stationBlock: { gap: 3 },
     stationBadge: {
       alignSelf: 'flex-start',
-      backgroundColor: '#F0F2F3',
+      backgroundColor: S.surfaceMuted,
       borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
       marginBottom: Spacing.xs,
     },
@@ -321,7 +321,7 @@ export default function ReviewConfirmScreen() {
     infoChipDivider: { width: 1, backgroundColor: S.hair, marginHorizontal: Spacing.xs },
     infoChipIconBox: {
       width: 30, height: 30, borderRadius: 9,
-      backgroundColor: '#F0F2F3',
+      backgroundColor: S.surfaceMuted,
       alignItems: 'center', justifyContent: 'center',
     },
     infoChipLabel: { fontSize: 9.5, color: S.cap, letterSpacing: 0.3 },
@@ -332,7 +332,7 @@ export default function ReviewConfirmScreen() {
     promoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     promoIconBox: {
       width: 42, height: 42, borderRadius: 13,
-      backgroundColor: '#F0F2F3',
+      backgroundColor: S.surfaceMuted,
       alignItems: 'center', justifyContent: 'center',
     },
     promoInput: {

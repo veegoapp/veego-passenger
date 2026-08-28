@@ -103,7 +103,7 @@ export default function NotificationsScreen() {
             >
               <View style={[styles.notifCard, n.unread && styles.notifCardUnread]}>
                 <View style={[styles.notifIconWrap, { backgroundColor: ICON_BG[n.type] ?? '#F0F2F3' }]}>
-                  <NotifIcon size={16} color={S.ink} />
+                  <NotifIcon size={16} color="#14151A" />
                 </View>
                 <View style={styles.notifContent}>
                   <View style={styles.notifTitleRow}>

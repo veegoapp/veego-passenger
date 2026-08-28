@@ -308,11 +308,11 @@ function makeStyles(S: SplitColors) {
   ratingBody: { backgroundColor: S.card, padding: 24 },
   starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
   commentPlaceholder: {
-    marginTop: 22, backgroundColor: '#F6F7F8', borderRadius: 14,
+    marginTop: 22, backgroundColor: S.surfaceMuted, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: S.cap,
   },
   commentInput: {
-    borderWidth: 1, borderColor: S.hair, borderRadius: 14, backgroundColor: '#F6F7F8',
+    borderWidth: 1, borderColor: S.hair, borderRadius: 14, backgroundColor: S.surfaceMuted,
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginTop: 22, minHeight: 60, textAlignVertical: 'top', color: S.ink,
   },
   skipBtn: { alignSelf: 'center', marginTop: 14, paddingVertical: 6 },

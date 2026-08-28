@@ -150,7 +150,7 @@ export default function ProfileScreen() {
   const close = () => setActiveModal(null);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EEF0F2' }}>
+    <View style={{ flex: 1, backgroundColor: S.bg }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <Text style={styles.headerTitle}>{t('profile_title')}</Text>
       </View>

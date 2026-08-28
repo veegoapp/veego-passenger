@@ -181,11 +181,11 @@ function makeStyles(S: SplitColors) {
   body: { padding: 22 },
   starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
   commentPlaceholder: {
-    marginTop: 20, backgroundColor: '#F6F7F8', borderRadius: 14,
+    marginTop: 20, backgroundColor: S.surfaceMuted, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: S.cap,
   },
   commentInput: {
-    width: '100%', borderWidth: 1, borderColor: S.hair, borderRadius: 14, backgroundColor: '#F6F7F8',
+    width: '100%', borderWidth: 1, borderColor: S.hair, borderRadius: 14, backgroundColor: S.surfaceMuted,
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, lineHeight: 20, marginTop: 20,
     minHeight: 60, textAlignVertical: 'top', color: S.ink,
   },

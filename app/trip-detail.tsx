@@ -364,10 +364,10 @@ function makeStyles(c: ThemeColors, isRTL: boolean, SC: SplitColors) {
     divider: { height: 1, backgroundColor: c.border },
 
     driverRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-    avatarImg: { width: 56, height: 56, borderRadius: Radius.lg, backgroundColor: '#F0F2F3' },
+    avatarImg: { width: 56, height: 56, borderRadius: Radius.lg, backgroundColor: SC.surfaceMuted },
     avatarFallback: {
       width: 56, height: 56, borderRadius: Radius.lg,
-      backgroundColor: '#F0F2F3', borderWidth: 1, borderColor: '#EEF0F1',
+      backgroundColor: SC.surfaceMuted, borderWidth: 1, borderColor: SC.hair,
       alignItems: 'center', justifyContent: 'center',
     },
     avatarInitials: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: SC.ink },
@@ -378,7 +378,7 @@ function makeStyles(c: ThemeColors, isRTL: boolean, SC: SplitColors) {
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: 2 },
     tag: {
       flexDirection: 'row', alignItems: 'center', gap: 4,
-      backgroundColor: '#F0F2F3', borderRadius: Radius.full,
+      backgroundColor: SC.surfaceMuted, borderRadius: Radius.full,
       paddingHorizontal: 10, paddingVertical: 4,
     },
     tagText: { fontSize: 11.5, fontWeight: Typography.weight.semibold, color: SC.inkSoft },
@@ -431,11 +431,11 @@ function makeStyles(c: ThemeColors, isRTL: boolean, SC: SplitColors) {
     panelSeatRide: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 2 },
 
     rightPanelRide: { flex: 1, backgroundColor: SC.card, padding: 18, paddingVertical: 20 },
-    dividerRide: { height: 1, backgroundColor: '#EEF0F1', marginVertical: 14 },
-    timelineLineBarRide: { width: 2, flex: 1, minHeight: 18, backgroundColor: '#EEF0F1', marginVertical: 2 },
+    dividerRide: { height: 1, backgroundColor: SC.hair, marginVertical: 14 },
+    timelineLineBarRide: { width: 2, flex: 1, minHeight: 18, backgroundColor: SC.hair, marginVertical: 2 },
     timelineTextRide: { flex: 1, fontSize: 13, color: SC.ink, lineHeight: 19 },
     statsRowRide: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-    statBoxRide: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F7F8F8', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
+    statBoxRide: { flexBasis: '47%', flexGrow: 1, backgroundColor: SC.surfaceMuted, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
     statValRide: { fontSize: 13, fontWeight: '800', color: SC.ink },
     statLabRide: { fontSize: 9.5, fontWeight: '700', color: SC.cap, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 },
 
@@ -459,20 +459,20 @@ function makeStyles(c: ThemeColors, isRTL: boolean, SC: SplitColors) {
     panelSeat: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 2 },
 
     rightPanel: { flex: 1, backgroundColor: SC.card, padding: 18, paddingVertical: 20 },
-    rTitle: { fontSize: 16, fontWeight: '800', color: '#14151A', letterSpacing: -0.2 },
-    rSub: { fontSize: 12.5, fontWeight: '600', color: '#9AA0A6', marginTop: 2 },
+    rTitle: { fontSize: 16, fontWeight: '800', color: SC.ink, letterSpacing: -0.2 },
+    rSub: { fontSize: 12.5, fontWeight: '600', color: SC.cap, marginTop: 2 },
     rNextStop: { fontSize: 12, fontWeight: '700', color: '#0E9F8E', marginTop: 6 },
-    rDivider: { height: 1, backgroundColor: '#EEF0F1', marginVertical: 14 },
+    rDivider: { height: 1, backgroundColor: SC.hair, marginVertical: 14 },
     driverRowC: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    driverAvatarC: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#F0F2F3', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    driverAvatarC: { width: 46, height: 46, borderRadius: 23, backgroundColor: SC.surfaceMuted, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     driverAvatarImgC: { width: 46, height: 46, borderRadius: 23, flexShrink: 0 },
-    driverInitialsC: { fontWeight: '800', fontSize: 15, color: '#14151A' },
-    driverNameC: { fontSize: 14.5, fontWeight: '800', color: '#14151A' },
-    driverCapC: { fontSize: 11.5, fontWeight: '600', color: '#9AA0A6', marginTop: 2 },
+    driverInitialsC: { fontWeight: '800', fontSize: 15, color: SC.ink },
+    driverNameC: { fontSize: 14.5, fontWeight: '800', color: SC.ink },
+    driverCapC: { fontSize: 11.5, fontWeight: '600', color: SC.cap, marginTop: 2 },
     statsRowC: { flexDirection: 'row', gap: 8 },
-    statBoxC: { flex: 1, backgroundColor: '#F7F8F8', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
-    statValC: { fontSize: 13, fontWeight: '800', color: '#14151A' },
-    statLabC: { fontSize: 9.5, fontWeight: '700', color: '#9AA0A6', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 },
+    statBoxC: { flex: 1, backgroundColor: SC.surfaceMuted, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
+    statValC: { fontSize: 13, fontWeight: '800', color: SC.ink },
+    statLabC: { fontSize: 9.5, fontWeight: '700', color: SC.cap, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 },
     buttonsRowC: { flexDirection: 'row', gap: 10, marginTop: 14 },
     pillSOS: { flex: 1, height: 44, borderRadius: 999, borderWidth: 1.5, borderColor: '#F3C6C2', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
     pillSOSText: { fontSize: 12.5, fontWeight: '700', color: '#D92D20' },
@@ -1245,7 +1245,7 @@ export default function TripDetailScreen() {
   const showRate = effectiveStatus === 'completed' && !shuttleAlreadyRated && !!trip.driverUserId;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#EBEDEE' }}>
+    <View style={{ flex: 1, backgroundColor: SC.bg }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
           {isRTL ? <ArrowRight size={18} color={c.ink} /> : <ArrowLeft size={18} color={c.ink} />}

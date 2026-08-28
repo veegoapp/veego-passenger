@@ -462,7 +462,7 @@ function makeStyles(S: SplitColors) {
   icBtnC: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   icBtnGhostC: { backgroundColor: S.card, borderWidth: 1, borderColor: S.hair },
   startBtnC: {
-    height: 50, borderRadius: 14, backgroundColor: S.ink,
+    height: 50, borderRadius: 14, backgroundColor: S.panel,
     alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch', marginTop: 12,
   },
   startBtnCText: { fontSize: 14, fontWeight: '700', color: '#ffffff', letterSpacing: 0.4 },

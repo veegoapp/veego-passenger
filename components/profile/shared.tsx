@@ -97,7 +97,7 @@ export function makeStyles(_c: ThemeColors, S: SplitColors) {
     attachmentOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
     attachmentBadge: { position: 'absolute', bottom: 3, right: 3, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
     attachmentRemoveBtn: { position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
-    attachmentAddBtn: { width: 64, height: 64, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: S.hair, backgroundColor: '#F7F8F8', alignItems: 'center', justifyContent: 'center' },
+    attachmentAddBtn: { width: 64, height: 64, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: S.hair, backgroundColor: S.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
 
     successBox: { alignItems: 'center', gap: 14, paddingTop: 60 },
     successIcon: { width: 80, height: 80, borderRadius: 28, backgroundColor: S.panel, alignItems: 'center', justifyContent: 'center' },
@@ -105,24 +105,24 @@ export function makeStyles(_c: ThemeColors, S: SplitColors) {
     successSub: { fontSize: 13.5, color: S.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xxl, lineHeight: 20 },
 
     readOnlyInput: {
-      backgroundColor: '#F5F5F8',
+      backgroundColor: S.surfaceMuted,
       borderRadius: 16, paddingHorizontal: Spacing.lg, paddingVertical: 14,
       fontSize: 15, color: S.inkSoft, borderWidth: 1,
-      borderColor: '#ECECF0',
+      borderColor: S.hair,
     },
     readOnlyBadge: {
       position: 'absolute', right: 14, top: '50%',
       paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: 8,
-      backgroundColor: '#ECECF0',
+      backgroundColor: S.surfaceMuted,
     },
     readOnlyBadgeText: { fontSize: 10, fontWeight: '700', color: S.cap, letterSpacing: 0.4 },
 
     avatarPickerWrap: { alignItems: 'center', paddingTop: Spacing.sm, paddingBottom: Spacing.xs },
     avatarPickerCircle: {
       width: 88, height: 88, borderRadius: 44, overflow: 'hidden',
-      backgroundColor: '#F0F0F5',
+      backgroundColor: S.surfaceMuted,
       alignItems: 'center', justifyContent: 'center',
-      borderWidth: 2, borderColor: '#E0E0EA',
+      borderWidth: 2, borderColor: S.hair,
     },
     avatarPickerInitials: { fontSize: 24, fontWeight: '800', color: S.ink },
     avatarCameraBadge: {
@@ -134,8 +134,8 @@ export function makeStyles(_c: ThemeColors, S: SplitColors) {
 
     pwSection: {
       borderRadius: 18, overflow: 'hidden',
-      backgroundColor: '#F7F8FA',
-      borderWidth: 1, borderColor: '#E8E8F2',
+      backgroundColor: S.surfaceMuted,
+      borderWidth: 1, borderColor: S.hair,
     },
     pwSectionHeader: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
