@@ -4,13 +4,8 @@ import { X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { ThemeColors } from '@/constants/colors';
 import { shuttleStatusLabel, type Trip, type BookingStatus } from '@/constants/data';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
-const C_PANEL = '#14151A';
-const C_CAP = '#9AA0A6';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_MIST = '#F0F2F3';
-const C_HAIR = '#EEF0F1';
 
 const BOOKING_STATUS_LABEL: Record<BookingStatus, { en: string; ar: string }> = {
   pending:   { en: 'Pending',   ar: 'قيد الانتظار' },
@@ -62,7 +57,8 @@ export function UpcomingTripCard({
 }: UpcomingTripCardProps) {
   const { colors: c, t, language } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
 
   const routeName = (isAr ? trip.routeNameAr ?? trip.routeName : trip.routeName) || '—';
   const from      = (isAr ? trip.fromAr ?? trip.from : trip.from) || '—';
@@ -123,14 +119,14 @@ export function UpcomingTripCard({
 
         <View style={styles.route}>
           <View style={styles.stationLine}>
-            <View style={[styles.dot, { backgroundColor: C_INK }]} />
+            <View style={[styles.dot, { backgroundColor: S.ink }]} />
             <View style={styles.line} />
             <View style={[styles.dot, styles.dotOutline]} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
             <View style={{ height: 10 }} />
-            <Text style={[styles.stationText, { color: C_INK_SOFT }]} numberOfLines={1}>{to}</Text>
+            <Text style={[styles.stationText, { color: S.inkSoft }]} numberOfLines={1}>{to}</Text>
           </View>
         </View>
 
@@ -182,50 +178,50 @@ export function UpcomingTripCard({
   );
 }
 
-function makeStyles(c: ThemeColors) {
+function makeStyles(c: ThemeColors, S: SplitColors) {
   return StyleSheet.create({
     card: {
       borderRadius: 24, overflow: 'hidden', flexDirection: 'row',
       shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: c.isDark ? 0.3 : 0.1, shadowRadius: 20, elevation: 6,
     },
-    leftPanel: { width: 104, flexShrink: 0, backgroundColor: C_PANEL, padding: 14, paddingVertical: 16 },
+    leftPanel: { width: 104, flexShrink: 0, backgroundColor: S.panel, padding: 14, paddingVertical: 16 },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     statusDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
     statusText: { fontSize: 10.5, fontWeight: '700', color: '#fff', flexShrink: 1 },
     livePill: { marginStart: 2 },
     livePillText: { fontSize: 8.5, fontWeight: '800', color: '#3DDC97', textTransform: 'uppercase' },
-    cap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: C_CAP },
+    cap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: S.cap },
     bigVal: { fontSize: 20, fontWeight: '800', color: '#fff', marginTop: 2, letterSpacing: -0.3 },
     seatVal: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 1 },
 
     rightPanel: { flex: 1, backgroundColor: c.white, padding: 16, paddingVertical: 14, gap: 10 },
     titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-    routeName: { flex: 1, fontSize: 15, fontWeight: '800', color: C_INK, letterSpacing: -0.2 },
-    bookingBadge: { backgroundColor: C_MIST, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
-    bookingBadgeText: { fontSize: 10, fontWeight: '700', color: C_INK_SOFT },
-    dateText: { fontSize: 12, fontWeight: '600', color: C_CAP, marginTop: -6 },
+    routeName: { flex: 1, fontSize: 15, fontWeight: '800', color: S.ink, letterSpacing: -0.2 },
+    bookingBadge: { backgroundColor: S.surfaceMuted, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
+    bookingBadgeText: { fontSize: 10, fontWeight: '700', color: S.inkSoft },
+    dateText: { fontSize: 12, fontWeight: '600', color: S.cap, marginTop: -6 },
 
     route: { flexDirection: 'row', alignItems: 'stretch', gap: 8 },
     stationLine: { alignItems: 'center', width: 8, paddingTop: 3 },
     dot: { width: 7, height: 7, borderRadius: 3.5 },
     dotOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#C7CBCF' },
-    line: { width: 2, flex: 1, minHeight: 16, backgroundColor: C_HAIR, marginVertical: 2 },
-    stationText: { fontSize: 12, fontWeight: '700', color: C_INK },
+    line: { width: 2, flex: 1, minHeight: 16, backgroundColor: S.hair, marginVertical: 2 },
+    stationText: { fontSize: 12, fontWeight: '700', color: S.ink },
 
     capacityWrap: { gap: 5 },
-    capacityCount: { fontSize: 11, fontWeight: '700', color: C_INK_SOFT },
-    capacityTrack: { height: 6, borderRadius: 3, backgroundColor: C_MIST, overflow: 'hidden' },
+    capacityCount: { fontSize: 11, fontWeight: '700', color: S.inkSoft },
+    capacityTrack: { height: 6, borderRadius: 3, backgroundColor: S.surfaceMuted, overflow: 'hidden' },
     capacityFill: { height: 6, borderRadius: 3 },
 
     driverInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     driverAvatarImg: { width: 20, height: 20, borderRadius: 10 },
-    driverAvatarFallback: { width: 20, height: 20, borderRadius: 10, backgroundColor: C_MIST, alignItems: 'center', justifyContent: 'center' },
-    driverAvatarFallbackText: { fontSize: 9.5, fontWeight: '800', color: C_INK },
-    driverRow: { fontSize: 12, fontWeight: '600', color: C_INK_SOFT, flexShrink: 1 },
-    ratingText: { fontSize: 12, fontWeight: '700', color: C_INK },
+    driverAvatarFallback: { width: 20, height: 20, borderRadius: 10, backgroundColor: S.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+    driverAvatarFallbackText: { fontSize: 9.5, fontWeight: '800', color: S.ink },
+    driverRow: { fontSize: 12, fontWeight: '600', color: S.inkSoft, flexShrink: 1 },
+    ratingText: { fontSize: 12, fontWeight: '700', color: S.ink },
 
     bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    price: { fontSize: 15, fontWeight: '800', color: C_INK },
+    price: { fontSize: 15, fontWeight: '800', color: S.ink },
     cancelBtn: {
       flexDirection: 'row', alignItems: 'center', gap: 5,
       height: 34, borderRadius: 999, borderWidth: 1.5, borderColor: '#F3C6C2', paddingHorizontal: 14,

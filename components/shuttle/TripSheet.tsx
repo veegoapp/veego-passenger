@@ -24,22 +24,16 @@ import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 
 import { BOOKABLE_STATUSES, formatTripDateUTC } from './tripSheetHelpers';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 import {
   RouteHero, StatsRow, DateSelector, TripCard, StationPicker, PriceSummary,
 } from './TripSheetSections';
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark
 // theme (matches the ride-flow cards already rebuilt in this direction).
-const C_PANEL = '#14151A';
-const C_TEAL = '#0E9F8E';
 const C_MINT = '#3DDC97';
-const C_CAP = '#9AA0A6';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_HAIR = '#EEF0F1';
-const C_MIST = '#F0F2F3';
 
-function makeStyles(c: ThemeColors, insetsBottom: number) {
+function makeStyles(c: ThemeColors, insetsBottom: number, SC: SplitColors) {
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 9999, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
@@ -48,7 +42,7 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       ...S.float,
     },
     sheetGlass: {
-      flex: 1, backgroundColor: '#fff',
+      flex: 1, backgroundColor: SC.card,
       borderTopLeftRadius: 30, borderTopRightRadius: 30,
       borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
     },
@@ -69,7 +63,7 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
 
     /* ── Route hero — dark panel ─────────────────────────── */
     routeHero: {
-      backgroundColor: C_PANEL,
+      backgroundColor: SC.panel,
       paddingHorizontal: Spacing.xl, paddingTop: 20, paddingBottom: 0,
       marginHorizontal: Spacing.md, marginTop: Spacing.lg,
       borderRadius: 24, overflow: 'hidden',
@@ -114,9 +108,9 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     /* Stat cards row — flat, no gradient */
     statsRow: { flexDirection: 'row', gap: Spacing.sm, paddingHorizontal: Spacing.md, marginTop: 14, marginBottom: Spacing.xs },
     statCardWrap: { flex: 1, borderRadius: 14 },
-    statCard: { borderRadius: 14, backgroundColor: C_MIST, paddingHorizontal: 10, paddingVertical: 10 },
-    statValue: { fontSize: 13, fontWeight: '800', color: C_INK, letterSpacing: -0.2 },
-    statLabel: { fontSize: 9.5, fontWeight: '700', color: C_CAP, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 3 },
+    statCard: { borderRadius: 14, backgroundColor: SC.surfaceMuted, paddingHorizontal: 10, paddingVertical: 10 },
+    statValue: { fontSize: 13, fontWeight: '800', color: SC.ink, letterSpacing: -0.2 },
+    statLabel: { fontSize: 9.5, fontWeight: '700', color: SC.cap, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 3 },
 
     /* Date selector strip */
     dateSelectorWrap: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
@@ -124,19 +118,19 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       alignItems: 'center', paddingHorizontal: 11, paddingVertical: 7,
       borderRadius: 14, marginEnd: 8, borderWidth: 1.5, minWidth: 60,
     },
-    dateItemActive: { backgroundColor: C_PANEL, borderColor: C_PANEL },
+    dateItemActive: { backgroundColor: SC.panel, borderColor: SC.panel },
     dateItemInactive: { backgroundColor: c.white, borderColor: '#E2E5E8' },
     dateDayLabel: { fontSize: 9, fontWeight: Typography.weight.semibold, textTransform: 'uppercase' as any, letterSpacing: 0.4, marginBottom: 1 },
     dateDayLabelActive: { color: '#ffffff' },
-    dateDayLabelInactive: { color: C_CAP },
+    dateDayLabelInactive: { color: SC.cap },
     dateDayNum: { fontSize: 17, fontWeight: '800', letterSpacing: -0.5 },
     dateDayNumActive: { color: '#ffffff' },
-    dateDayNumInactive: { color: C_INK },
+    dateDayNumInactive: { color: SC.ink },
 
     /* Section wrapper */
     sectionWrap: { paddingHorizontal: Spacing.md, marginTop: 18 },
     sectionTitle: {
-      fontSize: 11, fontWeight: Typography.weight.semibold, color: C_CAP,
+      fontSize: 11, fontWeight: Typography.weight.semibold, color: SC.cap,
       textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: Spacing.md,
     },
 
@@ -144,15 +138,15 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
      * flips to the fixed dark panel — always, regardless of app theme. */
     tripCard: {
       borderRadius: 20, borderWidth: 1.5, borderColor: '#E2E5E8',
-      padding: Spacing.lg, backgroundColor: '#ffffff', marginBottom: 10,
+      padding: Spacing.lg, backgroundColor: SC.card, marginBottom: 10,
     },
     tripCardActive: {
-      backgroundColor: C_PANEL, borderColor: C_PANEL,
+      backgroundColor: SC.panel, borderColor: SC.panel,
       shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 22, elevation: 6,
     },
     tripCardDisabled: { opacity: 0.4 },
     tripCardTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-    tripTime: { fontSize: 23, fontWeight: '800', color: C_INK, letterSpacing: -0.5 },
+    tripTime: { fontSize: 23, fontWeight: '800', color: SC.ink, letterSpacing: -0.5 },
     tripTimeActive: { color: '#ffffff' },
     tripNumberBox: {
       borderRadius: 10, paddingHorizontal: 10, paddingVertical: Spacing.xs,
@@ -160,52 +154,52 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
     },
     tripNumberBoxActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
-    tripNumberText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: C_INK_SOFT },
+    tripNumberText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: SC.inkSoft },
     tripNumberTextActive: { color: 'rgba(255,255,255,0.8)' },
-    tripDateText: { fontSize: 11, color: C_INK_SOFT, marginTop: 2 },
+    tripDateText: { fontSize: 11, color: SC.inkSoft, marginTop: 2 },
     tripDateTextActive: { color: 'rgba(255,255,255,0.55)' },
     tripStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
     tripStatusDot: { width: 7, height: 7, borderRadius: 4 },
     tripStatusText: { fontSize: 11, fontWeight: Typography.weight.semibold },
     tripSeatsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-    tripSeatsFraction: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: C_INK_SOFT },
+    tripSeatsFraction: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold, color: SC.inkSoft },
     tripSeatsFractionActive: { color: 'rgba(255,255,255,0.65)' },
-    tripSeatsLabel: { fontSize: 11, color: C_INK_SOFT },
+    tripSeatsLabel: { fontSize: 11, color: SC.inkSoft },
     tripSeatsLabelActive: { color: 'rgba(255,255,255,0.5)' },
     progressBarWrap: { height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.08)', overflow: 'hidden' },
     progressBarFill: { height: '100%' as any, borderRadius: 3 },
     tripAvailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.sm },
     tripAvailDot: { width: 6, height: 6, borderRadius: 3 },
     tripAvailText: { fontSize: Typography.size.xs, fontWeight: Typography.weight.semibold },
-    tripMessage: { fontSize: 11, color: C_INK_SOFT, marginTop: 6, lineHeight: 15 },
+    tripMessage: { fontSize: 11, color: SC.inkSoft, marginTop: 6, lineHeight: 15 },
     tripMessageActive: { color: 'rgba(255,255,255,0.6)' },
 
     /* No trips */
     noTripsWrap: { paddingVertical: 28, alignItems: 'center', gap: Spacing.sm, borderRadius: 20, backgroundColor: c.white, borderWidth: 1, borderColor: '#E2E5E8' },
-    noTripsText: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center', paddingHorizontal: Spacing.xl },
+    noTripsText: { fontSize: 13, color: SC.inkSoft, textAlign: 'center', paddingHorizontal: Spacing.xl },
 
     /* Station picker */
-    pickTabWrap: { flexDirection: 'row', padding: Spacing.xs, gap: 2, backgroundColor: C_MIST, borderRadius: 18 },
+    pickTabWrap: { flexDirection: 'row', padding: Spacing.xs, gap: 2, backgroundColor: SC.surfaceMuted, borderRadius: 18 },
     pickTab: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.sm },
-    pickTabActive: { backgroundColor: C_PANEL },
+    pickTabActive: { backgroundColor: SC.panel },
     pickTabText: { fontSize: 12.5, fontFamily: 'Inter_600SemiBold' },
 
     timeline: { marginTop: Spacing.md, backgroundColor: c.white, borderRadius: 20, padding: Spacing.lg, gap: 0, borderWidth: 1, borderColor: '#E2E5E8' },
     timelineRow: { flexDirection: 'row', gap: Spacing.md, paddingBottom: Spacing.md },
     timelineLeft: { alignItems: 'center', width: 16 },
     tlDot: { width: 16, height: 16, borderRadius: Radius.sm, borderWidth: 2 },
-    tlDotActive: { borderColor: C_PANEL, backgroundColor: C_PANEL },
-    tlDotSeg: { borderColor: C_PANEL, backgroundColor: c.white },
+    tlDotActive: { borderColor: SC.panel, backgroundColor: SC.panel },
+    tlDotSeg: { borderColor: SC.panel, backgroundColor: c.white },
     tlDotInactive: { borderColor: '#C7CBCF', backgroundColor: c.white },
     tlLine: { width: 2, flex: 1, marginTop: 2, minHeight: 16 },
-    tlLineActive: { backgroundColor: C_PANEL },
+    tlLineActive: { backgroundColor: SC.panel },
     tlLineInactive: { backgroundColor: '#E2E5E8' },
     timelineRight: { flex: 1, paddingBottom: Spacing.xs },
     timelineTextRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
     tlName: { fontSize: 13.5, fontFamily: 'Inter_600SemiBold' },
-    tlBadge: { backgroundColor: C_PANEL, borderRadius: 99, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+    tlBadge: { backgroundColor: SC.panel, borderRadius: 99, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
     tlBadgeText: { fontSize: 10, fontWeight: Typography.weight.semibold, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.8 },
-    tlArea: { fontSize: 11, color: C_CAP, marginTop: 2 },
+    tlArea: { fontSize: 11, color: SC.cap, marginTop: 2 },
 
     /* Seat selector */
     seatRow: {
@@ -213,14 +207,14 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       backgroundColor: c.white, borderWidth: 1, borderColor: '#E2E5E8',
     },
     seatBtn: {
-      width: 44, height: 44, borderRadius: 14, backgroundColor: C_MIST,
+      width: 44, height: 44, borderRadius: 14, backgroundColor: SC.surfaceMuted,
       alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E5E8',
     },
     seatBtnDisabled: { opacity: 0.3 },
-    seatCountText: { fontSize: 24, fontWeight: '800', color: C_INK, minWidth: 42, textAlign: 'center' },
+    seatCountText: { fontSize: 24, fontWeight: '800', color: SC.ink, minWidth: 42, textAlign: 'center' },
     seatLabelWrap: { flex: 1, paddingStart: 12 },
-    seatLabel: { fontSize: 13, color: C_INK, fontWeight: Typography.weight.semibold },
-    seatMax: { fontSize: 11, color: C_CAP, marginTop: 2 },
+    seatLabel: { fontSize: 13, color: SC.ink, fontWeight: Typography.weight.semibold },
+    seatMax: { fontSize: 11, color: SC.cap, marginTop: 2 },
 
     /* Price card */
     priceSummary: {
@@ -228,11 +222,11 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       backgroundColor: c.white, borderWidth: 1, borderColor: '#E2E5E8', gap: Spacing.lg,
     },
     priceIcon: {
-      width: 48, height: 48, borderRadius: Radius.lg, backgroundColor: C_PANEL,
+      width: 48, height: 48, borderRadius: Radius.lg, backgroundColor: SC.panel,
       alignItems: 'center', justifyContent: 'center',
     },
-    priceSegLabel: { fontSize: Typography.size.xs, color: C_CAP, lineHeight: 17 },
-    priceTotal: { fontSize: 19, fontWeight: Typography.weight.bold, color: C_INK, letterSpacing: -0.5, marginTop: 2 },
+    priceSegLabel: { fontSize: Typography.size.xs, color: SC.cap, lineHeight: 17 },
+    priceTotal: { fontSize: 19, fontWeight: Typography.weight.bold, color: SC.ink, letterSpacing: -0.5, marginTop: 2 },
 
     /* Service banner */
     serviceBanner: {
@@ -246,11 +240,11 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     /* CTA — flat teal, no gradient */
     cta: {
       padding: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.lg + insetsBottom,
-      borderTopWidth: 1, borderTopColor: C_HAIR,
+      borderTopWidth: 1, borderTopColor: SC.hair,
     },
     ctaBtn: { height: 56, borderRadius: 20 },
     ctaBtnGradient: {
-      flex: 1, borderRadius: 20, backgroundColor: C_TEAL,
+      flex: 1, borderRadius: 20, backgroundColor: SC.teal,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     },
     ctaBtnText: { color: '#ffffff', fontSize: 15, fontFamily: 'Inter_700Bold', letterSpacing: -0.2 },
@@ -263,14 +257,14 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       backgroundColor: 'rgba(14,159,142,0.08)',
       borderWidth: 1, borderColor: 'rgba(14,159,142,0.32)',
     },
-    requestTripBtnText: { fontSize: 14.5, fontFamily: 'Inter_700Bold', color: C_TEAL, letterSpacing: -0.2 },
+    requestTripBtnText: { fontSize: 14.5, fontFamily: 'Inter_700Bold', color: SC.teal, letterSpacing: -0.2 },
 
     /* Loading / error */
     loadingWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 10 },
-    loadingText: { fontSize: 13, color: C_INK_SOFT },
-    errorText: { fontSize: 13, color: C_INK_SOFT, textAlign: 'center' },
+    loadingText: { fontSize: 13, color: SC.inkSoft },
+    errorText: { fontSize: 13, color: SC.inkSoft, textAlign: 'center' },
     retryBtn: { marginTop: Spacing.xs, paddingHorizontal: 20, paddingVertical: Spacing.sm, borderRadius: Radius.md, borderWidth: 1, borderColor: '#E2E5E8' },
-    retryBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: C_INK },
+    retryBtnText: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: SC.ink },
   });
 }
 
@@ -284,7 +278,8 @@ export function TripSheet() {
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => makeStyles(c, insets.bottom), [c, insets.bottom]);
+  const SC = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, insets.bottom, SC), [c, insets.bottom, SC]);
 
   const shuttleSvc = getService('shuttle');
   const shuttleServiceEnabled: boolean = !shuttleSvc || (shuttleSvc.isEnabled && shuttleSvc.displayMode === 'live');

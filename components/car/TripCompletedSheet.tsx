@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo} from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet, Animated, ActivityIndicator,
 } from 'react-native';
@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 interface TripCompletedSheetProps {
   visible: boolean;
@@ -29,17 +30,8 @@ interface TripCompletedSheetProps {
 }
 
 // ── "C · Split Panel" fixed palette (matches the approved design) ────────────
-const C_BG = '#EEF0F2';
-const C_SURF = '#FFFFFF';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_CAP_ON_DARK = '#8A9096';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
 const C_STAR = '#F5A623';
 const C_GREEN = '#12B76A';
-const C_PANEL = '#14151A';
 
 /**
  * Post-trip flow, split into two steps (approved "C" design):
@@ -52,6 +44,8 @@ export function TripCompletedSheet({
   driverName, pickup, dropoff, onDone,
 }: TripCompletedSheetProps) {
   const { t } = useTheme();
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const [step, setStep] = useState<'fare' | 'rating'>('fare');
@@ -227,7 +221,7 @@ export function TripCompletedSheet({
                 <TextInput
                   style={styles.commentInput}
                   placeholder={t('leave_comment')}
-                  placeholderTextColor={C_CAP}
+                  placeholderTextColor={S.cap}
                   value={comment}
                   onChangeText={setComment}
                   maxLength={200}
@@ -255,71 +249,73 @@ export function TripCompletedSheet({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(S: SplitColors) {
+  return StyleSheet.create({
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: C_BG,
+    backgroundColor: S.bg,
     zIndex: 1000,
   },
   page: { flex: 1 },
 
   /* ── Fare: dark hero ── */
   hero: {
-    backgroundColor: C_PANEL,
+    backgroundColor: S.panel,
     paddingHorizontal: 26, paddingBottom: 22,
     borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
   },
-  heroTopCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP_ON_DARK },
-  heroCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP_ON_DARK, marginTop: 22 },
+  heroTopCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: S.capOnDark },
+  heroCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: S.capOnDark, marginTop: 22 },
   heroAmountRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6 },
   heroAmount: { fontSize: 52, fontWeight: '800', color: '#ffffff', letterSpacing: -1, lineHeight: 54 },
-  heroCur: { fontSize: 18, fontWeight: '700', color: C_CAP_ON_DARK },
+  heroCur: { fontSize: 18, fontWeight: '700', color: S.capOnDark },
   heroNote: { fontSize: 13, color: '#B7BBC2', marginTop: 10, fontWeight: '600' },
 
   /* ── Fare: white body ── */
-  sectionCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP, marginBottom: 2 },
+  sectionCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: S.cap, marginBottom: 2 },
   bRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 13 },
-  bLabel: { fontSize: 14, color: C_INK_SOFT, fontWeight: '600' },
-  bVal: { fontSize: 16, fontWeight: '800', color: C_INK },
-  bHair: { height: 1, backgroundColor: C_HAIR },
-  bHairThick: { height: 2, backgroundColor: C_PANEL },
-  bTotalLabel: { fontSize: 16, fontWeight: '800', color: C_INK },
-  bTotalVal: { fontSize: 22, fontWeight: '800', color: C_TEAL },
+  bLabel: { fontSize: 14, color: S.inkSoft, fontWeight: '600' },
+  bVal: { fontSize: 16, fontWeight: '800', color: S.ink },
+  bHair: { height: 1, backgroundColor: S.hair },
+  bHairThick: { height: 2, backgroundColor: S.panel },
+  bTotalLabel: { fontSize: 16, fontWeight: '800', color: S.ink },
+  bTotalVal: { fontSize: 22, fontWeight: '800', color: S.teal },
 
   routeRowWrap: { flexDirection: 'row', gap: 14, marginTop: 20, paddingHorizontal: 4 },
   routeRail: { alignItems: 'center', paddingTop: 4 },
-  routeDotO: { width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5, borderColor: C_INK },
+  routeDotO: { width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5, borderColor: S.ink },
   routeRailLine: { width: 1.5, flex: 1, backgroundColor: '#DDE0E3', marginVertical: 4 },
-  routeDotSq: { width: 9, height: 9, borderRadius: 2, backgroundColor: C_TEAL },
-  routeCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP, marginBottom: 3 },
-  routeAddr: { fontSize: 14, fontWeight: '700', color: C_INK },
+  routeDotSq: { width: 9, height: 9, borderRadius: 2, backgroundColor: S.teal },
+  routeCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: S.cap, marginBottom: 3 },
+  routeAddr: { fontSize: 14, fontWeight: '700', color: S.ink },
 
-  footer: { paddingHorizontal: 26, paddingTop: 12, backgroundColor: C_BG },
-  primaryBtn: { height: 54, borderRadius: 15, backgroundColor: C_PANEL, alignItems: 'center', justifyContent: 'center' },
+  footer: { paddingHorizontal: 26, paddingTop: 12, backgroundColor: S.bg },
+  primaryBtn: { height: 54, borderRadius: 15, backgroundColor: S.panel, alignItems: 'center', justifyContent: 'center' },
   primaryBtnTxt: { color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
 
   /* ── Rating step ── */
   ratingWrap: { flex: 1, justifyContent: 'flex-end' },
   ratingCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
   ratingHeader: {
-    backgroundColor: C_PANEL, flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: S.panel, flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingHorizontal: 24, paddingVertical: 24,
   },
   ratingAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#26272E', alignItems: 'center', justifyContent: 'center' },
   ratingAvatarTxt: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
-  ratingCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: C_CAP_ON_DARK },
+  ratingCap: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: S.capOnDark },
   ratingTitle: { fontSize: 20, fontWeight: '800', color: '#ffffff', marginTop: 4 },
   ratingSub: { fontSize: 13, fontWeight: '600', color: '#B7BBC2', marginTop: 2 },
-  ratingBody: { backgroundColor: C_SURF, padding: 24 },
+  ratingBody: { backgroundColor: S.card, padding: 24 },
   starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
   commentPlaceholder: {
     marginTop: 22, backgroundColor: '#F6F7F8', borderRadius: 14,
-    paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: C_CAP,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 14, fontWeight: '500', color: S.cap,
   },
   commentInput: {
-    borderWidth: 1, borderColor: C_HAIR, borderRadius: 14, backgroundColor: '#F6F7F8',
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginTop: 22, minHeight: 60, textAlignVertical: 'top', color: C_INK,
+    borderWidth: 1, borderColor: S.hair, borderRadius: 14, backgroundColor: '#F6F7F8',
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, marginTop: 22, minHeight: 60, textAlignVertical: 'top', color: S.ink,
   },
   skipBtn: { alignSelf: 'center', marginTop: 14, paddingVertical: 6 },
-  skipTxt: { fontSize: 13, fontWeight: '700', color: C_CAP },
-});
+  skipTxt: { fontSize: 13, fontWeight: '700', color: S.cap },
+  });
+}

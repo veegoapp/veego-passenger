@@ -14,16 +14,11 @@ import { persistTokens, saveSession } from '@/src/api/session';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { acceptTerms } from '@/components/shared/TermsModal';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 const OTP_LENGTH = 6;
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_BG = '#EEF0F2';
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
 const C_RED = '#D92D20';
 
 type OtpChannel = 'whatsapp' | 'sms';
@@ -32,7 +27,8 @@ interface OtpChannelsResponse { whatsappEnabled: boolean; smsEnabled: boolean; d
 export default function VerifyPhoneScreen() {
   const { phone, maskedPhone, termsVersion } = useLocalSearchParams<{ phone: string; maskedPhone?: string; termsVersion?: string }>();
   const { t, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(), []);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
 
   const [otp, setOtp] = useState('');
@@ -177,7 +173,7 @@ export default function VerifyPhoneScreen() {
         accessibilityLabel={t('back')}
         accessibilityRole="button"
       >
-        {isRTL ? <ArrowRight size={20} color={C_INK} /> : <ArrowLeft size={20} color={C_INK} />}
+        {isRTL ? <ArrowRight size={20} color={S.ink} /> : <ArrowLeft size={20} color={S.ink} />}
       </TouchableOpacity>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -292,13 +288,13 @@ export default function VerifyPhoneScreen() {
   );
 }
 
-function makeStyles() {
+function makeStyles(S: SplitColors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: C_BG },
+    root: { flex: 1, backgroundColor: S.bg },
     backBtn: {
       position: 'absolute', zIndex: 10,
       width: 40, height: 40, borderRadius: 20,
-      backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR,
+      backgroundColor: S.card, borderWidth: 1, borderColor: S.hair,
       alignItems: 'center', justifyContent: 'center',
     },
     container: {
@@ -310,19 +306,19 @@ function makeStyles() {
     },
     iconWrap: {
       width: 72, height: 72, borderRadius: 24,
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       alignItems: 'center', justifyContent: 'center',
       marginBottom: Spacing.xs,
     },
     title: {
-      fontSize: 24, fontWeight: '800', color: C_INK,
+      fontSize: 24, fontWeight: '800', color: S.ink,
       letterSpacing: -0.6, textAlign: 'center',
     },
     subtitle: {
-      fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center',
+      fontSize: 13.5, color: S.inkSoft, textAlign: 'center',
     },
     phone: {
-      fontSize: 17, fontWeight: '800', color: C_INK,
+      fontSize: 17, fontWeight: '800', color: S.ink,
       letterSpacing: 1.5, textAlign: 'center',
       marginBottom: Spacing.xs,
     },
@@ -330,39 +326,39 @@ function makeStyles() {
     otpRow: { flexDirection: 'row', gap: 10, marginVertical: Spacing.sm },
     otpBox: {
       width: 48, height: 56, borderRadius: 16,
-      borderWidth: 1.5, borderColor: C_HAIR,
-      backgroundColor: '#fff',
+      borderWidth: 1.5, borderColor: S.hair,
+      backgroundColor: S.card,
       alignItems: 'center', justifyContent: 'center',
     },
     otpBoxActive: {
-      borderColor: C_PANEL,
-      backgroundColor: '#fff',
+      borderColor: S.panel,
+      backgroundColor: S.card,
     },
     otpBoxFilled: {
-      borderColor: C_TEAL,
+      borderColor: S.teal,
       backgroundColor: 'rgba(14,159,142,0.06)',
     },
     otpBoxError: { borderColor: C_RED },
-    otpDigit: { fontSize: 20, fontWeight: '800', color: C_INK },
+    otpDigit: { fontSize: 20, fontWeight: '800', color: S.ink },
     errorText: {
       fontSize: 13, color: C_RED, textAlign: 'center', marginTop: -4,
     },
     successText: {
-      fontSize: 13, color: C_TEAL, fontWeight: '700',
+      fontSize: 13, color: S.teal, fontWeight: '700',
       textAlign: 'center', marginTop: -4,
     },
     channelRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
     channelChip: {
       paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
-      borderRadius: 14, borderWidth: 1.5, borderColor: C_HAIR,
-      backgroundColor: '#fff',
+      borderRadius: 14, borderWidth: 1.5, borderColor: S.hair,
+      backgroundColor: S.card,
     },
-    channelChipActive: { borderColor: C_PANEL, backgroundColor: C_PANEL },
-    channelChipText: { fontSize: 13, fontWeight: '600', color: C_INK_SOFT },
+    channelChipActive: { borderColor: S.panel, backgroundColor: S.panel },
+    channelChipText: { fontSize: 13, fontWeight: '600', color: S.inkSoft },
     channelChipTextActive: { color: '#fff', fontWeight: '700' },
     primaryBtn: {
       width: '100%', height: 56, borderRadius: 20,
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
       gap: Spacing.sm, marginTop: Spacing.sm,
     },
@@ -372,7 +368,7 @@ function makeStyles() {
       backgroundColor: 'rgba(14,159,142,0.1)',
       borderRadius: 14,
     },
-    resendText: { fontSize: 13, fontWeight: '600', color: C_INK_SOFT, textAlign: 'center' },
-    resendTextEmphasized: { color: C_TEAL, fontWeight: '800' },
+    resendText: { fontSize: 13, fontWeight: '600', color: S.inkSoft, textAlign: 'center' },
+    resendTextEmphasized: { color: S.teal, fontWeight: '800' },
   });
 }

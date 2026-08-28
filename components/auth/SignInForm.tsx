@@ -9,10 +9,12 @@ import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
 import { emitAuthEvent } from '@/src/api/authEvents';
 import { makeStyles, saveSession, persistTokens } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 export function SignInForm({ onSuccess, initialCredential }: { onSuccess: () => void; initialCredential?: string }) {
   const { t, isRTL, colors: c } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const [email, setEmail] = useState(initialCredential ?? '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

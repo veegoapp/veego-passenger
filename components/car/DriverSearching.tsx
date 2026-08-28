@@ -1,8 +1,9 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo} from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { Animation } from '@/constants/animations';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 interface DriverSearchingProps {
   visible: boolean;
@@ -10,11 +11,7 @@ interface DriverSearchingProps {
 }
 
 const C_STRIP = '#111318';
-const C_CAP = '#B7BBC2';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#9AA0A6';
 const C_MINT = '#3DDC97';
-const C_HAIR = '#E2E5E8';
 
 /**
  * Shown while actively searching for a driver. The car-icon radar animation
@@ -27,6 +24,8 @@ const C_HAIR = '#E2E5E8';
  */
 export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   const { t } = useTheme();
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(new Animated.Value(0)).current;
@@ -76,7 +75,8 @@ export function DriverSearching({ visible, onCancel }: DriverSearchingProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(S: SplitColors) {
+  return StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 16, left: 16, right: 16,
     zIndex: 999,
@@ -87,23 +87,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
   },
   stripDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C_MINT },
-  stripText: { flex: 1, fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: C_CAP },
+  stripText: { flex: 1, fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: S.cap },
 
   mainBar: {
-    backgroundColor: '#fff', borderRadius: 20, borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    backgroundColor: S.card, borderRadius: 20, borderTopLeftRadius: 0, borderTopRightRadius: 0,
     paddingHorizontal: 16, paddingVertical: 12,
     flexDirection: 'row', alignItems: 'center', gap: 12,
     shadowColor: '#000', shadowOffset: { width: 0, height: 24 }, shadowOpacity: 0.18, shadowRadius: 56, elevation: 12,
   },
   spinner: {
     width: 30, height: 30, borderRadius: 15, borderWidth: 2.5,
-    borderColor: C_HAIR, borderTopColor: C_INK, flexShrink: 0,
+    borderColor: S.hair, borderTopColor: S.ink, flexShrink: 0,
   },
-  headline: { flex: 1, fontSize: 14, fontWeight: '800', color: C_INK },
+  headline: { flex: 1, fontSize: 14, fontWeight: '800', color: S.ink },
 
   cancelBtn: {
-    height: 36, borderRadius: 999, borderWidth: 1.5, borderColor: C_HAIR,
+    height: 36, borderRadius: 999, borderWidth: 1.5, borderColor: S.hair,
     paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
   },
-  cancelText: { fontSize: 12, fontWeight: '700', color: C_INK },
-});
+  cancelText: { fontSize: 12, fontWeight: '700', color: S.ink },
+  });
+}

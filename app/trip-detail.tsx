@@ -32,6 +32,7 @@ import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { Radius } from '@/constants/radius';
 import { Shadows } from '@/constants/shadows';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 
 // Show map from 20 min before departure through the entire active trip
@@ -42,12 +43,6 @@ const MINUTES_BEFORE_DEPARTURE = 20;
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme
 // (shared by both the shuttle live-tracking card below and the on-demand
 // ride's trip-detail summary).
-const C_BG_FIXED = '#EBEDEE';
-const C_PANEL_FIXED = '#14151A';
-const C_INK_FIXED = '#14151A';
-const C_INK_SOFT_FIXED = '#6B7178';
-const C_CAP_FIXED = '#9AA0A6';
-const C_TEAL_FIXED = '#0E9F8E';
 
 interface TripDetail {
   id: string | number;
@@ -263,7 +258,7 @@ function isWithin20Min(departureIso: string): boolean {
   return diffMs >= 0 && diffMs <= MINUTES_BEFORE_DEPARTURE * 60 * 1000;
 }
 
-function makeStyles(c: ThemeColors, isRTL: boolean) {
+function makeStyles(c: ThemeColors, isRTL: boolean, SC: SplitColors) {
   return StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.md, gap: Spacing.md },
     backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center' },
@@ -296,7 +291,7 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     loadingText: { fontSize: Typography.size.sm, color: c.inkSoft },
     errorText: { fontSize: Typography.size.sm, color: c.badge, textAlign: 'center', marginHorizontal: Spacing.xxl },
     goBack: { marginTop: Spacing.md, borderRadius: 999, overflow: 'hidden' },
-    goBackGradient: { paddingHorizontal: Spacing.xl, paddingVertical: 12, backgroundColor: C_TEAL_FIXED },
+    goBackGradient: { paddingHorizontal: Spacing.xl, paddingVertical: 12, backgroundColor: SC.teal },
     goBackText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: '#ffffff' },
     cancelBtn: { marginHorizontal: 20, marginBottom: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1.5, borderColor: c.badge, backgroundColor: `${c.badge}0D`, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
     cancelBtnText: { fontSize: Typography.size.sm, fontWeight: Typography.weight.semibold, color: c.badge },
@@ -375,18 +370,18 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
       backgroundColor: '#F0F2F3', borderWidth: 1, borderColor: '#EEF0F1',
       alignItems: 'center', justifyContent: 'center',
     },
-    avatarInitials: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: C_INK_FIXED },
+    avatarInitials: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: SC.ink },
     driverInfo: { flex: 1, gap: 4 },
-    driverNameText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: C_INK_FIXED, letterSpacing: -0.2 },
+    driverNameText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: SC.ink, letterSpacing: -0.2 },
     ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    ratingText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: C_INK_SOFT_FIXED },
+    ratingText: { fontSize: 13, fontWeight: Typography.weight.semibold, color: SC.inkSoft },
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: 2 },
     tag: {
       flexDirection: 'row', alignItems: 'center', gap: 4,
       backgroundColor: '#F0F2F3', borderRadius: Radius.full,
       paddingHorizontal: 10, paddingVertical: 4,
     },
-    tagText: { fontSize: 11.5, fontWeight: Typography.weight.semibold, color: C_INK_SOFT_FIXED },
+    tagText: { fontSize: 11.5, fontWeight: Typography.weight.semibold, color: SC.inkSoft },
 
     timeline: { gap: 0 },
     timelineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, minHeight: 34 },
@@ -422,27 +417,27 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
       marginBottom: Spacing.lg,
       shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 6,
     },
-    leftPanelRide: { width: 116, flexShrink: 0, backgroundColor: C_PANEL_FIXED, padding: 16, paddingVertical: 20 },
+    leftPanelRide: { width: 116, flexShrink: 0, backgroundColor: SC.panel, padding: 16, paddingVertical: 20 },
     panelStatusRowRide: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     panelStatusDotRide: { width: 7, height: 7, borderRadius: 3.5, flexShrink: 0 },
     panelStatusTextRide: { fontSize: 12.5, fontWeight: '700', color: '#fff', flexShrink: 1 },
-    panelCapRide: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: C_CAP_FIXED },
+    panelCapRide: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: SC.cap },
     panelBigRide: { fontSize: 24, fontWeight: '800', color: '#3DDC97', marginTop: 2, letterSpacing: -0.5 },
-    panelBigUnitRide: { fontSize: 12, fontWeight: '700', color: C_CAP_FIXED },
+    panelBigUnitRide: { fontSize: 12, fontWeight: '700', color: SC.cap },
     miniRouteWrapRide: { marginTop: 16, alignItems: 'center', flex: 1, minHeight: 40 },
     miniDotORide: { width: 8, height: 8, borderRadius: 4, borderWidth: 2, borderColor: '#6B7178' },
     miniLineRide: { width: 2, flex: 1, backgroundColor: '#3A3C42', marginVertical: 3, minHeight: 20 },
     miniDotSqRide: { width: 11, height: 11, borderRadius: 3, backgroundColor: '#3DDC97' },
     panelSeatRide: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 2 },
 
-    rightPanelRide: { flex: 1, backgroundColor: '#fff', padding: 18, paddingVertical: 20 },
+    rightPanelRide: { flex: 1, backgroundColor: SC.card, padding: 18, paddingVertical: 20 },
     dividerRide: { height: 1, backgroundColor: '#EEF0F1', marginVertical: 14 },
     timelineLineBarRide: { width: 2, flex: 1, minHeight: 18, backgroundColor: '#EEF0F1', marginVertical: 2 },
-    timelineTextRide: { flex: 1, fontSize: 13, color: C_INK_FIXED, lineHeight: 19 },
+    timelineTextRide: { flex: 1, fontSize: 13, color: SC.ink, lineHeight: 19 },
     statsRowRide: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     statBoxRide: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F7F8F8', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 9 },
-    statValRide: { fontSize: 13, fontWeight: '800', color: C_INK_FIXED },
-    statLabRide: { fontSize: 9.5, fontWeight: '700', color: C_CAP_FIXED, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 },
+    statValRide: { fontSize: 13, fontWeight: '800', color: SC.ink },
+    statLabRide: { fontSize: 9.5, fontWeight: '700', color: SC.cap, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 1 },
 
     // ── Shuttle live-tracking card — C · Split Panel ────────────────────────
     splitCard: {
@@ -463,7 +458,7 @@ function makeStyles(c: ThemeColors, isRTL: boolean) {
     miniDotSq: { width: 11, height: 11, borderRadius: 3, backgroundColor: '#3DDC97' },
     panelSeat: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 2 },
 
-    rightPanel: { flex: 1, backgroundColor: '#fff', padding: 18, paddingVertical: 20 },
+    rightPanel: { flex: 1, backgroundColor: SC.card, padding: 18, paddingVertical: 20 },
     rTitle: { fontSize: 16, fontWeight: '800', color: '#14151A', letterSpacing: -0.2 },
     rSub: { fontSize: 12.5, fontWeight: '600', color: '#9AA0A6', marginTop: 2 },
     rNextStop: { fontSize: 12, fontWeight: '700', color: '#0E9F8E', marginTop: 6 },
@@ -495,7 +490,8 @@ export default function TripDetailScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const { colors: c, t, language, isRTL } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(c, isRTL), [c, isRTL]);
+  const SC = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, isRTL, SC), [c, isRTL, SC]);
 
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [rideDetail, setRideDetail] = useState<RideDetail | null>(null);
@@ -1032,10 +1028,10 @@ export default function TripDetailScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: C_BG_FIXED }}>
+      <View style={{ flex: 1, backgroundColor: SC.bg }}>
         <View style={[styles.header, { paddingTop: top + 12 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            {isRTL ? <ArrowRight size={18} color={C_INK_FIXED} /> : <ArrowLeft size={18} color={C_INK_FIXED} />}
+            {isRTL ? <ArrowRight size={18} color={SC.ink} /> : <ArrowLeft size={18} color={SC.ink} />}
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
           <View style={styles.shareBtn} />
@@ -1050,10 +1046,10 @@ export default function TripDetailScreen() {
 
   if (error || (!trip && !rideDetail)) {
     return (
-      <View style={{ flex: 1, backgroundColor: C_BG_FIXED }}>
+      <View style={{ flex: 1, backgroundColor: SC.bg }}>
         <View style={[styles.header, { paddingTop: top + 12 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            {isRTL ? <ArrowRight size={18} color={C_INK_FIXED} /> : <ArrowLeft size={18} color={C_INK_FIXED} />}
+            {isRTL ? <ArrowRight size={18} color={SC.ink} /> : <ArrowLeft size={18} color={SC.ink} />}
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('trip_detail_title')}</Text>
           <View style={styles.shareBtn} />
@@ -1090,10 +1086,10 @@ export default function TripDetailScreen() {
     ];
 
     return (
-      <View style={{ flex: 1, backgroundColor: C_BG_FIXED }}>
+      <View style={{ flex: 1, backgroundColor: SC.bg }}>
         <View style={[styles.header, { paddingTop: top + 12, paddingBottom: 0, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            {isRTL ? <ArrowRight size={18} color={C_INK_FIXED} /> : <ArrowLeft size={18} color={C_INK_FIXED} />}
+            {isRTL ? <ArrowRight size={18} color={SC.ink} /> : <ArrowLeft size={18} color={SC.ink} />}
           </TouchableOpacity>
         </View>
 
@@ -1215,7 +1211,7 @@ export default function TripDetailScreen() {
             onPress={() => setSupportOpen(true)}
             activeOpacity={0.8}
           >
-            <HelpCircle size={14} color={C_INK_FIXED} />
+            <HelpCircle size={14} color={SC.ink} />
             <Text style={styles.helpBtnText}>{t('need_help')}</Text>
           </TouchableOpacity>
         </ScrollView>

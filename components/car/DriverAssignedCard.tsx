@@ -1,4 +1,4 @@
-import { memo, useRef, useEffect, useState } from 'react';
+import { memo, useRef, useEffect, useState, useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, Pressable, StyleSheet, Animated, Linking, Easing } from 'react-native';
 import {
   MessageCircle, Phone, BadgeCheck, Star, AlertTriangle, HelpCircle,
@@ -10,6 +10,7 @@ import { Animation } from '@/constants/animations';
 import { ChatModal } from './ChatModal';
 import { VehicleIcon, mapServiceTypeToVehicleType } from '@/components/shared/VehicleIcon';
 import type { DriverInfo } from '@/src/hooks/car/useRide';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 interface DriverAssignedCardProps {
   visible: boolean;
@@ -34,15 +35,9 @@ interface DriverAssignedCardProps {
 // below the screen edge.
 const PEEK_HEIGHT = 44;
 
-// ── "C · Split Panel" fixed palette (the approved driver-card design) ────────
-// Deliberately theme-independent so the card reads identically over any map.
-const C_PANEL = '#14151A';   // dark left panel
-const C_CARD = '#FFFFFF';    // white content
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';     // accent (call button, verified)
+// ── "C · Split Panel" palette (the approved driver-card design) ──────────────
+// Theme-aware — see constants/splitTheme.ts. Status/accent hues below stay
+// fixed in both modes (already legible on white and dark surfaces).
 const C_MINT = '#3DDC97';     // status dot / route
 const C_STAR = '#F5A623';     // rating star
 const C_RED = '#E5484D';      // cancel
@@ -65,7 +60,7 @@ function DriverAvatar({ uri, initials, size, ring }: { uri?: string | null; init
   return (
     <View
       style={[
-        styles.avatarWrap,
+        avatarStyles.avatarWrap,
         { width: size, height: size, borderRadius: size / 2, backgroundColor: c.surfaceMuted, borderColor: ring ?? c.border },
       ]}
     >
@@ -77,11 +72,21 @@ function DriverAvatar({ uri, initials, size, ring }: { uri?: string | null; init
           onError={() => setFailed(true)}
         />
       ) : (
-        <Text style={[styles.avatarInitials, { color: c.ink, fontSize: size * 0.32 }]}>{initials}</Text>
+        <Text style={[avatarStyles.avatarInitials, { color: c.ink, fontSize: size * 0.32 }]}>{initials}</Text>
       )}
     </View>
   );
 }
+
+// Standalone — DriverAvatar renders off the real theme (c.*), not the
+// split-panel palette, so it doesn't need makeStyles(S)/useMemo below.
+const avatarStyles = StyleSheet.create({
+  avatarWrap: {
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, overflow: 'hidden',
+  },
+  avatarInitials: { fontWeight: '700' },
+});
 
 /* ─── Main component ─────────────────────────────────────────────────────── */
 function DriverAssignedCardBase({
@@ -89,6 +94,8 @@ function DriverAssignedCardBase({
   etaMinutes, waitingCharge, waitingChargeStatus, onCancel, onStart, onSOS,
 }: DriverAssignedCardProps) {
   const { t } = useTheme();
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
   const slideAnim   = useRef(new Animated.Value(0)).current;
   const arrivedPulse = useRef(new Animated.Value(1)).current;
@@ -216,7 +223,7 @@ function DriverAssignedCardBase({
 
             <View style={styles.nameRowC}>
               <Text style={styles.driverNameC} numberOfLines={1}>{driver?.name ?? '—'}</Text>
-              <BadgeCheck size={16} color={C_TEAL} strokeWidth={2} />
+              <BadgeCheck size={16} color={S.teal} strokeWidth={2} />
             </View>
 
             <View style={styles.ratingRowC}>
@@ -249,7 +256,7 @@ function DriverAssignedCardBase({
               <TouchableOpacity
                 onPress={() => { Haptics.selectionAsync(); setChatOpen(true); }}
                 activeOpacity={0.85}
-                style={[styles.icBtnC, { backgroundColor: C_TEAL }]}
+                style={[styles.icBtnC, { backgroundColor: S.teal }]}
               >
                 <MessageCircle size={17} color="#ffffff" strokeWidth={2} />
               </TouchableOpacity>
@@ -259,7 +266,7 @@ function DriverAssignedCardBase({
                 activeOpacity={0.85}
                 style={[styles.icBtnC, styles.icBtnGhostC, { opacity: driver?.phone ? 1 : 0.4 }]}
               >
-                <Phone size={17} color={C_INK} strokeWidth={2} />
+                <Phone size={17} color={S.ink} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
@@ -341,7 +348,7 @@ function DriverAssignedCardBase({
               activeOpacity={0.82}
               style={styles.fIconGhost}
             >
-              <MessageCircle size={17} color={C_INK} strokeWidth={1.6} />
+              <MessageCircle size={17} color={S.ink} strokeWidth={1.6} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleCall}
@@ -368,7 +375,7 @@ function DriverAssignedCardBase({
             activeOpacity={0.8}
             style={styles.fPillHelp}
           >
-            <HelpCircle size={14} color={C_INK_SOFT} strokeWidth={1.6} />
+            <HelpCircle size={14} color={S.inkSoft} strokeWidth={1.6} />
             <Text style={styles.fPillHelpText}>{t('need_help')}</Text>
           </TouchableOpacity>
         </View>
@@ -386,7 +393,8 @@ function DriverAssignedCardBase({
 
 export const DriverAssignedCard = memo(DriverAssignedCardBase);
 
-const styles = StyleSheet.create({
+function makeStyles(S: SplitColors) {
+  return StyleSheet.create({
   sheet: {
     position: 'absolute', bottom: 16, left: 16, right: 16,
     shadowColor: '#000',
@@ -399,14 +407,14 @@ const styles = StyleSheet.create({
   /* ── C · Split Panel (assigned / arrived) ── */
   splitCard: {
     flexDirection: 'row',
-    backgroundColor: C_CARD,
+    backgroundColor: S.card,
     borderRadius: 22,
     shadowColor: '#000', shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.18, shadowRadius: 40, elevation: 20,
   },
   leftPanel: {
     width: 116,
-    backgroundColor: C_PANEL,
+    backgroundColor: S.panel,
     borderTopLeftRadius: 22, borderBottomLeftRadius: 22,
     paddingHorizontal: 14, paddingVertical: 16,
   },
@@ -414,7 +422,7 @@ const styles = StyleSheet.create({
   statusDot: { width: 7, height: 7, borderRadius: 3.5 },
   panelCap: {
     fontSize: 10, fontWeight: '700', letterSpacing: 1.4,
-    textTransform: 'uppercase', color: C_CAP,
+    textTransform: 'uppercase', color: S.cap,
   },
   etaNum: { fontSize: 44, fontWeight: '800', color: '#ffffff', lineHeight: 44, letterSpacing: -1 },
   miniRoute: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12 },
@@ -430,18 +438,18 @@ const styles = StyleSheet.create({
   },
   bubble: { marginTop: -36, marginBottom: 8 },
   nameRowC: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  driverNameC: { fontSize: 18, fontWeight: '800', color: C_INK, letterSpacing: -0.2 },
+  driverNameC: { fontSize: 18, fontWeight: '800', color: S.ink, letterSpacing: -0.2 },
   ratingRowC: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
-  ratingNumC: { fontSize: 13, fontWeight: '700', color: C_INK },
+  ratingNumC: { fontSize: 13, fontWeight: '700', color: S.ink },
   dotSepC: { fontSize: 13, color: '#C9CDD2' },
-  metaC: { fontSize: 13, fontWeight: '600', color: C_INK_SOFT },
+  metaC: { fontSize: 13, fontWeight: '600', color: S.inkSoft },
   vehLineC: {
     flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center',
-    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C_HAIR, alignSelf: 'stretch',
+    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: S.hair, alignSelf: 'stretch',
   },
-  vehNameC: { fontSize: 15, fontWeight: '800', color: C_INK },
+  vehNameC: { fontSize: 15, fontWeight: '800', color: S.ink },
   plateC: {
-    backgroundColor: '#ffffff', borderRadius: 6, borderWidth: 1, borderColor: '#D3CDBE',
+    backgroundColor: S.card, borderRadius: 6, borderWidth: 1, borderColor: '#D3CDBE',
     paddingHorizontal: 9, paddingVertical: 4,
   },
   plateCText: { fontSize: 12, fontWeight: '800', letterSpacing: 1, color: '#16150F' },
@@ -452,20 +460,14 @@ const styles = StyleSheet.create({
   waitCText: { fontSize: 12.5, fontWeight: '700', color: '#B45309', textAlign: 'center' },
   actionsC: { flexDirection: 'row', gap: 10, marginTop: 14, alignSelf: 'stretch' },
   icBtnC: { flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  icBtnGhostC: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#E2E5E8' },
+  icBtnGhostC: { backgroundColor: S.card, borderWidth: 1, borderColor: S.hair },
   startBtnC: {
-    height: 50, borderRadius: 14, backgroundColor: C_INK,
+    height: 50, borderRadius: 14, backgroundColor: S.ink,
     alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch', marginTop: 12,
   },
   startBtnCText: { fontSize: 14, fontWeight: '700', color: '#ffffff', letterSpacing: 0.4 },
   cancelC: { marginTop: 12, paddingVertical: 4 },
   cancelCText: { fontSize: 12.5, fontWeight: '700', color: C_RED },
-
-  avatarWrap: {
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0, overflow: 'hidden',
-  },
-  avatarInitials: { fontWeight: '700' },
 
   /* ── F · Minimal Bar (started / in-trip) ── */
   fCard: {
@@ -485,26 +487,26 @@ const styles = StyleSheet.create({
   fEtaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   fEtaNum: { fontSize: 17, fontWeight: '800', color: '#ffffff' },
   fMainBar: {
-    backgroundColor: '#ffffff',
+    backgroundColor: S.card,
     paddingHorizontal: 16, paddingVertical: 14,
     flexDirection: 'row', alignItems: 'center', gap: 13,
   },
   fNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  fName: { fontSize: 16, fontWeight: '800', color: C_INK },
-  fRatingNum: { fontSize: 13, fontWeight: '700', color: C_INK_SOFT },
-  fVehLine: { fontSize: 12.5, fontWeight: '600', color: C_CAP, marginTop: 2 },
+  fName: { fontSize: 16, fontWeight: '800', color: S.ink },
+  fRatingNum: { fontSize: 13, fontWeight: '700', color: S.inkSoft },
+  fVehLine: { fontSize: 12.5, fontWeight: '600', color: S.cap, marginTop: 2 },
   fPlateInline: { letterSpacing: 0.6 },
   fIconsRow: { flexDirection: 'row', gap: 8, flexShrink: 0 },
   fIconGhost: {
-    width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#E2E5E8',
+    width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: S.hair,
     alignItems: 'center', justifyContent: 'center',
   },
   fIconFilled: {
-    width: 42, height: 42, borderRadius: 21, backgroundColor: C_TEAL,
+    width: 42, height: 42, borderRadius: 21, backgroundColor: S.teal,
     alignItems: 'center', justifyContent: 'center',
   },
   fSafetyRow: {
-    backgroundColor: '#ffffff', paddingHorizontal: 16, paddingBottom: 14,
+    backgroundColor: S.card, paddingHorizontal: 16, paddingBottom: 14,
     flexDirection: 'row', gap: 10,
   },
   fPillSOS: {
@@ -513,8 +515,9 @@ const styles = StyleSheet.create({
   },
   fPillSOSText: { fontSize: 12.5, fontWeight: '700', color: C_RED },
   fPillHelp: {
-    flex: 1, height: 38, borderRadius: 999, borderWidth: 1.5, borderColor: '#E2E5E8',
+    flex: 1, height: 38, borderRadius: 999, borderWidth: 1.5, borderColor: S.hair,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
   },
-  fPillHelpText: { fontSize: 12.5, fontWeight: '700', color: C_INK_SOFT },
-});
+  fPillHelpText: { fontSize: 12.5, fontWeight: '700', color: S.inkSoft },
+  });
+}

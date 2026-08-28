@@ -7,10 +7,12 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import api from '@/src/api/client';
 import { makeStyles } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 export function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }) {
   const { t, isRTL, colors: c } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const OTP_LENGTH = 6;
   type ForgotStep = 'phone' | 'code';
   const [step, setStep] = useState<ForgotStep>('phone');

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Bus, Car, Bike as ScooterIcon, Package } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { shuttleStatusLabel, type Trip, type TripType } from '@/constants/data';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: string }>> = {
   shuttle: Bus,
@@ -11,11 +12,6 @@ const TYPE_ICONS: Record<TripType, React.ComponentType<{ size?: number; color?: 
   delivery: Package,
 };
 
-const C_PANEL = '#14151A';
-const C_CAP = '#9AA0A6';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_MIST = '#F0F2F3';
 
 function isActiveTripStatus(status: string): boolean {
   return status === 'active' || status === 'boarding';
@@ -44,7 +40,8 @@ interface HistoryTripCardProps {
 export function HistoryTripCard({ trip, onPress }: HistoryTripCardProps) {
   const { t, language } = useTheme();
   const isAr = language === 'ar';
-  const styles = useMemo(() => makeStyles(), []);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
 
   const routeName = (isAr ? trip.routeNameAr ?? trip.routeName : trip.routeName) || '—';
   const from      = (isAr ? trip.fromAr ?? trip.from : trip.from) || '—';
@@ -83,20 +80,20 @@ export function HistoryTripCard({ trip, onPress }: HistoryTripCardProps) {
 
         <View style={styles.route}>
           <View style={styles.stationLine}>
-            <View style={[styles.dot, { backgroundColor: C_INK }]} />
+            <View style={[styles.dot, { backgroundColor: S.ink }]} />
             <View style={styles.line} />
             <View style={[styles.dot, styles.dotOutline]} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.stationText} numberOfLines={1}>{from}</Text>
             <View style={{ height: 10 }} />
-            <Text style={[styles.stationText, { color: C_INK_SOFT }]} numberOfLines={1}>{to}</Text>
+            <Text style={[styles.stationText, { color: S.inkSoft }]} numberOfLines={1}>{to}</Text>
           </View>
         </View>
 
         <View style={styles.bottom}>
           <View style={styles.typeBadge}>
-            <TripTypeIcon size={10} color={C_INK_SOFT} />
+            <TripTypeIcon size={10} color={S.inkSoft} />
             <Text style={styles.typeBadgeText}>{t(`trip_type_${trip.type}` as any)}</Text>
           </View>
           <Text style={styles.price}>{trip.price} {t('egp')}</Text>
@@ -106,34 +103,34 @@ export function HistoryTripCard({ trip, onPress }: HistoryTripCardProps) {
   );
 }
 
-function makeStyles() {
+function makeStyles(S: SplitColors) {
   return StyleSheet.create({
     card: {
       borderRadius: 24, overflow: 'hidden', flexDirection: 'row',
       shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4,
     },
-    leftPanel: { width: 92, flexShrink: 0, backgroundColor: C_PANEL, padding: 14, paddingVertical: 16 },
+    leftPanel: { width: 92, flexShrink: 0, backgroundColor: S.panel, padding: 14, paddingVertical: 16 },
     typeIconBox: { width: 34, height: 34, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-    cap: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: C_CAP },
+    cap: { fontSize: 9, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', color: S.cap },
     dateVal: { fontSize: 12.5, fontWeight: '800', color: '#fff', marginTop: 1 },
 
-    rightPanel: { flex: 1, backgroundColor: '#fff', padding: 16, paddingVertical: 14, gap: 10 },
+    rightPanel: { flex: 1, backgroundColor: S.card, padding: 16, paddingVertical: 14, gap: 10 },
     titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-    routeName: { flex: 1, fontSize: 14.5, fontWeight: '800', color: C_INK, letterSpacing: -0.2 },
+    routeName: { flex: 1, fontSize: 14.5, fontWeight: '800', color: S.ink, letterSpacing: -0.2 },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 0 },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
-    statusText: { fontSize: 10.5, fontWeight: '700', color: C_INK_SOFT },
+    statusText: { fontSize: 10.5, fontWeight: '700', color: S.inkSoft },
 
     route: { flexDirection: 'row', alignItems: 'stretch', gap: 8 },
     stationLine: { alignItems: 'center', width: 8, paddingTop: 3 },
     dot: { width: 7, height: 7, borderRadius: 3.5 },
     dotOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#C7CBCF' },
     line: { width: 2, flex: 1, minHeight: 14, backgroundColor: '#EEF0F1', marginVertical: 2 },
-    stationText: { fontSize: 12, fontWeight: '700', color: C_INK },
+    stationText: { fontSize: 12, fontWeight: '700', color: S.ink },
 
     bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: C_MIST },
-    typeBadgeText: { fontSize: 10, fontWeight: '700', color: C_INK_SOFT },
-    price: { fontSize: 14.5, fontWeight: '800', color: C_INK },
+    typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: S.surfaceMuted },
+    typeBadgeText: { fontSize: 10, fontWeight: '700', color: S.inkSoft },
+    price: { fontSize: 14.5, fontWeight: '800', color: S.ink },
   });
 }

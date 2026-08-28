@@ -6,12 +6,14 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { getNotificationPrefs, updateNotificationPrefs } from '@/src/api/userService';
 import { makeStyles, ModalHeader } from './shared';
+import { useSplitColors } from '@/constants/splitTheme';
 
 const NOTIF_KEY = '@veego_notif_v1';
 
 export function NotificationsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors: c, t } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const [trips, setTrips] = useState(true);
   const [promos, setPromos] = useState(false);
   const [system, setSystem] = useState(true);

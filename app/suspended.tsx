@@ -6,14 +6,11 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_BG = '#EEF0F2';
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
 
-function makeStyles() {
+function makeStyles(S: SplitColors) {
   return StyleSheet.create({
     container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xxl },
     iconCircle: {
@@ -22,20 +19,20 @@ function makeStyles() {
       marginBottom: Spacing.xl,
     },
     title: {
-      fontSize: 20, fontWeight: '800', color: C_INK, textAlign: 'center',
+      fontSize: 20, fontWeight: '800', color: S.ink, textAlign: 'center',
       letterSpacing: -0.4, marginBottom: 14, lineHeight: 28,
     },
     body: {
-      fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21, marginBottom: Spacing.xxl,
+      fontSize: 13.5, color: S.inkSoft, textAlign: 'center', lineHeight: 21, marginBottom: Spacing.xxl,
     },
     primaryBtn: {
-      width: '100%', height: 56, borderRadius: 20, backgroundColor: C_PANEL,
+      width: '100%', height: 56, borderRadius: 20, backgroundColor: S.panel,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
       marginBottom: Spacing.md,
     },
     primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     secondaryBtn: { paddingVertical: Spacing.md },
-    secondaryBtnText: { fontSize: 13.5, color: C_INK_SOFT },
+    secondaryBtnText: { fontSize: 13.5, color: S.inkSoft },
   });
 }
 
@@ -45,7 +42,8 @@ export default function SuspendedScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { t } = useTheme();
-  const styles = useMemo(() => makeStyles(), []);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
 
   const handleContactSupport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -55,7 +53,7 @@ export default function SuspendedScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C_BG, paddingTop: top }}>
+    <View style={{ flex: 1, backgroundColor: S.bg, paddingTop: top }}>
       <View style={styles.container}>
         <View style={styles.iconCircle}>
           <ShieldOff size={44} color="#D92D20" strokeWidth={1.8} />

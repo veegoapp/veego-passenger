@@ -18,15 +18,9 @@ import api from '@/src/api/client';
 import { usePromos } from '@/src/hooks/shared/usePromos';
 import { formatCairoTime } from '@/constants/data';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_BG = '#EEF0F2';
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
 const C_RED = '#D92D20';
 
 /* ─────────────────────────────────────────────────────────── */
@@ -67,6 +61,7 @@ function parseDiscountAmount(discountStr: string, base: number): number {
 export default function ReviewConfirmScreen() {
   const insets     = useSafeAreaInsets();
   const { t, isRTL } = useTheme();
+  const S = useSplitColors();
   const { handleConfirm, bookingError, clearBookingError } = useBooking();
   const { validateCode } = usePromos();
   const { walletFeature } = usePaymentConfig();
@@ -228,22 +223,22 @@ export default function ReviewConfirmScreen() {
   /* ── Styles ─────────────────────────────────────────────── */
   const styles = useMemo(() => StyleSheet.create({
 
-    root: { flex: 1, backgroundColor: C_BG },
+    root: { flex: 1, backgroundColor: S.bg },
 
     /* Header */
     header: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
       paddingTop: insets.top + 10, paddingBottom: Spacing.md, paddingHorizontal: Spacing.lg,
-      backgroundColor: C_BG,
+      backgroundColor: S.bg,
     },
     backBtn: {
       width: 40, height: 40, borderRadius: 13,
       alignItems: 'center', justifyContent: 'center',
-      backgroundColor: '#fff',
-      borderWidth: 1, borderColor: C_HAIR,
+      backgroundColor: S.card,
+      borderWidth: 1, borderColor: S.hair,
     },
     headerTitle: {
-      flex: 1, fontSize: 17, fontWeight: '800', color: C_INK,
+      flex: 1, fontSize: 17, fontWeight: '800', color: S.ink,
       letterSpacing: -0.4,
     },
 
@@ -252,7 +247,7 @@ export default function ReviewConfirmScreen() {
 
     /* ── Hero card (dark panel, fixed) ── */
     heroCard: {
-      backgroundColor: C_PANEL, borderRadius: 24, overflow: 'hidden',
+      backgroundColor: S.panel, borderRadius: 24, overflow: 'hidden',
       paddingHorizontal: 22, paddingTop: 20, paddingBottom: 22,
       marginBottom: 20,
     },
@@ -282,26 +277,26 @@ export default function ReviewConfirmScreen() {
 
     /* ── Section label ── */
     sectionLabel: {
-      fontSize: 11, fontWeight: '700', color: C_CAP,
+      fontSize: 11, fontWeight: '700', color: S.cap,
       textTransform: 'uppercase' as any, letterSpacing: 1.2,
       marginBottom: 10, marginTop: 2, paddingHorizontal: 2,
     },
 
     /* ── White bordered card ── */
-    tripCard: { marginBottom: Spacing.lg, backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: C_HAIR, overflow: 'hidden' },
+    tripCard: { marginBottom: Spacing.lg, backgroundColor: S.card, borderRadius: 22, borderWidth: 1, borderColor: S.hair, overflow: 'hidden' },
 
     /* Vertical timeline inside trip card */
     timelineWrap:  { flexDirection: 'row', gap: Spacing.lg, padding: 18, paddingBottom: Spacing.md },
     timelineLeft:  { alignItems: 'center', width: 18, paddingTop: 3 },
     tlDotTop: {
       width: 14, height: 14, borderRadius: 7,
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       borderWidth: 2.5, borderColor: '#1e1e28',
     },
-    tlLine:   { width: 2, flex: 1, backgroundColor: C_HAIR, marginVertical: Spacing.xs, minHeight: 28, borderRadius: 1 },
+    tlLine:   { width: 2, flex: 1, backgroundColor: S.hair, marginVertical: Spacing.xs, minHeight: 28, borderRadius: 1 },
     tlDotBottom: {
       width: 14, height: 14, borderRadius: 7,
-      backgroundColor: C_TEAL,
+      backgroundColor: S.teal,
       borderWidth: 2.5, borderColor: 'rgba(14,159,142,0.35)',
     },
     timelineRight: { flex: 1, justifyContent: 'space-between' },
@@ -313,27 +308,27 @@ export default function ReviewConfirmScreen() {
       borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
       marginBottom: Spacing.xs,
     },
-    stationBadgeText: { fontSize: 9, fontWeight: '700', color: C_INK_SOFT, letterSpacing: 0.8, textTransform: 'uppercase' as any },
-    stationName: { fontSize: 14.5, fontWeight: '700', color: C_INK, letterSpacing: -0.3 },
-    stationScheduledTime: { fontSize: 12, fontWeight: '600', color: C_INK_SOFT, marginTop: 2 },
+    stationBadgeText: { fontSize: 9, fontWeight: '700', color: S.inkSoft, letterSpacing: 0.8, textTransform: 'uppercase' as any },
+    stationName: { fontSize: 14.5, fontWeight: '700', color: S.ink, letterSpacing: -0.3 },
+    stationScheduledTime: { fontSize: 12, fontWeight: '600', color: S.inkSoft, marginTop: 2 },
 
     /* Info chips row */
-    infoDivider: { height: 1, backgroundColor: C_HAIR, marginHorizontal: 18 },
+    infoDivider: { height: 1, backgroundColor: S.hair, marginHorizontal: 18 },
     infoChipsRow: {
       flexDirection: 'row', paddingHorizontal: 18, paddingVertical: 14, gap: 0,
     },
     infoChip: { flex: 1, alignItems: 'center', gap: Spacing.xs },
-    infoChipDivider: { width: 1, backgroundColor: C_HAIR, marginHorizontal: Spacing.xs },
+    infoChipDivider: { width: 1, backgroundColor: S.hair, marginHorizontal: Spacing.xs },
     infoChipIconBox: {
       width: 30, height: 30, borderRadius: 9,
       backgroundColor: '#F0F2F3',
       alignItems: 'center', justifyContent: 'center',
     },
-    infoChipLabel: { fontSize: 9.5, color: C_CAP, letterSpacing: 0.3 },
-    infoChipValue: { fontSize: 12.5, fontWeight: '700', color: C_INK, letterSpacing: -0.2 },
+    infoChipLabel: { fontSize: 9.5, color: S.cap, letterSpacing: 0.3 },
+    infoChipValue: { fontSize: 12.5, fontWeight: '700', color: S.ink, letterSpacing: -0.2 },
 
     /* ── Promo card ── */
-    promoCard: { marginBottom: Spacing.lg, padding: Spacing.lg, backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: C_HAIR },
+    promoCard: { marginBottom: Spacing.lg, padding: Spacing.lg, backgroundColor: S.card, borderRadius: 22, borderWidth: 1, borderColor: S.hair },
     promoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     promoIconBox: {
       width: 42, height: 42, borderRadius: 13,
@@ -342,20 +337,20 @@ export default function ReviewConfirmScreen() {
     },
     promoInput: {
       flex: 1, height: 42, borderRadius: 13,
-      borderWidth: 1.5, borderColor: C_HAIR,
+      borderWidth: 1.5, borderColor: S.hair,
       paddingHorizontal: Spacing.md, fontSize: 13.5, fontWeight: '600',
-      color: C_INK, letterSpacing: 0.6,
-      backgroundColor: '#fff',
+      color: S.ink, letterSpacing: 0.6,
+      backgroundColor: S.card,
     },
-    promoInputActive: { borderColor: C_PANEL },
+    promoInputActive: { borderColor: S.panel },
     promoApplyBtn: {
       height: 42, paddingHorizontal: Spacing.lg, borderRadius: 13,
-      backgroundColor: C_PANEL,
+      backgroundColor: S.panel,
       alignItems: 'center', justifyContent: 'center',
     },
     promoApplyBtnDisabled: { backgroundColor: '#F0F2F3' },
     promoApplyText:         { fontSize: 13, fontWeight: '700', color: '#ffffff' },
-    promoApplyTextDisabled: { color: C_CAP },
+    promoApplyTextDisabled: { color: S.cap },
 
     promoSuccessRow: {
       flexDirection: 'row', alignItems: 'center',
@@ -364,37 +359,37 @@ export default function ReviewConfirmScreen() {
       borderRadius: 12, paddingHorizontal: Spacing.md, paddingVertical: 9,
       borderWidth: 1, borderColor: 'rgba(14,159,142,0.2)',
     },
-    promoSuccessText: { flex: 1, fontSize: 13, fontWeight: '600', color: C_TEAL, marginStart: 6 },
+    promoSuccessText: { flex: 1, fontSize: 13, fontWeight: '600', color: S.teal, marginStart: 6 },
     promoErrorText:   { fontSize: 12.5, color: C_RED, marginTop: 10, paddingHorizontal: 2 },
 
     /* ── Fare card ── */
-    fareCard: { marginBottom: Spacing.lg, backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: C_HAIR, overflow: 'hidden' },
+    fareCard: { marginBottom: Spacing.lg, backgroundColor: S.card, borderRadius: 22, borderWidth: 1, borderColor: S.hair, overflow: 'hidden' },
     fareRow: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 18, paddingVertical: 13,
     },
-    fareRowLabel:  { fontSize: 11, fontWeight: '600', color: C_CAP, textTransform: 'uppercase' as any, letterSpacing: 0.8 },
-    fareRowValue:  { fontSize: 14, fontWeight: '600', color: C_INK },
-    fareDivider:   { height: 1, backgroundColor: C_HAIR, marginHorizontal: 18 },
+    fareRowLabel:  { fontSize: 11, fontWeight: '600', color: S.cap, textTransform: 'uppercase' as any, letterSpacing: 0.8 },
+    fareRowValue:  { fontSize: 14, fontWeight: '600', color: S.ink },
+    fareDivider:   { height: 1, backgroundColor: S.hair, marginHorizontal: 18 },
     fareTotalRow:  {
       flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
       paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18,
     },
-    fareTotalLabel: { fontSize: 13, fontWeight: '700', color: C_INK, letterSpacing: 0.2 },
+    fareTotalLabel: { fontSize: 13, fontWeight: '700', color: S.ink, letterSpacing: 0.2 },
     fareTotalRight: { alignItems: 'flex-end', gap: 2 },
-    fareOriginal:   { fontSize: 13, color: C_CAP, textDecorationLine: 'line-through' as any },
-    fareDiscounted: { fontSize: 24, fontWeight: '800', color: C_TEAL, letterSpacing: -1 },
-    fareNormal:     { fontSize: 24, fontWeight: '800', color: C_INK, letterSpacing: -1 },
+    fareOriginal:   { fontSize: 13, color: S.cap, textDecorationLine: 'line-through' as any },
+    fareDiscounted: { fontSize: 24, fontWeight: '800', color: S.teal, letterSpacing: -1 },
+    fareNormal:     { fontSize: 24, fontWeight: '800', color: S.ink, letterSpacing: -1 },
     savingsPill: {
       flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.xs,
       backgroundColor: 'rgba(14,159,142,0.1)', borderRadius: 99,
       paddingHorizontal: 10, paddingVertical: Spacing.xs, alignSelf: 'flex-end',
     },
-    savingsDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: C_TEAL },
-    savingsText: { fontSize: 11, fontWeight: '700', color: C_TEAL, letterSpacing: 0.1 },
+    savingsDot:  { width: 5, height: 5, borderRadius: 3, backgroundColor: S.teal },
+    savingsText: { fontSize: 11, fontWeight: '700', color: S.teal, letterSpacing: 0.1 },
 
     /* ── Payment method ── */
-    paymentCard: { marginBottom: Spacing.lg, padding: Spacing.lg, backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: C_HAIR },
+    paymentCard: { marginBottom: Spacing.lg, padding: Spacing.lg, backgroundColor: S.card, borderRadius: 22, borderWidth: 1, borderColor: S.hair },
     paymentChips: { flexDirection: 'row', gap: Spacing.sm },
     paymentChip: { flex: 1, height: 46, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
     paymentChipText: { fontSize: 13.5, fontWeight: '600' },
@@ -412,19 +407,19 @@ export default function ReviewConfirmScreen() {
     cta: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
       paddingHorizontal: Spacing.lg, paddingTop: 14, paddingBottom: insets.bottom + 16,
-      backgroundColor: C_BG,
-      borderTopWidth: 1, borderTopColor: C_HAIR,
+      backgroundColor: S.bg,
+      borderTopWidth: 1, borderTopColor: S.hair,
     },
     ctaBtn: {
-      height: 58, borderRadius: 22, backgroundColor: C_TEAL,
+      height: 58, borderRadius: 22, backgroundColor: S.teal,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     },
     ctaBtnDisabled: { opacity: 0.45 },
     ctaBtnText: { color: '#ffffff', fontSize: 15.5, fontWeight: '800', letterSpacing: -0.3 },
     ctaSub: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: 10 },
-    ctaSubText: { fontSize: 12.5, color: C_CAP },
-    ctaSubDivider: { width: 3, height: 3, borderRadius: 2, backgroundColor: C_CAP },
-    ctaSubFinal:   { fontSize: 12.5, fontWeight: '700', color: hasDiscount ? C_TEAL : C_CAP },
+    ctaSubText: { fontSize: 12.5, color: S.cap },
+    ctaSubDivider: { width: 3, height: 3, borderRadius: 2, backgroundColor: S.cap },
+    ctaSubFinal:   { fontSize: 12.5, fontWeight: '700', color: hasDiscount ? S.teal : S.cap },
 
   }), [insets, hasDiscount]);
 
@@ -435,8 +430,8 @@ export default function ReviewConfirmScreen() {
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.75}>
           {isRTL
-            ? <ArrowLeft size={18} color={C_INK} />
-            : <ChevronLeft size={18} color={C_INK} strokeWidth={2.5} />}
+            ? <ArrowLeft size={18} color={S.ink} />
+            : <ChevronLeft size={18} color={S.ink} strokeWidth={2.5} />}
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('review_confirm_title')}</Text>
       </View>
@@ -513,7 +508,7 @@ export default function ReviewConfirmScreen() {
           <View style={styles.infoChipsRow}>
             <View style={styles.infoChip}>
               <View style={styles.infoChipIconBox}>
-                <CalendarDays size={14} color={C_INK} strokeWidth={2} />
+                <CalendarDays size={14} color={S.ink} strokeWidth={2} />
               </View>
               <Text style={styles.infoChipLabel}>{t('date')}</Text>
               <Text style={styles.infoChipValue} numberOfLines={1}>{date || '—'}</Text>
@@ -521,7 +516,7 @@ export default function ReviewConfirmScreen() {
             <View style={styles.infoChipDivider} />
             <View style={styles.infoChip}>
               <View style={styles.infoChipIconBox}>
-                <Clock size={14} color={C_INK} strokeWidth={2} />
+                <Clock size={14} color={S.ink} strokeWidth={2} />
               </View>
               <Text style={styles.infoChipLabel}>{t('time_label')}</Text>
               <Text style={styles.infoChipValue}>{time || '—'}</Text>
@@ -529,7 +524,7 @@ export default function ReviewConfirmScreen() {
             <View style={styles.infoChipDivider} />
             <View style={styles.infoChip}>
               <View style={styles.infoChipIconBox}>
-                <Users size={14} color={C_INK} strokeWidth={2} />
+                <Users size={14} color={S.ink} strokeWidth={2} />
               </View>
               <Text style={styles.infoChipLabel}>{t('passengers')}</Text>
               <Text style={styles.infoChipValue}>{seats}</Text>
@@ -542,12 +537,12 @@ export default function ReviewConfirmScreen() {
         <View style={styles.promoCard}>
           <View style={styles.promoRow}>
             <View style={styles.promoIconBox}>
-              <Tag size={17} color={promoStatus === 'valid' ? C_TEAL : C_INK_SOFT} strokeWidth={2} />
+              <Tag size={17} color={promoStatus === 'valid' ? S.teal : S.inkSoft} strokeWidth={2} />
             </View>
             <TextInput
               style={[styles.promoInput, inputFocused && styles.promoInputActive]}
               placeholder={t('enter_promo')}
-              placeholderTextColor={C_CAP}
+              placeholderTextColor={S.cap}
               value={promoInput}
               onChangeText={(v) => {
                 setPromoInput(v);
@@ -577,10 +572,10 @@ export default function ReviewConfirmScreen() {
 
           {promoStatus === 'valid' && (
             <View style={styles.promoSuccessRow}>
-              <Check size={15} color={C_TEAL} strokeWidth={2.5} />
+              <Check size={15} color={S.teal} strokeWidth={2.5} />
               <Text style={styles.promoSuccessText}>{t('promo_applied')} · -{promoDiscount}</Text>
               <TouchableOpacity onPress={clearPromo} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <X size={15} color={C_TEAL} />
+                <X size={15} color={S.teal} />
               </TouchableOpacity>
             </View>
           )}
@@ -632,14 +627,14 @@ export default function ReviewConfirmScreen() {
               style={[
                 styles.paymentChip,
                 {
-                  borderColor: paymentMethod !== 'wallet' ? C_PANEL : C_HAIR,
-                  backgroundColor: paymentMethod !== 'wallet' ? C_PANEL : 'transparent',
+                  borderColor: paymentMethod !== 'wallet' ? S.panel : S.hair,
+                  backgroundColor: paymentMethod !== 'wallet' ? S.panel : 'transparent',
                 },
               ]}
               onPress={() => { Haptics.selectionAsync(); setPaymentMethod('cash'); }}
               activeOpacity={0.85}
             >
-              <Text style={[styles.paymentChipText, { color: paymentMethod !== 'wallet' ? '#ffffff' : C_INK }]}>
+              <Text style={[styles.paymentChipText, { color: paymentMethod !== 'wallet' ? '#ffffff' : S.ink }]}>
                 {t('payment_methods_cash')}
               </Text>
             </TouchableOpacity>
@@ -648,14 +643,14 @@ export default function ReviewConfirmScreen() {
                 style={[
                   styles.paymentChip,
                   {
-                    borderColor: paymentMethod === 'wallet' ? C_PANEL : C_HAIR,
-                    backgroundColor: paymentMethod === 'wallet' ? C_PANEL : 'transparent',
+                    borderColor: paymentMethod === 'wallet' ? S.panel : S.hair,
+                    backgroundColor: paymentMethod === 'wallet' ? S.panel : 'transparent',
                   },
                 ]}
                 onPress={() => { Haptics.selectionAsync(); setPaymentMethod('wallet'); }}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.paymentChipText, { color: paymentMethod === 'wallet' ? '#ffffff' : C_INK }]}>
+                <Text style={[styles.paymentChipText, { color: paymentMethod === 'wallet' ? '#ffffff' : S.ink }]}>
                   {t('payment_methods_wallet')}
                 </Text>
               </TouchableOpacity>

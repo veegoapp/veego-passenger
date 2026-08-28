@@ -24,11 +24,8 @@ import { NotificationsModal } from '@/components/profile/NotificationsModal';
 import { HelpFaqModal } from '@/components/profile/HelpFaqModal';
 import { ContactSupportModal } from '@/components/profile/ContactSupportModal';
 import { makeStyles, useProfileInfo } from '@/components/profile/shared';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_HAIR = '#EEF0F1';
-const C_PANEL = '#14151A';
 
 type ProfileScreen =
   | 'personal_info'
@@ -45,7 +42,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { colors: c, darkMode, setDarkMode, language, setLanguage, t, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
   const { openTerms } = useLocalSearchParams<{ openTerms?: string }>();
 
@@ -165,8 +163,8 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={C_INK_SOFT}
-            colors={[C_PANEL]}
+            tintColor={S.inkSoft}
+            colors={[S.panel]}
           />
         }
       >
@@ -203,11 +201,11 @@ export default function ProfileScreen() {
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open(item.screen)}>
-                  <View style={styles.settingIcon}><item.icon size={16} color={C_INK} /></View>
+                  <View style={styles.settingIcon}><item.icon size={16} color={S.ink} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {item.value && <Text style={styles.settingValue}>{item.value}</Text>}
-                    {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
+                    {isRTL ? <ChevronLeft size={14} color={S.inkSoft} /> : <ChevronRight size={14} color={S.inkSoft} />}
                   </View>
                 </TouchableOpacity>
               </View>
@@ -219,23 +217,23 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>{t('preferences')}</Text>
           <View style={styles.groupCard}>
             <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open('notifications')}>
-              <View style={styles.settingIcon}><Bell size={16} color={C_INK} /></View>
+              <View style={styles.settingIcon}><Bell size={16} color={S.ink} /></View>
               <Text style={styles.settingLabel}>{t('push_notifs')}</Text>
               <View style={styles.settingRight}>
                 <Text style={styles.settingValue}>{t('notif_on')}</Text>
-                {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
+                {isRTL ? <ChevronLeft size={14} color={S.inkSoft} /> : <ChevronRight size={14} color={S.inkSoft} />}
               </View>
             </TouchableOpacity>
 
             <View style={styles.itemDivider} />
 
             <TouchableOpacity style={styles.settingItem} activeOpacity={1}>
-              <View style={styles.settingIcon}><Moon size={16} color={C_INK} /></View>
+              <View style={styles.settingIcon}><Moon size={16} color={S.ink} /></View>
               <Text style={styles.settingLabel}>{t('dark_mode')}</Text>
               <Switch
                 value={darkMode}
                 onValueChange={(v) => { Haptics.selectionAsync(); setDarkMode(v); }}
-                trackColor={{ false: '#C7CBCF', true: C_PANEL }}
+                trackColor={{ false: '#C7CBCF', true: S.panel }}
                 thumbColor="#ffffff"
               />
             </TouchableOpacity>
@@ -243,7 +241,7 @@ export default function ProfileScreen() {
             <View style={styles.itemDivider} />
 
             <View style={styles.settingItem}>
-              <View style={styles.settingIcon}><Languages size={16} color={C_INK} /></View>
+              <View style={styles.settingIcon}><Languages size={16} color={S.ink} /></View>
               <Text style={styles.settingLabel}>{t('language')}</Text>
               <View style={styles.langRow}>
                 <TouchableOpacity
@@ -251,14 +249,14 @@ export default function ProfileScreen() {
                   onPress={() => { Haptics.selectionAsync(); setLanguage('en'); }}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.langBtnText, { color: language === 'en' ? '#ffffff' : C_INK_SOFT }]}>EN</Text>
+                  <Text style={[styles.langBtnText, { color: language === 'en' ? '#ffffff' : S.inkSoft }]}>EN</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.langBtn, language === 'ar' ? styles.langBtnActive : styles.langBtnInactive]}
                   onPress={() => { Haptics.selectionAsync(); setLanguage('ar'); }}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.langBtnText, { color: language === 'ar' ? '#ffffff' : C_INK_SOFT }]}>AR</Text>
+                  <Text style={[styles.langBtnText, { color: language === 'ar' ? '#ffffff' : S.inkSoft }]}>AR</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -275,9 +273,9 @@ export default function ProfileScreen() {
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open(item.screen)}>
-                  <View style={styles.settingIcon}><item.icon size={16} color={C_INK} /></View>
+                  <View style={styles.settingIcon}><item.icon size={16} color={S.ink} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
-                  {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
+                  {isRTL ? <ChevronLeft size={14} color={S.inkSoft} /> : <ChevronRight size={14} color={S.inkSoft} />}
                 </TouchableOpacity>
               </View>
             ))}
@@ -294,11 +292,11 @@ export default function ProfileScreen() {
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
                 <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={item.onPress}>
-                  <View style={styles.settingIcon}><item.icon size={16} color={C_INK} /></View>
+                  <View style={styles.settingIcon}><item.icon size={16} color={S.ink} /></View>
                   <Text style={styles.settingLabel}>{item.label}</Text>
                   <View style={styles.settingRight}>
                     {(item as any).value && <Text style={styles.settingValue}>{(item as any).value}</Text>}
-                    {isRTL ? <ChevronLeft size={14} color={C_INK_SOFT} /> : <ChevronRight size={14} color={C_INK_SOFT} />}
+                    {isRTL ? <ChevronLeft size={14} color={S.inkSoft} /> : <ChevronRight size={14} color={S.inkSoft} />}
                   </View>
                 </TouchableOpacity>
               </View>

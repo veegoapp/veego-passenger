@@ -13,36 +13,29 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { usePromos } from '@/src/hooks/shared/usePromos';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_BG = '#EEF0F2';
-const C_PANEL = '#14151A';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_CAP = '#9AA0A6';
-const C_HAIR = '#EEF0F1';
-const C_TEAL = '#0E9F8E';
-const C_MIST = '#F0F2F3';
 
-function makeStyles() {
+function makeStyles(S: SplitColors) {
   return StyleSheet.create({
     header: {
       flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: Spacing.lg, gap: Spacing.md,
     },
     backBtn: {
       width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: '#fff', borderWidth: 1, borderColor: C_HAIR,
+      backgroundColor: S.card, borderWidth: 1, borderColor: S.hair,
     },
     headerText: { flex: 1 },
-    headerTitle: { fontSize: 19, color: C_INK, letterSpacing: -0.4, fontWeight: '800' },
-    headerSub: { fontSize: 12.5, color: C_INK_SOFT, marginTop: 1, fontWeight: '600' },
+    headerTitle: { fontSize: 19, color: S.ink, letterSpacing: -0.4, fontWeight: '800' },
+    headerSub: { fontSize: 12.5, color: S.inkSoft, marginTop: 1, fontWeight: '600' },
 
     inputSection: { paddingHorizontal: 20, marginBottom: Spacing.xl },
     inputRow: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
     },
     inputWrap: {
-      flex: 1, height: 52, backgroundColor: '#fff', borderRadius: 18, borderWidth: 1.5, borderColor: C_HAIR,
+      flex: 1, height: 52, backgroundColor: S.card, borderRadius: 18, borderWidth: 1.5, borderColor: S.hair,
       flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, gap: 10,
     },
     inputField: { flex: 1, fontSize: 14.5, fontWeight: '600', letterSpacing: 0.5 },
@@ -53,7 +46,7 @@ function makeStyles() {
     applyBtnText: { fontSize: 13.5, fontWeight: '700', color: '#ffffff' },
 
     sectionLabel: {
-      fontSize: 11, fontWeight: '700', color: C_CAP,
+      fontSize: 11, fontWeight: '700', color: S.cap,
       textTransform: 'uppercase', letterSpacing: 1.2,
       paddingHorizontal: 20, marginBottom: Spacing.md,
     },
@@ -90,13 +83,13 @@ function makeStyles() {
     },
     successCircle: {
       width: 90, height: 90, borderRadius: 45,
-      backgroundColor: C_TEAL, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: S.teal, alignItems: 'center', justifyContent: 'center',
     },
-    successTitle: { fontSize: 20, color: C_INK, letterSpacing: -0.3, textAlign: 'center', fontWeight: '800' },
-    successSub: { fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: 20, color: S.ink, letterSpacing: -0.3, textAlign: 'center', fontWeight: '800' },
+    successSub: { fontSize: 13.5, color: S.inkSoft, textAlign: 'center', lineHeight: 21 },
     successBtn: {
       marginTop: Spacing.sm, height: 52, paddingHorizontal: 40, borderRadius: 999,
-      backgroundColor: C_PANEL, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: S.panel, alignItems: 'center', justifyContent: 'center',
     },
     successBtnText: { fontSize: 15, color: '#fff', fontWeight: '700' },
 
@@ -104,10 +97,10 @@ function makeStyles() {
       alignItems: 'center', gap: Spacing.md, paddingVertical: 40, paddingHorizontal: Spacing.xxl,
     },
     emptyIcon: {
-      width: 64, height: 64, borderRadius: 20, backgroundColor: C_MIST,
+      width: 64, height: 64, borderRadius: 20, backgroundColor: S.surfaceMuted,
       alignItems: 'center', justifyContent: 'center',
     },
-    emptyText: { fontSize: 13.5, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
+    emptyText: { fontSize: 13.5, color: S.inkSoft, textAlign: 'center', lineHeight: 21 },
   });
 }
 
@@ -133,7 +126,8 @@ export default function PromoScreen() {
   const insets = useSafeAreaInsets();
   const top = insets.top;
   const { t, language, isRTL } = useTheme();
-  const styles = useMemo(() => makeStyles(), []);
+  const S = useSplitColors();
+  const styles = useMemo(() => makeStyles(S), [S]);
   const isAr = language === 'ar';
 
   // Deep-link pre-fill: /promo?code=XXXX
@@ -191,10 +185,10 @@ export default function PromoScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C_BG }}>
+    <View style={{ flex: 1, backgroundColor: S.bg }}>
       <View style={[styles.header, { paddingTop: top + 12 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          {isRTL ? <ArrowRight size={18} color={C_INK} /> : <ArrowLeft size={18} color={C_INK} />}
+          {isRTL ? <ArrowRight size={18} color={S.ink} /> : <ArrowLeft size={18} color={S.ink} />}
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{t('promo_title')}</Text>
@@ -209,7 +203,7 @@ export default function PromoScreen() {
           </Animated.View>
           <Text style={styles.successTitle}>{t('promo_code_applied')}</Text>
           <Text style={styles.successSub}>
-            <Text style={{ fontWeight: '800', color: C_TEAL }}>{appliedCode}</Text>
+            <Text style={{ fontWeight: '800', color: S.teal }}>{appliedCode}</Text>
             {'\n'}{t('promo_code_applied_msg')}
           </Text>
           <TouchableOpacity style={styles.successBtn} onPress={() => router.back()} activeOpacity={0.9}>
@@ -221,11 +215,11 @@ export default function PromoScreen() {
           <View style={styles.inputSection}>
             <View style={styles.inputRow}>
               <View style={styles.inputWrap}>
-                <Tag size={16} color={C_INK_SOFT} />
+                <Tag size={16} color={S.inkSoft} />
                 <TextInput
-                  style={[styles.inputField, { color: C_INK }]}
+                  style={[styles.inputField, { color: S.ink }]}
                   placeholder={t('promo_input_placeholder')}
-                  placeholderTextColor={C_CAP}
+                  placeholderTextColor={S.cap}
                   value={code}
                   onChangeText={setCode}
                   autoCapitalize="characters"
@@ -235,19 +229,19 @@ export default function PromoScreen() {
                 />
                 {code.length > 0 && (
                   <TouchableOpacity onPress={() => setCode('')}>
-                    <XCircle size={16} color={C_CAP} />
+                    <XCircle size={16} color={S.cap} />
                   </TouchableOpacity>
                 )}
               </View>
               <TouchableOpacity
-                style={[styles.applyBtn, { backgroundColor: code.trim() && !validating ? C_PANEL : C_MIST }]}
+                style={[styles.applyBtn, { backgroundColor: code.trim() && !validating ? S.panel : S.surfaceMuted }]}
                 onPress={() => handleApply(code)}
                 activeOpacity={0.85}
                 disabled={validating}
               >
                 {validating
                   ? <AppLoader size={24} />
-                  : <Text style={[styles.applyBtnText, { color: code.trim() ? '#ffffff' : C_INK_SOFT }]}>
+                  : <Text style={[styles.applyBtnText, { color: code.trim() ? '#ffffff' : S.inkSoft }]}>
                       {t('promo_apply')}
                     </Text>
                 }
@@ -260,7 +254,7 @@ export default function PromoScreen() {
             {promos.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIcon}>
-                  <Inbox size={28} color={C_INK_SOFT} />
+                  <Inbox size={28} color={S.inkSoft} />
                 </View>
                 <Text style={styles.emptyText}>{t('promo_no_featured')}</Text>
               </View>

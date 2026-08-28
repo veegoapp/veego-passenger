@@ -15,19 +15,14 @@ import { submitTripRequest, TripRequestDirection } from '@/src/api/shuttleServic
 import type { Route } from '@/constants/data';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
+import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 const OUTBOUND_SLOTS = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00'];
 const RETURN_SLOTS   = ['15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00'];
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
-const C_PANEL = '#14151A';
-const C_TEAL = '#0E9F8E';
-const C_CAP = '#9AA0A6';
-const C_INK = '#14151A';
-const C_INK_SOFT = '#6B7178';
-const C_MIST = '#F0F2F3';
 
-function makeStyles(c: ThemeColors, insetsBottom: number) {
+function makeStyles(c: ThemeColors, insetsBottom: number, SC: SplitColors) {
   return StyleSheet.create({
     root: { ...StyleSheet.absoluteFillObject, zIndex: 10000, pointerEvents: 'box-none' as any },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
@@ -37,7 +32,7 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       maxHeight: '88%',
     },
     sheetGlass: {
-      backgroundColor: '#fff',
+      backgroundColor: SC.card,
       borderTopLeftRadius: 30, borderTopRightRadius: 30,
       borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0,
       paddingBottom: Spacing.xxl,
@@ -50,10 +45,10 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
 
     header: {
       marginHorizontal: 16, marginTop: 4, marginBottom: 4,
-      backgroundColor: C_PANEL, borderRadius: 22, padding: 18,
+      backgroundColor: SC.panel, borderRadius: 22, padding: 18,
     },
     headerTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-    headerCap: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: C_CAP },
+    headerCap: { fontSize: 10, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: SC.cap },
     closeBtn: {
       width: 30, height: 30, borderRadius: 15,
       backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center',
@@ -64,36 +59,36 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
     scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: Spacing.sm },
 
     sectionLabel: {
-      fontSize: 11, fontWeight: '700', color: C_CAP,
+      fontSize: 11, fontWeight: '700', color: SC.cap,
       textTransform: 'uppercase', letterSpacing: 0.9, marginBottom: 10,
     },
 
-    directionRow: { flexDirection: 'row', padding: 4, gap: 2, backgroundColor: C_MIST, borderRadius: 16, marginBottom: Spacing.xl },
+    directionRow: { flexDirection: 'row', padding: 4, gap: 2, backgroundColor: SC.surfaceMuted, borderRadius: 16, marginBottom: Spacing.xl },
     dirBtn: {
       flex: 1, height: 42, borderRadius: 12,
       alignItems: 'center', justifyContent: 'center',
       flexDirection: 'row', gap: 6,
     },
-    dirBtnActive: { backgroundColor: C_PANEL },
-    dirBtnText: { fontSize: 12.5, fontWeight: '700', color: C_INK_SOFT },
+    dirBtnActive: { backgroundColor: SC.panel },
+    dirBtnText: { fontSize: 12.5, fontWeight: '700', color: SC.inkSoft },
     dirBtnTextActive: { color: '#ffffff' },
 
     slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.xl },
     slotBtn: {
       paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
       borderWidth: 1.5, borderColor: '#E2E5E8',
-      backgroundColor: '#fff',
+      backgroundColor: SC.card,
       minWidth: 68, alignItems: 'center',
     },
-    slotBtnActive: { borderColor: C_PANEL, backgroundColor: C_PANEL },
-    slotText: { fontSize: 12.5, fontWeight: '700', color: C_INK },
+    slotBtnActive: { borderColor: SC.panel, backgroundColor: SC.panel },
+    slotText: { fontSize: 12.5, fontWeight: '700', color: SC.ink },
     slotTextActive: { color: '#ffffff' },
 
     ctaWrap: { paddingHorizontal: 20, paddingTop: Spacing.lg, paddingBottom: Spacing.lg + insetsBottom },
     ctaBtn: { borderRadius: 20, overflow: 'hidden' },
     ctaBtnGradient: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: Spacing.sm, paddingVertical: Spacing.lg, backgroundColor: C_TEAL,
+      gap: Spacing.sm, paddingVertical: Spacing.lg, backgroundColor: SC.teal,
     },
     ctaBtnDisabled: { opacity: 0.35 },
     ctaBtnText: { fontSize: Typography.size.md, fontWeight: Typography.weight.bold, color: '#ffffff' },
@@ -107,10 +102,10 @@ function makeStyles(c: ThemeColors, insetsBottom: number) {
       backgroundColor: 'rgba(14,159,142,0.1)',
       alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs,
     },
-    successTitle: { fontSize: 20, fontWeight: '800', color: C_INK, textAlign: 'center' },
-    successMsg: { fontSize: Typography.size.sm, color: C_INK_SOFT, textAlign: 'center', lineHeight: 21 },
+    successTitle: { fontSize: 20, fontWeight: '800', color: SC.ink, textAlign: 'center' },
+    successMsg: { fontSize: Typography.size.sm, color: SC.inkSoft, textAlign: 'center', lineHeight: 21 },
     doneBtn: { marginTop: Spacing.sm, borderRadius: 999, overflow: 'hidden' },
-    doneBtnGradient: { paddingVertical: 14, paddingHorizontal: 40, backgroundColor: C_TEAL },
+    doneBtnGradient: { paddingVertical: 14, paddingHorizontal: 40, backgroundColor: SC.teal },
     doneBtnText: { fontSize: 15, fontWeight: '800', color: '#ffffff' },
   });
 }
@@ -124,7 +119,8 @@ interface Props {
 export function RequestTripSheet({ visible, route, onClose }: Props) {
   const { colors: c, t, isRTL } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => makeStyles(c, insets.bottom), [c, insets.bottom]);
+  const SC = useSplitColors();
+  const styles = useMemo(() => makeStyles(c, insets.bottom, SC), [c, insets.bottom, SC]);
 
   const slideAnim = useRef(new Animated.Value(600)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
@@ -223,7 +219,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
         {success ? (
           <View style={styles.successWrap}>
             <View style={styles.successIcon}>
-              <CheckCircle size={38} color={C_TEAL} />
+              <CheckCircle size={38} color={SC.teal} />
             </View>
             <Text style={styles.successTitle}>{t('trip_request_sent')}</Text>
             <Text style={styles.successMsg}>{t('trip_request_msg')}</Text>
@@ -255,7 +251,7 @@ export function RequestTripSheet({ visible, route, onClose }: Props) {
                       activeOpacity={0.8}
                     >
                       {d === 'round_trip' && (
-                        <RotateCcw size={14} color={active ? '#fff' : C_INK_SOFT} />
+                        <RotateCcw size={14} color={active ? '#fff' : SC.inkSoft} />
                       )}
                       <Text style={[styles.dirBtnText, active && styles.dirBtnTextActive]}>
                         {t(d === 'one_way' ? 'one_way' : 'round_trip')}
