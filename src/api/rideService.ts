@@ -26,7 +26,7 @@ export interface RideRequestPayload {
   recipientName?: string;
   recipientPhone?: string;
   /** Defaults to 'cash' — preserves prior hardcoded behavior when omitted. */
-  paymentMethod?: 'cash' | 'wallet';
+  paymentMethod?: 'cash' | 'wallet' | 'instapay';
 }
 
 /** GET /rides/:id — single ride snapshot (polling, reconnect recovery, deep links). */
@@ -119,5 +119,37 @@ export async function sendRideSos(
   body: { latitude?: number; longitude?: number; notes?: string; action?: string },
 ): Promise<any> {
   const { data } = await api.post(`/rides/${rideId}/sos`, body);
+  return data;
+}
+
+/** PATCH /rides/:id/payment-method — switch payment method after a driver is
+ *  assigned but before the trip completes. Backend rejects 'instapay' with a
+ *  400 when the assigned driver doesn't have InstaPay enabled. */
+export async function updatePaymentMethod(
+  rideId: string | number,
+  method: 'cash' | 'wallet' | 'instapay',
+): Promise<any> {
+  const { data } = await api.patch(`/rides/${rideId}/payment-method`, { paymentMethod: method });
+  return data;
+}
+
+export interface InstapayInfo {
+  link: string;
+  qrDataUrl: string;
+  paymentStatus: string;
+}
+
+/** GET /rides/:id/instapay — fallback fetch for the InstaPay link/QR/status
+ *  (e.g. when the ride:completed socket payload was missed). */
+export async function getInstapayInfo(rideId: string | number): Promise<InstapayInfo> {
+  const { data } = await api.get(`/rides/${rideId}/instapay`);
+  const d = data?.data ?? data ?? {};
+  return { link: d.link, qrDataUrl: d.qrDataUrl, paymentStatus: d.paymentStatus };
+}
+
+/** POST /rides/:id/instapay/mark-paid — passenger declares they've sent the
+ *  money; only valid while paymentStatus === "awaiting_payment". */
+export async function markInstapayPaid(rideId: string | number): Promise<any> {
+  const { data } = await api.post(`/rides/${rideId}/instapay/mark-paid`);
   return data;
 }

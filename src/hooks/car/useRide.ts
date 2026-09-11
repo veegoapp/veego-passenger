@@ -26,11 +26,14 @@ const DriverAssignedSchema = z.object({
     plateNumber: z.string().optional(),
     plate_number: z.string().optional(),
     rating: z.number().optional(),
+    instaPayEnabled: z.boolean().optional(),
   }).optional(),
   eta: z.number().optional(),
 });
 
 const RideIdSchema = z.object({ rideId: z.string().or(z.number()) });
+
+const InstapayConfirmedSchema = z.object({ rideId: z.string().or(z.number()) });
 
 const WaitingChargeStartedSchema = z.object({
   rideId: z.string().or(z.number()),
@@ -59,6 +62,13 @@ const RideCompletedSchema = z.object({
   promoDiscount: z.number().optional(),
   /** Portion of the fare paid from the passenger's wallet, 0 for cash rides. */
   walletDeduction: z.number().optional(),
+  /** Present only when paymentMethod === 'instapay'. */
+  paymentStatus: z.enum(['not_required', 'awaiting_payment', 'awaiting_confirmation', 'confirmed']).optional(),
+  /** Present only when paymentMethod === 'instapay'. */
+  instapay: z.object({
+    link: z.string(),
+    qrDataUrl: z.string(),
+  }).nullable().optional(),
 });
 
 const RideCancelledSchema = z.object({
@@ -105,6 +115,9 @@ export interface DriverInfo {
   /** Minutes until arrival, or null when no real estimate has arrived yet
    *  (never a guessed/default value — the UI must show a non-numeric state). */
   eta: number | null;
+  /** True when this driver can accept InstaPay for this trip — purely
+   *  informational; never used to filter/match drivers. */
+  instaPayEnabled?: boolean;
 }
 
 export interface RideState {
@@ -136,6 +149,10 @@ export interface RideState {
    *  ride:eta_update (real Google distance). Pairs with driver.eta (minutes)
    *  for the nav card. Null until the first update. */
   liveDistanceM?: number | null;
+  /** Present only for InstaPay rides, once the ride completes. */
+  paymentStatus: 'not_required' | 'awaiting_payment' | 'awaiting_confirmation' | 'confirmed' | null;
+  /** InstaPay link/QR for the completed ride, present only when paymentMethod === 'instapay'. */
+  instapay: { link: string; qrDataUrl: string } | null;
 }
 
 export interface ResumedRide {
@@ -179,6 +196,7 @@ function mapDriverFromRide(
     plateNumber: rideDriver.plateNumber ?? rideDriver.plate_number ?? fallback?.plateNumber,
     rating: rideDriver.rating ?? fallback?.rating ?? 4.8,
     eta: topLevelEta ?? rideDriver.eta ?? fallback?.eta ?? null,
+    instaPayEnabled: rideDriver.instaPayEnabled ?? fallback?.instaPayEnabled ?? false,
   };
 }
 
@@ -192,7 +210,7 @@ interface UseRideResult {
     promoCode?: string;
     recipientName?: string;
     recipientPhone?: string;
-    paymentMethod?: 'cash' | 'wallet';
+    paymentMethod?: 'cash' | 'wallet' | 'instapay';
   }) => Promise<{
     success: boolean;
     rideId?: string;
@@ -232,6 +250,8 @@ const DEFAULT_STATE: RideState = {
   surgeMultiplier: null,
   deviationWarning: false,
   passengerRating: null,
+  paymentStatus: null,
+  instapay: null,
 };
 
 const TERMINAL_STATUSES: RideStatus[] = ['completed', 'cancelled', 'timeout'];
@@ -298,6 +318,8 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
             next.grossFare = ride.grossFare ?? prev.grossFare;
             next.promoDiscount = ride.promoDiscount ?? prev.promoDiscount;
             next.walletDeduction = ride.walletDeduction ?? prev.walletDeduction;
+            next.paymentStatus = ride.paymentStatus ?? prev.paymentStatus;
+            next.instapay = ride.instapay ?? prev.instapay;
           }
 
           return next;
@@ -352,6 +374,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           plateNumber: data.driver?.plateNumber ?? data.driver?.plate_number ?? '',
           rating: data.driver?.rating ?? 4.8,
           eta: data.eta ?? null,
+          instaPayEnabled: data.driver?.instaPayEnabled ?? false,
         },
       }));
     };
@@ -381,9 +404,20 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         grossFare: parsed.data.grossFare ?? null,
         promoDiscount: parsed.data.promoDiscount ?? null,
         walletDeduction: parsed.data.walletDeduction ?? null,
+        paymentStatus: parsed.data.paymentStatus ?? null,
+        instapay: parsed.data.instapay ?? null,
       }));
       cleanup();
       refreshActiveSession().catch(() => {});
+    };
+
+    // Driver has confirmed receipt of an InstaPay payment — auto-advances
+    // the passenger from "waiting for driver confirmation" to rating.
+    const onInstapayConfirmed = (raw: unknown) => {
+      const parsed = InstapayConfirmedSchema.safeParse(raw);
+      if (!parsed.success) { console.warn('[Socket] Invalid ride:instapay:confirmed payload'); return; }
+      if (String(parsed.data.rideId) !== String(rideId)) return;
+      setRideState((prev) => ({ ...prev, paymentStatus: 'confirmed' }));
     };
 
     const onCancelled = (raw: unknown) => {
@@ -466,6 +500,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
             plateNumber: m.plateNumber ?? prev.driver?.plateNumber,
             rating: m.rating ?? prev.driver?.rating ?? 4.8,
             eta: m.eta ?? prev.driver?.eta ?? null,
+            instaPayEnabled: m.instaPayEnabled ?? prev.driver?.instaPayEnabled ?? false,
           };
         }
         if (status === 'completed') {
@@ -474,6 +509,8 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           updates.grossFare = meta?.grossFare ?? prev.grossFare;
           updates.promoDiscount = meta?.promoDiscount ?? prev.promoDiscount;
           updates.walletDeduction = meta?.walletDeduction ?? prev.walletDeduction;
+          updates.paymentStatus = meta?.paymentStatus ?? prev.paymentStatus;
+          updates.instapay = meta?.instapay ?? prev.instapay;
         }
         if (status === 'cancelled') {
           const m = data.meta as any;
@@ -563,6 +600,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       s.on(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onDriverArrived);
       s.on('ride:started', onStarted);
       s.on('ride:completed', onCompleted);
+      s.on(SOCKET_EVENTS.INSTAPAY_PAYMENT_CONFIRMED, onInstapayConfirmed);
       s.on('ride:cancelled', onCancelled);
       s.on('ride:driver_cancelled', onDriverCancelled);
       s.on('ride:no_show_cancelled', onNoShowCancelled);
@@ -582,6 +620,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       s.off(SOCKET_EVENTS.RIDE_DRIVER_ARRIVED, onDriverArrived);
       s.off('ride:started', onStarted);
       s.off('ride:completed', onCompleted);
+      s.off(SOCKET_EVENTS.INSTAPAY_PAYMENT_CONFIRMED, onInstapayConfirmed);
       s.off('ride:cancelled', onCancelled);
       s.off('ride:driver_cancelled', onDriverCancelled);
       s.off('ride:no_show_cancelled', onNoShowCancelled);
@@ -646,7 +685,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     promoCode?: string;
     recipientName?: string;
     recipientPhone?: string;
-    paymentMethod?: 'cash' | 'wallet';
+    paymentMethod?: 'cash' | 'wallet' | 'instapay';
   }) => {
     setRequesting(true);
     setRideState(DEFAULT_STATE);

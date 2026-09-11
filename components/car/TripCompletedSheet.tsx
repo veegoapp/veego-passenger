@@ -1,12 +1,15 @@
 import { useRef, useEffect, useState, useCallback, useMemo} from 'react';
 import {
-  View, Text, TextInput, Pressable, ScrollView, StyleSheet, Animated, ActivityIndicator,
+  View, Text, TextInput, Pressable, ScrollView, StyleSheet, Animated, ActivityIndicator, Image, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Star } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
+import { getInstapayInfo, markInstapayPaid } from '@/src/api/rideService';
+
+type InstapayPaymentStatus = 'not_required' | 'awaiting_payment' | 'awaiting_confirmation' | 'confirmed';
 
 interface TripCompletedSheetProps {
   visible: boolean;
@@ -20,6 +23,16 @@ interface TripCompletedSheetProps {
   /** Portion of the fare paid from the passenger's wallet — feeds the breakdown. */
   walletDeduction?: number | null;
   paymentMethodLabel: string;
+  /** The payment method actually in effect for this ride. When 'instapay',
+   *  an extra step is inserted between 'fare' and 'rating'. */
+  paymentMethod?: 'cash' | 'wallet' | 'instapay';
+  /** Needed to call the InstaPay fallback-fetch/mark-paid endpoints. */
+  rideId?: string | null;
+  /** Current InstaPay payment status, as last known from the ride:completed
+   *  payload or the INSTAPAY_PAYMENT_CONFIRMED socket event. */
+  paymentStatus?: InstapayPaymentStatus | null;
+  /** InstaPay link/QR for this ride, present only when paymentMethod === 'instapay'. */
+  instapay?: { link: string; qrDataUrl: string } | null;
   driverName?: string | null;
   /** Pickup address — omitted/empty hides the route section. */
   pickup?: string | null;
@@ -41,6 +54,7 @@ const C_GREEN = '#12B76A';
  */
 export function TripCompletedSheet({
   visible, fare, grossFare, promoDiscount, walletDeduction, paymentMethodLabel,
+  paymentMethod, rideId, paymentStatus, instapay,
   driverName, pickup, dropoff, onDone,
 }: TripCompletedSheetProps) {
   const { t } = useTheme();
@@ -48,10 +62,16 @@ export function TripCompletedSheet({
   const styles = useMemo(() => makeStyles(S), [S]);
   const insets = useSafeAreaInsets();
   const overlayAnim = useRef(new Animated.Value(0)).current;
-  const [step, setStep] = useState<'fare' | 'rating'>('fare');
+  const [step, setStep] = useState<'fare' | 'instapay' | 'rating'>('fare');
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // ── InstaPay sub-state ──────────────────────────────────────────────────
+  const [instapayStatus, setInstapayStatus] = useState<InstapayPaymentStatus | null>(paymentStatus ?? null);
+  const [instapayData, setInstapayData] = useState<{ link: string; qrDataUrl: string } | null>(instapay ?? null);
+  const [markingPaid, setMarkingPaid] = useState(false);
+  const [fetchingInstapay, setFetchingInstapay] = useState(false);
 
   const driverInitials = (driverName ?? '')
     .split(' ')
@@ -67,6 +87,11 @@ export function TripCompletedSheet({
   useEffect(() => {
     if (visible) {
       Animated.timing(overlayAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+      // App-resume / re-mount: render whatever InstaPay sub-state is already
+      // known instead of always replaying "awaiting_payment" UI.
+      setStep('fare');
+      setInstapayStatus(paymentStatus ?? null);
+      setInstapayData(instapay ?? null);
     } else {
       overlayAnim.setValue(0);
       setStep('fare');
@@ -74,7 +99,70 @@ export function TripCompletedSheet({
       setComment('');
       setSubmitting(false);
     }
+    // Only react to visibility flipping — paymentStatus/instapay are read at
+    // that moment, not on every subsequent change (those are handled by the
+    // dedicated effects below so a live socket update still lands).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  // Fallback fetch: the completion payload may have missed the InstaPay
+  // link/QR/status (e.g. app was backgrounded) — GET /rides/:id/instapay fills
+  // it in whenever we don't already have a usable QR to show.
+  useEffect(() => {
+    if (!visible || paymentMethod !== 'instapay' || !rideId) return;
+    if (instapayData?.qrDataUrl) return;
+    let cancelled = false;
+    setFetchingInstapay(true);
+    getInstapayInfo(rideId)
+      .then((info) => {
+        if (cancelled) return;
+        if (info.link || info.qrDataUrl) {
+          setInstapayData({ link: info.link, qrDataUrl: info.qrDataUrl });
+        }
+        setInstapayStatus((prev) => prev ?? (info.paymentStatus as InstapayPaymentStatus | undefined) ?? null);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setFetchingInstapay(false); });
+    return () => { cancelled = true; };
+  }, [visible, paymentMethod, rideId, instapayData?.qrDataUrl]);
+
+  // Auto-advance: driver confirmed receipt (INSTAPAY_PAYMENT_CONFIRMED,
+  // surfaced here via the paymentStatus prop) moves the passenger straight to
+  // the rating step.
+  useEffect(() => {
+    if (paymentStatus === 'confirmed') {
+      setInstapayStatus('confirmed');
+      setStep((prev) => (prev === 'instapay' ? 'rating' : prev));
+    }
+  }, [paymentStatus]);
+
+  const handleFareDone = useCallback(() => {
+    Haptics.selectionAsync();
+    if (paymentMethod === 'instapay' && instapayStatus !== 'confirmed' && instapayStatus !== 'not_required') {
+      setStep('instapay');
+    } else {
+      setStep('rating');
+    }
+  }, [paymentMethod, instapayStatus]);
+
+  const handleOpenInstapay = useCallback(() => {
+    if (!instapayData?.link) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openURL(instapayData.link).catch(() => {});
+  }, [instapayData]);
+
+  const handleMarkPaid = useCallback(async () => {
+    if (!rideId || markingPaid || instapayStatus === 'awaiting_confirmation' || instapayStatus === 'confirmed') return;
+    setMarkingPaid(true);
+    try {
+      await markInstapayPaid(rideId);
+      setInstapayStatus('awaiting_confirmation');
+    } catch {
+      // Best-effort — leave status as-is so the passenger can retry the tap.
+    } finally {
+      setMarkingPaid(false);
+    }
+  }, [rideId, markingPaid, instapayStatus]);
 
   const handleSkip = useCallback(() => {
     if (submitting) return;
@@ -186,10 +274,63 @@ export function TripCompletedSheet({
           </ScrollView>
 
           <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
-            <Pressable onPress={() => { Haptics.selectionAsync(); setStep('rating'); }} style={styles.primaryBtn}>
+            <Pressable onPress={handleFareDone} style={styles.primaryBtn}>
               <Text style={styles.primaryBtnTxt}>{'Done'}</Text>
             </Pressable>
           </View>
+        </View>
+      ) : step === 'instapay' ? (
+        /* ═══════════ STEP 1.5 · INSTAPAY ═══════════ */
+        <View style={styles.page}>
+          <View style={[styles.hero, { paddingTop: insets.top + 24 }]}>
+            <Text style={styles.heroTopCap}>{t('instapay_title')}</Text>
+            {amountToPay != null && (
+              <>
+                <View style={styles.heroAmountRow}>
+                  <Text style={styles.heroAmount}>{amountToPay.toFixed(2)}</Text>
+                  <Text style={styles.heroCur}>{t('egp')}</Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 26, paddingTop: 22, paddingBottom: 24, alignItems: 'center' }}
+          >
+            {fetchingInstapay && !instapayData?.qrDataUrl ? (
+              <ActivityIndicator color={S.teal} style={{ marginTop: 40 }} />
+            ) : instapayData?.qrDataUrl ? (
+              <>
+                <Text style={styles.sectionCap}>{t('instapay_scan_or_tap')}</Text>
+                <Image source={{ uri: instapayData.qrDataUrl }} style={styles.qrImage} resizeMode="contain" />
+              </>
+            ) : null}
+
+            {instapayStatus === 'awaiting_confirmation' || instapayStatus === 'confirmed' ? (
+              <View style={styles.waitingRow}>
+                <ActivityIndicator color={S.teal} />
+                <Text style={styles.waitingText}>{t('instapay_waiting_confirmation')}</Text>
+              </View>
+            ) : (
+              <>
+                <Pressable
+                  onPress={handleOpenInstapay}
+                  disabled={!instapayData?.link}
+                  style={[styles.primaryBtn, { marginTop: 20, width: '100%', opacity: instapayData?.link ? 1 : 0.5 }]}
+                >
+                  <Text style={styles.primaryBtnTxt}>{t('instapay_open_app')}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleMarkPaid}
+                  disabled={markingPaid || !rideId}
+                  style={[styles.secondaryBtn, { marginTop: 12, opacity: markingPaid || !rideId ? 0.6 : 1 }]}
+                >
+                  {markingPaid ? <ActivityIndicator color={S.teal} /> : <Text style={styles.secondaryBtnTxt}>{t('instapay_ive_paid')}</Text>}
+                </Pressable>
+              </>
+            )}
+          </ScrollView>
         </View>
       ) : (
         /* ═══════════ STEP 2 · RATING CARD ═══════════ */
@@ -292,6 +433,16 @@ function makeStyles(S: SplitColors) {
   footer: { paddingHorizontal: 26, paddingTop: 12, backgroundColor: S.bg },
   primaryBtn: { height: 54, borderRadius: 15, backgroundColor: S.panel, alignItems: 'center', justifyContent: 'center' },
   primaryBtnTxt: { color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
+
+  /* ── InstaPay step ── */
+  qrImage: { width: 220, height: 220, marginTop: 14, borderRadius: 12, backgroundColor: '#ffffff' },
+  secondaryBtn: {
+    height: 54, borderRadius: 15, width: '100%', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: S.teal,
+  },
+  secondaryBtnTxt: { color: S.teal, fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
+  waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 22 },
+  waitingText: { fontSize: 13.5, fontWeight: '600', color: S.inkSoft, flexShrink: 1 },
 
   /* ── Rating step ── */
   ratingWrap: { flex: 1, justifyContent: 'flex-end' },

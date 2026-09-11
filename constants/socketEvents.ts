@@ -35,6 +35,7 @@ export const SOCKET_EVENTS = {
   TRIP_CHAT_MESSAGE:             "trip:chat:message",
   TRIP_ACTIVATED:                "trip:activated",
   SESSION_SNAPSHOT:              "session:snapshot",
+  INSTAPAY_PAYMENT_CONFIRMED:    "ride:instapay:confirmed",
 
   // Passenger → Server
   JOIN:                          "join",

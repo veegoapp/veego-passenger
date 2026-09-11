@@ -1,7 +1,7 @@
 import { memo, useRef, useEffect, useState, useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, Pressable, StyleSheet, Animated, Linking, Easing } from 'react-native';
 import {
-  MessageCircle, Phone, BadgeCheck, Star, AlertTriangle, HelpCircle,
+  MessageCircle, Phone, BadgeCheck, Star, AlertTriangle, HelpCircle, QrCode,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -244,6 +244,13 @@ function DriverAssignedCardBase({
               ) : null}
             </View>
 
+            {driver?.instaPayEnabled ? (
+              <View style={styles.instapayBadge}>
+                <QrCode size={12} color={S.teal} strokeWidth={2} />
+                <Text style={styles.instapayBadgeText}>{t('accepts_instapay')}</Text>
+              </View>
+            ) : null}
+
             {waitingChargeStatus === 'active' && waitingCharge != null ? (
               <View style={styles.waitC}>
                 <Text style={styles.waitCText} numberOfLines={1}>
@@ -453,6 +460,12 @@ function makeStyles(S: SplitColors) {
     paddingHorizontal: 9, paddingVertical: 4,
   },
   plateCText: { fontSize: 12, fontWeight: '800', letterSpacing: 1, color: '#16150F' },
+  instapayBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'center',
+    marginTop: 10, backgroundColor: `${S.teal}1A`, borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  instapayBadgeText: { fontSize: 11.5, fontWeight: '700', color: S.teal },
   waitC: {
     marginTop: 10, backgroundColor: 'rgba(245,158,11,0.12)', borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 8, alignSelf: 'stretch',

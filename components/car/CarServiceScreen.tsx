@@ -15,7 +15,7 @@ import { ThemeColors } from '@/constants/colors';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';
 import { useTabBar } from '@/context/TabBarContext';
 import { useRide } from '@/src/hooks/car/useRide';
-import { getRideEstimate } from '@/src/api/rideService';
+import { getRideEstimate, updatePaymentMethod } from '@/src/api/rideService';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken, type PlaceSuggestion } from '@/src/api/placesService';
 import { CancelReasonSheet } from '@/components/shared/CancelReasonSheet';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
@@ -308,6 +308,27 @@ function makeStyles(c: ThemeColors, insetTop: number, insetBottom: number, tabBa
       marginTop: 4,
     },
     ghostActionBtnText: { fontSize: 15, fontWeight: '600' as any },
+
+    /* ── InstaPay Cash/InstaPay switch (post-assignment) ── */
+    instapaySwitchWrap: {
+      position: 'absolute' as any, alignSelf: 'center' as any, zIndex: 998,
+      flexDirection: 'row' as any, backgroundColor: c.isDark ? '#1a1a2e' : '#ffffff',
+      borderRadius: 999, padding: 3, gap: 2,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.15, shadowRadius: 12, elevation: 10,
+    },
+    instapaySwitchTab: {
+      paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
+    },
+    instapaySwitchTabActive: {
+      backgroundColor: c.primary,
+    },
+    instapaySwitchTabText: {
+      fontSize: 12.5, fontWeight: '700' as any, color: c.inkSoft,
+    },
+    instapaySwitchTabTextActive: {
+      color: '#ffffff',
+    },
   });
 }
 
@@ -349,6 +370,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [recipientName, setRecipientName]   = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [paymentMethod, setPaymentMethod]   = useState<'cash' | 'wallet'>('cash');
+  // Payment method actually in effect for the in-progress/completed ride —
+  // starts as a copy of the pre-request default `paymentMethod` and can be
+  // switched to InstaPay (and back to cash) once a driver who supports it is
+  // assigned, via PATCH /rides/:id/payment-method. Kept separate from
+  // `paymentMethod` (the pre-request selector) so that selector's own type
+  // ('cash' | 'wallet') and default-choice logic are untouched.
+  const [activePaymentMethod, setActivePaymentMethod] = useState<'cash' | 'wallet' | 'instapay'>('cash');
+  const [updatingPaymentMethod, setUpdatingPaymentMethod] = useState(false);
   const userCoordsRef = useRef<Coords | null>(null);
   // The device's actual GPS location, kept separate from the *pickup point*.
   // `userCoords`/`userCoordsRef` hold the pickup that gets booked; this ref
@@ -754,8 +783,28 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       } else {
         showAppAlert(t('error'), result.error ?? t('request_ride_failed'));
       }
+    } else {
+      setActivePaymentMethod(paymentMethod);
     }
   }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone, paymentMethod]);
+
+  // Lets the passenger switch between Cash and InstaPay once a driver who
+  // supports InstaPay is assigned (before the trip completes). The backend
+  // is the source of truth for eligibility (400s an 'instapay' switch if the
+  // assigned driver doesn't support it) — the UI only offers the option when
+  // rideState.driver?.instaPayEnabled is already true, so that should rarely fire.
+  const handlePaymentMethodSwitch = useCallback(async (method: 'cash' | 'instapay') => {
+    if (!rideState.rideId || method === activePaymentMethod || updatingPaymentMethod) return;
+    setUpdatingPaymentMethod(true);
+    try {
+      await updatePaymentMethod(rideState.rideId, method);
+      setActivePaymentMethod(method);
+    } catch (e: any) {
+      showAppAlert(t('error'), e?.response?.data?.message ?? e?.message ?? t('error'));
+    } finally {
+      setUpdatingPaymentMethod(false);
+    }
+  }, [rideState.rideId, activePaymentMethod, updatingPaymentMethod, t]);
 
   const handleReset = useCallback(() => {
     resetRide();
@@ -777,6 +826,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setRecipientName('');
     setRecipientPhone('');
     setPaymentMethod('cash');
+    setActivePaymentMethod('cash');
     setPickupQuery('');
     setDestQuery('');
     setPlaceResults([]);
@@ -1372,6 +1422,33 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         }}
       />
 
+      {/* Minimal Cash/InstaPay toggle — only once a driver who supports
+          InstaPay is assigned, and only before the trip completes. */}
+      {phase === 'in_ride' && ['driver_assigned', 'arrived', 'started'].includes(rideState.status) && rideState.driver?.instaPayEnabled ? (
+        <View style={[styles.instapaySwitchWrap, { top: insets.top + 12 }]}>
+          <TouchableOpacity
+            onPress={() => handlePaymentMethodSwitch('cash')}
+            disabled={updatingPaymentMethod}
+            activeOpacity={0.85}
+            style={[styles.instapaySwitchTab, activePaymentMethod === 'cash' ? styles.instapaySwitchTabActive : null]}
+          >
+            <Text style={[styles.instapaySwitchTabText, activePaymentMethod === 'cash' ? styles.instapaySwitchTabTextActive : null]}>
+              {t('payment_methods_cash')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handlePaymentMethodSwitch('instapay')}
+            disabled={updatingPaymentMethod}
+            activeOpacity={0.85}
+            style={[styles.instapaySwitchTab, activePaymentMethod === 'instapay' ? styles.instapaySwitchTabActive : null]}
+          >
+            <Text style={[styles.instapaySwitchTabText, activePaymentMethod === 'instapay' ? styles.instapaySwitchTabTextActive : null]}>
+              {t('payment_methods_instapay')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {/* Driver assigned / arrived / started */}
       <DriverAssignedCard
         visible={phase === 'in_ride' && ['driver_assigned', 'arrived', 'started'].includes(rideState.status)}
@@ -1413,7 +1490,15 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         grossFare={rideState.grossFare ?? null}
         promoDiscount={rideState.promoDiscount ?? null}
         walletDeduction={rideState.walletDeduction ?? null}
-        paymentMethodLabel={paymentMethod === 'wallet' ? t('payment_methods_wallet') : t('payment_methods_cash')}
+        paymentMethodLabel={
+          activePaymentMethod === 'wallet' ? t('payment_methods_wallet')
+          : activePaymentMethod === 'instapay' ? t('payment_methods_instapay')
+          : t('payment_methods_cash')
+        }
+        paymentMethod={activePaymentMethod}
+        rideId={rideState.rideId}
+        paymentStatus={rideState.paymentStatus}
+        instapay={rideState.instapay}
         driverName={rideState.driver?.name ?? null}
         pickup={pickupAddress || null}
         dropoff={destination}
