@@ -239,10 +239,19 @@ export default function TicketScreen() {
     : (bookingContextId ?? '');
   const resolvedTripId: number | null =
     shuttleSession?.trip.id ?? bookingContextTripId ?? null;
-  // Derive initial live status from ActiveSession: pending booking → 'pending';
-  // otherwise expose the trip-level status so cold-start recovery shows the correct badge.
+  // Derive initial live status from ActiveSession's trip-level status, not
+  // bookingStatus: the backend never actually transitions a shuttle booking
+  // out of 'pending' until boarding/completion (see ledger.ts), so gating on
+  // bookingStatus here always evaluated to 'pending' — even once the trip
+  // itself had already activated (enough passengers booked) — and stayed
+  // that way until a live socket event overwrote it. A booking made after
+  // the trip has already activated, or one whose own seat completes the
+  // threshold (so the activation event fires in the very same request,
+  // before this screen has joined the trip's socket room to receive it),
+  // was stuck showing "Waiting" indefinitely.
+  const PRE_ACTIVATION_TRIP_STATUSES = new Set(['scheduled', 'waiting_driver', 'driver_assigned']);
   const initialStatus = shuttleSession
-    ? (shuttleSession.bookingStatus === 'pending' ? 'pending' : shuttleSession.trip.status)
+    ? (PRE_ACTIVATION_TRIP_STATUSES.has(shuttleSession.trip.status) ? 'pending' : shuttleSession.trip.status)
     : undefined;
 
   // All display values come from ActiveSession — no synthetic fallbacks.
@@ -395,6 +404,34 @@ export default function TicketScreen() {
       clearTimeout(giveUpTimer);
     };
   }, [shuttleSession, bookingId, refreshActiveSession]);
+
+  // liveStatus is otherwise only ever written by socket handlers (see the
+  // effect above) — a REST refresh of `session` (cold start, reconnect, the
+  // fallback below) never propagated into it, so a status change that
+  // arrived only via refreshActiveSession() was invisible on this screen.
+  // Keep liveStatus in sync whenever the underlying session's trip status
+  // moves.
+  useEffect(() => {
+    if (!shuttleSession) return;
+    const status = PRE_ACTIVATION_TRIP_STATUSES.has(shuttleSession.trip.status)
+      ? 'pending'
+      : shuttleSession.trip.status;
+    setLiveStatus((prev) => (prev === status ? prev : status));
+  }, [shuttleSession?.trip.status]);
+
+  // Safety net for a missed/undelivered socket event (e.g. this booking's
+  // own seat is what completes the activation threshold, so the server's
+  // trip:activated emit fires in the same request — before this screen has
+  // even joined the trip's socket room to receive it). Poll a REST refresh
+  // every 10s while still showing "pending" so the badge self-corrects
+  // instead of staying stuck indefinitely.
+  useEffect(() => {
+    if (liveStatus !== 'pending') return;
+    const interval = setInterval(() => {
+      refreshActiveSession().catch(() => {});
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [liveStatus, refreshActiveSession]);
 
   const handleRetrySession = () => {
     setSessionRetrying(true);
