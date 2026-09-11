@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Share,
-  Modal, Pressable, Image, useWindowDimensions,
+  Modal, Pressable, Image, useWindowDimensions, Linking, ActivityIndicator,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
@@ -15,7 +15,10 @@ import { shuttleStatusLabel, formatCairoDateTime, formatCairoTime } from '@/cons
 import type { ShuttleDirection } from '@/constants/data';
 import { shuttleStatusColor } from '@/components/shuttle/tripSheetHelpers';
 import { useActiveSession } from '@/context/ActiveSessionContext';
-import { cancelBooking, submitShuttleRating } from '@/src/api/shuttleService';
+import {
+  cancelBooking, submitShuttleRating,
+  updateBookingPaymentMethod, getBookingInstapayInfo, markBookingInstapayPaid,
+} from '@/src/api/shuttleService';
 import { getRide } from '@/src/api/rideService';
 import { getGivenRatings } from '@/src/api/userService';
 import { getSocket } from '@/src/api/socket';
@@ -77,6 +80,19 @@ interface TripDetail {
   driverAvatar?: string | null;
   /** This trip's physical direction, when the backend provides it — never fabricated. */
   direction?: ShuttleDirection;
+  /** Booking's current payment method ('cash' | 'instapay' | ...), as last
+   *  known from GET /bookings/:id. Defaults to 'cash' when absent. */
+  paymentMethod?: string;
+  /** Whether the trip's assigned driver has InstaPay enabled — gates the
+   *  Cash/InstaPay toggle below. Speculatively read from a couple of
+   *  plausible field names; `null` means "unknown" (no such field is
+   *  currently surfaced by GET /bookings/:id for shuttle bookings), in which
+   *  case the toggle stays hidden (fail closed — cash-only is always safe).
+   *  TODO(backend): surface driver InstaPay availability on the
+   *  passenger-facing booking/trip endpoint, e.g. from
+   *  driver_instapay_accounts.isEnabled, the same way the ride-side
+   *  driver:assigned payload already does via driver.instaPayEnabled. */
+  driverInstaPayEnabled?: boolean | null;
 }
 
 interface DriverLocation {
@@ -246,6 +262,16 @@ function mapApiToDetail(b: any): TripDetail {
     driverUserId: b.driverUserId ?? trip.driver?.userId ?? trip.driver?.user?.id ?? b.driver?.userId ?? b.driver?.user?.id ?? null,
     driverAvatar: b.driverAvatar ?? trip.driver?.avatar ?? b.driver?.avatar ?? null,
     direction: b.direction ?? trip.direction ?? undefined,
+    paymentMethod: b.paymentMethod ?? trip.paymentMethod ?? 'cash',
+    // Speculative — see the doc comment on TripDetail.driverInstaPayEnabled.
+    // None of these fields are currently returned by GET /bookings/:id; this
+    // reads them defensively in case the backend adds one under a
+    // conventional name, but resolves to `null` (unknown → hidden) today.
+    driverInstaPayEnabled:
+      typeof b.driverInstaPayEnabled === 'boolean' ? b.driverInstaPayEnabled
+      : typeof trip.driver?.instaPayEnabled === 'boolean' ? trip.driver.instaPayEnabled
+      : typeof b.driver?.instaPayEnabled === 'boolean' ? b.driver.instaPayEnabled
+      : null,
   };
 }
 
@@ -480,6 +506,34 @@ function makeStyles(c: ThemeColors, isRTL: boolean, SC: SplitColors) {
     pillGhostText: { fontSize: 12.5, fontWeight: '700' },
     pillRate: { marginTop: 14, height: 46, borderRadius: 999, backgroundColor: '#0E9F8E', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     pillRateText: { fontSize: 14, fontWeight: '800', color: '#fff' },
+
+    // ── Shuttle InstaPay toggle + panel ──────────────────────────────────
+    instapaySection: { marginTop: 14 },
+    instapayToggleWrap: {
+      flexDirection: 'row', backgroundColor: SC.surfaceMuted,
+      borderRadius: 999, padding: 3, gap: 2, alignSelf: 'stretch',
+    },
+    instapayToggleTab: { flex: 1, paddingVertical: 8, borderRadius: 999, alignItems: 'center' },
+    instapayToggleTabActive: { backgroundColor: SC.teal },
+    instapayToggleTabText: { fontSize: 12.5, fontWeight: '700', color: SC.inkSoft },
+    instapayToggleTabTextActive: { color: '#ffffff' },
+    instapayPanel: {
+      marginTop: 12, backgroundColor: SC.surfaceMuted, borderRadius: 16,
+      padding: 14, alignItems: 'center', gap: 10,
+    },
+    instapayQrImage: { width: 168, height: 168, borderRadius: 10, backgroundColor: '#ffffff' },
+    instapayPrimaryBtn: {
+      alignSelf: 'stretch', height: 46, borderRadius: 12,
+      backgroundColor: SC.teal, alignItems: 'center', justifyContent: 'center',
+    },
+    instapayPrimaryBtnText: { fontSize: 13.5, fontWeight: '700', color: '#ffffff' },
+    instapaySecondaryBtn: {
+      alignSelf: 'stretch', height: 46, borderRadius: 12,
+      borderWidth: 1.5, borderColor: SC.teal, alignItems: 'center', justifyContent: 'center',
+    },
+    instapaySecondaryBtnText: { fontSize: 13.5, fontWeight: '700', color: SC.teal },
+    instapayWaitingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    instapayWaitingText: { fontSize: 12.5, fontWeight: '600', color: SC.inkSoft, flexShrink: 1, textAlign: isRTL ? 'right' : 'left' },
   });
 }
 
@@ -515,6 +569,14 @@ export default function TripDetailScreen() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [nextStation, setNextStation] = useState<Station | null>(null);
+
+  // ── Shuttle InstaPay (Cash/InstaPay toggle + QR/Open/Paid flow) ──────────
+  const [bookingPaymentMethod, setBookingPaymentMethod] = useState<'cash' | 'instapay'>('cash');
+  const [updatingPaymentMethod, setUpdatingPaymentMethod] = useState(false);
+  const [instapayData, setInstapayData] = useState<{ link: string; qrDataUrl: string } | null>(null);
+  const [instapayStatus, setInstapayStatus] = useState<'awaiting_payment' | 'awaiting_confirmation' | 'confirmed' | null>(null);
+  const [fetchingInstapay, setFetchingInstapay] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
 
   const tripIdRef = useRef<string | number | null>(null);
   const bookingIdRef = useRef<string | number | null>(null);
@@ -702,6 +764,103 @@ export default function TripDetailScreen() {
   useEffect(() => {
     fetchTrip();
   }, [fetchTrip]);
+
+  // Sync the local Cash/InstaPay toggle from the booking's server-known
+  // payment method whenever a fresh trip is fetched (initial load, or the
+  // 2-minute fallback poll below picking up a value this device didn't
+  // itself just set via handlePaymentMethodSwitch).
+  useEffect(() => {
+    if (trip?.paymentMethod === 'instapay' || trip?.paymentMethod === 'cash') {
+      setBookingPaymentMethod(trip.paymentMethod);
+    }
+  }, [trip?.paymentMethod]);
+
+  // Fetch the InstaPay link/QR/status whenever the panel is shown — either
+  // right after switching to InstaPay, or on mount if the booking's payment
+  // method was already 'instapay' from a previous visit. The PATCH response
+  // itself doesn't carry the QR/link, so this is always a separate fetch.
+  useEffect(() => {
+    const bookingId = trip?.bookingId ?? id;
+    if (!bookingId || bookingPaymentMethod !== 'instapay') return;
+    if (instapayData?.qrDataUrl) return;
+    let cancelled = false;
+    setFetchingInstapay(true);
+    getBookingInstapayInfo(bookingId)
+      .then((info) => {
+        if (cancelled) return;
+        if (info.link || info.qrDataUrl) setInstapayData({ link: info.link, qrDataUrl: info.qrDataUrl });
+        setInstapayStatus((prev) => prev ?? info.instapayStatus ?? null);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setFetchingInstapay(false); });
+    return () => { cancelled = true; };
+  }, [bookingPaymentMethod, trip?.bookingId, id, instapayData?.qrDataUrl]);
+
+  // Live confirmation — the driver marking the InstaPay payment received
+  // flips this straight to 'confirmed' without waiting for a poll.
+  useEffect(() => {
+    const bookingId = trip?.bookingId;
+    if (!bookingId || rideDetail) return;
+    let cleanedUp = false;
+    let boundSocket: Awaited<ReturnType<typeof getSocket>> | null = null;
+    const handler = (payload: { bookingId?: string | number; rideId?: string | number }) => {
+      if (payload.bookingId == null) return; // shuttle bookings carry `bookingId`, not `rideId`
+      if (String(payload.bookingId) !== String(bookingId)) return;
+      setInstapayStatus('confirmed');
+    };
+    getSocket().then((socket) => {
+      if (cleanedUp) return;
+      boundSocket = socket;
+      socket.on(SOCKET_EVENTS.INSTAPAY_PAYMENT_CONFIRMED, handler);
+    }).catch(() => {});
+    return () => {
+      cleanedUp = true;
+      boundSocket?.off(SOCKET_EVENTS.INSTAPAY_PAYMENT_CONFIRMED, handler);
+    };
+  }, [trip?.bookingId, rideDetail]);
+
+  // Lets the passenger switch between Cash and InstaPay once a driver who
+  // supports InstaPay is assigned. The backend is the source of truth for
+  // eligibility (400s an 'instapay' switch if the assigned driver doesn't
+  // support it) — the UI only offers the toggle when
+  // trip.driverInstaPayEnabled is already known to be true.
+  const handlePaymentMethodSwitch = useCallback(async (method: 'cash' | 'instapay') => {
+    const bookingId = trip?.bookingId ?? id;
+    if (!bookingId || method === bookingPaymentMethod || updatingPaymentMethod) return;
+    setUpdatingPaymentMethod(true);
+    try {
+      await updateBookingPaymentMethod(bookingId, method);
+      setBookingPaymentMethod(method);
+      if (method === 'cash') {
+        setInstapayData(null);
+        setInstapayStatus(null);
+      }
+    } catch (e: any) {
+      showAppAlert(t('error'), e?.response?.data?.message ?? e?.message ?? t('error'));
+    } finally {
+      setUpdatingPaymentMethod(false);
+    }
+  }, [trip?.bookingId, id, bookingPaymentMethod, updatingPaymentMethod, t]);
+
+  const handleOpenInstapay = useCallback(() => {
+    if (!instapayData?.link) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openURL(instapayData.link).catch(() => {});
+  }, [instapayData]);
+
+  const handleMarkInstapayPaid = useCallback(async () => {
+    const bookingId = trip?.bookingId ?? id;
+    if (!bookingId || markingPaid || instapayStatus === 'awaiting_confirmation' || instapayStatus === 'confirmed') return;
+    setMarkingPaid(true);
+    try {
+      await markBookingInstapayPaid(bookingId);
+      setInstapayStatus('awaiting_confirmation');
+    } catch {
+      // Best-effort — leave status as-is so the passenger can retry the tap.
+    } finally {
+      setMarkingPaid(false);
+    }
+  }, [trip?.bookingId, id, markingPaid, instapayStatus]);
 
   // Fetch all stations for this trip's route — poll every 30 s during live phases.
   // When the trip's direction is known, it's both passed as a query param (in
@@ -1362,6 +1521,71 @@ export default function TripDetailScreen() {
                 <Text style={styles.statLabC}>{t('date_label')}</Text>
               </View>
             </View>
+
+            {trip.driverInstaPayEnabled === true && !['completed', 'cancelled'].includes(effectiveStatus) && (
+              <View style={styles.instapaySection}>
+                <View style={styles.instapayToggleWrap}>
+                  <TouchableOpacity
+                    style={[styles.instapayToggleTab, bookingPaymentMethod === 'cash' && styles.instapayToggleTabActive]}
+                    onPress={() => handlePaymentMethodSwitch('cash')}
+                    disabled={updatingPaymentMethod}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.instapayToggleTabText, bookingPaymentMethod === 'cash' && styles.instapayToggleTabTextActive]}>
+                      {t('payment_methods_cash')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.instapayToggleTab, bookingPaymentMethod === 'instapay' && styles.instapayToggleTabActive]}
+                    onPress={() => handlePaymentMethodSwitch('instapay')}
+                    disabled={updatingPaymentMethod}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.instapayToggleTabText, bookingPaymentMethod === 'instapay' && styles.instapayToggleTabTextActive]}>
+                      {t('payment_methods_instapay')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {bookingPaymentMethod === 'instapay' && (
+                  <View style={styles.instapayPanel}>
+                    {fetchingInstapay && !instapayData?.qrDataUrl ? (
+                      <AppLoader />
+                    ) : instapayData?.qrDataUrl ? (
+                      <Image source={{ uri: instapayData.qrDataUrl }} style={styles.instapayQrImage} resizeMode="contain" />
+                    ) : null}
+
+                    {instapayStatus === 'awaiting_confirmation' || instapayStatus === 'confirmed' ? (
+                      <View style={styles.instapayWaitingRow}>
+                        <ActivityIndicator color={SC.teal} />
+                        <Text style={styles.instapayWaitingText}>{t('instapay_waiting_confirmation')}</Text>
+                      </View>
+                    ) : (
+                      <>
+                        <TouchableOpacity
+                          onPress={handleOpenInstapay}
+                          disabled={!instapayData?.link}
+                          style={[styles.instapayPrimaryBtn, { opacity: instapayData?.link ? 1 : 0.5 }]}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={styles.instapayPrimaryBtnText}>{t('instapay_open_app')}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleMarkInstapayPaid}
+                          disabled={markingPaid}
+                          style={[styles.instapaySecondaryBtn, { opacity: markingPaid ? 0.6 : 1 }]}
+                          activeOpacity={0.85}
+                        >
+                          {markingPaid
+                            ? <ActivityIndicator color={SC.teal} />
+                            : <Text style={styles.instapaySecondaryBtnText}>{t('instapay_ive_paid')}</Text>}
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
 
             {(showSOS || showCancel) && (
               <View style={styles.buttonsRowC}>

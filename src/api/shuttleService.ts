@@ -122,3 +122,40 @@ export async function sendTripSos(
 export async function submitShuttleRating(body: { tripId: number; rateeId: number; stars: number }): Promise<void> {
   await api.post('/shuttle/ratings', body);
 }
+
+// ── InstaPay (shuttle bookings) ──────────────────────────────────
+// Mirrors the on-demand-ride InstaPay endpoints in rideService.ts, but scoped
+// to a shuttle booking id rather than a ride id.
+
+/** PATCH /bookings/:id/payment-method — switch a shuttle booking's payment
+ *  method once a driver is assigned but before the trip completes. Backend
+ *  rejects 'instapay' with a 400 when the assigned driver doesn't have
+ *  InstaPay enabled. */
+export async function updateBookingPaymentMethod(
+  bookingId: string | number,
+  method: 'cash' | 'instapay',
+): Promise<any> {
+  const { data } = await api.patch(`/bookings/${bookingId}/payment-method`, { paymentMethod: method });
+  return data;
+}
+
+export interface BookingInstapayInfo {
+  link: string;
+  qrDataUrl: string;
+  instapayStatus: 'awaiting_payment' | 'awaiting_confirmation' | 'confirmed';
+}
+
+/** GET /bookings/:id/instapay — InstaPay link/QR/status for a shuttle
+ *  booking. 400 if the booking's paymentMethod !== 'instapay'. */
+export async function getBookingInstapayInfo(bookingId: string | number): Promise<BookingInstapayInfo> {
+  const { data } = await api.get(`/bookings/${bookingId}/instapay`);
+  const d = data?.data ?? data ?? {};
+  return { link: d.link, qrDataUrl: d.qrDataUrl, instapayStatus: d.instapayStatus };
+}
+
+/** POST /bookings/:id/instapay/mark-paid — passenger declares they've sent
+ *  the money; only valid while instapayStatus === 'awaiting_payment'. */
+export async function markBookingInstapayPaid(bookingId: string | number): Promise<any> {
+  const { data } = await api.post(`/bookings/${bookingId}/instapay/mark-paid`);
+  return data;
+}
