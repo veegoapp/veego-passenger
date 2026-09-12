@@ -11,6 +11,7 @@ import { PASSENGER_RIDE_LOCATION_TASK } from '../shared/backgroundLocationTask';
 import { SOCKET_EVENTS } from '../../../constants/socketEvents';
 import { useActiveSession } from '../../../context/ActiveSessionContext';
 import { selectActiveRide } from '../../session/activeRideSelectors';
+import { mergePaymentStatus, mapDriverFromRide, type PaymentStatus } from '../../utils/rideStateMerge';
 
 const DriverAssignedSchema = z.object({
   rideId: z.string().or(z.number()),
@@ -150,7 +151,7 @@ export interface RideState {
    *  for the nav card. Null until the first update. */
   liveDistanceM?: number | null;
   /** Present only for InstaPay rides, once the ride completes. */
-  paymentStatus: 'not_required' | 'awaiting_payment' | 'awaiting_confirmation' | 'confirmed' | null;
+  paymentStatus: PaymentStatus;
   /** InstaPay link/QR for the completed ride, present only when paymentMethod === 'instapay'. */
   instapay: { link: string; qrDataUrl: string } | null;
 }
@@ -164,40 +165,6 @@ export interface ResumedRide {
   pickupAddress?: string;
   pickupLatitude?: number;
   pickupLongitude?: number;
-}
-
-/**
- * Normalizes a raw `ride.driver` object (from a REST ride payload) into
- * DriverInfo, merging against `fallback` (typically the previous driver
- * state) field-by-field so a partial update never blanks out already-known
- * details. Returns `fallback` unchanged when the ride has no driver data.
- */
-function mapDriverFromRide(
-  rideDriver: any,
-  topLevelEta: number | undefined,
-  fallback: DriverInfo | null,
-): DriverInfo | null {
-  if (!rideDriver) return fallback;
-  return {
-    name: rideDriver.name ?? fallback?.name ?? 'Driver',
-    phone: rideDriver.phone ?? fallback?.phone ?? '',
-    // Prefer the URL already on screen over the poll's fresh one: the
-    // backend re-signs the storage URL on every single GET /rides/:id call
-    // (POLL_INTERVAL_MS = 5000), so a same-photo poll still returns a
-    // different signature/token each time. Replacing `avatar` with that new
-    // string every 5s made <Image> treat it as a different source and
-    // reload — a visible flicker with no actual change. Once a working URL
-    // is on screen, keep it; only fall back to the poll's value when we
-    // don't have one yet (e.g. this is the first snapshot after recovery).
-    avatar: fallback?.avatar ?? rideDriver.avatar ?? null,
-    vehicle: rideDriver.vehicle ?? fallback?.vehicle ?? '',
-    vehicleColor: rideDriver.vehicleColor ?? rideDriver.vehicle_color ?? fallback?.vehicleColor,
-    vehicleColorHex: rideDriver.vehicleColorHex ?? rideDriver.vehicle_color_hex ?? fallback?.vehicleColorHex,
-    plateNumber: rideDriver.plateNumber ?? rideDriver.plate_number ?? fallback?.plateNumber,
-    rating: rideDriver.rating ?? fallback?.rating ?? 4.8,
-    eta: topLevelEta ?? rideDriver.eta ?? fallback?.eta ?? null,
-    instaPayEnabled: rideDriver.instaPayEnabled ?? fallback?.instaPayEnabled ?? false,
-  };
 }
 
 interface UseRideResult {
@@ -318,7 +285,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
             next.grossFare = ride.grossFare ?? prev.grossFare;
             next.promoDiscount = ride.promoDiscount ?? prev.promoDiscount;
             next.walletDeduction = ride.walletDeduction ?? prev.walletDeduction;
-            next.paymentStatus = ride.paymentStatus ?? prev.paymentStatus;
+            next.paymentStatus = mergePaymentStatus(prev.paymentStatus, ride.paymentStatus);
             next.instapay = ride.instapay ?? prev.instapay;
           }
 
@@ -509,7 +476,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           updates.grossFare = meta?.grossFare ?? prev.grossFare;
           updates.promoDiscount = meta?.promoDiscount ?? prev.promoDiscount;
           updates.walletDeduction = meta?.walletDeduction ?? prev.walletDeduction;
-          updates.paymentStatus = meta?.paymentStatus ?? prev.paymentStatus;
+          updates.paymentStatus = mergePaymentStatus(prev.paymentStatus, meta?.paymentStatus);
           updates.instapay = meta?.instapay ?? prev.instapay;
         }
         if (status === 'cancelled') {
