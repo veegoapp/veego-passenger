@@ -35,6 +35,47 @@ export function mergePaymentStatus(
 }
 
 /**
+ * Decides whether an incoming ride-state update should be dropped because
+ * the ride is already in a terminal state locally.
+ *
+ * `prevRideId !== null` is part of the guard, not just `prevStatus` being
+ * terminal: when the user presses "Try Again" the rideId is reset to null
+ * while a stale terminal `status` may still be sitting in state (before the
+ * effect that fully resets it runs). Treating that as "still terminal" would
+ * re-apply the old terminal snapshot and permanently block the new booking.
+ * Only a terminal status paired with a real, still-set rideId means "this
+ * specific ride is done, ignore further updates for it."
+ */
+export function shouldIgnoreStaleRideUpdate(
+  prevStatus: string,
+  prevRideId: string | null,
+  terminalStatuses: readonly string[],
+): boolean {
+  return terminalStatuses.includes(prevStatus) && prevRideId !== null;
+}
+
+/**
+ * Derives the `cancelReason` / `terminationReason` fields that accompany a
+ * status change during the cancel-resync flow (see useRide.ts's cancel()
+ * catch branch): when the resynced status confirms the ride actually
+ * cancelled, this is the passenger's own cancel action, so `cancelReason` is
+ * cleared (the backend's cancellation record is the source of truth, not
+ * whatever stale reason sat in local state) and `terminationReason` is
+ * stamped 'passenger'. Any other resynced status means the cancel attempt
+ * did not go through, so both fields are carried forward unchanged.
+ */
+export type TerminationReason = 'passenger' | 'driver' | 'no_show' | 'timeout' | null;
+
+export function deriveCancelFields(
+  status: string,
+  prev: { cancelReason: string | null; terminationReason: TerminationReason },
+): { cancelReason: string | null; terminationReason: TerminationReason } {
+  return status === 'cancelled'
+    ? { cancelReason: null, terminationReason: 'passenger' }
+    : { cancelReason: prev.cancelReason, terminationReason: prev.terminationReason };
+}
+
+/**
  * Merges a fresh driver payload (poll response) with the driver already in
  * local state.
  */

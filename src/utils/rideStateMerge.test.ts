@@ -1,4 +1,11 @@
-import { mergePaymentStatus, mapDriverFromRide } from './rideStateMerge';
+import {
+  mergePaymentStatus,
+  mapDriverFromRide,
+  shouldIgnoreStaleRideUpdate,
+  deriveCancelFields,
+} from './rideStateMerge';
+
+const TERMINAL_STATUSES = ['completed', 'cancelled', 'timeout'];
 
 describe('mergePaymentStatus', () => {
   it('never regresses out of the terminal "confirmed" state, even with a fresh-looking incoming value', () => {
@@ -85,5 +92,43 @@ describe('mapDriverFromRide', () => {
     expect(mapDriverFromRide({ name: 'Maria', eta: 7 }, 5, fallback)?.eta).toBe(5);
     expect(mapDriverFromRide({ name: 'Maria', eta: 7 }, undefined, fallback)?.eta).toBe(7);
     expect(mapDriverFromRide({ name: 'Maria' }, undefined, fallback)?.eta).toBe(9);
+  });
+});
+
+describe('shouldIgnoreStaleRideUpdate', () => {
+  it('ignores an update for a ride that already reached a terminal status', () => {
+    expect(shouldIgnoreStaleRideUpdate('completed', 'ride-1', TERMINAL_STATUSES)).toBe(true);
+    expect(shouldIgnoreStaleRideUpdate('cancelled', 'ride-1', TERMINAL_STATUSES)).toBe(true);
+    expect(shouldIgnoreStaleRideUpdate('timeout', 'ride-1', TERMINAL_STATUSES)).toBe(true);
+  });
+
+  it('accepts updates for a ride that has not reached a terminal status', () => {
+    expect(shouldIgnoreStaleRideUpdate('searching', 'ride-1', TERMINAL_STATUSES)).toBe(false);
+    expect(shouldIgnoreStaleRideUpdate('driver_assigned', 'ride-1', TERMINAL_STATUSES)).toBe(false);
+    expect(shouldIgnoreStaleRideUpdate('started', 'ride-1', TERMINAL_STATUSES)).toBe(false);
+  });
+
+  it('lets a terminal-looking status through once rideId has been reset to null (e.g. "Try Again")', () => {
+    expect(shouldIgnoreStaleRideUpdate('completed', null, TERMINAL_STATUSES)).toBe(false);
+    expect(shouldIgnoreStaleRideUpdate('cancelled', null, TERMINAL_STATUSES)).toBe(false);
+  });
+});
+
+describe('deriveCancelFields', () => {
+  it('clears cancelReason and stamps terminationReason as "passenger" when the resynced status is cancelled', () => {
+    const prev: { cancelReason: string | null; terminationReason: 'passenger' | 'driver' | 'no_show' | 'timeout' | null } =
+      { cancelReason: 'stale reason', terminationReason: null };
+    expect(deriveCancelFields('cancelled', prev)).toEqual({
+      cancelReason: null,
+      terminationReason: 'passenger',
+    });
+  });
+
+  it('carries cancelReason and terminationReason forward unchanged for any non-cancelled status', () => {
+    const prev = { cancelReason: 'existing reason', terminationReason: 'driver' as const };
+    expect(deriveCancelFields('searching', prev)).toEqual(prev);
+    expect(deriveCancelFields('driver_assigned', prev)).toEqual(prev);
+    expect(deriveCancelFields('started', prev)).toEqual(prev);
+    expect(deriveCancelFields('completed', prev)).toEqual(prev);
   });
 });

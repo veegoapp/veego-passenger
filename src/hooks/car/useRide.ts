@@ -11,7 +11,13 @@ import { PASSENGER_RIDE_LOCATION_TASK } from '../shared/backgroundLocationTask';
 import { SOCKET_EVENTS } from '../../../constants/socketEvents';
 import { useActiveSession } from '../../../context/ActiveSessionContext';
 import { selectActiveRide } from '../../session/activeRideSelectors';
-import { mergePaymentStatus, mapDriverFromRide, type PaymentStatus } from '../../utils/rideStateMerge';
+import {
+  mergePaymentStatus,
+  mapDriverFromRide,
+  shouldIgnoreStaleRideUpdate,
+  deriveCancelFields,
+  type PaymentStatus,
+} from '../../utils/rideStateMerge';
 
 const DriverAssignedSchema = z.object({
   rideId: z.string().or(z.number()),
@@ -713,8 +719,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
           setRideState((prev) => ({
             ...prev,
             status,
-            cancelReason: status === 'cancelled' ? null : prev.cancelReason,
-            terminationReason: status === 'cancelled' ? 'passenger' : prev.terminationReason,
+            ...deriveCancelFields(status, prev),
           }));
           if (TERMINAL_STATUSES.includes(status)) {
             activeRideIdRef.current = null;
@@ -839,7 +844,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     setRideState((prev) => {
       // Do not overwrite terminal states — the ride is done locally even if
       // there was a brief window before ActiveSession cleared.
-      if (TERMINAL_STATUSES.includes(prev.status) && prev.rideId !== null) return prev;
+      if (shouldIgnoreStaleRideUpdate(prev.status, prev.rideId, TERMINAL_STATUSES)) return prev;
 
       return {
         ...prev,
