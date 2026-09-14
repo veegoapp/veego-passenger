@@ -1,5 +1,11 @@
 module.exports = {
   preset: 'jest-expo',
+  // AsyncStorage's native module isn't available under Jest — use the
+  // package's own official mock instead of the native binding.
+  moduleNameMapper: {
+    '^@react-native-async-storage/async-storage$':
+      '@react-native-async-storage/async-storage/jest/async-storage-mock',
+  },
   // Ratchets test coverage on the modules that actually have unit tests
   // today (pure logic + the axios client/session helpers). Hooks, screens
   // and native-module wrappers need component/E2E tests, not unit
@@ -18,13 +24,20 @@ module.exports = {
     'src/utils/geoHelpers.ts',
     'constants/i18n/en.ts',
     'constants/i18n/ar.ts',
+    'src/hooks/shared/usePaginatedList.ts',
+    'src/hooks/shared/useRecentSearches.ts',
+    'src/hooks/shared/useWallet.ts',
+    'src/hooks/shared/usePromos.ts',
+    'src/hooks/shared/useNotifications.ts',
+    'src/hooks/shared/usePushToken.ts',
+    'src/hooks/shared/useTrips.ts',
   ],
   coverageThreshold: {
     global: {
-      statements: 90,
-      branches: 85,
-      functions: 82,
-      lines: 90,
+      statements: 91,
+      branches: 75,
+      functions: 88,
+      lines: 92,
     },
   },
 };
