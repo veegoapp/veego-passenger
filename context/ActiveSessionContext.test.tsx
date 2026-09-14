@@ -319,3 +319,155 @@ describe('ActiveSessionContext', () => {
     expect(() => socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, { data: rideSession })).not.toThrow();
   });
 });
+
+// ── Full ride-cycle scenario ───────────────────────────────────────────────
+// Integration-style tests (not true device E2E — see conversation) that walk
+// a single ride through every real status transition in one continuous
+// session, the way it actually happens in the app: one REST load followed by
+// a stream of session:snapshot socket events. Each step re-asserts the
+// *whole* session shape a screen would read, not just the status string, so
+// a regression that drops a field (e.g. the driver object) at one specific
+// stage — not just a broken transition — fails this test.
+describe('ActiveSessionContext — full ride lifecycle', () => {
+  const driver = {
+    id: 7,
+    name: 'Ahmed',
+    phone: '+201000000000',
+    avatar: null,
+    rating: 4.8,
+    vehicleType: 'car',
+    location: null,
+    vehicle: null,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    authEventsMock.__reset();
+    socketMock.__reset();
+    mockedFetchSession.mockResolvedValue(null);
+    appStateListeners.clear();
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_event: any, cb: any) => {
+      appStateListeners.add(cb);
+      return { remove: jest.fn(() => appStateListeners.delete(cb)) } as any;
+    });
+  });
+
+  afterEach(async () => {
+    if (currentUnmount) {
+      await act(async () => { await currentUnmount!(); });
+      currentUnmount = null;
+    }
+  });
+
+  it('carries one ride through request → search → assign → arrive → start → complete', async () => {
+    const socket = makeFakeSocket();
+    socketMock.__setSocket(socket);
+
+    // 1. Rider requests a ride — REST returns the initial session.
+    mockedFetchSession.mockResolvedValueOnce({ ...rideSession, status: 'requested' });
+    const { result } = await setupHook();
+    await act(async () => { await result.current.initializeActiveSession(); });
+    expect(result.current.session).toMatchObject({ kind: 'ride', status: 'requested', rideId: 42 });
+    expect(result.current.initialized).toBe(true);
+
+    // 2. Dispatch starts searching for a driver.
+    await act(async () => {
+      socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, { data: { ...rideSession, status: 'searching' } });
+    });
+    expect(result.current.session).toMatchObject({ status: 'searching' });
+
+    // 3. A driver is assigned — the driver object must come through intact.
+    await act(async () => {
+      socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, {
+        data: { ...rideSession, status: 'driver_assigned', driver, driverAssignedAt: '2026-01-01T00:01:00.000Z' },
+      });
+    });
+    expect(result.current.session).toMatchObject({ status: 'driver_assigned' });
+    expect(result.current.session?.kind === 'ride' && result.current.session.driver?.name).toBe('Ahmed');
+
+    // 4. Driver arrives at pickup.
+    await act(async () => {
+      socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, {
+        data: { ...rideSession, status: 'driver_arrived', driver, driverArrivedAt: '2026-01-01T00:05:00.000Z' },
+      });
+    });
+    expect(result.current.session).toMatchObject({ status: 'driver_arrived' });
+
+    // 5. The trip starts.
+    await act(async () => {
+      socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, {
+        data: { ...rideSession, status: 'active', driver, startedAt: '2026-01-01T00:06:00.000Z' },
+      });
+    });
+    expect(result.current.session).toMatchObject({ status: 'active' });
+
+    // 6. The trip completes — the backend reports no active session anymore.
+    await act(async () => {
+      socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, { data: null });
+    });
+    expect(result.current.session).toBeNull();
+    // The context itself must stay "initialized" — ready for the rider's
+    // next ride — rather than reverting to a pre-login state.
+    expect(result.current.initialized).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('reflects how far the ride actually progressed after a background/foreground cycle mid-ride', async () => {
+    const socket = makeFakeSocket();
+    socketMock.__setSocket(socket);
+    mockedFetchSession.mockResolvedValueOnce({ ...rideSession, status: 'requested' });
+    const { result } = await setupHook();
+    await act(async () => { await result.current.initializeActiveSession(); });
+
+    await act(async () => {
+      socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, { data: { ...rideSession, status: 'driver_assigned', driver } });
+    });
+
+    // The app backgrounds (e.g. the rider checks another app) and resumes —
+    // by then the ride has moved on to 'active' server-side. The foreground
+    // REST refresh must pick that up even though no new socket event fired
+    // while backgrounded.
+    mockedFetchSession.mockResolvedValueOnce({ ...rideSession, status: 'active', driver });
+    await act(async () => { emitAppState('background'); await flush(); });
+    await act(async () => { emitAppState('active'); await flush(); });
+
+    expect(result.current.session).toMatchObject({ status: 'active' });
+    expect(socketMock.reconnectSocket).toHaveBeenCalled();
+  });
+
+  it('never rolls the ride status backward when a slow REST refresh resolves after a newer socket update', async () => {
+    const socket = makeFakeSocket();
+    socketMock.__setSocket(socket);
+    mockedFetchSession.mockResolvedValueOnce({ ...rideSession, status: 'requested' });
+    const { result } = await setupHook();
+    await act(async () => { await result.current.initializeActiveSession(); });
+
+    let resolveFetch!: (v: unknown) => void;
+    mockedFetchSession.mockImplementationOnce(() => new Promise((resolve) => { resolveFetch = resolve; }));
+    let refreshPromise!: Promise<void>;
+    await act(async () => { refreshPromise = result.current.refreshActiveSession(); });
+
+    // The ride actually advances via socket while that REST call is in flight.
+    await act(async () => {
+      socket.emit(SOCKET_EVENTS.SESSION_SNAPSHOT, { data: { ...rideSession, status: 'driver_assigned', driver } });
+    });
+
+    // The slow REST response now resolves with the OLD status — it must not
+    // roll the ride back to 'requested' in the UI.
+    await act(async () => { resolveFetch({ ...rideSession, status: 'requested' }); await refreshPromise; });
+
+    expect(result.current.session).toMatchObject({ status: 'driver_assigned' });
+  });
+
+  it('ends the ride cleanly on a mid-ride logout, leaving no stale session behind', async () => {
+    mockedFetchSession.mockResolvedValueOnce({ ...rideSession, status: 'requested' });
+    const { result } = await setupHook();
+    await act(async () => { await result.current.initializeActiveSession(); });
+    expect(result.current.session).not.toBeNull();
+
+    await act(async () => { authEventsMock.__emit('auth:logout'); });
+
+    expect(result.current.session).toBeNull();
+    expect(result.current.initialized).toBe(false);
+  });
+});
