@@ -12,17 +12,19 @@ module.exports = {
     'src/api/client.ts',
     'src/api/session.ts',
     'src/session/activeRideSelectors.ts',
+    'src/session/activeSessionAdapter.ts',
     'src/utils/rideStateMerge.ts',
     'src/utils/errorMessages.ts',
+    'src/utils/geoHelpers.ts',
     'constants/i18n/en.ts',
     'constants/i18n/ar.ts',
   ],
   coverageThreshold: {
     global: {
-      statements: 80,
-      branches: 75,
-      functions: 60,
-      lines: 82,
+      statements: 90,
+      branches: 85,
+      functions: 82,
+      lines: 90,
     },
   },
 };
