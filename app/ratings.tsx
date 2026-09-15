@@ -191,7 +191,7 @@ export default function RatingsScreen() {
                   </View>
                   {r.comment ? (
                     <Text style={[styles.reviewText, { textAlign: TA }]}>
-                      "{r.comment}"
+                      &ldquo;{r.comment}&rdquo;
                     </Text>
                   ) : null}
                   <Text style={[styles.reviewDate, { textAlign: TA }]}>
