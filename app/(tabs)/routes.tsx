@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { RouteCard } from '@/components/shuttle/RouteCard';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -50,6 +51,17 @@ export default function RoutesScreen() {
   const styles = useMemo(() => makeStyles(S), [S]);
 
   const { routes, loading, error, refresh } = useRoutes();
+
+  // useRoutes() only fetches once on mount — without this, booking or
+  // cancelling a trip elsewhere in the app (BookingContext only refreshes
+  // its own scheduledTrips/tripsTotal, a separate data source from this
+  // screen's route list) left this list showing pre-booking seat/trip
+  // counts until the user manually pulled to refresh or tapped the icon.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return routes;

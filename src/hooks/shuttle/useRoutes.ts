@@ -55,7 +55,11 @@ function mapApiRoute(r: any, idx: number): Route {
     // both summary fields from its earliest entry instead of guessing.
     seatsLeft:    timeslots[0]?.availableSeats ?? (hasActiveTrips ? totalSeats : hasOpenTrips ? totalSeats : 0),
     totalSeats,
-    price:        r.basePrice ?? r.price ?? 0,
+    // Coerced like review-confirm.tsx's Number(price) and startingPrice above
+    // — the backend's numeric(10,2) columns can serialize as a string
+    // (e.g. "75.00"), which rendered fine but would silently break any
+    // future `+`-based total (string concatenation instead of addition).
+    price:        Number(r.basePrice ?? r.price ?? 0) || 0,
     pricingModel: r.pricingModel === 'tiered' || r.pricingModel === 'flat' ? r.pricingModel : undefined,
     startingPrice: typeof r.startingPrice === 'number' ? r.startingPrice : undefined,
     nextDeparture: timeslots[0]?.departureTime ?? r.nextDeparture ?? '—',
