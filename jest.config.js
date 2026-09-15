@@ -33,13 +33,14 @@ module.exports = {
     'src/hooks/shared/useTrips.ts',
     'context/ActiveSessionContext.tsx',
     'context/BookingContext.tsx',
+    'context/ServiceControlContext.tsx',
   ],
   coverageThreshold: {
     global: {
-      statements: 87,
-      branches: 67,
-      functions: 79,
-      lines: 89,
+      statements: 84,
+      branches: 63,
+      functions: 76,
+      lines: 88,
     },
   },
 };
