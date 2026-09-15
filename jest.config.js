@@ -34,6 +34,7 @@ module.exports = {
     'context/ActiveSessionContext.tsx',
     'context/BookingContext.tsx',
     'context/ServiceControlContext.tsx',
+    'context/PaymentConfigContext.tsx',
   ],
   coverageThreshold: {
     global: {
