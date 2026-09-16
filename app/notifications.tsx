@@ -95,11 +95,23 @@ export default function NotificationsScreen() {
           {notifications.map((n) => {
             const NotifIcon = CATEGORY_ICONS[n.type as keyof typeof CATEGORY_ICONS] ?? Bell;
             const isTermsNotif = n.type === 'system' && /terms/i.test(`${n.title} ${n.body}`);
+            // Navigates using the entity id/screen the backend attached to
+            // this notification (H19) — only present on one delivered while
+            // this screen's socket listener was live (see useNotifications).
+            // Falls back to the closest existing list screen when it isn't,
+            // rather than doing nothing.
+            const handlePress = isTermsNotif
+              ? () => router.push('/(tabs)/profile?openTerms=1' as any)
+              : n.type === 'trip'
+              ? () => router.push((n.entityId != null ? `/trip-detail?id=${n.entityId}` : '/(tabs)/trips') as any)
+              : n.type === 'promo'
+              ? () => router.push('/promo' as any)
+              : undefined;
             return (
             <TouchableOpacity
               key={n.id}
               activeOpacity={0.88}
-              onPress={isTermsNotif ? () => router.push('/(tabs)/profile?openTerms=1' as any) : undefined}
+              onPress={handlePress}
             >
               <View style={[styles.notifCard, n.unread && styles.notifCardUnread]}>
                 <View style={[styles.notifIconWrap, { backgroundColor: ICON_BG[n.type] ?? '#F0F2F3' }]}>

@@ -33,17 +33,31 @@ interface RawNotification {
   timestamp?: string;
   unread?: boolean;
   isRead?: boolean;
+  // Only present on a live `notification:new` socket payload (H19) — see
+  // lib/sendNotification.ts on the backend. Categories other than
+  // "trip"/"trip_available"/"shuttle"/"promo" map to the generic 'system'
+  // bucket above and never carry these, so it's harmless when absent.
+  screen?: string;
+  entityId?: number | string;
+  deepLink?: string;
 }
 
 function mapApiNotif(n: RawNotification): Notification {
   const cat = (n.type ?? n.category ?? 'system').toLowerCase();
+  const type: Notification['type'] =
+    (cat === 'trip' || cat === 'trip_available' || cat === 'shuttle') ? 'trip'
+    : cat === 'promo' ? 'promo'
+    : 'system';
   return {
     id: String(n.id ?? Math.random()),
-    type: (cat === 'trip' || cat === 'promo' || cat === 'system') ? cat as any : 'system',
+    type,
     title: n.title ?? n.subject ?? '',
     body: n.body ?? n.message ?? n.content ?? '',
     createdAt: n.createdAt ?? n.time ?? n.timestamp ?? '',
     unread: n.unread ?? (n.isRead === false),
+    screen: n.screen,
+    entityId: n.entityId,
+    deepLink: n.deepLink,
   };
 }
 
@@ -82,11 +96,23 @@ export function useNotifications(): UseNotificationsResult {
     socketSetup.current = true;
 
     // Named handlers defined here so cleanup can reference them synchronously.
-    // REST GET /notifications remains the source of truth for full notification
-    // objects — the socket event only signals that something changed, so we
-    // re-fetch rather than splice a partial socket payload into the list.
-    const onNotificationNew = () => {
-      fetchNotifications();
+    // The live socket payload is built by the backend's sendNotification(),
+    // which mirrors the REST notification shape field-for-field (see its own
+    // comment there) PLUS screen/entityId/deepLink navigation metadata that
+    // GET /notifications never returns (H19 — those aren't persisted to the
+    // notifications table). Mapping it directly and merging it into state —
+    // instead of discarding it for a full re-fetch, which would immediately
+    // overwrite this richer payload with the REST shape that lacks it — is
+    // what keeps that metadata available for the tap handler in
+    // app/notifications.tsx. Falls back to a re-fetch only if the payload is
+    // missing/malformed.
+    const onNotificationNew = (payload?: RawNotification) => {
+      if (payload?.id == null) {
+        fetchNotifications();
+        return;
+      }
+      const notif = mapApiNotif(payload);
+      setNotifications((prev) => [notif, ...prev.filter((n) => n.id !== notif.id)].slice(0, 100));
     };
 
     const onBoarded = (data: any) => {

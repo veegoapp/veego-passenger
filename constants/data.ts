@@ -216,6 +216,15 @@ export type Notification = {
   body: string;
   createdAt: string;
   unread?: boolean;
+  // Navigation metadata (H19) — only ever present on a notification arriving
+  // live over the `notification:new` socket event, since backend does not
+  // persist these to the notifications table (GET /notifications never
+  // returns them, so a historical/REST-fetched notification has none).
+  // Mirrors the backend's existing sendNotification() screen/entityId
+  // convention (e.g. screen: "TripDetails", entityId: trip.id).
+  screen?: string;
+  entityId?: number | string;
+  deepLink?: string;
 };
 
 // ── Date helpers ─────────────────────────────────────────────────

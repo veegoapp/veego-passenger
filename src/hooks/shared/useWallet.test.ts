@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 import api from '../../api/client';
+import { getSocket } from '../../api/socket';
 import { useWallet } from './useWallet';
 
 jest.mock('../../api/client', () => ({
@@ -7,14 +8,51 @@ jest.mock('../../api/client', () => ({
   default: { get: jest.fn() },
 }));
 
+// H18 wired useWallet to listen on the "notification:new" socket event for
+// balance-changing events — mocked the same way useNotifications.test.ts
+// already mocks this module, since the real socket.ts pulls in client.ts's
+// registerSocketReconnect at module scope, which the bare client mock above
+// doesn't provide.
+jest.mock('../../api/socket', () => ({
+  getSocket: jest.fn(),
+}));
+
+// H18 also added a useFocusEffect(refetch) — real @react-navigation/native
+// requires an actual NavigationContainer/screen context, which a bare
+// renderHook() in this unit test never provides. None of these tests assert
+// on focus-driven behavior, so a plain mount-effect stand-in is sufficient.
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (effect: () => void) => require('react').useEffect(effect, []),
+}));
+
 const mockedGet = api.get as jest.Mock;
+const mockedGetSocket = getSocket as jest.Mock;
+
+function makeFakeSocket() {
+  const handlers = new Map<string, Set<(...args: any[]) => void>>();
+  return {
+    on: jest.fn((event: string, cb: (...args: any[]) => void) => {
+      if (!handlers.has(event)) handlers.set(event, new Set());
+      handlers.get(event)!.add(cb);
+    }),
+    off: jest.fn((event: string, cb: (...args: any[]) => void) => {
+      handlers.get(event)?.delete(cb);
+    }),
+    emit(event: string, payload?: unknown) {
+      handlers.get(event)?.forEach((cb) => cb(payload));
+    },
+  };
+}
 
 async function flush() {
   await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 }
 
 describe('useWallet', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedGetSocket.mockResolvedValue(makeFakeSocket());
+  });
 
   it('loads balance and transactions on mount', async () => {
     mockedGet.mockImplementation((path: string) => {

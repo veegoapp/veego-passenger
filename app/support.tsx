@@ -110,19 +110,17 @@ export default function SupportScreen() {
         message:  message.trim(),
         category: mapped.category,
       });
+      // Only reached once the request has actually succeeded — a network
+      // error, timeout, or any non-2xx response (including 404/501) throws
+      // and is caught below instead of falling through to "sent" (H16).
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSent(true);
     } catch (e: any) {
-      const status = e?.response?.status;
-      if (status && status !== 404 && status !== 501 && status >= 400 && status < 500) {
-        const msg = getErrorMessage(e?.response?.data?.code, e?.response?.data?.message ?? t('send_failed'));
-        showAppAlert(t('error'), msg);
-        setSending(false);
-        return;
-      }
+      const msg = getErrorMessage(e?.response?.data?.code, e?.response?.data?.message ?? t('send_failed'));
+      showAppAlert(t('error'), msg);
     } finally {
       setSending(false);
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setSent(true);
   };
 
   return (
