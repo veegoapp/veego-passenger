@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { RefreshCw, Bus, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { useLocalSearchParams } from 'expo-router';
 import { RouteCard } from '@/components/shuttle/RouteCard';
 import { useBooking } from '@/context/BookingContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -50,6 +52,33 @@ export default function RoutesScreen() {
   const styles = useMemo(() => makeStyles(S), [S]);
 
   const { routes, loading, error, refresh } = useRoutes();
+
+  // Landed here from an invite/share link for a trip the caller isn't
+  // booked on (trip-detail.tsx resolves the trip's routeId via GET
+  // /trips/:id and redirects here) — auto-open the SAME booking sheet a
+  // normal tap on that route's card would open, once the route list has
+  // loaded. Reuses the existing booking flow rather than a new one (H17).
+  const { joinRouteId } = useLocalSearchParams<{ joinRouteId?: string }>();
+  const joinHandled = useRef(false);
+  useEffect(() => {
+    if (!joinRouteId || joinHandled.current || routes.length === 0) return;
+    const match = routes.find((r) => String(r.id) === String(joinRouteId));
+    if (match) {
+      joinHandled.current = true;
+      openRoute(match);
+    }
+  }, [joinRouteId, routes, openRoute]);
+
+  // useRoutes() only fetches once on mount — without this, booking or
+  // cancelling a trip elsewhere in the app (BookingContext only refreshes
+  // its own scheduledTrips/tripsTotal, a separate data source from this
+  // screen's route list) left this list showing pre-booking seat/trip
+  // counts until the user manually pulled to refresh or tapped the icon.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return routes;

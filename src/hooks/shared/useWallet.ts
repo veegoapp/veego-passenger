@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ComponentType } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
+import { getSocket } from '../../api/socket';
+import { SOCKET_EVENTS } from '@/constants/socketEvents';
 import { WalletBalanceSchema, TransactionItemSchema, checkContract } from '../../api/schemas';
 import { Bus, Car, Bike as ScooterIcon, PlusCircle, RefreshCw, ArrowUp, Tag, Ticket, CreditCard } from 'lucide-react-native';
 import { en as i18nEn } from '../../../constants/i18n/en';
@@ -227,6 +230,49 @@ export function useWallet(): UseWalletResult {
 
   useEffect(() => {
     fetchWallet();
+  }, [fetchWallet]);
+
+  // Refetch when the wallet screen regains focus — otherwise a balance
+  // change made elsewhere (a payment, a refund, a top-up completed while
+  // this screen wasn't active) only ever showed up on the very first mount
+  // (H18).
+  useFocusEffect(
+    useCallback(() => {
+      fetchWallet();
+    }, [fetchWallet]),
+  );
+
+  // Refetch on the existing generic "notification:new" socket event — every
+  // wallet-affecting change (refund, top-up, admin adjustment, debt
+  // settlement) already creates a notification for the user, so this is the
+  // same signal useNotifications() already refetches on, reused here rather
+  // than adding a new backend event (H18). Not excessive: one refetch per
+  // notification, not a poll.
+  const socketSetup = useRef(false);
+  useEffect(() => {
+    if (socketSetup.current) return;
+    socketSetup.current = true;
+
+    let resolvedSocket: Awaited<ReturnType<typeof getSocket>> | null = null;
+    let isMounted = true;
+    const onNotificationNew = () => fetchWallet();
+
+    (async () => {
+      try {
+        const socket = await getSocket();
+        if (!isMounted) return;
+        resolvedSocket = socket;
+        socket.on(SOCKET_EVENTS.NOTIFICATION_NEW, onNotificationNew);
+      } catch {
+        // Socket unavailable — focus refresh above still covers recovery
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+      socketSetup.current = false;
+      resolvedSocket?.off(SOCKET_EVENTS.NOTIFICATION_NEW, onNotificationNew);
+    };
   }, [fetchWallet]);
 
   return { balance, spent, transactions, loading, error, refresh: fetchWallet };

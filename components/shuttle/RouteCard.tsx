@@ -28,11 +28,6 @@ function makeStyles(c: ThemeColors, S: SplitColors) {
     statsRow: { flexDirection: 'row', gap: 14, marginTop: 12 },
     statVal: { fontSize: 12.5, fontWeight: '800', color: S.ink },
     statCap: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: S.cap, marginTop: 1 },
-    fillRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
-    fillSeats: { fontSize: 11, fontWeight: '700', color: S.inkSoft },
-    fillPct: { fontSize: 11, fontWeight: '700', color: S.teal },
-    fillBar: { height: 6, borderRadius: 3, backgroundColor: S.surfaceMuted, marginTop: 6, overflow: 'hidden' },
-    fillBarFill: { height: '100%' as any, backgroundColor: S.teal, borderRadius: 3 },
   });
 }
 
@@ -41,7 +36,6 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
   const isAr = language === 'ar';
   const S = useSplitColors();
   const styles = useMemo(() => makeStyles(c, S), [c, S]);
-  const fillPct = Math.round(((route.totalSeats - route.seatsLeft) / route.totalSeats) * 100);
 
   const displayName = isAr ? (route.nameAr ?? route.name) : route.name;
   const displayFrom = isAr ? (route.fromAr ?? route.from) : route.from;
@@ -84,14 +78,6 @@ export function RouteCard({ route, onPress }: { route: Route; onPress: () => voi
             <Text style={styles.statVal}>{route.nextDeparture}</Text>
             <Text style={styles.statCap}>{t('departure')}</Text>
           </View>
-        </View>
-
-        <View style={styles.fillRow}>
-          <Text style={styles.fillSeats}>{route.seatsLeft} {t('seats_left')}</Text>
-          <Text style={styles.fillPct}>{fillPct}%</Text>
-        </View>
-        <View style={styles.fillBar}>
-          <View style={[styles.fillBarFill, { width: `${fillPct}%` as any }]} />
         </View>
       </View>
     </TouchableOpacity>

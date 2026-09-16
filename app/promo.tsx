@@ -178,7 +178,12 @@ export default function PromoScreen() {
     }
   }, [prefillCode]);
 
-  const handleCardPress = (cardCode: string) => {
+  const handleCardPress = (cardCode: string, alreadyUsedByMe?: boolean) => {
+    if (alreadyUsedByMe) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showAppAlert(t('promo_code_invalid'), t('promo_already_used') || 'You have already used this promo code');
+      return;
+    }
     Haptics.selectionAsync();
     setCode(cardCode);
     handleApply(cardCode);
@@ -262,8 +267,8 @@ export default function PromoScreen() {
               promos.map((promo) => (
                 <TouchableOpacity
                   key={promo.code}
-                  style={styles.promoCard}
-                  onPress={() => handleCardPress(promo.code)}
+                  style={[styles.promoCard, promo.alreadyUsedByMe && { opacity: 0.55 }]}
+                  onPress={() => handleCardPress(promo.code, promo.alreadyUsedByMe)}
                   activeOpacity={0.88}
                 >
                   <View style={[styles.promoInner, { backgroundColor: promo.color }]}>
@@ -276,7 +281,9 @@ export default function PromoScreen() {
                       <View style={styles.promoExpiry}>
                         <Clock size={11} color="rgba(255,255,255,0.6)" />
                         <Text style={styles.promoExpiryText}>
-                          {t('promo_expires')} {isAr ? promo.expiresAr : promo.expiresEn}
+                          {promo.alreadyUsedByMe
+                            ? (t('promo_already_used') || 'Already used')
+                            : `${t('promo_expires')} ${isAr ? promo.expiresAr : promo.expiresEn}`}
                         </Text>
                       </View>
                     </View>

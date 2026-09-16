@@ -6,6 +6,7 @@ import {
 import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { ArrowLeft, ArrowRight, MapPin, Share2, Navigation, X, Star, ShieldAlert, Clock, Car, HelpCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -41,6 +42,10 @@ import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 // Show map from 20 min before departure through the entire active trip
 const SHOW_MAP_STATUSES = ['driver_assigned', 'scheduled', 'active', 'boarding'];
 const HIDE_MAP_STATUSES = ['completed', 'cancelled'];
+// A trip in either of these never leaves it server-side — used so a fresh
+// REST fetch reporting one of these can always override a stale/missed
+// socket-delivered liveStatus (H15).
+const TERMINAL_TRIP_STATUSES = ['completed', 'cancelled'];
 const MINUTES_BEFORE_DEPARTURE = 20;
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme
@@ -93,6 +98,14 @@ interface TripDetail {
    *  driver_instapay_accounts.isEnabled, the same way the ride-side
    *  driver:assigned payload already does via driver.instaPayEnabled. */
   driverInstaPayEnabled?: boolean | null;
+  /** The booking's own status (confirmed/pending/boarded/completed/
+   *  cancelled/absent) — distinct from `status` above (the trip's own
+   *  lifecycle status). Used only for rating eligibility (M16): a trip that
+   *  ends up 'cancelled' after this passenger already boarded should still
+   *  be ratable, matching the backend's actual eligibility rule
+   *  (submitShuttleRating checks the booking's own boarded/completed
+   *  status, not the trip's). */
+  bookingStatus?: string;
 }
 
 interface DriverLocation {
@@ -240,6 +253,7 @@ function mapApiToDetail(b: any): TripDetail {
     // states, so reading the booking's status here made a system-cancelled
     // trip still display "Confirmed."
     status: (b.tripStatus ?? trip.status ?? trip.shuttleStatus ?? b.status ?? '').toLowerCase(),
+    bookingStatus: (b.status ?? '').toLowerCase(),
     departureIso,
     routeName:   b.routeName   ?? route.name   ?? trip.name  ?? '—',
     routeNameAr: b.routeNameAr ?? route.nameAr ?? null,
@@ -724,14 +738,22 @@ export default function TripDetailScreen() {
       }
 
       if (detail) {
+        const isTerminalRestStatus = TERMINAL_TRIP_STATUSES.includes(detail.status as any);
         setTrip((prev) => {
-          // Preserve socket-delivered status — REST poll must not overwrite it.
-          // Use ref (not state) so we read the latest value inside this callback.
-          if (prev && liveStatusRef.current) {
+          // A non-terminal REST snapshot can lag a live socket tick, so keep
+          // the socket-known status in that case — but a missed/stuck
+          // terminal socket event must never keep the UI stuck on a stale
+          // in-progress status forever: once REST itself reports a terminal
+          // status, it is authoritative and always wins (H15).
+          if (prev && liveStatusRef.current && !isTerminalRestStatus) {
             return { ...detail, status: prev.status };
           }
           return detail;
         });
+        if (isTerminalRestStatus) {
+          liveStatusRef.current = null;
+          setLiveStatus(null);
+        }
         setRideDetail(null);
         tripIdRef.current = detail.id;
         bookingIdRef.current = detail.bookingId ?? null;
@@ -753,6 +775,19 @@ export default function TripDetailScreen() {
         return;
       }
 
+      // Fallback: `id` may be a valid trip the caller has no booking on at
+      // all — e.g. an invite/share link from another passenger (H17). GET
+      // /trips/:id has no ownership check (any authenticated passenger may
+      // look up a trip's route/pricing), so use it to resolve the trip's
+      // route and hand off into the existing route-booking flow instead of
+      // a dead-end error.
+      const tripPreview = await api.get(`/trips/${id}`).catch(() => null);
+      const previewRouteId = tripPreview?.data?.routeId;
+      if (previewRouteId != null) {
+        router.replace(`/(tabs)/routes?joinRouteId=${previewRouteId}`);
+        return;
+      }
+
       setError(t('trip_load_error'));
     } catch (e: any) {
       setError(e?.response?.data?.message ?? e?.message ?? t('trip_load_error'));
@@ -764,6 +799,22 @@ export default function TripDetailScreen() {
   useEffect(() => {
     fetchTrip();
   }, [fetchTrip]);
+
+  // Refetch whenever this screen regains focus (e.g. backgrounded app
+  // brought back, or navigated back to from another screen) — recovers from
+  // a terminal status event missed while the screen wasn't active, without
+  // waiting for the 2-minute fallback poll (H15). Skips the very first focus
+  // since the mount effect above already just fetched.
+  const didInitialFocusFetch = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!didInitialFocusFetch.current) {
+        didInitialFocusFetch.current = true;
+        return;
+      }
+      fetchTrip();
+    }, [fetchTrip])
+  );
 
   // Sync the local Cash/InstaPay toggle from the booking's server-known
   // payment method whenever a fresh trip is fetched (initial load, or the
@@ -984,9 +1035,13 @@ export default function TripDetailScreen() {
         setBoarded(true);
       };
 
-      // Re-join trip room after socket reconnects (network recovery)
+      // Re-join trip room after socket reconnects (network recovery), and
+      // refetch via REST — any status event missed while disconnected
+      // (including a terminal one) is otherwise never recovered until the
+      // next 2-minute fallback poll (H15).
       const reconnectHandler = () => {
         socket.emit(SOCKET_EVENTS.JOIN_TRIP, { tripId: Number(realTripId) });
+        fetchTrip();
       };
 
       // Station arrival/completion — refresh the station list immediately instead
@@ -1026,7 +1081,7 @@ export default function TripDetailScreen() {
         socket.emit(SOCKET_EVENTS.LEAVE_TRIP, { tripId: Number(realTripId) });
       }).catch(() => {});
     };
-  }, [realTripId, fetchStations, rideDetail, applyDriverLocation]);
+  }, [realTripId, fetchStations, rideDetail, applyDriverLocation, fetchTrip]);
 
   // ETA is now computed inside PassengerTrackingMap (single source of truth)
   // and reported back via onEtaChange below — no local calculation here.
@@ -1171,7 +1226,13 @@ export default function TripDetailScreen() {
     setSafetyOpen(true);
   };
 
-  const deepLink = `veego://shuttle/trip/${id}`;
+  // `id` is the raw route param this screen was opened with, which can be
+  // either a tripId or a bookingId (fetchTrip above resolves either). The
+  // invite link must always carry the actual tripId — trip.id is the
+  // resolved value (mapApiToDetail prefers b.tripId), never the bookingId —
+  // otherwise a link built from a bookingId points a receiving passenger at
+  // the wrong (or a nonexistent) trip (H17).
+  const deepLink = `veego://shuttle/trip/${trip?.id ?? id}`;
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1401,7 +1462,12 @@ export default function TripDetailScreen() {
   // Gating on showMap here keeps that same behavior now that SOS lives in the card.
   const showSOS = showMap && (boarded || effectiveStatus === 'active');
   const showCancel = !['completed', 'cancelled', 'boarding', 'active'].includes(effectiveStatus);
-  const showRate = effectiveStatus === 'completed' && !shuttleAlreadyRated && !!trip.driverUserId;
+  // M16: a trip cancelled AFTER this passenger already boarded is still
+  // ratable — the backend's actual eligibility rule (submitShuttleRating)
+  // checks the booking's own boarded/completed status, not the trip's.
+  const rodeThisTrip = trip?.bookingStatus === 'boarded' || trip?.bookingStatus === 'completed';
+  const showRate = (effectiveStatus === 'completed' || (effectiveStatus === 'cancelled' && rodeThisTrip))
+    && !shuttleAlreadyRated && !!trip.driverUserId;
 
   return (
     <View style={{ flex: 1, backgroundColor: SC.bg }}>

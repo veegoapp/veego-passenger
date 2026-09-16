@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, MapPin, Flame, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -207,6 +208,15 @@ export default function HomeScreen() {
     : { time: '' };
   const styles = useMemo(() => makeStyles(c), [c]);
   const { routes, refresh: refreshRoutes } = useRoutes();
+  // Only ever refetched from pull-to-refresh otherwise — booking or
+  // cancelling a shuttle trip elsewhere in the app doesn't touch this same
+  // data source, so Home kept showing pre-booking route/seat counts until
+  // the user manually pulled down.
+  useFocusEffect(
+    useCallback(() => {
+      refreshRoutes();
+    }, [refreshRoutes]),
+  );
   const { setVisible: setTabBarVisible, tabBarHeight } = useTabBar();
   const { getService, handleServiceTap, isServiceVisibleForZone, userZoneId } = useServiceControl();
   const { setOpenServiceType } = useHomeService();
