@@ -98,6 +98,14 @@ interface TripDetail {
    *  driver_instapay_accounts.isEnabled, the same way the ride-side
    *  driver:assigned payload already does via driver.instaPayEnabled. */
   driverInstaPayEnabled?: boolean | null;
+  /** The booking's own status (confirmed/pending/boarded/completed/
+   *  cancelled/absent) — distinct from `status` above (the trip's own
+   *  lifecycle status). Used only for rating eligibility (M16): a trip that
+   *  ends up 'cancelled' after this passenger already boarded should still
+   *  be ratable, matching the backend's actual eligibility rule
+   *  (submitShuttleRating checks the booking's own boarded/completed
+   *  status, not the trip's). */
+  bookingStatus?: string;
 }
 
 interface DriverLocation {
@@ -245,6 +253,7 @@ function mapApiToDetail(b: any): TripDetail {
     // states, so reading the booking's status here made a system-cancelled
     // trip still display "Confirmed."
     status: (b.tripStatus ?? trip.status ?? trip.shuttleStatus ?? b.status ?? '').toLowerCase(),
+    bookingStatus: (b.status ?? '').toLowerCase(),
     departureIso,
     routeName:   b.routeName   ?? route.name   ?? trip.name  ?? '—',
     routeNameAr: b.routeNameAr ?? route.nameAr ?? null,
@@ -1453,7 +1462,12 @@ export default function TripDetailScreen() {
   // Gating on showMap here keeps that same behavior now that SOS lives in the card.
   const showSOS = showMap && (boarded || effectiveStatus === 'active');
   const showCancel = !['completed', 'cancelled', 'boarding', 'active'].includes(effectiveStatus);
-  const showRate = effectiveStatus === 'completed' && !shuttleAlreadyRated && !!trip.driverUserId;
+  // M16: a trip cancelled AFTER this passenger already boarded is still
+  // ratable — the backend's actual eligibility rule (submitShuttleRating)
+  // checks the booking's own boarded/completed status, not the trip's.
+  const rodeThisTrip = trip?.bookingStatus === 'boarded' || trip?.bookingStatus === 'completed';
+  const showRate = (effectiveStatus === 'completed' || (effectiveStatus === 'cancelled' && rodeThisTrip))
+    && !shuttleAlreadyRated && !!trip.driverUserId;
 
   return (
     <View style={{ flex: 1, backgroundColor: SC.bg }}>

@@ -15,6 +15,7 @@ export interface PromoCard {
   expiresAr: string;
   color: string;
   icon: ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  alreadyUsedByMe: boolean;
 }
 
 interface UsePromosResult {
@@ -50,6 +51,7 @@ function mapPromoCard(item: any): PromoCard {
     expiresAr: item.expiresAr ?? item.expiresEn ?? item.expiresAt ?? '',
     color: item.color ?? '#55c49a',
     icon: mapIcon(item.icon),
+    alreadyUsedByMe: Boolean(item.alreadyUsedByMe),
   };
 }
 

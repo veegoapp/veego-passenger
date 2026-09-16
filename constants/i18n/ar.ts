@@ -348,6 +348,7 @@ export const ar: typeof en = {
   promo_featured: 'العروض المميزة',
   promo_code_invalid: 'كود غير صالح',
   promo_code_invalid_msg: 'هذا الكود غير صالح أو منتهي الصلاحية.',
+  promo_already_used: 'لقد استخدمت هذا الكود بالفعل',
   promo_validate_error: 'تعذر التحقق من الرمز. حاول مجدداً.',
   promo_code_applied: 'تم تطبيق الخصم!',
   promo_code_applied_msg: 'تم إضافة خصمك إلى محفظتك.',

@@ -347,6 +347,7 @@ export const en = {
   promo_featured: 'Featured Promos',
   promo_code_invalid: 'Invalid code',
   promo_code_invalid_msg: 'This promo code is not valid or has expired.',
+  promo_already_used: 'You have already used this promo code',
   promo_validate_error: 'Could not validate code. Please try again.',
   promo_code_applied: 'Promo applied!',
   promo_code_applied_msg: 'Your discount has been added to your wallet.',
