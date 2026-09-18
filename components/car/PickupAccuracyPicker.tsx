@@ -170,13 +170,15 @@ export function PickupAccuracyPicker({ visible, anchorCoords, onCancel, onConfir
               rotateEnabled={false}
               showsBuildings={false}
             >
-              <Circle
-                center={anchorCoords ?? undefined}
-                radius={MAX_OFFSET_METERS}
-                strokeColor={c.primary}
-                strokeWidth={1.5}
-                fillColor={c.isDark ? 'rgba(61,220,151,0.12)' : 'rgba(61,220,151,0.10)'}
-              />
+              {anchorCoords && (
+                <Circle
+                  center={anchorCoords}
+                  radius={MAX_OFFSET_METERS}
+                  strokeColor={c.primary}
+                  strokeWidth={1.5}
+                  fillColor={c.isDark ? 'rgba(61,220,151,0.12)' : 'rgba(61,220,151,0.10)'}
+                />
+              )}
             </MapView>
 
             <View pointerEvents="none" style={styles.pinWrap}>
