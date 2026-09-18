@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useLocalSearchParams } from 'expo-router';
-import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Bell, Moon, Languages } from 'lucide-react-native';
+import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Moon, Languages } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -20,7 +20,6 @@ import TermsModal from '@/components/shared/TermsModal';
 import EmergencyContactModal from '@/components/shared/EmergencyContactModal';
 import { PersonalInfoModal } from '@/components/profile/PersonalInfoModal';
 import { PaymentMethodsModal } from '@/components/profile/PaymentMethodsModal';
-import { NotificationsModal } from '@/components/profile/NotificationsModal';
 import { HelpFaqModal } from '@/components/profile/HelpFaqModal';
 import { ContactSupportModal } from '@/components/profile/ContactSupportModal';
 import { makeStyles, useProfileInfo } from '@/components/profile/shared';
@@ -30,7 +29,6 @@ import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 type ProfileScreen =
   | 'personal_info'
   | 'payment_methods'
-  | 'notifications'
   | 'help_faq'
   | 'contact_support'
   | 'ratings_history'
@@ -216,17 +214,6 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{t('preferences')}</Text>
           <View style={styles.groupCard}>
-            <TouchableOpacity style={styles.settingItem} activeOpacity={0.75} onPress={() => open('notifications')}>
-              <View style={styles.settingIcon}><Bell size={16} color={S.ink} /></View>
-              <Text style={styles.settingLabel}>{t('push_notifs')}</Text>
-              <View style={styles.settingRight}>
-                <Text style={styles.settingValue}>{t('notif_on')}</Text>
-                {isRTL ? <ChevronLeft size={14} color={S.inkSoft} /> : <ChevronRight size={14} color={S.inkSoft} />}
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.itemDivider} />
-
             <TouchableOpacity style={styles.settingItem} activeOpacity={1}>
               <View style={styles.settingIcon}><Moon size={16} color={S.ink} /></View>
               <Text style={styles.settingLabel}>{t('dark_mode')}</Text>
@@ -333,7 +320,6 @@ export default function ProfileScreen() {
         heroInitials={heroInitials}
       />
       <PaymentMethodsModal visible={activeModal === 'payment_methods'} onClose={close} />
-      <NotificationsModal visible={activeModal === 'notifications'} onClose={close} />
       <HelpFaqModal visible={activeModal === 'help_faq'} onClose={close} />
       <ContactSupportModal visible={activeModal === 'contact_support'} onClose={close} />
       <TermsModal
