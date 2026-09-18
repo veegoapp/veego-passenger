@@ -654,6 +654,7 @@ export const ar: typeof en = {
   password_fill_all: 'يرجى ملء جميع حقول كلمة المرور.',
   password_updated: 'تم تحديث كلمة مرورك.',
   password_change_failed: 'فشل تغيير كلمة المرور. حاول مجدداً.',
+  password_same_as_current: 'كلمة المرور الجديدة لازم تكون مختلفة عن الحالية.',
 
   // Profile — account deletion error
   delete_account_error: 'تعذر حذف حسابك. حاول مجدداً لاحقاً.',
@@ -722,6 +723,8 @@ export const ar: typeof en = {
   set_pickup_on_map: 'حدد نقطة الالتقاء على الخريطة',
   move_map_to_set_pickup: 'حرّك الخريطة لتحديد نقطة الالتقاء',
   confirm_pickup: 'تأكيد نقطة الالتقاء',
+  refine_pickup_title: 'اضبط نقطة الالتقاء بدقة',
+  refine_pickup_hint: 'أحيانًا يكون تحديد الـ GPS لموقعك غير دقيق، اسحب الدبوس داخل الدائرة لتحديد مكانك بالظبط. العنوان ده هو اللي هيظهر للسائق.',
   locating: 'جارٍ تحديد الموقع…',
   most_booked: 'الأكثر حجزًا',
   request_ride_failed: 'فشل طلب الرحلة. حاول مجدداً.',

@@ -652,6 +652,7 @@ export const en = {
   password_fill_all: 'Please fill in all password fields.',
   password_updated: 'Your password has been updated.',
   password_change_failed: 'Password change failed. Please try again.',
+  password_same_as_current: 'New password must be different from your current password.',
 
   // Profile — account deletion error
   delete_account_error: 'Could not delete your account. Please try again later.',
@@ -721,6 +722,8 @@ export const en = {
   move_map_to_set_pickup: 'Move the map to set your pickup',
   confirm_pickup: 'Confirm pickup',
   locating: 'Locating…',
+  refine_pickup_title: 'Fine-tune your pickup point',
+  refine_pickup_hint: 'GPS isn’t always exact — drag within the circle to set your precise spot. This is what your driver will see.',
   most_booked: 'Most Booked',
   request_ride_failed: 'Failed to request ride. Please try again.',
 

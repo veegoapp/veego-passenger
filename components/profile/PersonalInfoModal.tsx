@@ -38,12 +38,14 @@ export function PersonalInfoModal({
   const [confirmPw, setConfirmPw] = useState('');
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [changingPw, setChangingPw] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setSaved(false);
       setSaving(false);
       setPwOpen(false);
+      setChangingPw(false);
       setCurrentPw('');
       setNewPw('');
       setConfirmPw('');
@@ -65,15 +67,29 @@ export function PersonalInfoModal({
   };
 
   const handleChangePassword = async () => {
+    // Guards against a double-tap firing two concurrent PATCH requests.
+    if (changingPw) return;
     if (!currentPw || !newPw || !confirmPw) {
       showAppAlert(t('error'), t('password_fill_all'));
+      return;
+    }
+    if (newPw.length < 8) {
+      showAppAlert(t('error'), t('password_min'));
       return;
     }
     if (newPw !== confirmPw) {
       showAppAlert(t('error'), t('passwords_no_match'));
       return;
     }
+    if (newPw === currentPw) {
+      showAppAlert(t('error'), t('password_same_as_current'));
+      return;
+    }
+    setChangingPw(true);
     try {
+      // Server is the source of truth: it re-verifies currentPw against the
+      // stored hash before writing anything, so a wrong current password
+      // never succeeds here regardless of what the client checked above.
       await updatePassword(currentPw, newPw);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showAppAlert(t('saved'), t('password_updated'));
@@ -81,6 +97,8 @@ export function PersonalInfoModal({
       setCurrentPw(''); setNewPw(''); setConfirmPw('');
     } catch (e: any) {
       showAppAlert(t('error'), e?.response?.data?.message ?? t('password_change_failed'));
+    } finally {
+      setChangingPw(false);
     }
   };
 
@@ -186,6 +204,12 @@ export function PersonalInfoModal({
                       value={currentPw}
                       onChangeText={setCurrentPw}
                       secureTextEntry={!showCurrent}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      spellCheck={false}
+                      textContentType="password"
+                      autoComplete="current-password"
+                      editable={!changingPw}
                     />
                     <TouchableOpacity
                       style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
@@ -203,6 +227,12 @@ export function PersonalInfoModal({
                       value={newPw}
                       onChangeText={setNewPw}
                       secureTextEntry={!showNew}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      spellCheck={false}
+                      textContentType="newPassword"
+                      autoComplete="new-password"
+                      editable={!changingPw}
                     />
                     <TouchableOpacity
                       style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
@@ -219,9 +249,24 @@ export function PersonalInfoModal({
                     value={confirmPw}
                     onChangeText={setConfirmPw}
                     secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    textContentType="newPassword"
+                    autoComplete="new-password"
+                    editable={!changingPw}
                   />
-                  <TouchableOpacity style={styles.primaryBtn} onPress={handleChangePassword} activeOpacity={0.9}>
-                    <Text style={styles.primaryBtnText}>{t('update_password')}</Text>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, changingPw && { opacity: 0.6 }]}
+                    onPress={handleChangePassword}
+                    activeOpacity={0.9}
+                    disabled={changingPw}
+                  >
+                    {changingPw ? (
+                      <AppLoader size={24} />
+                    ) : (
+                      <Text style={styles.primaryBtnText}>{t('update_password')}</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               )}

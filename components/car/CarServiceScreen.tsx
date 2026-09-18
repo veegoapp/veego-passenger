@@ -22,6 +22,7 @@ import { showAppAlert } from '@/components/shared/AppAlertHost';
 import api from '@/src/api/client';
 import { CarMap } from './CarMap';
 import { PickupMapPicker } from './PickupMapPicker';
+import { PickupAccuracyPicker } from './PickupAccuracyPicker';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
@@ -493,6 +494,16 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     handleSelectPickup(address, coords);
   }, [handleSelectPickup]);
 
+  // ── Pickup accuracy nudge (shown right before dispatching the ride) ───────
+  // GPS fixes can land tens of meters off. Rather than trust the raw fix,
+  // "Find Driver" first opens a pin the passenger can drag within 50m of it
+  // to correct for that drift — the address under the pin when they confirm
+  // is what gets booked and what the driver sees.
+  const [pickupAccuracyVisible, setPickupAccuracyVisible] = useState(false);
+  // Set right before handleConfirmRide runs so it can use this exact address
+  // instead of re-reverse-geocoding the same coords a second time.
+  const refinedPickupAddressRef = useRef<string | null>(null);
+
   // Reverse-geocode the user's position for the "Your Location" label.
   // Best-effort: never blocks the UI. Shows t('current_location') until resolved.
   const [pickupAddress, setPickupAddress] = useState<string>('');
@@ -744,16 +755,22 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     // the driver is en route (driver_assigned / arrived phases).
     setPickupCoords({ latitude: pickup.latitude, longitude: pickup.longitude });
 
-    // Backend requires a non-empty pickupAddress — reverse-geocode the pickup
-    // coordinates, falling back to a coordinate string if that fails.
-    let pickupAddress = '';
-    try {
-      const results = await Location.reverseGeocodeAsync(pickup);
-      if (results.length > 0) {
-        const r = results[0];
-        pickupAddress = [r.name, r.street, r.city].filter(Boolean).join(', ');
-      }
-    } catch {}
+    // Backend requires a non-empty pickupAddress. If the passenger just
+    // fine-tuned the pin via PickupAccuracyPicker, its reverse-geocoded
+    // address is exactly what's under the confirmed pin — use it as-is
+    // instead of re-reverse-geocoding the same coordinates. Otherwise fall
+    // back to reverse-geocoding here, then to a coordinate string.
+    let pickupAddress = refinedPickupAddressRef.current ?? '';
+    refinedPickupAddressRef.current = null;
+    if (!pickupAddress) {
+      try {
+        const results = await Location.reverseGeocodeAsync(pickup);
+        if (results.length > 0) {
+          const r = results[0];
+          pickupAddress = [r.name, r.street, r.city].filter(Boolean).join(', ');
+        }
+      } catch {}
+    }
     if (!pickupAddress) {
       pickupAddress = `${pickup.latitude.toFixed(5)}, ${pickup.longitude.toFixed(5)}`;
     }
@@ -788,6 +805,31 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     }
   }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone, paymentMethod]);
 
+  // "Find Driver" no longer dispatches directly — it opens the accuracy
+  // picker first (same guard checks handleConfirmRide would otherwise run).
+  const openPickupAccuracyPicker = useCallback(() => {
+    if (!selectedRide) return;
+    if (serviceType === 'delivery' && (!recipientName.trim() || !recipientPhone.trim())) return;
+    Haptics.selectionAsync();
+    setPickupAccuracyVisible(true);
+  }, [selectedRide, serviceType, recipientName, recipientPhone]);
+
+  const handlePickupAccuracyCancel = useCallback(() => {
+    setPickupAccuracyVisible(false);
+  }, []);
+
+  const handlePickupAccuracyConfirm = useCallback((coords: Coords, address: string) => {
+    setPickupAccuracyVisible(false);
+    // Same bookkeeping as any other manual pickup pick: stops live GPS from
+    // clobbering it, and updates the coords the ride actually gets booked
+    // from.
+    pickupIsCustomRef.current = true;
+    userCoordsRef.current = coords;
+    setUserCoords(coords);
+    refinedPickupAddressRef.current = address;
+    handleConfirmRide();
+  }, [handleConfirmRide]);
+
   // Lets the passenger switch between Cash and InstaPay once a driver who
   // supports InstaPay is assigned (before the trip completes). The backend
   // is the source of truth for eligibility (400s an 'instapay' switch if the
@@ -812,6 +854,8 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setDestination(null);
     setDestCoords(null);
     setPickupCoords(null);
+    setPickupAccuracyVisible(false);
+    refinedPickupAddressRef.current = null;
     // New booking starts fresh: pickup follows GPS again until the passenger
     // explicitly picks a custom one.
     pickupIsCustomRef.current = false;
@@ -1389,7 +1433,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         destination={destination}
         selected={selectedRide}
         onSelect={setSelectedRide}
-        onConfirm={handleConfirmRide}
+        onConfirm={openPickupAccuracyPicker}
         onDismiss={handleReset}
         estimate={estimate}
         singleEstimate={singleEstimate}
@@ -1481,6 +1525,14 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         initialCoords={userCoords ?? deviceLocationRef.current}
         onCancel={() => setMapPickerVisible(false)}
         onConfirm={handleMapPickerConfirm}
+      />
+
+      {/* "Find Driver" accuracy nudge — pin constrained to 50m of the GPS fix */}
+      <PickupAccuracyPicker
+        visible={pickupAccuracyVisible}
+        anchorCoords={userCoords ?? deviceLocationRef.current}
+        onCancel={handlePickupAccuracyCancel}
+        onConfirm={handlePickupAccuracyConfirm}
       />
 
       {/* Completed — fare summary + inline rating in one sheet (Lovable CompletedSheet) */}
