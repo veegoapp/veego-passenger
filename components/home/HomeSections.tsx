@@ -415,9 +415,9 @@ export function ServiceCards({ c, t, getService, isServiceVisibleForZone, onServ
   onServicePress: (id: string) => void;
 }) {
   const CARD_ITEMS = [
-    { id: 'shuttle' as const, icon: Bus,         labelKey: 'svc_card_shuttle' },
     { id: 'car'     as const, icon: Car,         labelKey: 'svc_card_car' },
     { id: 'scooter' as const, icon: ScooterIcon, labelKey: 'svc_card_scooter' },
+    { id: 'shuttle' as const, icon: Bus,         labelKey: 'svc_card_shuttle' },
     { id: 'delivery' as const, icon: Package,    labelKey: 'svc_card_delivery' },
   ];
 
