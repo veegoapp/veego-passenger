@@ -265,6 +265,9 @@ export function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }
           secureTextEntry={!showPass}
           autoCapitalize="none"
           autoCorrect={false}
+          spellCheck={false}
+          textContentType="newPassword"
+          autoComplete="new-password"
           editable={!locked}
           textAlign={isRTL ? 'right' : 'left'}
         />
@@ -286,6 +289,9 @@ export function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }
           secureTextEntry={!showPass}
           autoCapitalize="none"
           autoCorrect={false}
+          spellCheck={false}
+          textContentType="newPassword"
+          autoComplete="new-password"
           editable={!locked}
           textAlign={isRTL ? 'right' : 'left'}
         />
