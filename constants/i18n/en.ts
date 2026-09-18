@@ -652,6 +652,7 @@ export const en = {
   password_fill_all: 'Please fill in all password fields.',
   password_updated: 'Your password has been updated.',
   password_change_failed: 'Password change failed. Please try again.',
+  password_same_as_current: 'New password must be different from your current password.',
 
   // Profile — account deletion error
   delete_account_error: 'Could not delete your account. Please try again later.',

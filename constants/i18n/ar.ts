@@ -654,6 +654,7 @@ export const ar: typeof en = {
   password_fill_all: 'يرجى ملء جميع حقول كلمة المرور.',
   password_updated: 'تم تحديث كلمة مرورك.',
   password_change_failed: 'فشل تغيير كلمة المرور. حاول مجدداً.',
+  password_same_as_current: 'كلمة المرور الجديدة لازم تكون مختلفة عن الحالية.',
 
   // Profile — account deletion error
   delete_account_error: 'تعذر حذف حسابك. حاول مجدداً لاحقاً.',
