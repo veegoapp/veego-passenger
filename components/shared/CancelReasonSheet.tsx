@@ -10,6 +10,11 @@ import { Check } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
+// Same red DriverAssignedCard uses for its own (text-only) Cancel Ride —
+// kept as one shared "this is destructive" signal across the app rather
+// than each screen picking its own red.
+const C_RED_MUTED = '#E5484D';
+
 interface CancelReasonSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -130,30 +135,33 @@ export function CancelReasonSheet({ visible, onClose, onConfirm, mode = 'ride' }
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
 
-          {/* Buttons */}
+          {/* Buttons — the safe/keep-going choice gets the strong, on-theme
+              fill; the destructive one stays a quiet outline (matches how
+              DriverAssignedCard's own Cancel Ride is just a small red text
+              link, never a loud filled block). */}
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            {/* Back ghost button */}
+            {/* Back — primary, on-theme */}
             <TouchableOpacity
               onPress={handleClose}
-              activeOpacity={0.78}
-              style={[styles.ghostBtn, { flex: 1, backgroundColor: S.surfaceMuted, borderColor: S.hair }]}
+              activeOpacity={0.88}
+              style={[styles.primaryBtn, { flex: 1, backgroundColor: S.panel }]}
             >
-              <Text style={[styles.ghostBtnText, { color: S.ink }]}>{t('no_back')}</Text>
+              <Text style={styles.primaryBtnText}>{t('no_back')}</Text>
             </TouchableOpacity>
 
-            {/* Confirm cancel (destructive) */}
+            {/* Confirm cancel (destructive, de-emphasized) */}
             <TouchableOpacity
               onPress={handleConfirm}
               disabled={!canConfirm || loading}
-              activeOpacity={0.88}
+              activeOpacity={0.78}
               style={[
-                styles.dangerBtn,
+                styles.dangerGhostBtn,
                 { flex: 1, opacity: !canConfirm || loading ? 0.4 : 1 },
               ]}
             >
               {loading
                 ? <AppLoader size={22} />
-                : <Text style={styles.dangerBtnText}>{t('confirm_cancel')}</Text>
+                : <Text style={styles.dangerGhostBtnText}>{t('confirm_cancel')}</Text>
               }
             </TouchableOpacity>
           </View>
@@ -213,27 +221,28 @@ function makeStyles(S: SplitColors) {
     fontSize: 12, textAlign: 'center', marginBottom: 14,
   },
   errorText: {
-    fontSize: 13, textAlign: 'center', marginBottom: 12, color: '#E85454',
+    fontSize: 13, textAlign: 'center', marginBottom: 12, color: C_RED_MUTED,
   },
 
-  ghostBtn: {
-    height: 56, borderRadius: 16, borderWidth: 1.5,
+  // On-theme primary CTA — same dark panel fill RideOptionsSheet's "Find
+  // Driver" button uses, so this sheet reads as part of the same app
+  // instead of a generic system alert.
+  primaryBtn: {
+    height: 56, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
   },
-  ghostBtnText: { fontSize: 15, fontWeight: '600' },
+  primaryBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
 
-  dangerBtn: {
+  // Destructive action stays a quiet outline — red as a small signifier,
+  // not a loud filled block (matches DriverAssignedCard's Cancel Ride,
+  // which is just red text with no background at all).
+  dangerGhostBtn: {
     height: 56, borderRadius: 16, borderWidth: 1.5,
-    backgroundColor: '#E85454', borderColor: '#B83E3E',
+    borderColor: C_RED_MUTED,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#E85454',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  dangerBtnText: {
-    fontSize: 15, fontWeight: '700', color: '#ffffff',
+  dangerGhostBtnText: {
+    fontSize: 15, fontWeight: '700', color: C_RED_MUTED,
   },
   });
 }
