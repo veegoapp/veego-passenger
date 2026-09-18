@@ -75,7 +75,11 @@ api.interceptors.response.use(
 
     // Fix 8: Account suspended — block navigation entirely
     if (status === 403 && reason === 'account_suspended') {
-      router.replace('/suspended' as any);
+      // suspensionReason travels in the 403 body itself (see auth.ts) since
+      // every authenticated route — including a follow-up fetch of the
+      // passenger's own profile — would reject with this same 403 too.
+      const suspensionReason = error.response?.data?.suspensionReason ?? '';
+      router.replace({ pathname: '/suspended', params: { reason: suspensionReason } } as any);
       return Promise.reject(error);
     }
 

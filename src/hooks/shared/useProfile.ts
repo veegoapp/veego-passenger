@@ -10,6 +10,9 @@ export interface UserProfile {
   gender: 'male' | 'female' | null;
   /** Signed profile-photo URL from GET /users/me, or null when unset. */
   avatar: string | null;
+  /** Set by passenger-rating-suspension.ts once the rolling rating drifts
+   * into the warning band, before it reaches the auto-suspend threshold. */
+  lowRatingWarningSent: boolean;
 }
 
 const EMPTY_PROFILE: UserProfile = {
@@ -19,6 +22,7 @@ const EMPTY_PROFILE: UserProfile = {
   phone: '',
   gender: null,
   avatar: null,
+  lowRatingWarningSent: false,
 };
 
 interface UseProfileResult {
@@ -37,6 +41,7 @@ function mapApiProfile(d: any): UserProfile {
     phone: d.phone ?? d.phoneNumber ?? d.mobile ?? '',
     gender: d.gender === 'male' || d.gender === 'female' ? d.gender : null,
     avatar: d.avatar ?? null,
+    lowRatingWarningSent: d.lowRatingWarningSent === true,
   };
 }
 

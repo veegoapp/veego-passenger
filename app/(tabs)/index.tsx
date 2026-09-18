@@ -25,6 +25,7 @@ import { useHomeService } from '@/context/HomeServiceContext';
 import { useNotificationsBadge } from '@/context/NotificationsBadgeContext';
 import { useMyDebt } from '@/src/hooks/shared/useMyDebt';
 import { useProfile } from '@/src/hooks/shared/useProfile';
+import { getPassengerRating } from '@/src/api/userService';
 import api from '@/src/api/client';
 import { getPlaceAutocomplete, getPlaceDetails, generateSessionToken } from '@/src/api/placesService';
 import { onSavedLocationsEvent } from '@/src/api/savedLocationsEvents';
@@ -36,6 +37,7 @@ import {
   SERVICES, type SavedLocation,
   HomeHeader, ServiceGrid, ServiceCards, DebtBanner, DebtErrorBanner,
   ZoneServicesBanner, ActiveBookingHero, DestinationSearchModal,
+  RatingWarningBanner,
 } from '@/components/home/HomeSections';
 
 function getInitials(fullName: string): string {
@@ -222,6 +224,19 @@ export default function HomeScreen() {
   const { setOpenServiceType } = useHomeService();
   const { debt, error: debtError, refresh: refreshDebt } = useMyDebt();
   const { profile } = useProfile();
+
+  // Low-rating warning banner — fetch the actual rating only when the
+  // profile flag says it's needed. No dismiss control, matching the
+  // DebtBanner/ZoneServicesBanner pattern already on this screen: it stays
+  // until the underlying condition (profile.lowRatingWarningSent) clears
+  // server-side.
+  const [passengerRating, setPassengerRating] = useState<number | null>(null);
+  useEffect(() => {
+    if (!profile.lowRatingWarningSent) return;
+    getPassengerRating()
+      .then((data) => setPassengerRating(typeof data?.averageRating === 'number' ? data.averageRating : null))
+      .catch(() => {});
+  }, [profile.lowRatingWarningSent]);
 
   const firstName = getFirstName(profile.name);
   const avatarInitials = getInitials(profile.name);
@@ -492,6 +507,13 @@ export default function HomeScreen() {
               onNotifications={() => router.push('/notifications')}
               onProfile={() => router.push('/(tabs)/profile')}
             />
+            {profile.lowRatingWarningSent && (
+              <RatingWarningBanner
+                c={c} t={t as (key: string) => string}
+                rating={passengerRating}
+                onPress={() => router.push('/ratings')}
+              />
+            )}
             {debt?.hasDebt && (
               <DebtBanner c={c} t={t as (key: string) => string} />
             )}
