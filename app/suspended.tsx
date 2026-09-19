@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet,  Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ShieldOff, MessageCircle, Star } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -36,8 +36,6 @@ function makeStyles(S: SplitColors) {
   });
 }
 
-const SUPPORT_URL = 'https://wa.me/201000000000';
-
 // Reason-specific suspensions (users.suspensionReason, set by
 // passenger-rating-suspension.ts / cancelPassengerRide on the backend) get
 // their own title/body — everything else (the pre-existing no-show/
@@ -60,11 +58,13 @@ export default function SuspendedScreen() {
   // way for this screen to learn why.
   const { reason } = useLocalSearchParams<{ reason?: string }>();
 
+  // Support is the internal ticket system (admin-dashboard's Support inbox)
+  // only — matches the driver app's /suspended screen. No WhatsApp: every
+  // admin-facing contact channel in this app goes through in-app messages,
+  // WhatsApp is reserved for SOS/emergency-contact location sharing.
   const handleContactSupport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Linking.openURL(SUPPORT_URL).catch(() => {
-      router.push('/support' as any);
-    });
+    router.push('/support' as any);
   };
 
   const title = reason === LOW_RATING_REASON
