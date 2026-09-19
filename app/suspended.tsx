@@ -58,15 +58,6 @@ export default function SuspendedScreen() {
   // way for this screen to learn why.
   const { reason } = useLocalSearchParams<{ reason?: string }>();
 
-  // Support is the internal ticket system (admin-dashboard's Support inbox)
-  // only — matches the driver app's /suspended screen. No WhatsApp: every
-  // admin-facing contact channel in this app goes through in-app messages,
-  // WhatsApp is reserved for SOS/emergency-contact location sharing.
-  const handleContactSupport = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/support' as any);
-  };
-
   const title = reason === LOW_RATING_REASON
     ? t('low_rating_suspended_title')
     : reason === EXCESSIVE_CANCELLATIONS_REASON
@@ -77,6 +68,21 @@ export default function SuspendedScreen() {
     : reason === EXCESSIVE_CANCELLATIONS_REASON
       ? t('excessive_cancellations_suspended_body')
       : t('suspended_body');
+
+  // Support is the internal ticket system (admin-dashboard's Support inbox)
+  // only — matches the driver app's /suspended screen. No WhatsApp: every
+  // admin-facing contact channel in this app goes through in-app messages,
+  // WhatsApp is reserved for SOS/emergency-contact location sharing.
+  // Deep-links with category=suspension_appeal + a pre-filled message
+  // naming the suspension reason, so /support lands with the right issue
+  // type and message already in place (see support.tsx).
+  const handleContactSupport = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push({
+      pathname: '/support',
+      params: { category: 'suspension_appeal', prefill: t('suspension_appeal_prefill').replace('{title}', title) },
+    } as any);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: S.bg, paddingTop: top }}>

@@ -324,6 +324,7 @@ export const en = {
   issue_payment: 'Payment issue',
   issue_driver: 'Driver complaint',
   issue_app: 'App not working',
+  issue_suspension_appeal: 'Suspension Appeal',
   issue_other: 'Other',
 
   app_version_label: 'App version',
@@ -538,6 +539,7 @@ export const en = {
   low_rating_suspended_body: 'Your rating has dropped below the platform minimum of {threshold}. Your account has been suspended. Contact support to review.',
   excessive_cancellations_suspended_title: 'Account Suspended – Too Many Cancellations',
   excessive_cancellations_suspended_body: 'Your account has been suspended for repeatedly cancelling rides after a driver was already on the way. Contact support to review.',
+  suspension_appeal_prefill: 'My account has been suspended ({title}) and I would like to appeal this decision. Reason: ',
   rating_warning_banner_title: 'Your rating is at risk',
   rating_warning_banner_body: 'Your current rating is {rating}. If it drops below {threshold}, your account will be suspended.',
   booking_restricted_title: 'Booking Temporarily Restricted',

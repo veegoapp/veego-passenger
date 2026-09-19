@@ -325,6 +325,7 @@ export const ar: typeof en = {
   issue_payment: 'مشكلة في الدفع',
   issue_driver: 'شكوى سائق',
   issue_app: 'التطبيق لا يعمل',
+  issue_suspension_appeal: 'تظلم من إيقاف الحساب',
   issue_other: 'أخرى',
 
   app_version_label: 'إصدار التطبيق',
@@ -539,6 +540,7 @@ export const ar: typeof en = {
   low_rating_suspended_body: 'انخفض تقييمك عن الحد الأدنى المسموح به ({threshold}). تم إيقاف حسابك مؤقتًا. تواصل مع الدعم لمراجعة الأمر.',
   excessive_cancellations_suspended_title: 'تم إيقاف حسابك بسبب كثرة الإلغاءات',
   excessive_cancellations_suspended_body: 'تم إيقاف حسابك بسبب تكرار إلغاء الرحلات بعد ما السائق كان في طريقه ليك. تواصل مع الدعم لمراجعة الأمر.',
+  suspension_appeal_prefill: 'حسابي متوقف ({title}) وعايز أتظلم من القرار ده. السبب: ',
   rating_warning_banner_title: 'تقييمك في خطر',
   rating_warning_banner_body: 'تقييمك الحالي {rating}. لو نزل تحت {threshold} هيتم إيقاف حسابك.',
   booking_restricted_title: 'الحجز موقوف مؤقتًا',
