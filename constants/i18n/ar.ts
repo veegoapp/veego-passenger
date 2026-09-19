@@ -541,6 +541,8 @@ export const ar: typeof en = {
   excessive_cancellations_suspended_body: 'تم إيقاف حسابك بسبب تكرار إلغاء الرحلات بعد ما السائق كان في طريقه ليك. تواصل مع الدعم لمراجعة الأمر.',
   rating_warning_banner_title: 'تقييمك في خطر',
   rating_warning_banner_body: 'تقييمك الحالي {rating}. لو نزل تحت {threshold} هيتم إيقاف حسابك.',
+  booking_restricted_title: 'الحجز موقوف مؤقتًا',
+  booking_restricted_msg: 'لقد ألغيت رحلات كتيرة بعد ما السائق كان في طريقه ليك. تقدر تحجز تاني بعد حوالي {hours} ساعة.',
   password_min: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
   register_failed: 'فشل التسجيل. حاول مجدداً.',
   reset_failed: 'فشل إعادة تعيين كلمة المرور. حاول مجدداً.',

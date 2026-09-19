@@ -190,6 +190,8 @@ interface UseRideResult {
     error?: string;
     /** Present only when the backend rejected the request with 402 insufficient-balance. */
     insufficientBalance?: { required: number; balance: number };
+    /** ISO timestamp — present only when the backend rejected the request with 403 TEMPORARILY_RESTRICTED (excessive cancellations). */
+    temporarilyRestrictedUntil?: string;
   }>;
   cancelRide: (reason?: string) => Promise<{
     success: boolean;
@@ -687,7 +689,11 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         status === 402 && typeof respData?.required === 'number' && typeof respData?.balance === 'number'
           ? { required: respData.required, balance: respData.balance }
           : undefined;
-      return { success: false, error, insufficientBalance };
+      const temporarilyRestrictedUntil =
+        respData?.code === 'TEMPORARILY_RESTRICTED' && typeof respData?.restrictedUntil === 'string'
+          ? respData.restrictedUntil
+          : undefined;
+      return { success: false, error, insufficientBalance, temporarilyRestrictedUntil };
     } finally {
       setRequesting(false);
     }

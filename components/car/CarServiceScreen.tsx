@@ -797,6 +797,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
             .replace('{required}', String(result.insufficientBalance.required))
             .replace('{balance}', String(result.insufficientBalance.balance)),
         );
+      } else if (result.temporarilyRestrictedUntil) {
+        const hoursLeft = Math.max(1, Math.ceil((new Date(result.temporarilyRestrictedUntil).getTime() - Date.now()) / 3_600_000));
+        showAppAlert(
+          t('booking_restricted_title'),
+          t('booking_restricted_msg').replace('{hours}', String(hoursLeft)),
+        );
       } else {
         showAppAlert(t('error'), result.error ?? t('request_ride_failed'));
       }

@@ -540,6 +540,8 @@ export const en = {
   excessive_cancellations_suspended_body: 'Your account has been suspended for repeatedly cancelling rides after a driver was already on the way. Contact support to review.',
   rating_warning_banner_title: 'Your rating is at risk',
   rating_warning_banner_body: 'Your current rating is {rating}. If it drops below {threshold}, your account will be suspended.',
+  booking_restricted_title: 'Booking Temporarily Restricted',
+  booking_restricted_msg: 'You\'ve cancelled too many rides after a driver was already on the way. You can book again in about {hours} hour(s).',
   password_min: 'Password must be at least 8 characters.',
   register_failed: 'Registration failed. Please try again.',
   reset_failed: 'Reset failed. Please try again.',
