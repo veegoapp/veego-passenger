@@ -84,7 +84,19 @@ describe('api client response interceptor', () => {
     mockAxiosInstance._retryImpl = (_config: any) => Promise.resolve({ data: {} });
   });
 
-  it('redirects to /suspended on a 403 account_suspended error without attempting a refresh', async () => {
+  it('redirects to /suspended on a 403 account_suspended error without attempting a refresh, carrying the suspension reason', async () => {
+    const error = {
+      response: { status: 403, data: { reason: 'account_suspended', suspensionReason: 'low_rating_threshold' } },
+      config: { headers: {} },
+    };
+
+    await expect(runResponseErrorInterceptor(error)).rejects.toBe(error);
+
+    expect(mockedReplace).toHaveBeenCalledWith({ pathname: '/suspended', params: { reason: 'low_rating_threshold' } });
+    expect(mockAxiosPost).not.toHaveBeenCalled();
+  });
+
+  it('redirects to /suspended with an empty reason when the body omits suspensionReason', async () => {
     const error = {
       response: { status: 403, data: { reason: 'account_suspended' } },
       config: { headers: {} },
@@ -92,8 +104,7 @@ describe('api client response interceptor', () => {
 
     await expect(runResponseErrorInterceptor(error)).rejects.toBe(error);
 
-    expect(mockedReplace).toHaveBeenCalledWith('/suspended');
-    expect(mockAxiosPost).not.toHaveBeenCalled();
+    expect(mockedReplace).toHaveBeenCalledWith({ pathname: '/suspended', params: { reason: '' } });
   });
 
   it('does not redirect for a 403 with an unrelated reason', async () => {

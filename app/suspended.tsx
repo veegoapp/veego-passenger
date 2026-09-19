@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet,  Linking } from 'react-native';
-import { ShieldOff, MessageCircle } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ShieldOff, MessageCircle, Star } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { Spacing } from '@/constants/spacing';
@@ -36,7 +36,14 @@ function makeStyles(S: SplitColors) {
   });
 }
 
-const SUPPORT_URL = 'https://wa.me/201000000000';
+// Reason-specific suspensions (users.suspensionReason, set by
+// passenger-rating-suspension.ts / cancelPassengerRide on the backend) get
+// their own title/body — everything else (the pre-existing no-show/
+// cancellation-penalty ban, which sets no reason) falls back to the generic
+// copy this screen always showed.
+const LOW_RATING_REASON = 'low_rating_threshold';
+const EXCESSIVE_CANCELLATIONS_REASON = 'excessive_cancellations';
+const RATING_BAN_THRESHOLD = '4.0';
 
 export default function SuspendedScreen() {
   const insets = useSafeAreaInsets();
@@ -44,27 +51,54 @@ export default function SuspendedScreen() {
   const { t } = useTheme();
   const S = useSplitColors();
   const styles = useMemo(() => makeStyles(S), [S]);
+  // Carried in the redirect itself (see src/api/client.ts's response
+  // interceptor) rather than fetched here — every authenticated route,
+  // including one that would read the passenger's own profile, rejects
+  // with the same 403 once the account is blocked, so there is no other
+  // way for this screen to learn why.
+  const { reason } = useLocalSearchParams<{ reason?: string }>();
 
+  const title = reason === LOW_RATING_REASON
+    ? t('low_rating_suspended_title')
+    : reason === EXCESSIVE_CANCELLATIONS_REASON
+      ? t('excessive_cancellations_suspended_title')
+      : t('suspended_title');
+  const body = reason === LOW_RATING_REASON
+    ? t('low_rating_suspended_body').replace('{threshold}', RATING_BAN_THRESHOLD)
+    : reason === EXCESSIVE_CANCELLATIONS_REASON
+      ? t('excessive_cancellations_suspended_body')
+      : t('suspended_body');
+
+  // Support is the internal ticket system (admin-dashboard's Support inbox)
+  // only — matches the driver app's /suspended screen. No WhatsApp: every
+  // admin-facing contact channel in this app goes through in-app messages,
+  // WhatsApp is reserved for SOS/emergency-contact location sharing.
+  // Deep-links with category=suspension_appeal + a pre-filled message
+  // naming the suspension reason, so /support lands with the right issue
+  // type and message already in place (see support.tsx).
   const handleContactSupport = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Linking.openURL(SUPPORT_URL).catch(() => {
-      router.push('/support' as any);
-    });
+    router.push({
+      pathname: '/support',
+      params: { category: 'suspension_appeal', prefill: t('suspension_appeal_prefill').replace('{title}', title) },
+    } as any);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: S.bg, paddingTop: top }}>
       <View style={styles.container}>
         <View style={styles.iconCircle}>
-          <ShieldOff size={44} color="#D92D20" strokeWidth={1.8} />
+          {reason === LOW_RATING_REASON
+            ? <Star size={44} color="#D92D20" strokeWidth={1.8} />
+            : <ShieldOff size={44} color="#D92D20" strokeWidth={1.8} />}
         </View>
 
         <Text style={styles.title}>
-          {t('suspended_title')}
+          {title}
         </Text>
 
         <Text style={styles.body}>
-          {t('suspended_body')}
+          {body}
         </Text>
 
         <TouchableOpacity

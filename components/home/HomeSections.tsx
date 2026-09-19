@@ -229,6 +229,40 @@ export function DebtErrorBanner({ c, t, onRetry }: { c: ThemeColors; t: T; onRet
   );
 }
 
+/** ── Low-rating warning banner — set by passenger-rating-suspension.ts on
+    the backend once the passenger's rolling rating (from drivers) drifts
+    into the warning band, before it reaches the auto-suspend threshold. ── */
+export function RatingWarningBanner({ c, t, rating, onPress }: { c: ThemeColors; t: T; rating: number | null; onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+      <View style={{
+        marginHorizontal: 20,
+        marginBottom: Spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        backgroundColor: c.isDark ? 'rgba(220,38,38,0.15)' : 'rgba(220,38,38,0.08)',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: c.isDark ? 'rgba(220,38,38,0.35)' : 'rgba(220,38,38,0.25)',
+        padding: Spacing.md,
+      }}>
+        <AlertCircle size={16} color="#dc2626" style={{ marginTop: 1 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 13, fontWeight: Typography.weight.bold, color: '#dc2626', marginBottom: 2 }}>
+            {t('rating_warning_banner_title')}
+          </Text>
+          <Text style={{ fontSize: Typography.size.xs, color: c.isDark ? 'rgba(220,38,38,0.8)' : '#7f1d1d', lineHeight: 17 }}>
+            {t('rating_warning_banner_body')
+              .replace('{rating}', rating != null ? rating.toFixed(2) : '—')
+              .replace('{threshold}', '4.0')}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 /** ── Zone-filtered services banner ── */
 export function ZoneServicesBanner({ c, t, hiddenCount, userZoneId }: {
   c: ThemeColors; t: T; hiddenCount: number; userZoneId: unknown;

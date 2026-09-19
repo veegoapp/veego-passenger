@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ArrowRight, Check, MessageCircle, Phone } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -15,14 +15,15 @@ import { getErrorMessage } from '@/src/utils/errorMessages';
 import { Spacing } from '@/constants/spacing';
 import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
-const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_other'] as const;
+const ISSUE_TYPES = ['issue_booking', 'issue_payment', 'issue_driver', 'issue_app', 'issue_suspension_appeal', 'issue_other'] as const;
 
-const ISSUE_MAP: Record<string, { subject: string; category: string }> = {
-  issue_booking: { subject: 'Booking problem',   category: 'other'   },
-  issue_payment: { subject: 'Payment issue',     category: 'payment' },
-  issue_driver:  { subject: 'Driver complaint',  category: 'quality' },
-  issue_app:     { subject: 'App not working',   category: 'other'   },
-  issue_other:   { subject: 'Other',             category: 'other'   },
+const ISSUE_MAP: Record<string, { subject: string; category: string; priority?: 'low' | 'medium' | 'high' }> = {
+  issue_booking:            { subject: 'Booking problem',   category: 'other'   },
+  issue_payment:            { subject: 'Payment issue',     category: 'payment' },
+  issue_driver:             { subject: 'Driver complaint',  category: 'quality' },
+  issue_app:                { subject: 'App not working',   category: 'other'   },
+  issue_suspension_appeal:  { subject: 'Suspension appeal', category: 'suspension_appeal', priority: 'high' },
+  issue_other:              { subject: 'Other',             category: 'other'   },
 };
 
 // ── C · Split Panel — fixed palette, independent of the app's light/dark theme.
@@ -96,6 +97,18 @@ export default function SupportScreen() {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
 
+  // /suspended's "Contact Support" button deep-links here with
+  // category=suspension_appeal and a pre-filled message naming the
+  // suspension reason, so a passenger appealing an automated
+  // rating/cancellation suspension lands with the right issue type and
+  // message already in place.
+  const { category: deepLinkCategory, prefill: deepLinkPrefill } = useLocalSearchParams<{ category?: string; prefill?: string }>();
+  useEffect(() => {
+    if (deepLinkCategory !== 'suspension_appeal') return;
+    setSelectedIssue('issue_suspension_appeal');
+    if (deepLinkPrefill) setMessage(deepLinkPrefill);
+  }, [deepLinkCategory, deepLinkPrefill]);
+
   const handleSend = async () => {
     if (!selectedIssue || !message.trim()) {
       showAppAlert(t('error'), t('support_missing_fields'));
@@ -109,6 +122,7 @@ export default function SupportScreen() {
         subject:  mapped.subject,
         message:  message.trim(),
         category: mapped.category,
+        ...(mapped.priority ? { priority: mapped.priority } : {}),
       });
       // Only reached once the request has actually succeeded — a network
       // error, timeout, or any non-2xx response (including 404/501) throws
