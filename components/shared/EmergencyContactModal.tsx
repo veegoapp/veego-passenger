@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, TextInput, Platform, Linking, KeyboardAvoidingView,
+  StyleSheet, TextInput, Platform, Linking, KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, User, Phone, MessageCircle, Save } from 'lucide-react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useTheme } from '@/context/ThemeContext';

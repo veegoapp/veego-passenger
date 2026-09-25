@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { View, Text, ScrollView, SafeAreaView, Modal } from 'react-native';
+import { View, Text, ScrollView, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreditCard, Banknote, Wallet } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { usePaymentConfig } from '@/context/PaymentConfigContext';

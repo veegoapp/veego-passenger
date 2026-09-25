@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Platform,
-  Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
+  Modal, TextInput, KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
