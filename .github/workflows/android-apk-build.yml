@@ -112,9 +112,20 @@ jobs:
           echo "Found APK: $APK_PATH"
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
+      - name: Rename APK to app name
+        id: rename_apk
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VARIANT="${{ github.event.inputs.build_variant || 'debug' }}"
+          NEW_NAME="VeeGoPassenger-${VERSION}-${VARIANT}.apk"
+          NEW_PATH="$(dirname "${{ steps.apk.outputs.path }}")/$NEW_NAME"
+          mv "${{ steps.apk.outputs.path }}" "$NEW_PATH"
+          echo "path=$NEW_PATH" >> "$GITHUB_OUTPUT"
+          echo "name=$NEW_NAME" >> "$GITHUB_OUTPUT"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: veego-android-apk-${{ github.event.inputs.build_variant || 'debug' }}
-          path: ${{ steps.apk.outputs.path }}
+          name: ${{ steps.rename_apk.outputs.name }}
+          path: ${{ steps.rename_apk.outputs.path }}
           retention-days: 14
