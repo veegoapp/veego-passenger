@@ -731,6 +731,8 @@ export const en = {
   set_pickup_on_map: 'Set pickup on map',
   move_map_to_set_pickup: 'Move the map to set your pickup',
   confirm_pickup: 'Confirm pickup',
+  move_map_to_set_destination: 'Move the map to set your exact destination',
+  confirm_destination_location: 'Confirm destination',
   locating: 'Locating…',
   refine_pickup_title: 'Fine-tune your pickup point',
   refine_pickup_hint: 'GPS isn’t always exact — drag within the circle to set your precise spot. This is what your driver will see.',
