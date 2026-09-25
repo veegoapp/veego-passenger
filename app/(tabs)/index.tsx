@@ -661,6 +661,7 @@ export default function HomeScreen() {
       >
         <ServiceCards
           c={c} t={t as (key: string) => string}
+          isRTL={isRTL}
           getService={getService}
           isServiceVisibleForZone={isServiceVisibleForZone}
           onServicePress={openService}
