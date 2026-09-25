@@ -23,7 +23,6 @@ import api from '@/src/api/client';
 import { CarMap } from './CarMap';
 import { PickupMapPicker } from './PickupMapPicker';
 import { PickupAccuracyPicker } from './PickupAccuracyPicker';
-import { DestinationMapPicker } from './DestinationMapPicker';
 import { RideOptionsSheet } from './RideOptionsSheet';
 import { DriverSearching } from './DriverSearching';
 import { DriverAssignedCard } from './DriverAssignedCard';
@@ -353,12 +352,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const [phase, setPhase]               = useState<CarPhase>('idle');
   const [destination, setDestination]   = useState<string | null>(null);
   const [destCoords, setDestCoords]     = useState<Coords | null>(null);
-  // Confirm-exact-destination pin step — shown between picking a destination
-  // and the ride_options (price/vehicle) card, so a GPS/geocoding miss on the
-  // typed address can still be corrected before fares are quoted.
-  const [destMapPickerVisible, setDestMapPickerVisible] = useState(false);
-  const [pendingDestCoords, setPendingDestCoords]       = useState<Coords | null>(null);
-  const [pendingDestLabel, setPendingDestLabel]         = useState<string | null>(null);
   const [userCoords, setUserCoords]     = useState<Coords | null>(null);
   // Captured at ride-request time so the map can draw driverLocation → pickup
   // during the driver_assigned/arrived phase, then switch to driverLocation →
@@ -636,11 +629,12 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     userCoordsRef.current = loc;
   }, []);
 
-  // Resolves the chosen destination to coords, then opens the confirm-pin
-  // step (DestinationMapPicker) instead of jumping straight to ride_options —
-  // gives the passenger a chance to correct a geocoding/GPS miss before fares
-  // are quoted. handleDestMapPickerConfirm below finishes the job this used
-  // to do directly (setDestination/setDestCoords/setPhase/fetchEstimate).
+  // Resolves the chosen destination to coords, then opens the pickup-accuracy
+  // pin (PickupAccuracyPicker) instead of jumping straight to ride_options —
+  // this is the same GPS-drift nudge that used to run right before dispatch
+  // (from "Find Driver"), moved here so it runs before the price/vehicle
+  // card instead of after it. handlePickupAccuracyConfirm below is what now
+  // finishes the job this used to do directly (setPhase/fetchEstimate).
   const handleSelectDestination = useCallback(async (loc: string, knownCoords?: Coords) => {
     Haptics.selectionAsync();
     // Collapse the inline sheet immediately before switching phase.
@@ -648,54 +642,30 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     destSheetTop.setValue(SCREEN_H);
     setDestQuery('');
     setPickupQuery('');
+    setDestination(loc);
 
     // A previously-resolved recent search already has coordinates — skip
     // re-geocoding and use them directly.
-    let coords: Coords | null = knownCoords ?? null;
-    if (!coords) {
+    if (knownCoords) {
+      setDestCoords(knownCoords);
+      addRecent(loc, knownCoords);
+    } else {
       try {
         const results = await Location.geocodeAsync(loc);
         if (results.length > 0) {
-          coords = { latitude: results[0].latitude, longitude: results[0].longitude };
+          const coords: Coords = { latitude: results[0].latitude, longitude: results[0].longitude };
+          setDestCoords(coords);
+          addRecent(loc, coords);
+        } else {
+          addRecent(loc);
         }
-      } catch { /* coords stays null — fall back below */ }
+      } catch {
+        addRecent(loc);
+      }
     }
 
-    if (!coords) {
-      // No coordinates to show a pin on — fall back to the old direct-to-
-      // options behavior with the typed label alone.
-      addRecent(loc);
-      setDestination(loc);
-      setPhase('ride_options');
-      if (serviceType !== 'car') setSelectedRide('standard');
-      return;
-    }
-
-    addRecent(loc, coords);
-    setPendingDestLabel(loc);
-    setPendingDestCoords(coords);
-    setDestMapPickerVisible(true);
-  }, [serviceType, addRecent]);
-
-  const handleDestMapPickerConfirm = useCallback((coords: Coords, address: string) => {
-    setDestMapPickerVisible(false);
-    setPendingDestCoords(null);
-    setPendingDestLabel(null);
-    setDestination(address);
-    setDestCoords(coords);
-    setPhase('ride_options');
-    // Scooter/delivery have a single pricing tier — no economy/premium pick
-    // required, so pre-select it (car keeps requiring an explicit choice).
-    if (serviceType !== 'car') setSelectedRide('standard');
-    const pickup = userCoordsRef.current;
-    if (pickup) fetchEstimate(pickup, coords);
-  }, [serviceType, fetchEstimate]);
-
-  const handleDestMapPickerCancel = useCallback(() => {
-    setDestMapPickerVisible(false);
-    setPendingDestCoords(null);
-    setPendingDestLabel(null);
-  }, []);
+    setPickupAccuracyVisible(true);
+  }, [addRecent]);
 
   // Debounced Places autocomplete for whichever field is active. Fires only
   // while the sheet is open and a session token exists; needs ≥2 chars (Google
@@ -840,17 +810,15 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     }
   }, [selectedRide, estimate, destCoords, destination, requestRide, t, serviceType, recipientName, recipientPhone, paymentMethod]);
 
-  // "Find Driver" no longer dispatches directly — it opens the accuracy
-  // picker first (same guard checks handleConfirmRide would otherwise run).
-  const openPickupAccuracyPicker = useCallback(() => {
-    if (!selectedRide) return;
-    if (serviceType === 'delivery' && (!recipientName.trim() || !recipientPhone.trim())) return;
-    Haptics.selectionAsync();
-    setPickupAccuracyVisible(true);
-  }, [selectedRide, serviceType, recipientName, recipientPhone]);
-
+  // The accuracy pin now runs right after picking a destination, before the
+  // ride_options (price/vehicle) card — not right before dispatch anymore.
+  // Cancelling it abandons the destination pick, same as backing out of
+  // destination search, so the passenger lands back on an empty search
+  // instead of a half-chosen one.
   const handlePickupAccuracyCancel = useCallback(() => {
     setPickupAccuracyVisible(false);
+    setDestination(null);
+    setDestCoords(null);
   }, []);
 
   const handlePickupAccuracyConfirm = useCallback((coords: Coords, address: string) => {
@@ -862,8 +830,13 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     userCoordsRef.current = coords;
     setUserCoords(coords);
     refinedPickupAddressRef.current = address;
-    handleConfirmRide();
-  }, [handleConfirmRide]);
+
+    setPhase('ride_options');
+    // Scooter/delivery have a single pricing tier — no economy/premium pick
+    // required, so pre-select it (car keeps requiring an explicit choice).
+    if (serviceType !== 'car') setSelectedRide('standard');
+    if (destCoords) fetchEstimate(coords, destCoords);
+  }, [serviceType, destCoords, fetchEstimate]);
 
   // Lets the passenger switch between Cash and InstaPay once a driver who
   // supports InstaPay is assigned (before the trip completes). The backend
@@ -890,9 +863,6 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setDestCoords(null);
     setPickupCoords(null);
     setPickupAccuracyVisible(false);
-    setDestMapPickerVisible(false);
-    setPendingDestCoords(null);
-    setPendingDestLabel(null);
     refinedPickupAddressRef.current = null;
     // New booking starts fresh: pickup follows GPS again until the passenger
     // explicitly picks a custom one.
@@ -1471,7 +1441,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         destination={destination}
         selected={selectedRide}
         onSelect={setSelectedRide}
-        onConfirm={openPickupAccuracyPicker}
+        onConfirm={handleConfirmRide}
         onDismiss={handleReset}
         estimate={estimate}
         singleEstimate={singleEstimate}
@@ -1565,22 +1535,15 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         onConfirm={handleMapPickerConfirm}
       />
 
-      {/* "Find Driver" accuracy nudge — pin constrained to 50m of the GPS fix */}
+      {/* Accuracy nudge — pin constrained to 50m of the GPS fix. Shown right
+          after picking a destination, before the ride_options (price/vehicle)
+          card, so GPS drift on the passenger's own pickup point can be
+          corrected before fares are quoted. */}
       <PickupAccuracyPicker
         visible={pickupAccuracyVisible}
         anchorCoords={userCoords ?? deviceLocationRef.current}
         onCancel={handlePickupAccuracyCancel}
         onConfirm={handlePickupAccuracyConfirm}
-      />
-
-      {/* Confirm-exact-destination pin — shown after picking a destination,
-          before the ride_options (price/vehicle) card. */}
-      <DestinationMapPicker
-        visible={destMapPickerVisible}
-        initialCoords={pendingDestCoords}
-        initialAddress={pendingDestLabel}
-        onCancel={handleDestMapPickerCancel}
-        onConfirm={handleDestMapPickerConfirm}
       />
 
       {/* Completed — fare summary + inline rating in one sheet (Lovable CompletedSheet) */}

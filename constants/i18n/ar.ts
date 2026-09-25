@@ -733,8 +733,6 @@ export const ar: typeof en = {
   set_pickup_on_map: 'حدد نقطة الالتقاء على الخريطة',
   move_map_to_set_pickup: 'حرّك الخريطة لتحديد نقطة الالتقاء',
   confirm_pickup: 'تأكيد نقطة الالتقاء',
-  move_map_to_set_destination: 'حرّك الخريطة لتحديد وجهتك بالظبط',
-  confirm_destination_location: 'تأكيد الوجهة',
   refine_pickup_title: 'اضبط نقطة الالتقاء بدقة',
   refine_pickup_hint: 'أحيانًا يكون تحديد الـ GPS لموقعك غير دقيق، اسحب الدبوس داخل الدائرة لتحديد مكانك بالظبط. العنوان ده هو اللي هيظهر للسائق.',
   locating: 'جارٍ تحديد الموقع…',

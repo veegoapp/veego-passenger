@@ -31,7 +31,9 @@ interface PickupAccuracyPickerProps {
  *  inaccuracy without letting the pin wander to an unrelated location. */
 const MAX_OFFSET_METERS = 50;
 const EARTH_RADIUS_M = 6371000;
-const MAP_DELTA = { latitudeDelta: 0.0018, longitudeDelta: 0.0018 };
+// Zoomed in close on the 50m allowed circle — a wider delta here makes the
+// map read as zoomed too far out relative to how small that circle actually is.
+const MAP_DELTA = { latitudeDelta: 0.0008, longitudeDelta: 0.0008 };
 
 /** Local equirectangular projection — accurate to well under a centimeter at
  *  this scale (tens of meters), far simpler than full great-circle math. */
