@@ -26,12 +26,14 @@ interface PickupAccuracyPickerProps {
   onConfirm: (coords: Coords, address: string) => void;
 }
 
-/** Passenger-adjustable radius around the GPS fix — GPS drift is usually a
- *  few meters to a couple dozen meters, so 50m comfortably covers real
- *  inaccuracy without letting the pin wander to an unrelated location. */
-const MAX_OFFSET_METERS = 50;
+/** Passenger-adjustable radius around the GPS fix — wide enough to cover a
+ *  building/block-scale GPS miss, not just meter-level drift. */
+const MAX_OFFSET_METERS = 200;
 const EARTH_RADIUS_M = 6371000;
-const MAP_DELTA = { latitudeDelta: 0.0018, longitudeDelta: 0.0018 };
+// Zoomed in close on the allowed circle (~2x its diameter of visible map
+// height) — a wider delta here makes the map read as zoomed too far out
+// relative to how small that circle actually is.
+const MAP_DELTA = { latitudeDelta: 0.007, longitudeDelta: 0.007 };
 
 /** Local equirectangular projection — accurate to well under a centimeter at
  *  this scale (tens of meters), far simpler than full great-circle math. */

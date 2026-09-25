@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Platform,
-  Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
+  Modal, TextInput, KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { Check, ImagePlus, X, CircleAlert } from 'lucide-react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';

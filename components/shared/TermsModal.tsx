@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, SafeAreaView, Platform,
+  StyleSheet, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/ui/AppLoader';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';

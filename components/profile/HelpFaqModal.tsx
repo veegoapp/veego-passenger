@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronUp, ChevronDown } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
