@@ -1,18 +1,17 @@
 import { useMemo, useState, useEffect } from 'react';
 import {
   View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Platform,
-  Modal, TextInput, KeyboardAvoidingView, SafeAreaView,
+  Modal, KeyboardAvoidingView, SafeAreaView,
 } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
-import { Camera, Eye, EyeOff, KeyRound, ChevronUp, ChevronDown } from 'lucide-react-native';
-import { showAppAlert } from '@/components/shared/AppAlertHost';
+import { Camera, KeyRound, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
-import { updatePassword } from '@/src/api/userService';
 import { Typography } from '@/constants/typography';
 import { Spacing } from '@/constants/spacing';
 import { makeStyles, ModalHeader, useProfileInfo } from './shared';
 import { useSplitColors } from '@/constants/splitTheme';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 export function PersonalInfoModal({
   visible, onClose, onSaved,
@@ -26,29 +25,19 @@ export function PersonalInfoModal({
   avatarUploading: boolean;
   heroInitials: string;
 }) {
-  const { colors: c, t } = useTheme();
+  const { colors: c, t, isRTL } = useTheme();
   const S = useSplitColors();
   const styles = useMemo(() => makeStyles(c, S), [c, S]);
   const { name: savedName, email: savedEmail, phone: savedPhone, gender: savedGender, saveProfile } = useProfileInfo();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [pwOpen, setPwOpen] = useState(false);
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [changingPw, setChangingPw] = useState(false);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setSaved(false);
       setSaving(false);
-      setPwOpen(false);
-      setChangingPw(false);
-      setCurrentPw('');
-      setNewPw('');
-      setConfirmPw('');
+      setChangePasswordVisible(false);
     }
   }, [visible]);
 
@@ -63,42 +52,6 @@ export function PersonalInfoModal({
       setTimeout(() => { setSaved(false); onClose(); }, 900);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    // Guards against a double-tap firing two concurrent PATCH requests.
-    if (changingPw) return;
-    if (!currentPw || !newPw || !confirmPw) {
-      showAppAlert(t('error'), t('password_fill_all'));
-      return;
-    }
-    if (newPw.length < 8) {
-      showAppAlert(t('error'), t('password_min'));
-      return;
-    }
-    if (newPw !== confirmPw) {
-      showAppAlert(t('error'), t('passwords_no_match'));
-      return;
-    }
-    if (newPw === currentPw) {
-      showAppAlert(t('error'), t('password_same_as_current'));
-      return;
-    }
-    setChangingPw(true);
-    try {
-      // Server is the source of truth: it re-verifies currentPw against the
-      // stored hash before writing anything, so a wrong current password
-      // never succeeds here regardless of what the client checked above.
-      await updatePassword(currentPw, newPw);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showAppAlert(t('saved'), t('password_updated'));
-      setPwOpen(false);
-      setCurrentPw(''); setNewPw(''); setConfirmPw('');
-    } catch (e: any) {
-      showAppAlert(t('error'), e?.response?.data?.message ?? t('password_change_failed'));
-    } finally {
-      setChangingPw(false);
     }
   };
 
@@ -180,97 +133,18 @@ export function PersonalInfoModal({
               </View>
             </View>
 
-            {/* ── Change Password section ── */}
-            <View style={styles.pwSection}>
-              <TouchableOpacity
-                style={styles.pwSectionHeader}
-                onPress={() => { Haptics.selectionAsync(); setPwOpen((v) => !v); }}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.toggleIcon, { backgroundColor: c.isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f5' }]}>
-                  <KeyRound size={18} color={c.ink} />
-                </View>
-                <Text style={styles.pwSectionTitle}>{t('change_password')}</Text>
-                {pwOpen ? <ChevronUp size={16} color={c.silver} /> : <ChevronDown size={16} color={c.silver} />}
-              </TouchableOpacity>
-              {pwOpen && (
-                <View style={styles.pwSectionBody}>
-                  {/* Current password */}
-                  <View style={{ position: 'relative' }}>
-                    <TextInput
-                      style={[styles.input, { paddingRight: 48 }]}
-                      placeholder={t('current_password')}
-                      placeholderTextColor={c.silver}
-                      value={currentPw}
-                      onChangeText={setCurrentPw}
-                      secureTextEntry={!showCurrent}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      spellCheck={false}
-                      textContentType="password"
-                      autoComplete="current-password"
-                      editable={!changingPw}
-                    />
-                    <TouchableOpacity
-                      style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
-                      onPress={() => setShowCurrent((v) => !v)}
-                    >
-                      {showCurrent ? <EyeOff size={16} color={c.silver} /> : <Eye size={16} color={c.silver} />}
-                    </TouchableOpacity>
-                  </View>
-                  {/* New password */}
-                  <View style={{ position: 'relative' }}>
-                    <TextInput
-                      style={[styles.input, { paddingRight: 48 }]}
-                      placeholder={t('new_password')}
-                      placeholderTextColor={c.silver}
-                      value={newPw}
-                      onChangeText={setNewPw}
-                      secureTextEntry={!showNew}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      spellCheck={false}
-                      textContentType="newPassword"
-                      autoComplete="new-password"
-                      editable={!changingPw}
-                    />
-                    <TouchableOpacity
-                      style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' }}
-                      onPress={() => setShowNew((v) => !v)}
-                    >
-                      {showNew ? <EyeOff size={16} color={c.silver} /> : <Eye size={16} color={c.silver} />}
-                    </TouchableOpacity>
-                  </View>
-                  {/* Confirm password */}
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('confirm_new_password')}
-                    placeholderTextColor={c.silver}
-                    value={confirmPw}
-                    onChangeText={setConfirmPw}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    textContentType="newPassword"
-                    autoComplete="new-password"
-                    editable={!changingPw}
-                  />
-                  <TouchableOpacity
-                    style={[styles.primaryBtn, changingPw && { opacity: 0.6 }]}
-                    onPress={handleChangePassword}
-                    activeOpacity={0.9}
-                    disabled={changingPw}
-                  >
-                    {changingPw ? (
-                      <AppLoader size={24} />
-                    ) : (
-                      <Text style={styles.primaryBtnText}>{t('update_password')}</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
+            {/* ── Change Password — opens as its own card on top of this page ── */}
+            <TouchableOpacity
+              style={styles.cardRow}
+              onPress={() => { Haptics.selectionAsync(); setChangePasswordVisible(true); }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.cardIconBox}>
+                <KeyRound size={18} color={c.ink} />
+              </View>
+              <Text style={[styles.cardName, { flex: 1 }]}>{t('change_password')}</Text>
+              {isRTL ? <ChevronLeft size={16} color={c.silver} /> : <ChevronRight size={16} color={c.silver} />}
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.primaryBtn, saving && { opacity: 0.6 }]}
@@ -287,6 +161,11 @@ export function PersonalInfoModal({
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <ChangePasswordModal
+        visible={changePasswordVisible}
+        onClose={() => setChangePasswordVisible(false)}
+      />
     </Modal>
   );
 }

@@ -132,18 +132,6 @@ export function makeStyles(_c: ThemeColors, S: SplitColors) {
       borderWidth: 2, borderColor: '#fff',
     },
 
-    pwSection: {
-      borderRadius: 18, overflow: 'hidden',
-      backgroundColor: S.surfaceMuted,
-      borderWidth: 1, borderColor: S.hair,
-    },
-    pwSectionHeader: {
-      flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-      padding: Spacing.lg,
-    },
-    pwSectionTitle: { flex: 1, fontSize: 13.5, fontWeight: '700', color: S.ink },
-    pwSectionBody: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg, gap: Spacing.md },
-
     ratingHero: { alignItems: 'center', paddingVertical: 28, gap: 6 },
     ratingScore: { fontSize: 56, fontWeight: '800', color: '#ffffff', letterSpacing: -2 },
     ratingStars: { flexDirection: 'row', gap: Spacing.xs },
