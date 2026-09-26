@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { AppLoader } from '@/components/ui/AppLoader';
-import { User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail, Check } from 'lucide-react-native';
+import { User, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Phone, Mail, Check, Gift } from 'lucide-react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -21,6 +21,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | null>(null);
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [termsChecked, setTermsChecked] = useState(false);
@@ -57,6 +58,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         email: email.trim(),
         password,
         gender,
+        referralCode: referralCode.trim() || undefined,
       });
       if (data.requiresOtp) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -156,6 +158,22 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
         <TouchableOpacity onPress={() => setShowPass(!showPass)} activeOpacity={0.7}>
           {showPass ? <EyeOff size={16} color={c.inkSoft} /> : <Eye size={16} color={c.inkSoft} />}
         </TouchableOpacity>
+      </View>
+
+      <View style={styles.inputWrap}>
+        <View style={styles.inputIcon}>
+          <Gift size={16} color={c.inkSoft} />
+        </View>
+        <TextInput
+          style={styles.inputField}
+          placeholder={t('referral_code_field_placeholder')}
+          placeholderTextColor={c.silver}
+          value={referralCode}
+          onChangeText={setReferralCode}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          textAlign={isRTL ? 'right' : 'left'}
+        />
       </View>
 
       {/* Gender — required */}

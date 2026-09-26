@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
 import { useLocalSearchParams } from 'expo-router';
-import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Moon, Languages } from 'lucide-react-native';
+import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Moon, Languages, Gift } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -34,6 +34,7 @@ type ProfileScreen =
   | 'ratings_history'
   | 'terms'
   | 'emergency_contact'
+  | 'invite_friends'
   | null;
 
 export default function ProfileScreen() {
@@ -143,6 +144,10 @@ export default function ProfileScreen() {
       router.push('/ratings');
       return;
     }
+    if (screen === 'invite_friends') {
+      router.push('/invite-friends');
+      return;
+    }
     setActiveModal(screen);
   };
   const close = () => setActiveModal(null);
@@ -194,6 +199,7 @@ export default function ProfileScreen() {
               { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileScreen },
               { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileScreen },
               { icon: Star, label: t('my_ratings'), value: undefined as string | undefined, screen: 'ratings_history' as ProfileScreen },
+              { icon: Gift, label: t('referral_menu_label'), value: undefined as string | undefined, screen: 'invite_friends' as ProfileScreen },
               { icon: Shield, label: t('emergency_contact_section'), value: undefined as string | undefined, screen: 'emergency_contact' as ProfileScreen },
             ].map((item, i) => (
               <View key={item.label}>
