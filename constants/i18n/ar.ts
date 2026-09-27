@@ -749,6 +749,8 @@ export const ar: typeof en = {
   accept: 'أوافق',
   terms_loading: 'جارٍ تحميل الشروط…',
 
+  surge_active_notice: 'الأسعار دلوقتي أعلى من المعتاد بسبب زيادة الطلب',
+
   your_location: 'موقعك',
   current_location: 'موقعك الحالي',
   set_location_on_map: 'تحديد الموقع على الخريطة',

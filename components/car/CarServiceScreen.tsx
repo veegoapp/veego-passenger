@@ -364,6 +364,10 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
   const { recents, addRecent }          = useRecentSearches(serviceType);
   const [estimate, setEstimate]         = useState<RideEstimate | null>(null);
   const [singleEstimate, setSingleEstimate] = useState<{ price: number; eta: number | null } | null>(null);
+  // Surge status for the current estimate — /rides/estimate returns these
+  // fields for every service type (not just car), so it's tracked alongside
+  // estimate/singleEstimate rather than nested inside either.
+  const [surgeInfo, setSurgeInfo] = useState<{ active: boolean; multiplier: number } | null>(null);
   // Live ETA (minutes) from CarMap while a driver is en route — surfaced in
   // the driver card's dark ETA panel.
   const [driverEta, setDriverEta] = useState<number | null>(null);
@@ -593,6 +597,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     try {
       const data = await getRideEstimate(pickup, dropoff, serviceType);
       if (seq !== estimateRequestSeqRef.current) return; // superseded — discard
+      setSurgeInfo(data.surgeActive ? { active: true, multiplier: data.surgeMultiplier ?? 1 } : null);
       if (serviceType === 'car') {
         const categories: Array<{ slug: string; name: string; estimatedPrice: number }> = data.categories ?? [];
         setEstimate({
@@ -609,6 +614,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       if (seq !== estimateRequestSeqRef.current) return; // superseded — discard
       setEstimate(null);
       setSingleEstimate(null);
+      setSurgeInfo(null);
     } finally {
       if (seq === estimateRequestSeqRef.current) setEstLoading(false);
     }
@@ -875,6 +881,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
     setSelectedRide(null);
     setEstimate(null);
     setSingleEstimate(null);
+    setSurgeInfo(null);
     setRecipientName('');
     setRecipientPhone('');
     setPaymentMethod('cash');
@@ -1445,6 +1452,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
         onDismiss={handleReset}
         estimate={estimate}
         singleEstimate={singleEstimate}
+        surgeInfo={surgeInfo}
         estimateLoading={estimateLoading}
         confirming={requesting}
         serviceType={serviceType}
