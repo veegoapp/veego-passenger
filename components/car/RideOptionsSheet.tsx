@@ -6,7 +6,7 @@ import {
 import {
   Car, Bike as ScooterIcon, Package,
   Banknote, Wallet, CreditCard,
-  Clock, ChevronDown,
+  Clock, ChevronDown, Zap,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,6 +29,7 @@ interface RideOptionsSheetProps {
   onConfirm: () => void;
   onDismiss: () => void;
   estimate?: RideEstimate | null;
+  surgeInfo?: { active: boolean; multiplier: number } | null;
   estimateLoading?: boolean;
   confirming?: boolean;
   serviceType?: 'car' | 'scooter' | 'delivery';
@@ -49,7 +50,7 @@ const C_MINT = '#3DDC97';
 /* ─── Main component ─────────────────────────────────────────────────────── */
 function RideOptionsSheetBase({
   visible, destination, selected, onSelect, onConfirm, onDismiss,
-  estimate, estimateLoading, confirming,
+  estimate, surgeInfo, estimateLoading, confirming,
   serviceType = 'car', singleEstimate,
   recipientName, recipientPhone, onRecipientNameChange, onRecipientPhoneChange,
   paymentMethod = 'cash', onPaymentMethodChange, walletAvailable, walletBalance,
@@ -120,6 +121,16 @@ function RideOptionsSheetBase({
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: insets.bottom + 18 }}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ── Surge notice ── */}
+          {surgeInfo?.active && !estimateLoading && (
+            <View style={styles.surgeBanner}>
+              <Zap size={13} color="#B45309" strokeWidth={2.2} />
+              <Text style={styles.surgeBannerTxt}>
+                {t('surge_active_notice')} · {surgeInfo.multiplier.toFixed(1)}×
+              </Text>
+            </View>
+          )}
+
           {/* ── Category selector ── */}
           {serviceType === 'car' ? (
             <View style={styles.tileRow}>
@@ -317,6 +328,14 @@ function makeStyles(S: SplitColors) {
   },
 
   body: { backgroundColor: S.card },
+
+  /* ── Surge notice ── */
+  surgeBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8,
+    backgroundColor: 'rgba(180,83,9,0.1)', marginBottom: 12,
+  },
+  surgeBannerTxt: { fontSize: 12, fontWeight: '700', color: '#B45309' },
 
   /* ── Category tiles ── */
   tileRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },

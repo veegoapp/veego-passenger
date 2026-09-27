@@ -725,6 +725,8 @@ export const en = {
   accept: 'Accept',
   terms_loading: 'Loading terms…',
 
+  surge_active_notice: 'Prices are higher right now due to demand',
+
   your_location: 'Your Location',
   current_location: 'Current Location',
   set_location_on_map: 'Set location on map',
