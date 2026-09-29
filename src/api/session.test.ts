@@ -1,3 +1,7 @@
+import * as SecureStore from 'expo-secure-store';
+import { tokenStore } from './client';
+import { saveSession, clearSession, persistTokens, SESSION_KEY } from './session';
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
@@ -11,10 +15,6 @@ jest.mock('./client', () => ({
     setToken: jest.fn().mockResolvedValue(undefined),
   },
 }));
-
-import * as SecureStore from 'expo-secure-store';
-import { tokenStore } from './client';
-import { saveSession, clearSession, persistTokens, SESSION_KEY } from './session';
 
 const mockedSetItemAsync = SecureStore.setItemAsync as jest.Mock;
 const mockedDeleteItemAsync = SecureStore.deleteItemAsync as jest.Mock;

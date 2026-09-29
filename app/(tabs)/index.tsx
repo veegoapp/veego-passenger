@@ -356,7 +356,7 @@ export default function HomeScreen() {
         Animated.timing(cardsOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]).start();
     });
-  }, [handleServiceTap, slideAnim, cardsOpacity, shuttleHeroSession]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleServiceTap, slideAnim, cardsOpacity, shuttleHeroSession]);  
 
   const closeService = useCallback(() => {
     // Fix 4: show tab bar immediately with animation, not after it completes
@@ -368,7 +368,7 @@ export default function HomeScreen() {
       setServiceOpen(false);
       setDestinationLocation('');
     });
-  }, [slideAnim, cardsOpacity, screenHeight, setTabBarVisible]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [slideAnim, cardsOpacity, screenHeight, setTabBarVisible]);  
 
   // Resume-in-place: the ActiveRideBanner bubble and the ride push-notification
   // deep link both land here (instead of a separate trip-tracking screen) by

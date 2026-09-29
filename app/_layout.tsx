@@ -235,9 +235,7 @@ class AppErrorBoundary extends Component<
 function AppShell() {
   const { darkMode, isRTL } = useTheme();
 
-  if (!isExpoGo) {
-    usePushToken();
-  }
+  usePushToken(!isExpoGo);
 
   // Kept current via effect below so handleNotificationDeepLink (a
   // module-level function, no hook access) can read the active ride's

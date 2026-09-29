@@ -98,7 +98,7 @@ export default function TripsScreen() {
     if (tripIds.length === 0) return;
 
     let cleanedUp = false;
-    let cleanupFns: Array<() => void> = [];
+    let cleanupFns: (() => void)[] = [];
 
     getSocket().then((socket) => {
       if (cleanedUp) return;

@@ -64,7 +64,7 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 });
 
 let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
+let refreshQueue: ((token: string) => void)[] = [];
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,

@@ -2,8 +2,7 @@ import React, {
   createContext, useContext, useState, useEffect,
   useCallback, useMemo, useRef,
 } from 'react';
-import api from '@/src/api/client';
-import { tokenStore } from '@/src/api/client';
+import api, { tokenStore } from '@/src/api/client';
 import { getSocket } from '@/src/api/socket';
 import { onAuthEvent } from '@/src/api/authEvents';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';

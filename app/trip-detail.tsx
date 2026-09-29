@@ -979,7 +979,7 @@ export default function TripDetailScreen() {
     if (!realTripId || rideDetail) return;
 
     let cleanedUp = false;
-    const handlers: Array<() => void> = [];
+    const handlers: (() => void)[] = [];
 
     getSocket().then((socket) => {
       if (cleanedUp) return;
