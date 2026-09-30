@@ -4,10 +4,9 @@ import {
   Switch,
 } from 'react-native';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams , router } from 'expo-router';
 import { CreditCard, ChevronRight, ChevronLeft, User, Shield, HelpCircle, MessageCircle, FileText, Info, Star, LogOut, Moon, Languages, Gift } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
@@ -26,7 +25,7 @@ import { makeStyles, useProfileInfo } from '@/components/profile/shared';
 import { useSplitColors, type SplitColors } from '@/constants/splitTheme';
 
 
-type ProfileScreen =
+type ProfileModal =
   | 'personal_info'
   | 'payment_methods'
   | 'help_faq'
@@ -43,7 +42,7 @@ export default function ProfileScreen() {
   const { colors: c, darkMode, setDarkMode, language, setLanguage, t, isRTL } = useTheme();
   const S = useSplitColors();
   const styles = useMemo(() => makeStyles(c, S), [c, S]);
-  const [activeModal, setActiveModal] = useState<ProfileScreen>(null);
+  const [activeModal, setActiveModal] = useState<ProfileModal>(null);
   const { openTerms } = useLocalSearchParams<{ openTerms?: string }>();
 
   useEffect(() => {
@@ -136,7 +135,7 @@ export default function ProfileScreen() {
     .slice(0, 2)
     .toUpperCase() || 'VG';
 
-  const open = (screen: ProfileScreen) => {
+  const open = (screen: ProfileModal) => {
     Haptics.selectionAsync();
     // "My Ratings" is a full screen (exact port of the Driver app's ratings
     // screen), not a modal — navigate instead of toggling activeModal.
@@ -196,11 +195,11 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>{t('account')}</Text>
           <View style={styles.groupCard}>
             {[
-              { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileScreen },
-              { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileScreen },
-              { icon: Star, label: t('my_ratings'), value: undefined as string | undefined, screen: 'ratings_history' as ProfileScreen },
-              { icon: Gift, label: t('referral_menu_label'), value: undefined as string | undefined, screen: 'invite_friends' as ProfileScreen },
-              { icon: Shield, label: t('emergency_contact_section'), value: undefined as string | undefined, screen: 'emergency_contact' as ProfileScreen },
+              { icon: User, label: t('personal_info'), value: heroName as string | undefined, screen: 'personal_info' as ProfileModal },
+              { icon: CreditCard, label: t('payment_methods'), value: t('payment_methods_cash') as string | undefined, screen: 'payment_methods' as ProfileModal },
+              { icon: Star, label: t('my_ratings'), value: undefined as string | undefined, screen: 'ratings_history' as ProfileModal },
+              { icon: Gift, label: t('referral_menu_label'), value: undefined as string | undefined, screen: 'invite_friends' as ProfileModal },
+              { icon: Shield, label: t('emergency_contact_section'), value: undefined as string | undefined, screen: 'emergency_contact' as ProfileModal },
             ].map((item, i) => (
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}
@@ -260,8 +259,8 @@ export default function ProfileScreen() {
           <Text style={styles.sectionLabel}>{t('support')}</Text>
           <View style={styles.groupCard}>
             {[
-              { icon: HelpCircle, label: t('help_faq'), screen: 'help_faq' as ProfileScreen },
-              { icon: MessageCircle, label: t('contact_support'), screen: 'contact_support' as ProfileScreen },
+              { icon: HelpCircle, label: t('help_faq'), screen: 'help_faq' as ProfileModal },
+              { icon: MessageCircle, label: t('contact_support'), screen: 'contact_support' as ProfileModal },
             ].map((item, i) => (
               <View key={item.label}>
                 {i > 0 && <View style={styles.itemDivider} />}

@@ -5,8 +5,7 @@ import React, {
 import { AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import { showAppAlert } from '@/components/shared/AppAlertHost';
-import api from '@/src/api/client';
-import { tokenStore } from '@/src/api/client';
+import api, { tokenStore } from '@/src/api/client';
 import { getSocket, disconnectSocket } from '@/src/api/socket';
 import { onAuthEvent } from '@/src/api/authEvents';
 import { SOCKET_EVENTS } from '@/constants/socketEvents';
@@ -245,7 +244,7 @@ export function ServiceControlProvider({ children }: { children: React.ReactNode
     });
 
     return () => { sub.remove(); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   // ── Resolve user zone on mount (fail open) ────────────────────────────────
   useEffect(() => {

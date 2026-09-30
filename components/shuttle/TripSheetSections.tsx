@@ -14,8 +14,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import type { ThemeColors } from '@/constants/colors';
-import type { Route } from '@/constants/data';
-import type { DateOption } from '@/constants/data';
+import type { Route , DateOption } from '@/constants/data';
 import { formatCairoTime, shuttleStatusLabel } from '@/constants/data';
 import { Spacing } from '@/constants/spacing';
 import {

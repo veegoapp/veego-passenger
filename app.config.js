@@ -53,7 +53,7 @@ module.exports = ({ config }) => {
   const googleServicesFile = resolveGoogleServicesFile();
 
   if (!googleServicesFile) {
-    // eslint-disable-next-line no-console
+     
     console.warn(
       "\n⚠️  [veego-passenger] google-services.json NOT FOUND.\n" +
         "    Android push notifications (driver-arrived/ride-accepted alerts to a\n" +

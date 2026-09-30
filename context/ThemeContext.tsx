@@ -87,7 +87,7 @@ const overlayStyles = StyleSheet.create({
 // mirroring unapplied.
 function triggerAppRestart(): void {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const { default: Updates } = require('expo-updates');
     (Updates.reloadAsync as () => Promise<void>)().catch(() => {
       devSettingsReload();
@@ -99,7 +99,7 @@ function triggerAppRestart(): void {
 
 function devSettingsReload(): void {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const { NativeModules } = require('react-native');
     NativeModules.DevSettings?.reload?.();
   } catch {

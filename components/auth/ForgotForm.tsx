@@ -29,14 +29,14 @@ export function ForgotForm({ onSuccess }: { onSuccess: (phone: string) => void }
   const [locked, setLocked] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
-  const [availableChannels, setAvailableChannels] = useState<Array<'whatsapp' | 'sms'>>(['whatsapp']);
+  const [availableChannels, setAvailableChannels] = useState<('whatsapp' | 'sms')[]>(['whatsapp']);
   const [channel, setChannel] = useState<'whatsapp' | 'sms'>('whatsapp');
   const inputRef = useRef<any>(null);
 
   useEffect(() => {
     api.get('/auth/otp-channels')
       .then(({ data }: { data: { whatsappEnabled: boolean; smsEnabled: boolean; defaultChannel: 'whatsapp' | 'sms' } }) => {
-        const channels: Array<'whatsapp' | 'sms'> = [];
+        const channels: ('whatsapp' | 'sms')[] = [];
         if (data.whatsappEnabled) channels.push('whatsapp');
         if (data.smsEnabled) channels.push('sms');
         if (channels.length > 0) setAvailableChannels(channels);

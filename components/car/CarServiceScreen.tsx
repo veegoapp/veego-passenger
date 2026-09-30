@@ -599,7 +599,7 @@ export const CarServiceScreen = forwardRef<CarServiceScreenHandle, CarServiceScr
       if (seq !== estimateRequestSeqRef.current) return; // superseded — discard
       setSurgeInfo(data.surgeActive ? { active: true, multiplier: data.surgeMultiplier ?? 1 } : null);
       if (serviceType === 'car') {
-        const categories: Array<{ slug: string; name: string; estimatedPrice: number }> = data.categories ?? [];
+        const categories: { slug: string; name: string; estimatedPrice: number }[] = data.categories ?? [];
         setEstimate({
           categories: categories.map((cat) => ({ slug: cat.slug, name: cat.name, price: cat.estimatedPrice })),
         });

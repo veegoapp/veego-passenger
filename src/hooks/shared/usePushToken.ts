@@ -40,7 +40,7 @@ async function registerPushToken(): Promise<string | null> {
   }
 }
 
-export function usePushToken() {
+export function usePushToken(enabled = true) {
   const registered = useRef(false);
   const { t } = useTheme();
   // ThemeProvider defaults to English and hydrates the saved language from
@@ -57,7 +57,7 @@ export function usePushToken() {
   tRef.current = t;
 
   useEffect(() => {
-    if (registered.current) return;
+    if (!enabled || registered.current) return;
     registered.current = true;
 
     registerPushToken().then(async (token) => {
@@ -88,5 +88,5 @@ export function usePushToken() {
     return () => {
       foregroundSub.remove();
     };
-  }, []);
+  }, [enabled]);
 }

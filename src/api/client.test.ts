@@ -6,9 +6,13 @@
 // variable it reads has been assigned. The mock instance/spies are
 // therefore attached to the mocked module itself and pulled back out via
 // `require('axios')` below.
+import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
+import { tokenStore } from './client';
+
 jest.mock('axios', () => {
-  const mockRequestInterceptors: Array<(config: any) => any> = [];
-  const mockResponseInterceptors: Array<{ onFulfilled: (r: any) => any; onRejected: (e: any) => any }> = [];
+  const mockRequestInterceptors: ((config: any) => any)[] = [];
+  const mockResponseInterceptors: { onFulfilled: (r: any) => any; onRejected: (e: any) => any }[] = [];
   const mockAxiosPost = jest.fn();
   const mockAxiosInstance: any = jest.fn((config: any) => mockAxiosInstance._retryImpl(config));
   mockAxiosInstance.interceptors = {
@@ -36,10 +40,6 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn() },
 }));
-
-import * as SecureStore from 'expo-secure-store';
-import { router } from 'expo-router';
-import { tokenStore } from './client';
 
 const { mockRequestInterceptors, mockResponseInterceptors, mockAxiosPost, mockAxiosInstance } =
   (jest.requireMock('axios') as any).__mock;
