@@ -10,6 +10,7 @@ import { usePassengerTracking } from '../shared/usePassengerTracking';
 import { PASSENGER_RIDE_LOCATION_TASK } from '../shared/backgroundLocationTask';
 import { SOCKET_EVENTS } from '../../../constants/socketEvents';
 import { useActiveSession } from '../../../context/ActiveSessionContext';
+import { useServiceControl } from '../../../context/ServiceControlContext';
 import { selectActiveRide } from '../../session/activeRideSelectors';
 import {
   mergePaymentStatus,
@@ -95,7 +96,11 @@ const RideStatusChangedSchema = z.object({
   meta: z.record(z.string(), z.unknown()).optional(),
 });
 
+// zoneId: a number targets that zone, null targets pickups outside every zone,
+// and a missing zoneId (manual override) applies everywhere.
 const SurgeUpdatedSchema = z.object({
+  vehicleType: z.string().optional(),
+  zoneId: z.number().nullable().optional(),
   multiplier: z.number().optional(),
 });
 
@@ -245,6 +250,9 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   // Consume the centralized session state. This is the source of truth for
   // recovery and for ongoing state syncs triggered by session:snapshot events.
   const { session, refreshActiveSession } = useActiveSession();
+  const { userZoneId } = useServiceControl();
+  const userZoneIdRef = useRef(userZoneId);
+  useEffect(() => { userZoneIdRef.current = userZoneId; }, [userZoneId]);
   const activeRideSnapshot = useMemo(() => selectActiveRide(session), [session]);
 
   const stopPolling = useCallback(() => {
@@ -538,7 +546,10 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     const onSurgeUpdated = (raw: unknown) => {
       const parsed = SurgeUpdatedSchema.safeParse(raw);
       if (!parsed.success) { console.warn('[Socket] Invalid surge:updated payload'); return; }
-      setRideState((prev) => ({ ...prev, surgeMultiplier: parsed.data.multiplier ?? prev.surgeMultiplier }));
+      const { vehicleType, zoneId, multiplier } = parsed.data;
+      if (vehicleType && serviceType && vehicleType !== serviceType) return;
+      if (zoneId !== undefined && zoneId !== userZoneIdRef.current) return;
+      setRideState((prev) => ({ ...prev, surgeMultiplier: multiplier ?? prev.surgeMultiplier }));
     };
 
     const onDeviationWarning = (raw: unknown) => {
@@ -651,7 +662,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       socketListening.current = false;
       socketCleanupRef.current = null;
     }
-  }, [stopPolling, refreshActiveSession]);
+  }, [stopPolling, refreshActiveSession, serviceType]);
 
   const requestRide = useCallback(async (payload: {
     type: 'car' | 'scooter' | 'delivery';
