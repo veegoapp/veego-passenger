@@ -47,7 +47,7 @@ const ServiceControlContext = createContext<ServiceControlContextType>({
 
 // ─── Zone resolution ──────────────────────────────────────────────────────────
 
-async function resolveUserZoneId(
+export async function resolveUserZoneId(
   latitude: number,
   longitude: number,
 ): Promise<number | null> {
@@ -56,7 +56,7 @@ async function resolveUserZoneId(
       params: { lat: latitude, lng: longitude },
       timeout: 8000,
     });
-    const id = data?.data?.id ?? data?.id ?? data?.zone_id ?? data?.zoneId ?? null;
+    const id = data?.zone?.id ?? null;
     return typeof id === 'number' ? id : null;
   } catch {
     return null;

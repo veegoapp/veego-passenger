@@ -10,7 +10,7 @@ import { usePassengerTracking } from '../shared/usePassengerTracking';
 import { PASSENGER_RIDE_LOCATION_TASK } from '../shared/backgroundLocationTask';
 import { SOCKET_EVENTS } from '../../../constants/socketEvents';
 import { useActiveSession } from '../../../context/ActiveSessionContext';
-import { useServiceControl } from '../../../context/ServiceControlContext';
+import { resolveUserZoneId } from '../../../context/ServiceControlContext';
 import { selectActiveRide } from '../../session/activeRideSelectors';
 import {
   mergePaymentStatus,
@@ -250,9 +250,13 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
   // Consume the centralized session state. This is the source of truth for
   // recovery and for ongoing state syncs triggered by session:snapshot events.
   const { session, refreshActiveSession } = useActiveSession();
-  const { userZoneId } = useServiceControl();
-  const userZoneIdRef = useRef(userZoneId);
-  useEffect(() => { userZoneIdRef.current = userZoneId; }, [userZoneId]);
+  // Zone of the current ride's pickup point — surge:updated events for other
+  // zones don't apply to this ride. undefined until the lookup resolves.
+  const pickupZoneIdRef = useRef<number | null | undefined>(undefined);
+  const trackPickupZone = useCallback((latitude: number, longitude: number) => {
+    pickupZoneIdRef.current = undefined;
+    resolveUserZoneId(latitude, longitude).then((id) => { pickupZoneIdRef.current = id; });
+  }, []);
   const activeRideSnapshot = useMemo(() => selectActiveRide(session), [session]);
 
   const stopPolling = useCallback(() => {
@@ -548,7 +552,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       if (!parsed.success) { console.warn('[Socket] Invalid surge:updated payload'); return; }
       const { vehicleType, zoneId, multiplier } = parsed.data;
       if (vehicleType && serviceType && vehicleType !== serviceType) return;
-      if (zoneId !== undefined && zoneId !== userZoneIdRef.current) return;
+      if (zoneId !== undefined && zoneId !== pickupZoneIdRef.current) return;
       setRideState((prev) => ({ ...prev, surgeMultiplier: multiplier ?? prev.surgeMultiplier }));
     };
 
@@ -684,6 +688,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       }
       const rideId = String(rawId);
       setRideState((prev) => ({ ...prev, rideId, status: 'searching' }));
+      trackPickupZone(payload.pickup.latitude, payload.pickup.longitude);
       await setupSocketListeners(rideId);
       startPolling(rideId);
       // Sync ActiveSessionContext so ActiveRideBanner (and any other global
@@ -708,7 +713,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
     } finally {
       setRequesting(false);
     }
-  }, [setupSocketListeners, startPolling, stopPolling, refreshActiveSession]);
+  }, [setupSocketListeners, startPolling, stopPolling, refreshActiveSession, trackPickupZone]);
 
   const cancelRide = useCallback(async (reason?: string): Promise<{
     success: boolean;
@@ -804,6 +809,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
         : prev.waitingCharge,
     }));
 
+    trackPickupZone(activeRideSnapshot.pickup.latitude, activeRideSnapshot.pickup.longitude);
     await setupSocketListeners(rideId);
     startPolling(rideId);
 
@@ -817,7 +823,7 @@ export function useRide(serviceType?: 'car' | 'scooter' | 'delivery'): UseRideRe
       dropoffLatitude: activeRideSnapshot.dropoff.latitude,
       dropoffLongitude: activeRideSnapshot.dropoff.longitude,
     };
-  }, [activeRideSnapshot, serviceType, setupSocketListeners, startPolling]);
+  }, [activeRideSnapshot, serviceType, setupSocketListeners, startPolling, trackPickupZone]);
 
   useEffect(() => {
     return () => {

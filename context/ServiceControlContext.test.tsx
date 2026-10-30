@@ -228,7 +228,7 @@ describe('ServiceControlContext (passenger)', () => {
     Location.getForegroundPermissionsAsync.mockResolvedValue({ status: 'granted' });
     Location.getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 1, longitude: 2 } });
     api.get.mockImplementation((url: string) => {
-      if (url === '/zones/locate') return Promise.resolve({ data: { data: { id: 99 } } });
+      if (url === '/zones/locate') return Promise.resolve({ data: { zone: { id: 99 } } });
       return Promise.resolve({ data: { data: [shuttleControl({ activeZoneIds: [1, 2] })] } });
     });
     tokenStore.getToken.mockResolvedValue('existing-token');
